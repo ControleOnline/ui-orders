@@ -44,7 +44,7 @@
   </q-page>
 </template>
 <script>
-import DefaultDetail from "@controleonline/quasar-default-ui/src/components/Default/Common/DefaultDetail.vue";
+import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
 
 import { mapActions, mapGetters } from "vuex";
