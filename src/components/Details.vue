@@ -50,7 +50,7 @@
 <script>
 import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
-import InvoiceTax from "@controleonline/ui-financial/src/components/Invoice";
+import InvoiceTax from "@controleonline/ui-accounting/src/components/InvoiceTax";
 
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
