@@ -6,7 +6,7 @@
         <q-card-section>
           <div
             class="q-card q-pa-sm"
-            style="max-width: calc(var(--zoom-width) - 30px)"
+           
           >
             <DefaultDetail
               :configs="configs"
@@ -25,6 +25,7 @@
               v-model="tab"
             >
               <q-tab name="invoice" icon="tab" :label="$t('Invoices')" />
+              <q-tab name="invoice_tax" icon="tab" :label="$t('Invoice Tax')" />
             </q-tabs>
             <q-tab-panels
               v-model="tab"
@@ -36,6 +37,9 @@
               <q-tab-panel class="items-center" name="invoice">
                 <Invoice :orderId="orderId" :context="context" v-if="orderId" />
               </q-tab-panel>
+              <q-tab-panel class="items-center" name="invoice_tax">
+                <InvoiceTax :orderId="orderId" :context="context" v-if="orderId" />
+              </q-tab-panel>
             </q-tab-panels>
           </div>
         </q-card-section>
@@ -46,6 +50,7 @@
 <script>
 import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
+import InvoiceTax from "@controleonline/ui-financial/src/components/Invoice";
 
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
@@ -54,6 +59,7 @@ export default {
   components: {
     DefaultDetail,
     Invoice,
+    InvoiceTax
   },
   props: {
     context: {
