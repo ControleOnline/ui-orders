@@ -1,13 +1,14 @@
 import FormPayment from "@controleonline/ui-orders/src/components/Cielo/FormPayment.vue";
 
-export default function getConfigs(context, myCompany,invoiceId) {
-  return{
+export default function getConfigs(context, myCompany, invoiceId) {
+  return {
     companyParam: invoiceId
       ? false
       : context == "sales"
       ? "provider"
       : "client",
     filters: true,
+    status: ["order"],
     store: "orders",
     add: true,
     delete: false,

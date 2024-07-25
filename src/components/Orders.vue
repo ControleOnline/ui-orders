@@ -4,13 +4,11 @@
 <script>
 import DefaultTable from "@controleonline/ui-default/src/components/Default/DefaultTable";
 import { mapActions, mapGetters } from "vuex";
-import Status from "@controleonline/ui-common/src/components/Status/Button";
 import OtherInformations from "./OtherInformations/Button";
 import getConfigs from "./Configs";
 export default {
   components: {
     DefaultTable,
-    Status,
     OtherInformations,
   },
   props: {
