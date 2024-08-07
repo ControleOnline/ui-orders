@@ -3,6 +3,8 @@
 </template>
 <script>
 import DefaultTable from "@controleonline/ui-default/src/components/Default/DefaultTable";
+import * as DefaultFiltersMethods from "@controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods.js";
+
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
 export default {
@@ -22,7 +24,7 @@ export default {
     },
     peopleId: {
       required: false,
-    }
+    },
   },
   computed: {
     ...mapGetters({
@@ -43,6 +45,9 @@ export default {
       }
       return config;
     },
+    filters() {
+      return this.$store.getters[this.configs.store + "/filters"] || {};
+    },
   },
   data() {
     return {
@@ -50,21 +55,20 @@ export default {
     };
   },
   created() {
+    this.loadPersistentFilters();
     this.setColumns();
     this.setFilters();
   },
   methods: {
+    ...DefaultFiltersMethods,
     setFilters() {
-      let filters = {};
+      let filters = this.$copyObject(this.filters);
 
-      if (this.invoiceId) {
-        filters.invoiceId = this.invoiceId;
-      }
-      //ID People - Filtragem:
-      if (this.peopleId) {
-        filters.people = "/people/" + this.peopleId;
-      }
+      if (!filters.order) filters.order = { alterDate: "DESC" };
+      if (this.invoiceId) filters.invoiceId = this.invoiceId;
+      if (this.peopleId) filters.people = "/people/" + this.peopleId;
       this.$store.commit(this.configs.store + "/SET_FILTERS", filters);
+
       this.loaded = true;
     },
 
@@ -84,9 +88,7 @@ export default {
       if (columnIdIndex !== -1) {
         columns[columnIdIndex].to = (value) => {
           let route =
-            this.context === "sales"
-              ? "OrderDetails"
-              : "OrderDetails";
+            this.context === "sales" ? "OrderDetails" : "OrderDetails";
           return {
             name: route,
             params: {
