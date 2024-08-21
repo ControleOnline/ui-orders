@@ -15,6 +15,8 @@ export default {
     filters: {},
     columns: [
       {
+        externalFilter:true,
+        //filter:false,
         isIdentity: true,
         sortable: true,
         name: "id",

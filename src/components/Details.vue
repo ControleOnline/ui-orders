@@ -4,10 +4,11 @@
     <div class="q-pt-lg">
       <q-card>
         <q-card-section>
-          <div
-            class="q-card q-pa-sm"
-           
-          >
+          <div class="q-card q-pa-sm">
+
+          {{ order }}
+<!--{{ orderId}} -->
+
             <DefaultDetail
               :configs="configs"
               :id="orderId"
@@ -26,6 +27,8 @@
             >
               <q-tab name="invoice" icon="tab" :label="$t('Invoices')" />
               <q-tab name="invoice_tax" icon="tab" :label="$t('Invoice Tax')" />
+              <q-tab name="products" icon="tab" :label="$t('Products')" />
+
             </q-tabs>
             <q-tab-panels
               v-model="tab"
@@ -40,6 +43,9 @@
               <q-tab-panel class="items-center" name="invoice_tax">
                 <InvoiceTax :orderId="orderId" :context="context" v-if="orderId" />
               </q-tab-panel>
+              <q-tab-panel class="items-center" name="products">
+                <Products :orderId="orderId" :context="context" v-if="orderId" />
+              </q-tab-panel>
             </q-tab-panels>
           </div>
         </q-card-section>
@@ -51,6 +57,7 @@
 import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
 import InvoiceTax from "@controleonline/ui-accounting/src/components/InvoiceTax";
+import Products from "./Products"
 
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
@@ -59,7 +66,8 @@ export default {
   components: {
     DefaultDetail,
     Invoice,
-    InvoiceTax
+    InvoiceTax,
+    Products
   },
   props: {
     context: {
@@ -70,6 +78,7 @@ export default {
     ...mapGetters({
       myCompany: "people/currentCompany",
       columns: "invoice/columns",
+      order:"orders/item"
     }),
     configs() {
       let config = getConfigs(this.context, this.myCompany);
