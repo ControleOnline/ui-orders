@@ -1,6 +1,8 @@
 // This is just an example,
 // so you can safely delete all default props below
 
+import product_orders from "../../store/product_orders";
+
 export const translate = {
   orders: {
     input: {
@@ -13,4 +15,11 @@ export const translate = {
       orderType: "Tipo de Pedido",
     },
   },
+  product_orders: {
+    input: {
+      product: "Nome",
+      quantity: "Quantidade",
+      total: "Total",
+    },
+  },  
 };

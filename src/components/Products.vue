@@ -4,6 +4,7 @@
 <script>
 import DefaultTable from "@controleonline/ui-default/src/components/Default/DefaultTable";
 import { mapActions, mapGetters } from "vuex";
+import * as DefaultFiltersMethods from "@controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods";
 
 export default {
     components: {
@@ -17,9 +18,9 @@ export default {
             type: Boolean,
             required: true,
         },
-        invoiceId: {
-            required: false,
-        },
+        orderId: {
+            required: true,
+        },        
         peopleId: {
             required: false,
         },
@@ -35,9 +36,9 @@ export default {
                 filters: true,
                 "full-height": false,
                 store: "product_orders",
-                editable:false,
+                editable: false,
                 add: true,
-                delete: false,
+                delete: true,
                 selection: false,
                 search: true,
             };
@@ -52,9 +53,10 @@ export default {
         };
     },
     created() {
-
+        this.addFilter("order",'orders/'+ this.orderId);
     },
     methods: {
-    },
+    ...DefaultFiltersMethods,
+  },
 };
 </script>

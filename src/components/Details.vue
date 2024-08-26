@@ -6,8 +6,8 @@
         <q-card-section>
           <div class="q-card q-pa-sm">
 
-          {{ order }}
-<!--{{ orderId}} -->
+  
+<!-- anotação do novato Gaffo {{ order}} -->
 
             <DefaultDetail
               :configs="configs"
