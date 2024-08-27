@@ -12,6 +12,8 @@
             <DefaultDetail
               :configs="configs"
               :id="orderId"
+              :cardClass="'full-width'" 
+              :sectionClass="'full-width'"
               v-if="orderId"
             />
             <q-tabs
