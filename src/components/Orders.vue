@@ -63,10 +63,11 @@ export default {
     ...DefaultFiltersMethods,
     setFilters() {
       let filters = this.$copyObject(this.filters);
+      let field = this.context == "sales" ? "client" : "provider";
 
       if (!filters.order) filters.order = { alterDate: "DESC" };
       if (this.invoiceId) filters.invoiceId = this.invoiceId;
-      if (this.peopleId) filters.people = "/people/" + this.peopleId;
+      if (this.peopleId) filters[field] = "/people/" + this.peopleId;
       this.$store.commit(this.configs.store + "/SET_FILTERS", filters);
 
       this.loaded = true;
