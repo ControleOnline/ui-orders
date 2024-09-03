@@ -2,13 +2,13 @@
     <DefaultTable :configs="configs"  />
 </template>
 <script>
-import DefaultTable from "@controleonline/ui-default/src/components/Default/DefaultTable";
+
 import { mapActions, mapGetters } from "vuex";
 import * as DefaultFiltersMethods from "@controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods";
 
 export default {
     components: {
-        DefaultTable,
+        
     },
     props: {
         context: {
