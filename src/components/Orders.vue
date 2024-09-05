@@ -2,14 +2,14 @@
   <DefaultTable :configs="configs" v-if="loaded" />
 </template>
 <script>
-import DefaultTable from "@controleonline/ui-default/src/components/Default/DefaultTable";
+
 import * as DefaultFiltersMethods from "@controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods.js";
 
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
 export default {
   components: {
-    DefaultTable,
+    
   },
   props: {
     context: {
