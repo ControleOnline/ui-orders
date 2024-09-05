@@ -29,7 +29,7 @@ export default {
       {
         sortable: true,
         name: "app",
-        editable: false,
+        editable: true,
         label: "app",
         align: "left",
         format(value, column, row) {
