@@ -6,10 +6,7 @@
         <q-card-section>
           <div class="q-card q-pa-sm">
 
-  
-<!-- anotação do novato Gaffo {{ order}} -->
-
-            <DefaultDetail
+              <DefaultDetail
               :configs="configs"
               :id="orderId"
               :cardClass="'full-width'" 
