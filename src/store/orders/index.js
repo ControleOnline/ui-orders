@@ -55,7 +55,7 @@ export default {
         searchParam: "status",
         externalFilter: true,
         style: function (row) {
-          return { color: row.status.color };
+          return { color: row?.status?.color };
         },
         format: function (value) {
           return value?.status;
