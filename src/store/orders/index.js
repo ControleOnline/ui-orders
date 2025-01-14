@@ -15,7 +15,7 @@ export default {
     filters: {},
     columns: [
       {
-        externalFilter:true,
+        externalFilter: false,
         //filter:false,
         isIdentity: true,
         sortable: true,
@@ -53,7 +53,7 @@ export default {
         label: "status",
         list: "status/getItems",
         searchParam: "status",
-        externalFilter: true,
+        externalFilter: false,
         style: function (row) {
           return { color: row?.status?.color };
         },
@@ -93,14 +93,14 @@ export default {
         },
       },
       {
-        externalFilter: true,
+
         inputType: "date-range",
         sortable: true,
         editable: false,
         name: "orderDate",
         align: "center",
         label: "orderDate",
-        externalFilter: true,
+        externalFilter: false,
         saveFormat: function (value) {
           return undefined;
         },
