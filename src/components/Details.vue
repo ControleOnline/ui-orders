@@ -1,18 +1,56 @@
 <template>
   <q-page>
-    <!-- Inicio das Abas -->
     <div class="q-pt-lg">
+      <q-card>
+        <q-card-section class="bg-primary text-white">
+          <div class="text-h6">Detalhes do pedido</div>
+        </q-card-section>
+        <q-card-section>
+          <q-list bordered>
+            <q-item>
+              <q-item-section>
+                <q-item-label>Pedição #{{ orderId }}</q-item-label>
+                <q-item-label caption>Horário 16:24</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-badge color="red" text-color="white">Pendente</q-badge>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+      </q-card>
+      <div class="row q-col-gutter-md">
+        <q-card class="col">
+          <q-card-section>
+            <q-item>
+              <q-item-section>
+                <q-item-label class="text-bold">Cliente</q-item-label>
+                <q-item-label>LEANDRO - Cliente novo!</q-item-label>
+                <q-item-label caption>0800 888-8888 #012345</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-card-section>
+        </q-card>
+        <q-card class="col">
+          <q-card-section>
+            <q-item>
+              <q-item-section>
+                <q-item-label class="text-bold"
+                  >Endereço de entrega</q-item-label
+                >
+                <q-item-label>13000-000</q-item-label>
+                <q-item-label caption
+                  >Rua Paraíso - Bairro Feliz, Campinas - SP</q-item-label
+                >
+                <q-item-label caption>Apartamento 9000</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-card-section>
+        </q-card>
+      </div>
       <q-card>
         <q-card-section>
           <div class="q-card q-pa-sm">
-
-              <DefaultDetail
-              :configs="configs"
-              :id="orderId"
-              :cardClass="'full-width'" 
-              :sectionClass="'full-width'"
-              v-if="orderId"
-            />
             <q-tabs
               inline-label
               no-caps
@@ -24,10 +62,9 @@
               indicator-color="primary"
               v-model="tab"
             >
+              <q-tab name="products" icon="tab" :label="$t('Products')" />
               <q-tab name="invoice" icon="tab" :label="$t('Invoices')" />
               <q-tab name="invoice_tax" icon="tab" :label="$t('Invoice Tax')" />
-              <q-tab name="products" icon="tab" :label="$t('Products')" />
-
             </q-tabs>
             <q-tab-panels
               v-model="tab"
@@ -36,14 +73,22 @@
               transition-prev="jump-up"
               transition-next="jump-up"
             >
+              <q-tab-panel class="items-center" name="products">
+                <Products
+                  :orderId="orderId"
+                  :context="context"
+                  v-if="orderId"
+                />
+              </q-tab-panel>
               <q-tab-panel class="items-center" name="invoice">
                 <Invoice :orderId="orderId" :context="context" v-if="orderId" />
               </q-tab-panel>
               <q-tab-panel class="items-center" name="invoice_tax">
-                <InvoiceTax :orderId="orderId" :context="context" v-if="orderId" />
-              </q-tab-panel>
-              <q-tab-panel class="items-center" name="products">
-                <Products :orderId="orderId" :context="context" v-if="orderId" />
+                <InvoiceTax
+                  :orderId="orderId"
+                  :context="context"
+                  v-if="orderId"
+                />
               </q-tab-panel>
             </q-tab-panels>
           </div>
@@ -56,7 +101,7 @@
 import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
 import InvoiceTax from "@controleonline/ui-accounting/src/components/InvoiceTax";
-import Products from "./Products"
+import Products from "./Products";
 
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
@@ -66,7 +111,7 @@ export default {
     DefaultDetail,
     Invoice,
     InvoiceTax,
-    Products
+    Products,
   },
   props: {
     context: {
@@ -77,7 +122,7 @@ export default {
     ...mapGetters({
       myCompany: "people/currentCompany",
       columns: "invoice/columns",
-      order:"orders/item"
+      order: "orders/item",
     }),
     configs() {
       let config = getConfigs(this.context, this.myCompany);
@@ -88,15 +133,13 @@ export default {
   },
   data() {
     return {
-      tab: "invoice",
+      tab: "products",
       orderId: null,
     };
   },
   created() {
     this.orderId = decodeURIComponent(this.$route.params.id);
   },
-  methods: {
-
-  },
+  methods: {},
 };
 </script>
