@@ -41,13 +41,13 @@ export default {
         label: "product",
         align: "left",
         format(value, column, row) {
-          return (row.product?.sku ? row.product?.sku + ' - ' : '') + row.product.product;
+          return (value?.sku ? value?.sku + " - " : "") + value?.product;
         },
         formatList: function (value, column, row) {
           if (value)
             return {
               value: value["@id"].split("/").pop(),
-              label: (value?.sku ? value?.sku + ' - ' : '') + value?.product,
+              label: (value?.sku ? value?.sku + " - " : "") + value?.product,
             };
         },
         saveFormat: function (value) {
@@ -61,7 +61,7 @@ export default {
         label: "quantity",
         align: "left",
         format(value, column, row) {
-          return row.quantity;
+          return parseFloat(value);
         },
       },
       {
@@ -71,7 +71,7 @@ export default {
         label: "price",
         align: "left",
         format(value, column, row) {
-          return value;
+          return parseFloat(value);
         },
       },
       {
@@ -82,10 +82,9 @@ export default {
         sum: true,
         align: "left",
         format(value, column, row) {
-          value = parseFloat(row.price) * parseFloat(row.quantity);
           return parseFloat(value);
         },
-      },      
+      },
     ],
   },
 
@@ -93,4 +92,3 @@ export default {
   getters,
   mutations,
 };
-

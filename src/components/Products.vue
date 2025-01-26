@@ -28,7 +28,7 @@ export default {
     computed: {
         ...mapGetters({
             myCompany: "people/currentCompany",
-            columns: "orders/columns",
+            columns: "product_orders/columns",
         }),
 
         configs() {

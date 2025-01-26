@@ -10,9 +10,28 @@
             <q-item>
               <q-item-section>
                 <q-item-label>Pedição #{{ orderId }}</q-item-label>
-                <q-item-label caption>Horário 16:24</q-item-label>
+                <q-item-label caption>
+                  <DefaultInput
+                  v-if="order"
+                  columnName="orderDate"
+                  :row="order"
+                  :configs="configs"
+                  @saved="saved"
+                  @loadData="loadData"
+                />
+
+
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
+                <DefaultInput
+                  v-if="order"
+                  columnName="status"
+                  :row="order"
+                  :configs="configs"
+                  @saved="saved"
+                  @loadData="loadData"
+                />
                 <q-badge color="red" text-color="white">Pendente</q-badge>
               </q-item-section>
             </q-item>
@@ -25,7 +44,16 @@
             <q-item>
               <q-item-section>
                 <q-item-label class="text-bold">Cliente</q-item-label>
-                <q-item-label>LEANDRO - Cliente novo!</q-item-label>
+                <q-item-label>
+                  <DefaultInput
+                    v-if="order"
+                    columnName="client"
+                    :row="order"
+                    :configs="configs"
+                    @saved="saved"
+                    @loadData="loadData"
+                  />
+                </q-item-label>
                 <q-item-label caption>0800 888-8888 #012345</q-item-label>
               </q-item-section>
             </q-item>
@@ -102,13 +130,14 @@ import DefaultDetail from "@controleonline/ui-default/src/components/Default/Com
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
 import InvoiceTax from "@controleonline/ui-accounting/src/components/InvoiceTax";
 import Products from "./Products";
-
+import DefaultInput from "@controleonline/ui-default/src/components/Default/DefaultInput.vue";
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
 
 export default {
   components: {
     DefaultDetail,
+    DefaultInput,
     Invoice,
     InvoiceTax,
     Products,
@@ -121,7 +150,7 @@ export default {
   computed: {
     ...mapGetters({
       myCompany: "people/currentCompany",
-      columns: "invoice/columns",
+      columns: "orders/columns",
       order: "orders/item",
     }),
     configs() {
@@ -139,7 +168,23 @@ export default {
   },
   created() {
     this.orderId = decodeURIComponent(this.$route.params.id);
+    this.init();
   },
-  methods: {},
+  methods: {
+    ...mapActions({
+      getOrder: "orders/get",
+    }),
+    init() {
+      this.getOrder(this.orderId).then(() => {
+        this.$store.commit(this.configs.store + "/SET_ITEMS", [this.order]);
+      });
+    },
+    saved(data) {
+      this.$store.commit(this.configs.store + "/SET_ITEMS", data);
+      this.$store.commit(this.configs.store + "/SET_ITEM", data[0]);
+
+      this.$emit("saved", data);
+    },
+  },
 };
 </script>
