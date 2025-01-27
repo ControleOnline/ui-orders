@@ -40,7 +40,7 @@ export default {
                 add: true,
                 delete: true,
                 selection: false,
-                search: true,
+                search: false,
             };
         },
         filters() {

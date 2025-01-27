@@ -12,71 +12,72 @@
                 <q-item-label>Pedição #{{ orderId }}</q-item-label>
                 <q-item-label caption>
                   <DefaultInput
-                  v-if="order"
-                  columnName="orderDate"
-                  :row="order"
-                  :configs="configs"
-                  @saved="saved"
-                  @loadData="loadData"
-                />
-
-
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <DefaultInput
-                  v-if="order"
-                  columnName="status"
-                  :row="order"
-                  :configs="configs"
-                  @saved="saved"
-                  @loadData="loadData"
-                />
-                <q-badge color="red" text-color="white">Pendente</q-badge>
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
-      </q-card>
-      <div class="row q-col-gutter-md">
-        <q-card class="col">
-          <q-card-section>
-            <q-item>
-              <q-item-section>
-                <q-item-label class="text-bold">Cliente</q-item-label>
-                <q-item-label>
-                  <DefaultInput
                     v-if="order"
-                    columnName="client"
+                    columnName="orderDate"
                     :row="order"
                     :configs="configs"
                     @saved="saved"
                     @loadData="loadData"
                   />
                 </q-item-label>
-                <q-item-label caption>0800 888-8888 #012345</q-item-label>
+              </q-item-section>
+              <q-item-section side v-if="order">
+                <q-badge color="white" :text-color="order.status.color">
+                  <DefaultInput
+                    columnName="status"
+                    :row="order"
+                    :configs="configs"
+                    @saved="saved"
+                    @loadData="loadData"
+                /></q-badge>
               </q-item-section>
             </q-item>
-          </q-card-section>
-        </q-card>
-        <q-card class="col">
-          <q-card-section>
-            <q-item>
-              <q-item-section>
-                <q-item-label class="text-bold"
-                  >Endereço de entrega</q-item-label
-                >
-                <q-item-label>13000-000</q-item-label>
-                <q-item-label caption
-                  >Rua Paraíso - Bairro Feliz, Campinas - SP</q-item-label
-                >
-                <q-item-label caption>Apartamento 9000</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-card-section>
-        </q-card>
-      </div>
-      <q-card>
+          </q-list>
+        </q-card-section>
+
+        <q-card-section>
+
+          <div class="row q-col-gutter-md">
+            <div class="col-xs-12 col-sm-6">
+              <q-list bordered>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="text-bold">Cliente</q-item-label>
+                  <q-item-label>
+                    <DefaultInput
+                      v-if="order"
+                      columnName="client"
+                      :row="order"
+                      :configs="configs"
+                      @saved="saved"
+                      @loadData="loadData"
+                    />
+                  </q-item-label>
+                  <q-item-label caption>0800 888-8888 #012345</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+            </div>
+            <div class="col-xs-12 col-sm-6">
+              <q-list bordered>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="text-bold"
+                    >Endereço de entrega</q-item-label
+                  >
+                  <q-item-label>13000-000</q-item-label>
+                  <q-item-label caption
+                    >Rua Paraíso - Bairro Feliz, Campinas - SP</q-item-label
+                  >
+                  <q-item-label caption>Apartamento 9000</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+            </div>
+          </div>
+ 
+        </q-card-section>
+
         <q-card-section>
           <div class="q-card q-pa-sm">
             <q-tabs

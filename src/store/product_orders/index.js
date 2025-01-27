@@ -68,21 +68,23 @@ export default {
         sortable: true,
         editable: true,
         name: "price",
+        prefix: "R$ ",
         label: "price",
         align: "left",
-        format(value, column, row) {
-          return parseFloat(value);
+        format(value) {
+          return Formatter.formatMoney(value);
         },
       },
       {
         sortable: true,
         editable: false,
         name: "total",
+        prefix: "R$ ",
         label: "total",
         sum: true,
         align: "left",
-        format(value, column, row) {
-          return parseFloat(value);
+        format(value) {
+          return Formatter.formatMoney(value);
         },
       },
     ],
