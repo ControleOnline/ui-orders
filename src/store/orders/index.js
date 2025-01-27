@@ -2,7 +2,7 @@ import * as actions from "@controleonline/ui-default/src/store/default/actions";
 import * as getters from "@controleonline/ui-default/src/store/default/getters";
 import mutations from "@controleonline/ui-default/src/store/default/mutations";
 import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
-
+import { formatList } from "app/modules/controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods";
 
 export default {
   namespaced: true,
@@ -93,7 +93,31 @@ export default {
         },
       },
       {
+        inputType: "address",
+        sortable: true,
+        editable: true,
+        name: "addressDestination",
+        align: "center",
+        label: "addressDestination",
+        externalFilter: false,
+        list: "address/getItems",
+        saveFormat: function (data) {
+          return data ? "addresses/" + data : null;
+        },
+        formatList: function (data) {
+          if (!data) return null;
 
+          return {
+            value: data["@id"].split("/").pop(),
+            label: `${data.nickname} - ${data.street.street}, ${data.number} - ${data.street.district.district} - ${data.street.district.city.city} - ${data.street.district.city.state.uf} - ${data.street.cep.cep} - ${data.street.district.city.state.country.countryname}`,
+          };
+        },
+        format: function (data) {
+          if (!data) return null;
+          return `${data.nickname} - ${data.street.street}, ${data.number} - ${data.street.district.district} - ${data.street.district.city.city} - ${data.street.district.city.state.uf} - ${data.street.cep.cep} - ${data.street.district.city.state.country.countryname}`;
+        },
+      },
+      {
         inputType: "date-range",
         sortable: true,
         editable: false,

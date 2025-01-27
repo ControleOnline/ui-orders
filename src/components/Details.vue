@@ -36,46 +36,48 @@
         </q-card-section>
 
         <q-card-section>
-
           <div class="row q-col-gutter-md">
             <div class="col-xs-12 col-sm-6">
               <q-list bordered>
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="text-bold">Cliente</q-item-label>
-                  <q-item-label>
-                    <DefaultInput
-                      v-if="order"
-                      columnName="client"
-                      :row="order"
-                      :configs="configs"
-                      @saved="saved"
-                      @loadData="loadData"
-                    />
-                  </q-item-label>
-                  <q-item-label caption>0800 888-8888 #012345</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label class="text-bold">Cliente</q-item-label>
+                    <q-item-label>
+                      <DefaultInput
+                        v-if="order"
+                        columnName="client"
+                        :row="order"
+                        :configs="configs"
+                        @saved="saved"
+                        @loadData="loadData"
+                      />
+                    </q-item-label>
+                    <q-item-label caption>0800 888-8888 #012345</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
             </div>
             <div class="col-xs-12 col-sm-6">
               <q-list bordered>
-              <q-item>
-                <q-item-section>
-                  <q-item-label class="text-bold"
-                    >Endereço de entrega</q-item-label
-                  >
-                  <q-item-label>13000-000</q-item-label>
-                  <q-item-label caption
-                    >Rua Paraíso - Bairro Feliz, Campinas - SP</q-item-label
-                  >
-                  <q-item-label caption>Apartamento 9000</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label class="text-bold"
+                      >Endereço de entrega</q-item-label
+                    >
+                    <q-item-label>
+                      <DefaultInput
+                        v-if="order"
+                        columnName="addressDestination"
+                        :row="order"
+                        :configs="configs"
+                        @saved="saved"
+                        @loadData="loadData"
+                    /></q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
             </div>
           </div>
- 
         </q-card-section>
 
         <q-card-section>
@@ -155,7 +157,12 @@ export default {
       order: "orders/item",
     }),
     configs() {
-      let config = getConfigs(this.context, this.myCompany);
+      let config = getConfigs(
+        this.context,
+        this.myCompany,
+        null,
+        this.order.client.id
+      );
       config.externalFilters = false;
       config["full-height"] = false;
       return config;

@@ -1,4 +1,4 @@
-export default function getConfigs(context, myCompany, invoiceId) {
+export default function getConfigs(context, myCompany, invoiceId,peopleId) {
   return {
     companyParam: invoiceId
       ? false
@@ -17,6 +17,11 @@ export default function getConfigs(context, myCompany, invoiceId) {
         filters: {
           context: context,
           company: "/people/" + myCompany.id,
+        },
+      },
+      addressDestination: {
+        filters: {
+          people: "/people/" + peopleId,
         },
       },
       status: {
