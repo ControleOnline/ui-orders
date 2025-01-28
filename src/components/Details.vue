@@ -72,7 +72,15 @@
                         :configs="configs"
                         @saved="saved"
                         @loadData="loadData"
-                    /></q-item-label>
+                      />
+
+                      <Address
+                        v-if="order"
+                        :row="order.addressDestination"
+                        :people="order.client"
+                        :configs="configsAddress"
+                      />
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
@@ -137,6 +145,7 @@ import DefaultInput from "@controleonline/ui-default/src/components/Default/Defa
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
 
+import Address from "@controleonline/ui-people/src/components/Address/Details.vue";
 export default {
   components: {
     DefaultDetail,
@@ -144,6 +153,7 @@ export default {
     Invoice,
     InvoiceTax,
     Products,
+    Address,
   },
   props: {
     context: {
@@ -156,6 +166,11 @@ export default {
       columns: "orders/columns",
       order: "orders/item",
     }),
+    configsAddress() {
+      return {
+        store: "address"
+      };
+    },
     configs() {
       let config = getConfigs(
         this.context,
