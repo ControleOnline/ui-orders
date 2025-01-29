@@ -1,181 +1,194 @@
 <template>
-    <div>
-      <!-- Lista de Produtos -->
-      <div v-for="product in products" :key="product.id">
-        <q-card
-          @click="
-            selectedProduct = product;
-            openDialog();
-          "
-        >
-          <q-card-section>
-            <h3>{{ product.product }}</h3>
-            <p>{{ product.description }}</p>
-            <p>Preço: {{ product.price | currency }}</p>
-          </q-card-section>
-        </q-card>
-      </div>
-  
-      <!-- Diálogo de Seleção do Produto -->
-      <q-dialog v-model="showDialog">
-        <q-card style="min-width: 350px">
-          <q-card-section>
-            <div class="text-h6">
-              Seleção de Produto: {{ selectedProduct.product }}
-            </div>
-          </q-card-section>
-  
-          <q-card-section>
-            <div v-for="group in groups" :key="group.id">
-              <h2>{{ group.productGroup }}</h2>
-              <p v-if="group.required">Grupo obrigatório!</p>
-              <p v-if="group.minimum || group.maximum">
-                Escolha entre {{ group.minimum }} e {{ group.maximum }} sabores
-              </p>
-              <div v-for="product in group.products" :key="product.id">
-                <q-item @click="toggleSelection(product, group)">
-                  <q-item-section>
-                    <p>
-                      {{ product.productChild.product }} - 
-                      {{ product.productChild.price | currency }}
-                    </p>
-                    <p>{{ product.productChild.description }}</p>
-                  </q-item-section>
-                </q-item>
-              </div>
-            </div>
-          </q-card-section>
-  
-          <q-card-actions>
-            <q-btn label="Fechar" color="primary" @click="closeDialog" />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
+  <div>
+    <!-- Lista de Produtos -->
+    <div v-for="product in products" :key="product.id">
+      <q-card
+        @click="
+          selectedProduct = product;
+          openDialog();
+        "
+      >
+        <q-card-section>
+          <h3>{{ product.product }}</h3>
+          <p>{{ product.description }}</p>
+          <p>Preço: {{ product.price | currency }}</p>
+          <img :src="product.imageUrl" alt="Imagem do Produto" />
+        </q-card-section>
+      </q-card>
     </div>
-  </template>
-  
-  <script>
-  import { mapActions, mapGetters } from "vuex";
-  
-  export default {
-    props: {
-      configs: {
-        required: true,
-      },
+
+    <!-- Diálogo de Seleção do Produto -->
+    <q-dialog v-model="showDialog">
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          <div class="text-h6">
+            Seleção de Produto: {{ selectedProduct.product }} Total:
+            {{ totalPrice }}
+          </div>
+        </q-card-section>
+
+        <q-card-section>
+          <div v-for="group in groups" :key="group.id">
+            <h2>{{ group.productGroup }}</h2>
+            <p v-if="group.required">Grupo obrigatório!</p>
+            <p v-if="group.minimum && group.maximum">
+              Escolha entre {{ group.minimum }} e {{ group.maximum }} sabores
+            </p>
+            <q-option-group
+              v-model="selectedItems[group.id]"
+              type="checkbox"
+              :options="
+                getProductOptions(group).map((option) => ({
+                  ...option,
+                  disable: isMaxSelected(group, option.value), // Desabilita apenas os que não estão selecionados
+                }))
+              "
+              multiple
+              emit-value
+              map-options
+            />
+          </div>
+        </q-card-section>
+
+        <q-card-actions>
+          <q-btn label="Fechar" color="primary" @click="closeDialog" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>
+
+<script>
+import { mapActions, mapGetters } from "vuex";
+
+export default {
+  props: {
+    configs: {
+      required: true,
     },
-    data() {
-      return {
-        products: [],
-        showDialog: false,
-        groups: [],
-        selectedProduct: null,
-        selectedItems: {},
-        productGroup: [], 
-      };
+  },
+  data() {
+    return {
+      products: [],
+      showDialog: false,
+      totalPrice: 0,
+      groups: [],
+      selectedProduct: null,
+      selectedItems: [],
+    };
+  },
+  computed: {
+    ...mapGetters({
+      myCompany: "people/currentCompany",
+    }),
+    filters() {
+      return this.$copyObject(this.$store.getters["product_group/filters"]);
     },
-    computed: {
-      ...mapGetters({
-        myCompany: "people/currentCompany",
-      }),
-      filters() {
-        return this.$copyObject(this.$store.getters["product_group/filters"]);
+  },
+  created() {
+    this.init();
+  },
+  watch: {
+    selectedItems: {
+      handler() {
+        this.calculatePrice();
       },
+      deep: true,
     },
-    created() {
-      this.init();
+  },
+  methods: {
+    ...mapActions({
+      getProducts: "products/getItems",
+      getProductGroups: "product_group/getItems",
+      getProductGroupProducts: "product_group_product/getItems",
+    }),
+    init() {
+      this.getProducts({
+        type: "product",
+        company: "/people/" + this.myCompany.id,
+      }).then((response) => {
+        this.products = response;
+      });
     },
-    methods: {
-      ...mapActions({
-        getProducts: "products/getItems",
-        getProductGroups: "product_group/getItems",
-        getProductGroupProducts: "product_group_product/getItems",
-      }),
-      init() {
-        this.getProducts({
-          type: "product",
-          company: "/people/" + this.myCompany.id,
-        }).then((response) => {
-          this.products = response;
-        });
-      },
-  
-      fetchProductGroupProducts(group) {
-        let filters = {};
-        filters.productGroup = "/product_groups/" + group.id;
-        filters.company = "/people/" + this.myCompany.id;
-        filters.productType = "component";
-        return this.getProductGroupProducts(filters);
-      },
-  
-      openDialog() {
-        let filters = this.$copyObject(this.filters);
-        filters.product = this.selectedProduct.id;
-        filters.company = "/people/" + this.myCompany.id;
-        filters["product.productType"] = "component";
-        this.$store.commit("product_group/SET_FILTERS", filters);
-        this.getProductGroups(filters).then((response) => {
-          let groups = this.$copyObject(response);
-          groups.forEach((group) => {
-            this.fetchProductGroupProducts(group).then((response) => {
-              group.products = response;
-            });
+
+    fetchProductGroupProducts(group) {
+      let filters = {};
+      filters.productGroup = "/product_groups/" + group.id;
+      filters.company = "/people/" + this.myCompany.id;
+      filters.productType = "component";
+      return this.getProductGroupProducts(filters);
+    },
+
+    openDialog() {
+      let filters = this.$copyObject(this.filters);
+      filters.product = this.selectedProduct.id;
+      filters.company = "/people/" + this.myCompany.id;
+      filters["product.productType"] = "component";
+      this.$store.commit("product_group/SET_FILTERS", filters);
+      this.getProductGroups(filters).then((response) => {
+        let groups = this.$copyObject(response);
+        groups.forEach((group) => {
+          this.fetchProductGroupProducts(group).then((response) => {
+            this.selectedItems[group.id] = [];
+            group.products = response.map((product) => ({
+              ...product,
+              selected: false,
+            }));
           });
-          this.groups = groups;
-          this.showDialog = true;
         });
-      },
-  
-      closeDialog() {
-        this.showDialog = false;
-      },
-  
-      toggleSelection(product, group) {
-        if (!this.selectedItems[group.id]) {
-          this.selectedItems[group.id] = [];
-        }
-        const selected = this.selectedItems[group.id];
-        const productIndex = selected.findIndex(item => item.id === product.id);
-  
-        // Lógica para garantir que o número mínimo e máximo de produtos sejam respeitados
-        if (productIndex > -1) {
-          selected.splice(productIndex, 1); // Remover item selecionado
-        } else {
-          if (selected.length < group.maximum) {
-            selected.push(product); // Adicionar novo item
-          }
-        }
-      },
-  
-      calculateTotalPrice(group) {
-        const selectedProducts = this.selectedItems[group.id] || [];
-        let totalPrice = 0;
-  
-        if (group.priceCalculation === "biggest") {
-          // Maior preço entre os selecionados
-          totalPrice = Math.max(...selectedProducts.map(p => p.productChild.price), 0);
-        } else if (group.priceCalculation === "average") {
-          // Média dos preços selecionados
-          const sum = selectedProducts.reduce((sum, p) => sum + p.productChild.price, 0);
-          totalPrice = sum / selectedProducts.length;
-        } else if (group.priceCalculation === "sum") {
-          // Soma dos preços (para refrigerantes, por exemplo)
-          totalPrice = selectedProducts.reduce((sum, p) => sum + p.productChild.price, 0);
-        }
-  
-        return totalPrice;
-      },
+        this.groups = groups;
+        this.showDialog = true;
+      });
     },
-  };
-  </script>
-  
-  <style scoped>
-  /* Customização opcional de estilos */
-  .q-card {
-    margin-bottom: 20px;
-  }
-  
-  .q-card-section {
-    padding: 10px;
-  }
-  </style>
-  
+
+    closeDialog() {
+      this.showDialog = false;
+    },
+    calculatePrice() {},
+    getProductOptions(group) {
+      if (!Array.isArray(group.products)) {
+        return []; // Retorna um array vazio caso products não seja válido
+      }
+      return group.products.map((product) => ({
+        label: `${product.productChild.product} - ${product.productChild.price}`,
+        value: product,
+      }));
+    },
+
+    isMaxSelected(group, product) {
+      if (!group.maximum) return false;
+      const selectedGroup = this.selectedItems[group.id] || [];
+      return (
+        selectedGroup.length >= group.maximum &&
+        !selectedGroup.map((p) => p.id).includes(product.id)
+      );
+    },
+
+    isProductSelected(groupId, product) {
+      const selectedGroup = this.selectedItems[groupId] || [];
+      return !selectedGroup.includes(product.id);
+    },
+
+    getGroupLimits(groupId) {
+      const group = this.groups.find((g) => g.id === groupId);
+      return { minimum: group.minimum, maximum: group.maximum };
+    },
+  },
+};
+</script>
+
+<style scoped>
+/* Customização opcional de estilos */
+.q-card {
+  margin-bottom: 20px;
+}
+
+.q-card-section {
+  padding: 10px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+</style>
