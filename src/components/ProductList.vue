@@ -50,8 +50,17 @@
           </div>
         </q-card-section>
 
-        <q-card-actions>
-          <q-btn label="Fechar" color="primary" @click="closeDialog" />
+        <q-card-actions class="sticky-bottom bg-white">
+          <q-btn
+            :label="$tt('product_orders', 'btn', 'close')"
+            color="primary"
+            @click="closeDialog"
+          />
+          <q-btn
+            :label="$tt('product_orders', 'btn', 'add')"
+            color="primary"
+            @click="addToCart"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -110,7 +119,9 @@ export default {
         this.products = response;
       });
     },
-
+    addToCart() {
+      console.log(this.selectedItems);
+    },
     fetchProductGroupProducts(group) {
       let filters = {};
       filters.productGroup = "/product_groups/" + group.id;
