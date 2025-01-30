@@ -1,18 +1,40 @@
 <template>
   <div>
     <!-- Lista de Produtos -->
-    <div v-for="product in products" :key="product.id">
-      <q-card
-        @click="
-          selectedProduct = product;
-          openDialog();
-        "
-      >
+    <div v-for="(product, index) in products" :key="product.id">
+      <q-card>
         <q-card-section>
           <h3>{{ product.product }}</h3>
           <p>{{ product.description }}</p>
           <p>Preço: {{ product.price | currency }}</p>
           <img :src="product.imageUrl" alt="Imagem do Produto" />
+        </q-card-section>
+        <q-card-section>
+          <q-btn
+            v-if="product.type === 'custom'"
+            :label="$tt('product_orders', 'btn', 'add')"
+            color="primary"
+            @click="addCustomProduct(product)"
+          />
+          <div v-else class="row items-center">
+            <q-btn
+              input-debounce="1000"
+              flat
+              dense
+              icon="remove"
+              color="grey"
+              @click="decreaseQuantity(product, index)"
+            />
+            <span class="q-mx-md">{{ product.quantity || 0 }}</span>
+            <q-btn
+              input-debounce="1000"
+              flat
+              dense
+              icon="add"
+              color="red"
+              @click="increaseQuantity(product, index)"
+            />
+          </div>
         </q-card-section>
       </q-card>
     </div>
@@ -69,6 +91,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import debounce from "lodash/debounce";
 
 export default {
   props: {
@@ -84,6 +107,7 @@ export default {
       groups: [],
       selectedProduct: null,
       selectedItems: [],
+      isUpdating: false,
     };
   },
   computed: {
@@ -113,15 +137,38 @@ export default {
     }),
     init() {
       this.getProducts({
-        type: "product",
+        type: ["product", "custom"],
         company: "/people/" + this.myCompany.id,
       }).then((response) => {
         this.products = response;
       });
     },
-    addToCart() {
-      console.log(this.selectedItems);
+    addCustomProduct(product) {
+      this.selectedProduct = product;
+      this.openDialog();
     },
+    increaseQuantity(product, index) {
+      let cproduct = this.$copyObject(product);
+      let products = this.$copyObject(this.products);
+
+      cproduct.quantity = (cproduct.quantity || 0) + 1;
+      products[index] = cproduct;
+      this.products = products;
+      this.addToCart(index);
+    },
+    decreaseQuantity(product, index) {
+      let cproduct = this.$copyObject(product);
+      let products = this.$copyObject(this.products);
+
+      if (cproduct.quantity && cproduct.quantity >= 1) cproduct.quantity--;
+
+      products[index] = cproduct;
+      this.products = products;
+      this.addToCart(index);
+    },
+    addToCart: debounce(function (index) {
+      console.log(this.products[index]);
+    }, 500),
     fetchProductGroupProducts(group) {
       let filters = {};
       filters.productGroup = "/product_groups/" + group.id;
