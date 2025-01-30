@@ -1,73 +1,77 @@
 <template>
-    <DefaultTable :configs="configs"  />
+  <DefaultTable :configs="configs" />
 </template>
 <script>
-
 import { mapActions, mapGetters } from "vuex";
 import * as DefaultFiltersMethods from "@controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods";
 import ProductList from "./ProductList";
 
 export default {
-    components: {
-        ProductList
+  components: {
+    ProductList,
+  },
+  props: {
+    context: {
+      required: true,
     },
-    props: {
-        context: {
-            required: true,
-        },
-        loaded: {
-            type: Boolean,
-            required: true,
-        },
-        orderId: {
-            required: true,
-        },        
-        peopleId: {
-            required: false,
-        },
+    loaded: {
+      type: Boolean,
+      required: true,
     },
-    computed: {
-        ...mapGetters({
-            myCompany: "people/currentCompany",
-            columns: "product_orders/columns",
-        }),
+    orderId: {
+      required: true,
+    },
+    peopleId: {
+      required: false,
+    },
+  },
+  computed: {
+    ...mapGetters({
+      myCompany: "people/currentCompany",
+      columns: "product_orders/columns",
+    }),
 
-        configs() {
-            return {
-                filters: true,
-                "full-height": false,
+    configs() {
+      return {
+        filters: true,
+        "full-height": false,
+        store: "product_orders",
+        editable: false,
+        add: false,
+        delete: true,
+        selection: false,
+        search: false,
+        components: {
+          headerActions: [
+            {
+              component: this.$components.DefaultButtonDialog,
+              configs: {
+                component: ProductList,
                 store: "product_orders",
-                editable: false,
-                add: true,
-                delete: true,
-                selection: false,
-                search: false,
-                components: {
-          headerActions: [{
-            component: ProductList,
-            props: {
-              people: this.orderId,
+                label: "products",
+                icon: "add",
+                props: {
+                  people: this.orderId,
+                },
+              },
             },
-          }],
-          tableActions: {
-            component: ProductList,
-          },
+          ],
         },
-            };
-        },
-        filters() {
-            return this.$store.getters[this.configs.store + "/filters"] || {};
-        },
+      };
     },
-    data() {
-        return {
-            loaded: false,
-        };
+    filters() {
+      return this.$store.getters[this.configs.store + "/filters"] || {};
     },
-    created() {
-        this.addFilter("order",'orders/'+ this.orderId);
-    },
-    methods: {
+  },
+  data() {
+    return {
+      loaded: false,
+    };
+  },
+  created() {
+    this.addFilter("order", "orders/" + this.orderId);
+  },
+  methods: {
     ...DefaultFiltersMethods,
   },
 };
