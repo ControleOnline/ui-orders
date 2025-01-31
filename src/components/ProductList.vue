@@ -131,6 +131,8 @@ export default {
   },
   methods: {
     ...mapActions({
+      deleteOrderProducts: "product_orders/remove",
+      saveOrderProducts: "product_orders/save",
       getProducts: "products/getItems",
       getProductGroups: "product_group/getItems",
       getProductGroupProducts: "product_group_product/getItems",
@@ -154,7 +156,7 @@ export default {
       cproduct.quantity = (cproduct.quantity || 0) + 1;
       products[index] = cproduct;
       this.products = products;
-      this.addToCart(index);
+      this.changeCart(index);
     },
     decreaseQuantity(product, index) {
       let cproduct = this.$copyObject(product);
@@ -164,26 +166,52 @@ export default {
 
       products[index] = cproduct;
       this.products = products;
-      this.addToCart(index);
+      this.changeCart(index);
     },
     addCustomToCart() {
-      let order_product = [];
+      let order_product = {};
       this.selectedItems.forEach((group, groupId) => {
         group.forEach((product) => {
-          order_product.push({
-            parent_product_id: this.selectedProduct.id,
-            product_id: product.productChild["@id"],
+          order_product = {
+            parent_product_id: this.selectedProduct["@id"],
+            product: product.productChild["@id"],
             product_group_id: groupId,
             quantity: 1,
-            order_id: this.configs.orderId,
+            order: "/orders/" + this.configs.orderId,
+          };
+          this.save(order_product).then((result) => {
+            this.closeDialog();
+            this.$emit("loadData");
           });
         });
-
-        console.log(order_product);
       });
     },
-    addToCart: debounce(function (index) {
-      console.log(this.products[index]);
+    async save(order_product) {
+      return await this.saveOrderProducts(order_product).then((result) => {
+        return result;
+      });
+    },
+    changeCart: debounce(function (index) {
+      let quantity = this.products[index].quantity || 0;
+      if (quantity == 0 && this.products[index]?.order_products) {
+        this.deleteOrderProducts(this.products[index].order_products);
+        this.products[index].order_products = null;
+        return;
+      }
+
+      let order_product = {
+        id: this.products[index]?.order_products || null,
+        parent_product_id: null,
+        product: this.products[index]["@id"],
+        product_group_id: null,
+        quantity: quantity,
+        order: "/orders/" + this.configs.orderId,
+      };
+
+      this.save(order_product).then((result) => {
+        this.products[index].order_products = result["@id"].replace(/\D/g, "");
+        this.$emit("loadData");
+      });
     }, 500),
     fetchProductGroupProducts(group) {
       let filters = {};
