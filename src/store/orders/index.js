@@ -145,6 +145,29 @@ export default {
         },
         format: (val) => (val ? Formatter.formatDateYmdTodmY(val, true) : ""),
       },
+
+      {
+        inputType: "float",
+        filterClass: "col-2 q-pa-xs",
+        formClass: "col-6",
+        prefix: "R$ ",
+        filters: false,
+        editable: false,
+        sortable: true,
+        name: "price",
+        align: "left",
+        label: "price",
+        sum: true,
+        editFormat(value) {
+          return Formatter.formatMoney(value);
+        },
+        saveFormat(value) {
+          return Formatter.formatFloat(value);
+        },
+        format(value) {
+          return Formatter.formatMoney(value);
+        },
+      },
     ],
   },
   actions: actions,

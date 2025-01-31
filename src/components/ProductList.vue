@@ -180,8 +180,8 @@ export default {
             order: "/orders/" + this.configs.orderId,
           };
           this.save(order_product).then((result) => {
+            this.reload();
             this.closeDialog();
-            this.$emit("loadData");
           });
         });
       });
@@ -191,11 +191,17 @@ export default {
         return result;
       });
     },
+
+    reload() {
+      this.$emit("loadData");
+      this.$emit("reload");
+    },
     changeCart: debounce(function (index) {
       let quantity = this.products[index].quantity || 0;
       if (quantity == 0 && this.products[index]?.order_products) {
         this.deleteOrderProducts(this.products[index].order_products);
         this.products[index].order_products = null;
+        this.reload();
         return;
       }
 
@@ -210,7 +216,7 @@ export default {
 
       this.save(order_product).then((result) => {
         this.products[index].order_products = result["@id"].replace(/\D/g, "");
-        this.$emit("loadData");
+        this.reload();
       });
     }, 500),
     fetchProductGroupProducts(group) {

@@ -66,7 +66,7 @@ export default {
       },
       {
         sortable: true,
-        editable: true,
+        editable: false,
         name: "price",
         prefix: "R$ ",
         label: "price",

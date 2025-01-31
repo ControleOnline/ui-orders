@@ -30,6 +30,15 @@
                     @saved="saved"
                     @loadData="loadData"
                 /></q-badge>
+
+                <DefaultInput
+                  v-if="order"
+                  columnName="price"
+                  :row="order"
+                  :configs="configs"
+                  @saved="saved"
+                  @loadData="loadData"
+                />
               </q-item-section>
             </q-item>
           </q-list>
@@ -116,6 +125,7 @@
                 <Products
                   :orderId="orderId"
                   :context="context"
+                  @reload="reload"
                   v-if="orderId"
                 />
               </q-tab-panel>
@@ -165,10 +175,11 @@ export default {
       myCompany: "people/currentCompany",
       columns: "orders/columns",
       order: "orders/item",
+      isLoading: "orders/isLoading",
     }),
     configsAddress() {
       return {
-        store: "address"
+        store: "address",
       };
     },
     configs() {
@@ -198,9 +209,13 @@ export default {
       getOrder: "orders/get",
     }),
     init() {
-      this.getOrder(this.orderId).then(() => {
-        this.$store.commit(this.configs.store + "/SET_ITEMS", [this.order]);
-      });
+      if (!this.isLoading)
+        this.getOrder(this.orderId).then(() => {
+          this.$store.commit(this.configs.store + "/SET_ITEMS", [this.order]);
+        });
+    },
+    reload() {
+      this.init();
     },
     saved(data) {
       this.$store.commit(this.configs.store + "/SET_ITEMS", data);

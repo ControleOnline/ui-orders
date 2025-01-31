@@ -1,5 +1,5 @@
 <template>
-  <DefaultTable :configs="configs" />
+  <DefaultTable :configs="configs" @saved="reload" @reload="reload" :key="key"/>
 </template>
 <script>
 import { mapActions, mapGetters } from "vuex";
@@ -64,6 +64,7 @@ export default {
   data() {
     return {
       loaded: false,
+      key: 0,
     };
   },
   created() {
@@ -71,6 +72,9 @@ export default {
   },
   methods: {
     ...DefaultFiltersMethods,
+    reload() {
+      this.$emit("reload");
+    },
   },
 };
 </script>
