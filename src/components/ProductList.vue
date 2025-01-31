@@ -81,7 +81,7 @@
           <q-btn
             :label="$tt('product_orders', 'btn', 'add')"
             color="primary"
-            @click="addToCart"
+            @click="addCustomToCart"
           />
         </q-card-actions>
       </q-card>
@@ -165,6 +165,22 @@ export default {
       products[index] = cproduct;
       this.products = products;
       this.addToCart(index);
+    },
+    addCustomToCart() {
+      let order_product = [];
+      this.selectedItems.forEach((group, groupId) => {
+        group.forEach((product) => {
+          order_product.push({
+            parent_product_id: this.selectedProduct.id,
+            product_id: product.productChild["@id"],
+            product_group_id: groupId,
+            quantity: 1,
+            order_id: this.configs.orderId,
+          });
+        });
+
+        console.log(order_product);
+      });
     },
     addToCart: debounce(function (index) {
       console.log(this.products[index]);

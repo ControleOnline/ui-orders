@@ -50,9 +50,7 @@ export default {
                 store: "product_orders",
                 label: "products",
                 icon: "add",
-                props: {
-                  people: this.orderId,
-                },
+                orderId: this.orderId,
               },
             },
           ],
