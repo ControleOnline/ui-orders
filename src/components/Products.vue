@@ -43,6 +43,19 @@ export default {
         store: "product_orders",
         editable: false,
         add: false,
+        expanded: {
+          store: "expanded_product_orders",
+          editable: false,  
+          noExpand(row) {
+            return row.product.type != "custom";
+          },
+          filters(row) {
+            return {
+              order: row.order,
+              parent_product: row.product["@id"],
+            };
+          },
+        },
         delete: true,
         selection: false,
         search: false,
@@ -78,6 +91,9 @@ export default {
   },
   methods: {
     ...DefaultFiltersMethods,
+    ...mapActions({
+      getOrderProducts: "product_orders/getItems",
+    }),
     reload() {
       this.$emit("reload");
     },
