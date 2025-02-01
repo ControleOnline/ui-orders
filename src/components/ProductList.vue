@@ -18,7 +18,6 @@
           />
           <div v-else class="row items-center">
             <q-btn
-              input-debounce="1000"
               flat
               dense
               icon="remove"
@@ -27,7 +26,6 @@
             />
             <span class="q-mx-md">{{ product.quantity || 0 }}</span>
             <q-btn
-              input-debounce="1000"
               flat
               dense
               icon="add"
@@ -173,17 +171,25 @@ export default {
       this.selectedItems.forEach((group, groupId) => {
         group.forEach((product) => {
           order_product = {
-            parent_product_id: this.selectedProduct["@id"],
+            parent_product: this.selectedProduct["@id"],
             product: product.productChild["@id"],
-            product_group_id: groupId,
             quantity: 1,
             order: "/orders/" + this.configs.orderId,
           };
-          this.save(order_product).then((result) => {
-            this.reload();
-            this.closeDialog();
-          });
+          this.save(order_product);
         });
+      });
+
+      let main_product = {
+        parent_product: null,
+        product: this.selectedProduct["@id"],
+        quantity: 1,
+        order: "/orders/" + this.configs.orderId,
+      };
+
+      this.save(main_product).then((result) => {
+        this.reload();
+        this.closeDialog();
       });
     },
     async save(order_product) {

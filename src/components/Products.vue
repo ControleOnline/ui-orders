@@ -1,5 +1,10 @@
 <template>
-  <DefaultTable :configs="configs" @saved="reload" @reload="reload" :key="key"/>
+  <DefaultTable
+    :configs="configs"
+    @saved="reload"
+    @reload="reload"
+    :key="key"
+  />
 </template>
 <script>
 import { mapActions, mapGetters } from "vuex";
@@ -69,6 +74,7 @@ export default {
   },
   created() {
     this.addFilter("order", "orders/" + this.orderId);
+    this.addFilter("parent_product", "null");
   },
   methods: {
     ...DefaultFiltersMethods,

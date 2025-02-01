@@ -13,26 +13,9 @@ export default {
     totalItems: 0,
     filters: {},
     columns: [
+     
       {
-        externalFilter: false,
-        //filter:false,
         isIdentity: true,
-        sortable: true,
-        editable: false,
-        to: function (value) {
-          return {
-            name: "ProductDetails",
-            params: { id: value },
-          };
-        },
-        name: "id",
-        label: "id",
-        align: "left",
-        format(value) {
-          return "#" + value;
-        },
-      },
-      {
         sortable: true,
         editable: false,
         add: false,
@@ -55,6 +38,7 @@ export default {
         },
       },
       {
+        inputType: "increase",
         sortable: true,
         editable: true,
         name: "quantity",
