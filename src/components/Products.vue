@@ -45,14 +45,15 @@ export default {
         add: false,
         expanded: {
           store: "expanded_product_orders",
-          editable: false,  
+          editable: false,
           noExpand(row) {
             return row.product.type != "custom";
           },
           filters(row) {
             return {
               order: row.order,
-              parent_product: row.product["@id"],
+              parentProduct: row.product["@id"],
+              orderProduct: row["@id"],
             };
           },
         },
@@ -87,7 +88,7 @@ export default {
   },
   created() {
     this.addFilter("order", "orders/" + this.orderId);
-    this.addFilter("parent_product", "null");
+    this.addFilter("exists[parentProduct]", "false");
   },
   methods: {
     ...DefaultFiltersMethods,

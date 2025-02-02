@@ -168,29 +168,34 @@ export default {
     },
     addCustomToCart() {
       let order_product = {};
-      this.selectedItems.forEach((group, groupId) => {
-        group.forEach((product) => {
-          order_product = {
-            parent_product: this.selectedProduct["@id"],
-            product: product.productChild["@id"],
-            quantity: 1,
-            order: "/orders/" + this.configs.orderId,
-          };
-          this.save(order_product);
-        });
-      });
 
       let main_product = {
-        parent_product: null,
+        parentProduct: null,
         product: this.selectedProduct["@id"],
         quantity: 1,
         order: "/orders/" + this.configs.orderId,
       };
 
-      this.save(main_product).then((result) => {
-        this.reload();
-        this.closeDialog();
-      });
+      this.save(main_product)
+        .then((result) => {
+          console.log(result);
+          this.selectedItems.forEach((group, groupId) => {
+            group.forEach((product) => {
+              order_product = {
+                orderProduct: result["@id"],
+                parentProduct: this.selectedProduct["@id"],
+                product: product.productChild["@id"],
+                quantity: 1,
+                order: "/orders/" + this.configs.orderId,
+              };
+              this.save(order_product);
+            });
+          });
+        })
+        .finally(() => {
+          this.reload();
+          this.closeDialog();
+        });
     },
     async save(order_product) {
       return await this.saveOrderProducts(order_product).then((result) => {
@@ -213,7 +218,7 @@ export default {
 
       let order_product = {
         id: this.products[index]?.order_products || null,
-        parent_product_id: null,
+        parentProduct: null,
         product: this.products[index]["@id"],
         product_group_id: null,
         quantity: quantity,
