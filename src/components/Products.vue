@@ -47,6 +47,7 @@ export default {
           component: this.$components.DefaultTable,
           store: "expanded_product_orders",
           editable: false,
+          delete: false,
           bottom: false,
           headers: false,
           noExpand(row) {
