@@ -44,8 +44,11 @@ export default {
         editable: false,
         add: false,
         expanded: {
+          component: this.$components.DefaultTable,
           store: "expanded_product_orders",
           editable: false,
+          bottom: false,
+          headers: false,
           noExpand(row) {
             return row.product.type != "custom";
           },
