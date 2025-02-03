@@ -7,13 +7,13 @@ export default {
   namespaced: true,
   state: {
     resourceEndpoint: "order_products",
+    store: "order_products",
     isLoading: false,
     error: "",
     violations: null,
     totalItems: 0,
     filters: {},
     columns: [
-     
       {
         isIdentity: true,
         sortable: true,
