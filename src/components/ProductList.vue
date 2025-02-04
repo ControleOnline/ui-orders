@@ -167,31 +167,28 @@ export default {
       this.changeCart(index);
     },
     addCustomToCart() {
-      let order_product = {};
+      let order_products = [];
+
+      this.selectedItems.forEach((group, groupId) => {
+        group.forEach((product) => {
+          order_products.push({
+            productGroup: groupId,
+            product: product.productChild["@id"].replace(/\D/g, ""),
+            quantity: 1,
+          });
+        });
+      });
 
       let main_product = {
         parentProduct: null,
         product: this.selectedProduct["@id"],
         quantity: 1,
         order: "/orders/" + this.configs.orderId,
+        sub_products: order_products,
       };
 
       this.save(main_product)
-        .then((result) => {
-          console.log(result);
-          this.selectedItems.forEach((group, groupId) => {
-            group.forEach((product) => {
-              order_product = {
-                orderProduct: result["@id"],
-                parentProduct: this.selectedProduct["@id"],
-                product: product.productChild["@id"],
-                quantity: 1,
-                order: "/orders/" + this.configs.orderId,
-              };
-              this.save(order_product);
-            });
-          });
-        })
+        .then((result) => {})
         .finally(() => {
           this.reload();
           this.closeDialog();
@@ -211,8 +208,9 @@ export default {
       let quantity = this.products[index].quantity || 0;
       if (quantity == 0 && this.products[index]?.order_products) {
         this.deleteOrderProducts(this.products[index].order_products);
+        this.$emit("deleted", this.products[index].order_products);
+        this.$emit("reload");
         this.products[index].order_products = null;
-        this.reload();
         return;
       }
 
