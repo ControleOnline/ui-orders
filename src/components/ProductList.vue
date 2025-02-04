@@ -267,7 +267,7 @@ export default {
         return []; // Retorna um array vazio caso products não seja válido
       }
       return group.products.map((product) => ({
-        label: `${product.productChild.product} - ${product.productChild.price}`,
+        label: `${product.productChild.product} - ${product.price}`,
         value: product,
       }));
     },
