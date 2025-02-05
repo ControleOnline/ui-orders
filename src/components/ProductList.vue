@@ -52,7 +52,11 @@
             <h2>{{ group.productGroup }}</h2>
             <p v-if="group.required">Grupo obrigatório!</p>
             <p v-if="group.minimum && group.maximum">
-              Escolha entre {{ group.minimum }} e {{ group.maximum }} sabores
+              Escolha entre {{ group.minimum }} e {{ group.maximum }}
+              {{ group.productGroup }}
+            </p>
+            <p v-if="!group.minimum && group.maximum">
+              Escolha até {{ group.maximum }} {{ group.productGroup }}
             </p>
             <q-option-group
               v-model="selectedItems[group.id]"
@@ -66,7 +70,40 @@
               multiple
               emit-value
               map-options
-            />
+            >
+              <template v-slot:label="opt" class="full-width">
+                <div class="row items-center">
+                  {{ opt.label }}
+                </div>
+                <div
+                  class="row items-center q-col-12 full-width q-pb-lg"
+                  :style="{ width: '300px !important' }"
+                >
+                  <q-chip
+                    v-for="ingredient in opt.ingredients"
+                    removable
+                    v-model="selectedIngredients[opt.value.id]"
+                    color="teal"
+                    text-color="white"
+                    icon="cake"
+                    :label="ingredient"
+                    :disable="
+                      isMaxSelected(
+                        groups[
+                          groups.findIndex(
+                            (group) => group['@id'] === opt.value.productGroup
+                          )
+                        ],
+
+                        opt.value
+                      )
+                    "
+                  >
+                    <q-tooltip>{{ chocolateLabel }}</q-tooltip>
+                  </q-chip>
+                </div>
+              </template>
+            </q-option-group>
           </div>
         </q-card-section>
 
@@ -99,6 +136,7 @@ export default {
   },
   data() {
     return {
+      selectedIngredients: [],
       products: [],
       showDialog: false,
       totalPrice: 0,
@@ -257,7 +295,6 @@ export default {
         this.showDialog = true;
       });
     },
-
     closeDialog() {
       this.showDialog = false;
     },
@@ -269,6 +306,7 @@ export default {
       return group.products.map((product) => ({
         label: `${product.productChild.product} - ${product.price}`,
         value: product,
+        ingredients: ["abacaxi", "laranja"],
       }));
     },
 
