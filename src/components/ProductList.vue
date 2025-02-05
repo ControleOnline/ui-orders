@@ -73,13 +73,26 @@
             >
               <template v-slot:label="opt" class="full-width">
                 <div class="row items-center">
-                  {{ opt.label }}
-                </div>
-                <div
-                  class="row items-center q-col-12 full-width q-pb-lg"
-                  :style="{ width: '300px !important' }"
-                >
-                  <q-chip
+                  <span>{{ opt.label }}</span>
+                  <q-btn
+                    @click="handleShowCustom(opt)"
+                    class="q-ml-sm"
+                    icon="settings"
+                    :disable="
+                      isMaxSelected(
+                        groups[
+                          groups.findIndex(
+                            (group) => group['@id'] === opt.value.productGroup
+                          )
+                        ],
+
+                        opt.value
+                      )
+                    "
+                  >
+                    <q-tooltip>Customizar</q-tooltip>
+                  </q-btn>
+                  <q-dialog v-model="showCustom[1]"> <q-chip
                     v-for="ingredient in opt.ingredients"
                     removable
                     v-model="selectedIngredients[opt.value.id]"
@@ -100,7 +113,7 @@
                     "
                   >
                     <q-tooltip>{{ chocolateLabel }}</q-tooltip>
-                  </q-chip>
+                  </q-chip> </q-dialog>
                 </div>
               </template>
             </q-option-group>
@@ -136,6 +149,7 @@ export default {
   },
   data() {
     return {
+      showCustom: [],
       selectedIngredients: [],
       products: [],
       showDialog: false,
@@ -309,7 +323,9 @@ export default {
         ingredients: ["abacaxi", "laranja"],
       }));
     },
-
+    handleShowCustom(opt) {
+      this.showCustom[1] = true;
+    },
     isMaxSelected(group, product) {
       if (!group.maximum) return false;
       const selectedGroup = this.selectedItems[group.id] || [];
