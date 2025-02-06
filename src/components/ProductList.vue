@@ -97,29 +97,42 @@
                   >
                     <q-tooltip>Customizar</q-tooltip>
                   </q-btn>
-                  <q-dialog v-model="showCustom[1]">
-                    <q-chip
-                      v-for="ingredient in opt.ingredients"
-                      removable
-                      v-model="selectedIngredients[opt.value.id]"
-                      color="teal"
-                      text-color="white"
-                      icon="cake"
-                      :label="ingredient"
-                      :disable="
-                        isMaxSelected(
-                          groups[
-                            groups.findIndex(
-                              (group) => group['@id'] === opt.value.productGroup
-                            )
-                          ],
+                  <q-dialog v-model="showCustom[opt.value.id]">
+                    <q-card style="min-width: 350px">
+                      <q-card-section>
+                        {{ opt.removeble }}
 
-                          opt.value
-                        )
-                      "
-                    >
-                      <q-tooltip>{{ chocolateLabel }}</q-tooltip>
-                    </q-chip>
+     
+                      </q-card-section>
+                      <q-card-section> </q-card-section>
+                      <q-chip
+                        v-for="ingredient in opt.value.productChild.ingredients"
+                        removable
+                        v-model="selectedIngredients[group.id]"
+                        @remove="
+                          opt.removeble.push(ingredient);
+                          handleRemoveIngredient(ingredient, opt);
+                        "
+                        color="teal"
+                        text-color="white"
+                        icon="cake"
+                        :label="ingredient"
+                        :disable="
+                          isMaxSelected(
+                            groups[
+                              groups.findIndex(
+                                (group) =>
+                                  group['@id'] === opt.value.productGroup
+                              )
+                            ],
+
+                            opt.value
+                          )
+                        "
+                      >
+                        <q-tooltip>{{ chocolateLabel }}</q-tooltip>
+                      </q-chip>
+                    </q-card>
                   </q-dialog>
                 </div>
               </template>
@@ -179,6 +192,13 @@ export default {
     this.init();
   },
   watch: {
+    selectedIngredients: {
+      handler() {
+        this.calculatePrice();
+      },
+      deep: true,
+    },
+
     selectedItems: {
       handler() {
         this.calculatePrice();
@@ -287,6 +307,11 @@ export default {
         this.reload();
       });
     }, 500),
+
+    handleRemoveIngredient(ingredient, product) {
+      console.log(ingredient, product);
+    },
+
     fetchProductGroupProducts(group) {
       let filters = {};
       filters.productGroup = "/product_groups/" + group.id;
@@ -306,6 +331,7 @@ export default {
         groups.forEach((group) => {
           this.fetchProductGroupProducts(group).then((response) => {
             this.selectedItems[group.id] = [];
+            this.selectedIngredients[group.id] = [];
             group.products = response.map((product) => ({
               ...product,
               selected: false,
@@ -327,12 +353,36 @@ export default {
       return group.products.map((product) => ({
         label: `${product.productChild.product} - ${product.price}`,
         value: product,
-        ingredients: ["abacaxi", "laranja"],
+        ingredients: [],
+        removeble: [],
       }));
     },
     handleShowCustom(opt, $event) {
       $event.stopPropagation();
-      this.showCustom[1] = true;
+
+      let groups = this.$copyObject(this.groups);
+
+
+
+      this.getProductGroupProducts({
+        product: opt.value.productChild["@id"],
+        productGroup: opt.value.productGroup,
+        productType: "feedstock",
+      }).then((result) => {
+        groups[
+          groups.findIndex((group) => group["@id"] === opt.value.productGroup)
+        ]["products"][
+          groups[
+            groups.findIndex((group) => group["@id"] === opt.value.productGroup)
+          ]["products"].findIndex(
+            (product) => product["@id"] === opt.value['@id']
+          )
+        ].productChild.ingredients = result;
+       
+        
+        this.groups = groups;
+        this.showCustom[opt.value.id] = true;
+      });
     },
     isMaxSelected(group, product) {
       if (!group.maximum) return false;
