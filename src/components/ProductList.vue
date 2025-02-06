@@ -75,9 +75,14 @@
                 <div class="row items-center">
                   <span>{{ opt.label }}</span>
                   <q-btn
-                    @click="handleShowCustom(opt)"
+                    v-if="
+                      selectedItems[group.id] &&
+                      selectedItems[group.id].includes(opt.value)
+                    "
+                    @click="handleShowCustom(opt, $event)"
                     class="q-ml-sm"
                     icon="settings"
+                    flat
                     :disable="
                       isMaxSelected(
                         groups[
@@ -92,28 +97,30 @@
                   >
                     <q-tooltip>Customizar</q-tooltip>
                   </q-btn>
-                  <q-dialog v-model="showCustom[1]"> <q-chip
-                    v-for="ingredient in opt.ingredients"
-                    removable
-                    v-model="selectedIngredients[opt.value.id]"
-                    color="teal"
-                    text-color="white"
-                    icon="cake"
-                    :label="ingredient"
-                    :disable="
-                      isMaxSelected(
-                        groups[
-                          groups.findIndex(
-                            (group) => group['@id'] === opt.value.productGroup
-                          )
-                        ],
+                  <q-dialog v-model="showCustom[1]">
+                    <q-chip
+                      v-for="ingredient in opt.ingredients"
+                      removable
+                      v-model="selectedIngredients[opt.value.id]"
+                      color="teal"
+                      text-color="white"
+                      icon="cake"
+                      :label="ingredient"
+                      :disable="
+                        isMaxSelected(
+                          groups[
+                            groups.findIndex(
+                              (group) => group['@id'] === opt.value.productGroup
+                            )
+                          ],
 
-                        opt.value
-                      )
-                    "
-                  >
-                    <q-tooltip>{{ chocolateLabel }}</q-tooltip>
-                  </q-chip> </q-dialog>
+                          opt.value
+                        )
+                      "
+                    >
+                      <q-tooltip>{{ chocolateLabel }}</q-tooltip>
+                    </q-chip>
+                  </q-dialog>
                 </div>
               </template>
             </q-option-group>
@@ -323,7 +330,8 @@ export default {
         ingredients: ["abacaxi", "laranja"],
       }));
     },
-    handleShowCustom(opt) {
+    handleShowCustom(opt, $event) {
+      $event.stopPropagation();
       this.showCustom[1] = true;
     },
     isMaxSelected(group, product) {
