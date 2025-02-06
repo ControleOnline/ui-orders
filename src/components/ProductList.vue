@@ -61,12 +61,7 @@
             <q-option-group
               v-model="selectedItems[group.id]"
               type="checkbox"
-              :options="
-                getProductOptions(group).map((option) => ({
-                  ...option,
-                  disable: isMaxSelected(group, option.value), // Desabilita apenas os que não estão selecionados
-                }))
-              "
+              :options="getProcessedOptions(group)"
               multiple
               emit-value
               map-options
@@ -75,24 +70,13 @@
                 <div class="row items-center">
                   <span>{{ opt.label }}</span>
                   <q-btn
-                    v-if="
-                      selectedItems[group.id] &&
-                      selectedItems[group.id].includes(opt.value)
-                    "
+                    v-if="isSelected(group.id, opt.value)"
                     @click="handleShowCustom(opt, $event)"
                     class="q-ml-sm"
                     icon="settings"
                     flat
                     :disable="
-                      isMaxSelected(
-                        groups[
-                          groups.findIndex(
-                            (group) => group['@id'] === opt.value.productGroup
-                          )
-                        ],
-
-                        opt.value
-                      )
+                      isMaxSelectedForGroup(opt.value.productGroup, opt.value)
                     "
                   >
                     <q-tooltip>Customizar</q-tooltip>
@@ -101,31 +85,20 @@
                     <q-card style="min-width: 350px">
                       <q-card-section>
                         {{ opt.removeble }}
-
-     
                       </q-card-section>
                       <q-card-section> </q-card-section>
                       <q-chip
                         v-for="ingredient in opt.value.productChild.ingredients"
                         removable
                         v-model="selectedIngredients[group.id]"
-                        @remove="
-                          opt.removeble.push(ingredient);
-                          handleRemoveIngredient(ingredient, opt);
-                        "
+                        @remove="removeIngredient(opt, ingredient)"
                         color="teal"
                         text-color="white"
                         icon="cake"
                         :label="ingredient"
                         :disable="
-                          isMaxSelected(
-                            groups[
-                              groups.findIndex(
-                                (group) =>
-                                  group['@id'] === opt.value.productGroup
-                              )
-                            ],
-
+                          isMaxSelectedForGroup(
+                            opt.value.productGroup,
                             opt.value
                           )
                         "
@@ -357,32 +330,67 @@ export default {
         removeble: [],
       }));
     },
+    getProcessedOptions(group) {
+      return this.getProductOptions(group).map((option) => ({
+        ...option,
+        disable: this.isMaxSelected(group, option.value),
+      }));
+    },
+
+    isSelected(groupId, value) {
+      return (
+        this.selectedItems[groupId] &&
+        this.selectedItems[groupId].includes(value)
+      );
+    },
+
+    isMaxSelectedForGroup(groupId, product) {
+      const groupIndex = this.findGroupIndex(groupId);
+      if (groupIndex === -1) return false;
+      return this.isMaxSelected(this.groups[groupIndex], product);
+    },
+
+    removeIngredient(opt, ingredient) {
+      opt.removeble.push(ingredient);
+      this.handleRemoveIngredient(ingredient, opt);
+    },
     handleShowCustom(opt, $event) {
       $event.stopPropagation();
-
-      let groups = this.$copyObject(this.groups);
-
-
 
       this.getProductGroupProducts({
         product: opt.value.productChild["@id"],
         productGroup: opt.value.productGroup,
         productType: "feedstock",
-      }).then((result) => {
-        groups[
-          groups.findIndex((group) => group["@id"] === opt.value.productGroup)
-        ]["products"][
-          groups[
-            groups.findIndex((group) => group["@id"] === opt.value.productGroup)
-          ]["products"].findIndex(
-            (product) => product["@id"] === opt.value['@id']
-          )
-        ].productChild.ingredients = result;
-       
-        
-        this.groups = groups;
-        this.showCustom[opt.value.id] = true;
-      });
+      })
+        .then((result) => {
+          const groupIndex = this.findGroupIndex(opt.value.productGroup);
+          if (groupIndex === -1) return;
+
+          const productIndex = this.findProductIndex(
+            this.groups[groupIndex],
+            opt.value["@id"]
+          );
+          if (productIndex === -1) return;
+
+          this.updateProductIngredients(groupIndex, productIndex, result);
+        })
+        .finally(() => {
+          this.showCustom[opt.value.id] = true;
+        });
+    },
+
+    findGroupIndex(productGroupId) {
+      return this.groups.findIndex((group) => group["@id"] === productGroupId);
+    },
+
+    findProductIndex(group, productId) {
+      return group.products.findIndex(
+        (product) => product["@id"] === productId
+      );
+    },
+    updateProductIngredients(groupIndex, productIndex, ingredients) {
+      this.groups[groupIndex].products[productIndex].productChild.ingredients =
+        ingredients;
     },
     isMaxSelected(group, product) {
       if (!group.maximum) return false;
@@ -392,12 +400,10 @@ export default {
         !selectedGroup.map((p) => p.id).includes(product.id)
       );
     },
-
     isProductSelected(groupId, product) {
       const selectedGroup = this.selectedItems[groupId] || [];
       return !selectedGroup.includes(product.id);
     },
-
     getGroupLimits(groupId) {
       const group = this.groups.find((g) => g.id === groupId);
       return { minimum: group.minimum, maximum: group.maximum };
