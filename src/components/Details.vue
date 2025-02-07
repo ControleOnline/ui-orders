@@ -187,7 +187,7 @@ export default {
         this.context,
         this.myCompany,
         null,
-        this.order.client.id
+        this.order?.client?.id
       );
       config.externalFilters = false;
       config["full-height"] = false;

@@ -1,4 +1,4 @@
-export default function getConfigs(context, myCompany, invoiceId,peopleId) {
+export default function getConfigs(context, myCompany, invoiceId, peopleId) {
   return {
     companyParam: invoiceId
       ? false
