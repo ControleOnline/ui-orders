@@ -38,30 +38,6 @@ export default {
         },
       },
       {
-        isIdentity: true,
-        sortable: true,
-        editable: false,
-        add: false,
-        list: "queues/getItems",
-        name: "queue",
-        label: "queue",
-        align: "left",
-        format(value, column, row) {
-          return row.product?.queue?.queue;
-        },
-        formatList: function (value, column, row) {
-          if (value)
-            return {
-              value: value["@id"].split("/").pop(),
-              label: value?.queue,
-            };
-        },
-        saveFormat: function (value, column, row) {
-          return;
-        },
-      },
-
-      {
         inputType: "increase",
         sortable: true,
         editable: true,
