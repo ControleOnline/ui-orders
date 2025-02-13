@@ -1,148 +1,162 @@
 <template>
-  <q-page>
-    <div class="q-pt-lg">
-      <q-card>
-        <q-card-section class="bg-primary text-white">
-          <div class="text-h6">Detalhes do pedido</div>
-        </q-card-section>
-        <q-card-section>
-          <q-list bordered>
-            <q-item>
-              <q-item-section>
-                <q-item-label>Pedição #{{ orderId }}</q-item-label>
-                <q-item-label caption>
+  <q-page class="q-pa-md">
+    <div class="row q-col-gutter-md">
+      <!-- Card Principal -->
+      <div class="col-12 col-md-8">
+        <q-card class="full-height">
+          <q-card-section class="text-primary">
+            <div class="text-h6">
+              {{ $tt("order", "header", "Order Details") }}
+            </div>
+          </q-card-section>
+          <q-card-section>
+            <q-list bordered>
+              <q-item>
+                <q-item-section>
+                  <q-item-label
+                    >{{ $tt("order", "label", "Order") }} #{{
+                      orderId
+                    }}</q-item-label
+                  >
+                  <q-item-label caption>
+                    <DefaultInput
+                      v-if="order"
+                      columnName="orderDate"
+                      :row="order"
+                      :configs="configs"
+                      @saved="saved"
+                      @loadData="loadData"
+                    />
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side v-if="order">
+                  <q-badge color="white" :text-color="order.status.color">
+                    <DefaultInput
+                      columnName="status"
+                      :row="order"
+                      :configs="configs"
+                      @saved="saved"
+                      @loadData="loadData"
+                    />
+                  </q-badge>
                   <DefaultInput
                     v-if="order"
-                    columnName="orderDate"
+                    columnName="price"
                     :row="order"
                     :configs="configs"
                     @saved="saved"
                     @loadData="loadData"
                   />
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side v-if="order">
-                <q-badge color="white" :text-color="order.status.color">
-                  <DefaultInput
-                    columnName="status"
-                    :row="order"
-                    :configs="configs"
-                    @saved="saved"
-                    @loadData="loadData"
-                /></q-badge>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-card-section>
+        </q-card>
+      </div>
 
-                <DefaultInput
-                  v-if="order"
-                  columnName="price"
-                  :row="order"
-                  :configs="configs"
-                  @saved="saved"
-                  @loadData="loadData"
-                />
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </q-card-section>
+      <!-- Cards Menores -->
+      <div class="col-12 col-md-4">
+        <q-card class="q-mb-md">
+          <q-card-section v-if="order">
+            <q-card-section class="row items-center">
+              <q-icon name="person" color="primary" size="md" class="q-mr-sm" />
+              <div class="text-bold">{{ $tt("order", "label", "client") }}</div>
+            </q-card-section>
+            <q-card-section>
+              <DefaultInput
+                columnName="client"
+                :row="order"
+                :configs="configs"
+                @saved="saved"
+                @loadData="loadData"
+              />
 
-        <q-card-section>
-          <div class="row q-col-gutter-md">
-            <div class="col-xs-12 col-sm-6">
-              <q-list bordered>
-                <q-item>
-                  <q-item-section>
-                    <q-item-label class="text-bold">Cliente</q-item-label>
-                    <q-item-label>
-                      <DefaultInput
-                        v-if="order"
-                        columnName="client"
-                        :row="order"
-                        :configs="configs"
-                        @saved="saved"
-                        @loadData="loadData"
-                      />
-                    </q-item-label>
-                    <q-item-label caption>0800 888-8888 #012345</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-            <div class="col-xs-12 col-sm-6">
-              <q-list bordered>
-                <q-item>
-                  <q-item-section>
-                    <q-item-label class="text-bold"
-                      >Endereço de entrega</q-item-label
-                    >
-                    <q-item-label>
-                      <DefaultInput
-                        v-if="order"
-                        columnName="addressDestination"
-                        :row="order"
-                        :configs="configs"
-                        @saved="saved"
-                        @loadData="loadData"
-                      />
+              <q-item-label v-for="phone in order.client.phone" caption
+                >({{ phone.ddd }}) {{ phone.phone }}</q-item-label
+              >
+              <q-item-label v-for="phone in order.client.email" caption>
+                {{ phone.email }}</q-item-label
+              >
+            </q-card-section>
+          </q-card-section>
+        </q-card>
 
-                      <Address
-                        v-if="order"
-                        :row="order.addressDestination"
-                        :people="order.client"
-                        :configs="configsAddress"
-                      />
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-          </div>
-        </q-card-section>
+        <q-card>
+          <q-card-section>
+            <q-card-section class="row items-center">
+              <q-icon name="place" color="red" size="md" class="q-mr-sm" />
+              <div class="text-bold">
+                {{ $tt("order", "label", "Delivery Address") }}
+              </div>
+            </q-card-section>
+            <q-card-section>
+              <DefaultInput
+                v-if="order"
+                columnName="addressDestination"
+                :row="order"
+                :configs="configs"
+                @saved="saved"
+                @loadData="loadData"
+              />
+              <Address
+                v-if="order"
+                :row="order.addressDestination"
+                :people="order.client"
+                :configs="configsAddress"
+              />
+            </q-card-section>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
 
-        <q-card-section>
-          <div class="q-card q-pa-sm">
-            <q-tabs
-              inline-label
-              no-caps
-              outside-arrows
-              mobile-arrows
-              align="left"
-              class="text-grey"
-              active-color="primary"
-              indicator-color="primary"
-              v-model="tab"
-            >
-              <q-tab name="products" icon="tab" :label="$t('Products')" />
-              <q-tab name="invoice" icon="tab" :label="$t('Invoices')" />
-              <q-tab name="invoice_tax" icon="tab" :label="$t('Invoice Tax')" />
-            </q-tabs>
-            <q-tab-panels
-              v-model="tab"
-              animated
-              swipeable
-              transition-prev="jump-up"
-              transition-next="jump-up"
-            >
-              <q-tab-panel class="items-center" name="products">
-                <Products
-                  :orderId="orderId"
-                  :context="context"
-                  @reload="reload"
-                  v-if="orderId"
-                />
-              </q-tab-panel>
-              <q-tab-panel class="items-center" name="invoice">
-                <Invoice :orderId="orderId" :context="context" v-if="orderId" />
-              </q-tab-panel>
-              <q-tab-panel class="items-center" name="invoice_tax">
-                <InvoiceTax
-                  :orderId="orderId"
-                  :context="context"
-                  v-if="orderId"
-                />
-              </q-tab-panel>
-            </q-tab-panels>
-          </div>
-        </q-card-section>
-      </q-card>
+    <div class="row">
+      <div class="col-12">
+        <q-card class="q-mt-md">
+          <q-tabs
+            v-model="tab"
+            class="text-grey"
+            active-color="primary"
+            indicator-color="primary"
+          >
+            <q-tab
+              name="products"
+              icon="tab"
+              :label="$tt('order', 'label', 'Products')"
+            />
+            <q-tab
+              name="invoice"
+              icon="tab"
+              :label="$tt('order', 'label', 'Payments')"
+            />
+            <q-tab
+              name="invoice_tax"
+              icon="tab"
+              :label="$tt('order', 'label', 'Taxes')"
+            />
+          </q-tabs>
+          <q-tab-panels v-model="tab" animated>
+            <q-tab-panel name="products">
+              <Products
+                :orderId="orderId"
+                :context="context"
+                @reload="reload"
+                v-if="orderId"
+              />
+            </q-tab-panel>
+            <q-tab-panel name="invoice">
+              <Invoice :orderId="orderId" :context="context" v-if="orderId" />
+            </q-tab-panel>
+            <q-tab-panel name="invoice_tax">
+              <InvoiceTax
+                :orderId="orderId"
+                :context="context"
+                v-if="orderId"
+              />
+            </q-tab-panel>
+          </q-tab-panels>
+        </q-card>
+      </div>
     </div>
   </q-page>
 </template>
