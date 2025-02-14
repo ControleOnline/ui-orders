@@ -56,57 +56,23 @@
 
       <!-- Cards Menores -->
       <div class="col-12 col-md-4">
-        <q-card class="q-mb-md">
-          <q-card-section v-if="order">
-            <q-card-section class="row items-center">
-              <q-icon name="person" color="primary" size="md" class="q-mr-sm" />
-              <div class="text-bold">{{ $tt("order", "label", "client") }}</div>
-            </q-card-section>
-            <q-card-section>
-              <DefaultInput
-                columnName="client"
-                :row="order"
-                :configs="configs"
-                @saved="saved"
-                @loadData="loadData"
-              />
+        <ClientWidget
+          v-if="order"
+          :people="order.client"
+          context="client"
+          :row="order"
+          :configs="configs"
+          @saved="loadData"
+        />
 
-              <q-item-label v-for="phone in order.client.phone" caption
-                >({{ phone.ddd }}) {{ phone.phone }}</q-item-label
-              >
-              <q-item-label v-for="phone in order.client.email" caption>
-                {{ phone.email }}</q-item-label
-              >
-            </q-card-section>
-          </q-card-section>
-        </q-card>
-
-        <q-card>
-          <q-card-section>
-            <q-card-section class="row items-center">
-              <q-icon name="place" color="red" size="md" class="q-mr-sm" />
-              <div class="text-bold">
-                {{ $tt("order", "label", "Delivery Address") }}
-              </div>
-            </q-card-section>
-            <q-card-section>
-              <DefaultInput
-                v-if="order"
-                columnName="addressDestination"
-                :row="order"
-                :configs="configs"
-                @saved="saved"
-                @loadData="loadData"
-              />
-              <Address
-                v-if="order"
-                :row="order.addressDestination"
-                :people="order.client"
-                :configs="configsAddress"
-              />
-            </q-card-section>
-          </q-card-section>
-        </q-card>
+        <AddressWidget
+          v-if="order"
+          :address="order.addressDestination"
+          columnName="addressDestination"
+          :configs="configs"
+          :row="order"
+          @saved="loadData"
+        />
       </div>
     </div>
 
@@ -165,19 +131,21 @@ import DefaultDetail from "@controleonline/ui-default/src/components/Default/Com
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
 import InvoiceTax from "@controleonline/ui-accounting/src/components/InvoiceTax";
 import Products from "./Products";
-import DefaultInput from "@controleonline/ui-default/src/components/Default/DefaultInput.vue";
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
+import AddressWidget from "@controleonline/ui-people/src/components/Address/Widget.vue";
 
-import Address from "@controleonline/ui-people/src/components/Address/Details.vue";
+import ClientWidget from "@controleonline/ui-people/src/components/People/Widget.vue";
+
 export default {
   components: {
     DefaultDetail,
-    DefaultInput,
+    ClientWidget,
+    AddressWidget,
     Invoice,
     InvoiceTax,
     Products,
-    Address,
+    
   },
   props: {
     context: {
@@ -191,11 +159,7 @@ export default {
       order: "orders/item",
       isLoading: "orders/isLoading",
     }),
-    configsAddress() {
-      return {
-        store: "address",
-      };
-    },
+
     configs() {
       let config = getConfigs(
         this.context,
@@ -230,6 +194,9 @@ export default {
     },
     reload() {
       this.init();
+    },
+    loadData() {
+      this.reload();
     },
     saved(data) {
       this.$store.commit(this.configs.store + "/SET_ITEMS", data);
