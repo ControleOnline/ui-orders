@@ -2,15 +2,12 @@
   <DefaultTable :configs="configs" v-if="loaded" />
 </template>
 <script>
-
 import * as DefaultFiltersMethods from "@controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods.js";
 
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
 export default {
-  components: {
-    
-  },
+  components: {},
   props: {
     context: {
       required: true,
@@ -36,6 +33,7 @@ export default {
       let config = getConfigs(this.context, this.myCompany, this.invoiceId);
 
       if (this.invoiceId) {
+        config.title = "Orders";
         config.externalFilters = false;
         config["full-height"] = false;
       }
