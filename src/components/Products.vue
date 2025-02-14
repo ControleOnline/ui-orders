@@ -40,6 +40,7 @@ export default {
       return {
         filters: true,
         "full-height": false,
+        title: "Products",
         store: "product_orders",
         editable: false,
         add: false,

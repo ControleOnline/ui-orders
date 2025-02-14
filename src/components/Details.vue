@@ -79,48 +79,13 @@
     <div class="row">
       <div class="col-12">
         <q-card class="q-mt-md">
-          <q-tabs
-            v-model="tab"
-            class="text-grey"
-            active-color="primary"
-            indicator-color="primary"
-          >
-            <q-tab
-              name="products"
-              icon="tab"
-              :label="$tt('order', 'label', 'Products')"
-            />
-            <q-tab
-              name="invoice"
-              icon="tab"
-              :label="$tt('order', 'label', 'Payments')"
-            />
-            <q-tab
-              name="invoice_tax"
-              icon="tab"
-              :label="$tt('order', 'label', 'Taxes')"
-            />
-          </q-tabs>
-          <q-tab-panels v-model="tab" animated>
-            <q-tab-panel name="products">
-              <Products
-                :orderId="orderId"
-                :context="context"
-                @reload="reload"
-                v-if="orderId"
-              />
-            </q-tab-panel>
-            <q-tab-panel name="invoice">
-              <Invoice :orderId="orderId" :context="context" v-if="orderId" />
-            </q-tab-panel>
-            <q-tab-panel name="invoice_tax">
-              <InvoiceTax
-                :orderId="orderId"
-                :context="context"
-                v-if="orderId"
-              />
-            </q-tab-panel>
-          </q-tab-panels>
+          <Products
+            :orderId="orderId"
+            :context="context"
+            @reload="reload"
+            v-if="orderId"
+          />
+          <!-- <Invoice :orderId="orderId" :context="context" v-if="orderId" />-->
         </q-card>
       </div>
     </div>
@@ -129,7 +94,6 @@
 <script>
 import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
-import InvoiceTax from "@controleonline/ui-accounting/src/components/InvoiceTax";
 import Products from "./Products";
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
@@ -143,9 +107,7 @@ export default {
     ClientWidget,
     AddressWidget,
     Invoice,
-    InvoiceTax,
     Products,
-    
   },
   props: {
     context: {
@@ -174,7 +136,6 @@ export default {
   },
   data() {
     return {
-      tab: "products",
       orderId: null,
     };
   },
