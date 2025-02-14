@@ -16,7 +16,7 @@ export default {
       type: Boolean,
       required: true,
     },
-    invoiceId: {
+    invoice: {
       required: false,
     },
     peopleId: {
@@ -30,9 +30,9 @@ export default {
     }),
 
     configs() {
-      let config = getConfigs(this.context, this.myCompany, this.invoiceId);
+      let config = getConfigs(this.context, this.myCompany, this.invoice);
 
-      if (this.invoiceId) {
+      if (this.invoice) {
         config.title = "Orders";
         config.externalFilters = false;
         config["full-height"] = false;
@@ -64,7 +64,7 @@ export default {
       let field = this.context == "sales" ? "client" : "provider";
 
       if (!filters.order) filters.order = { alterDate: "DESC" };
-      if (this.invoiceId) filters.invoiceId = this.invoiceId;
+      if (this.invoice) filters.invoice = "/invoices/" + this.invoice.id;
       if (this.peopleId) filters[field] = "/people/" + this.peopleId;
       this.$store.commit(this.configs.store + "/SET_FILTERS", filters);
 

@@ -1,10 +1,6 @@
-export default function getConfigs(context, myCompany, invoiceId, peopleId) {
+export default function getConfigs(context, myCompany, invoice, peopleId) {
   return {
-    companyParam: invoiceId
-      ? false
-      : context == "sales"
-      ? "provider"
-      : "client",
+    companyParam: invoice ? false : context == "sales" ? "provider" : "client",
     filters: true,
     status: ["order"],
     store: "orders",
