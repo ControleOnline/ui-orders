@@ -61,7 +61,6 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import debounce from "lodash/debounce";
 export default {
   components: {},
   props: {
@@ -79,9 +78,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters({
-      myCompany: "people/currentCompany",
-    }),
+    ...mapGetters({}),
     filters() {
       return this.$copyObject(this.$store.getters["product_group/filters"]);
     },
@@ -112,7 +109,7 @@ export default {
     init() {
       let filters = this.$copyObject(this.filters);
       filters.product = this.selectedProduct.id;
-      filters.company = "/people/" + this.myCompany.id;
+
       filters["product.productType"] = "component";
       this.$store.commit("product_group/SET_FILTERS", filters);
       this.getProductGroups(filters).then((response) => {
@@ -164,7 +161,6 @@ export default {
     fetchProductGroupProducts(group) {
       let filters = {};
       filters.productGroup = "/product_groups/" + group.id;
-      filters.company = "/people/" + this.myCompany.id;
       filters.productType = "component";
       return this.getProductGroupProducts(filters);
     },
