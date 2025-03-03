@@ -1,61 +1,69 @@
 <template>
-  <div v-for="group in groups" :key="group.id">
-    <h2>{{ group.productGroup }}</h2>
-    <p v-if="group.required">Grupo obrigatório!</p>
-    <p v-if="group.minimum && group.maximum">
-      Escolha entre {{ group.minimum }} e {{ group.maximum }}
-      {{ group.productGroup }}
-    </p>
-    <p v-if="!group.minimum && group.maximum">
-      Escolha até {{ group.maximum }} {{ group.productGroup }}
-    </p>
-    <q-option-group
-      v-model="selectedItems[group.id]"
-      type="checkbox"
-      :options="getProcessedOptions(group)"
-      multiple
-      emit-value
-      map-options
+  <div class="row justify-between q-pa-sm q-pl-lg q-pt-lg">
+    <div
+      v-for="group in groups"
+      :key="group.id"
+      class="row col-6 col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-card q-gutter-md q-mt-md"
     >
-      <template v-slot:label="opt" class="full-width">
-        <div class="row items-center">
-          <span>{{ opt.label }}</span>
-          <q-btn
-            v-if="isSelected(group.id, opt.value)"
-            @click="handleShowCustom(opt, $event)"
-            class="q-ml-sm"
-            icon="settings"
-            flat
-            :disable="isMaxSelectedForGroup(opt.value.productGroup, opt.value)"
-          >
-            <q-tooltip>Customizar</q-tooltip>
-          </q-btn>
-          <q-dialog v-model="showCustom[opt.value.id]">
-            <q-card style="min-width: 350px">
-              <q-card-section>
-                {{ opt.removeble }}
-              </q-card-section>
-              <q-card-section> </q-card-section>
-              <q-chip
-                v-for="ingredient in opt.value.productChild.ingredients"
-                removable
-                v-model="selectedIngredients[group.id]"
-                @remove="removeIngredient(opt, ingredient)"
-                color="teal"
-                text-color="white"
-                icon="cake"
-                :label="ingredient"
-                :disable="
-                  isMaxSelectedForGroup(opt.value.productGroup, opt.value)
-                "
-              >
-                <q-tooltip>{{ chocolateLabel }}</q-tooltip>
-              </q-chip>
-            </q-card>
-          </q-dialog>
-        </div>
-      </template>
-    </q-option-group>
+      <h2>{{ group.productGroup }}</h2>
+      <p v-if="group.required">Grupo obrigatório!</p>
+      <p v-if="group.minimum && group.maximum">
+        Escolha entre {{ group.minimum }} e {{ group.maximum }}
+        {{ group.productGroup }}
+      </p>
+      <p v-if="!group.minimum && group.maximum">
+        Escolha até {{ group.maximum }} {{ group.productGroup }}
+      </p>
+      <q-option-group
+        v-model="selectedItems[group.id]"
+        type="checkbox"
+        :options="getProcessedOptions(group)"
+        multiple
+        emit-value
+        map-options
+      >
+        <template v-slot:label="opt" class="full-width">
+          <div class="row items-center">
+            <span>{{ opt.label }}</span>
+            <q-btn
+              v-if="isSelected(group.id, opt.value)"
+              @click="handleShowCustom(opt, $event)"
+              class="q-ml-sm"
+              icon="settings"
+              flat
+              :disable="
+                isMaxSelectedForGroup(opt.value.productGroup, opt.value)
+              "
+            >
+              <q-tooltip>Customizar</q-tooltip>
+            </q-btn>
+            <q-dialog v-model="showCustom[opt.value.id]">
+              <q-card style="min-width: 350px">
+                <q-card-section>
+                  {{ opt.removeble }}
+                </q-card-section>
+                <q-card-section> </q-card-section>
+                <q-chip
+                  v-for="ingredient in opt.value.productChild.ingredients"
+                  removable
+                  v-model="selectedIngredients[group.id]"
+                  @remove="removeIngredient(opt, ingredient)"
+                  color="teal"
+                  text-color="white"
+                  icon="cake"
+                  :label="ingredient"
+                  :disable="
+                    isMaxSelectedForGroup(opt.value.productGroup, opt.value)
+                  "
+                >
+                  <q-tooltip>{{ chocolateLabel }}</q-tooltip>
+                </q-chip>
+              </q-card>
+            </q-dialog>
+          </div>
+        </template>
+      </q-option-group>
+    </div>
   </div>
 </template>
 

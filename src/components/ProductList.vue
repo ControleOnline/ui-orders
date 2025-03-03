@@ -1,12 +1,20 @@
 <template>
-  <div>
-    <div v-for="(product, index) in products" :key="product.id">
-      <q-card>
+  <div class="row justify-between q-pa-sm q-pl-lg q-pt-lg">
+    <div
+      v-for="(product, index) in products"
+      :key="product.id"
+      class="row col-6 col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-card q-gutter-md q-mt-md"
+    >
+      <q-card class="full-width">
         <q-card-section>
           <h3>{{ product.product }}</h3>
           <p>{{ product.description }}</p>
           <p>Preço: {{ product.price | currency }}</p>
-          <img :src="product.imageUrl" alt="Imagem do Produto" />
+          <DefaultCarousel
+            :object="{ product: product['@id'] }"
+            :configs="carouselConfigs"
+            :files="product.productFiles"
+          />
         </q-card-section>
         <q-card-section>
           <q-btn
@@ -26,7 +34,7 @@
       </q-card>
     </div>
 
-    <q-dialog v-model="showDialog">
+    <q-dialog v-model="showDialog" full-width>
       <q-card style="min-width: 350px">
         <q-card-section>
           <div class="text-h6">
@@ -65,11 +73,13 @@ import { mapActions, mapGetters } from "vuex";
 import debounce from "lodash/debounce";
 import CustomProduct from "@controleonline/ui-orders/src/components/CustomProduct.vue";
 import ProductQuantity from "@controleonline/ui-orders/src/components/ProductQuantity.vue";
+import DefaultCarousel from "@controleonline/ui-default/src/components/Default/Common/DefaultCarousel.vue";
 
 export default {
   components: {
     CustomProduct,
     ProductQuantity,
+    DefaultCarousel,
   },
   props: {
     configs: {
@@ -90,6 +100,12 @@ export default {
     ...mapGetters({
       myCompany: "people/currentCompany",
     }),
+    carouselConfigs() {
+      return {
+        store: "product_file",
+        isAdmin: false,
+      };
+    },
     filters() {
       return this.$copyObject(this.$store.getters["product_group/filters"]);
     },
