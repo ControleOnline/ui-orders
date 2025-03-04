@@ -112,7 +112,7 @@ export default {
     ...mapActions({
       getProductGroups: "product_group/getItems",
       getProductGroupProducts: "product_group_product/getItems",
-      setFilters: "product_group/SET_FILTERS",
+      setFilters: "product_group/setFilters",
     }),
     init() {
       let filters = this.$copyObject(this.filters);

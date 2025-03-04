@@ -172,7 +172,7 @@ export default {
       },
     ],
   },
-  actions: actions,
+  actions,
   getters,
   mutations,
 };
