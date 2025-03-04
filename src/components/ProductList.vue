@@ -73,13 +73,11 @@ import { mapActions, mapGetters } from "vuex";
 import debounce from "lodash/debounce";
 import CustomProduct from "@controleonline/ui-orders/src/components/CustomProduct.vue";
 import ProductQuantity from "@controleonline/ui-orders/src/components/ProductQuantity.vue";
-import DefaultCarousel from "@controleonline/ui-default/src/components/Default/Common/DefaultCarousel.vue";
 
 export default {
   components: {
     CustomProduct,
     ProductQuantity,
-    DefaultCarousel,
   },
   props: {
     configs: {
@@ -105,6 +103,7 @@ export default {
       return {
         store: "product_file",
         isAdmin: false,
+        context: "products",
       };
     },
   },
