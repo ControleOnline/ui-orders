@@ -86,10 +86,9 @@ export default {
     };
   },
   computed: {
-    ...mapGetters({}),
-    filters() {
-      return this.$copyObject(this.$store.getters["product_group/filters"]);
-    },
+    ...mapGetters({
+      filters: "product_group/filters",
+    }),
   },
   created() {
     this.init();
