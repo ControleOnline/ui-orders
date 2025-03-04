@@ -7,6 +7,8 @@ import { formatList } from "app/modules/controleonline/ui-default/src/components
 export default {
   namespaced: true,
   state: {
+    item: {},
+    items: [],
     resourceEndpoint: "orders",
     isLoading: false,
     error: "",

@@ -7,6 +7,8 @@ import { store } from "quasar/wrappers";
 export default {
   namespaced: true,
   state: {
+ item:{},
+items:[],
     resourceEndpoint: "order_products",
     store: "expanded_product_orders",
     isLoading: false,
