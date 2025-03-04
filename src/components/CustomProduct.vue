@@ -112,13 +112,14 @@ export default {
     ...mapActions({
       getProductGroups: "product_group/getItems",
       getProductGroupProducts: "product_group_product/getItems",
+      setFilters: "product_group/SET_FILTERS",
     }),
     init() {
       let filters = this.$copyObject(this.filters);
       filters.product = this.selectedProduct.id;
 
       filters["product.productType"] = "component";
-      this.$store.commit("product_group/SET_FILTERS", filters);
+      this.setFilters(filters);
       this.getProductGroups(filters).then((response) => {
         let groups = this.$copyObject(response);
         groups.forEach((group) => {
