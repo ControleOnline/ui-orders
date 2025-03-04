@@ -221,14 +221,14 @@ export default {
     },
     isMaxSelected(group, product) {
       if (!group.maximum) return false;
-      const selectedGroup = this.selectedItems[group.id] || [];
+      const selectedGroup = this.selectedItems[group.id];
       return (
         selectedGroup.length >= group.maximum &&
         !selectedGroup.map((p) => p.id).includes(product.id)
       );
     },
     isProductSelected(groupId, product) {
-      const selectedGroup = this.selectedItems[groupId] || [];
+      const selectedGroup = this.selectedItems[groupId];
       return !selectedGroup.includes(product.id);
     },
     getGroupLimits(groupId) {

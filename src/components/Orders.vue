@@ -44,7 +44,7 @@ export default {
       return config;
     },
     filters() {
-      return this.$store.getters[this.configs.store + "/filters"] || {};
+      return this.$store.getters[this.configs.store + "/filters"];
     },
   },
   data() {
