@@ -8,6 +8,7 @@ export default {
   state: {
  item:{},
 items:[],
+filters:{},
     resourceEndpoint: "order_products",
     store: "order_products",
     isLoading: false,

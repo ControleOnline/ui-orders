@@ -9,6 +9,7 @@ export default {
   state: {
  item:{},
 items:[],
+filters:{},
     resourceEndpoint: "order_products",
     store: "expanded_product_orders",
     isLoading: false,
