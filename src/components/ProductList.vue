@@ -99,15 +99,13 @@ export default {
   computed: {
     ...mapGetters({
       myCompany: "people/currentCompany",
+      filters: "product_group/filters",
     }),
     carouselConfigs() {
       return {
         store: "product_file",
         isAdmin: false,
       };
-    },
-    filters() {
-      return this.$copyObject(this.$store.getters["product_group/filters"]);
     },
   },
   created() {
