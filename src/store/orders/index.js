@@ -78,11 +78,13 @@ export default {
           return value ? value?.name + " - " + value?.alias : " - ";
         },
         formatList: function (value) {
-          if (value)
+          if (value && value["@id"])
             return {
               value: value["@id"].split("/").pop(),
               label: value?.name + " - " + value?.alias,
             };
+
+          return value;
         },
         saveFormat: function (value) {
           return value ? "/people/" + (value.value || value) : null;
