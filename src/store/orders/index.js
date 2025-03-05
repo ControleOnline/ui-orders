@@ -62,13 +62,7 @@ export default {
         format: function (value) {
           return value?.status;
         },
-        formatList: function (value) {
-          if (value)
-            return {
-              value: value["@id"].split("/").pop(),
-              label: value?.status,
-            };
-        },
+
         saveFormat: function (value) {
           return value ? "/statuses/" + (value.value || value) : null;
         },

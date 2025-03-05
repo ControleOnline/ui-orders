@@ -29,13 +29,7 @@ items:[],
         format(value, column, row) {
           return (value?.sku ? value?.sku + " - " : "") + value?.product;
         },
-        formatList: function (value, column, row) {
-          if (value)
-            return {
-              value: value["@id"].split("/").pop(),
-              label: (value?.sku ? value?.sku + " - " : "") + value?.product,
-            };
-        },
+
         saveFormat: function (value) {
           return value ? "/products/" + (value?.value || value) : null;
         },
