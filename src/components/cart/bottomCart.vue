@@ -1,5 +1,5 @@
 <template>
-  <template v-if="showCart()">
+  <template v-if="show">
     <div
       class="row col-12 bottom-cart sticky-bottom full-width bg-white q-pa-md"
     >
@@ -21,6 +21,11 @@ export default {
       order: "cart/order",
     }),
   },
+  props: {
+    show: {
+      default: true,
+    },
+  },
   data() {
     return {
       orderId: 59628,
@@ -39,9 +44,6 @@ export default {
       this.getOrder(this.orderId).then((result) => {
         this.setOrder(result);
       });
-    },
-    showCart() {
-      return this.$route.name != "ShopProductDetails";
     },
   },
 };
