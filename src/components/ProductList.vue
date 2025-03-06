@@ -36,32 +36,24 @@
 
     <q-dialog v-model="showDialog" full-width>
       <q-card style="min-width: 350px">
+        <q-btn
+          :label="$tt('product_orders', 'btn', 'close')"
+          color="primary"
+          @click="closeDialog"
+        />
         <q-card-section>
           <div class="text-h6">
-            Seleção de Produto: {{ selectedProduct.product }} Total:
+            Seleção de Produto: {{ product.product }} Total:
             {{ totalPrice }}
           </div>
         </q-card-section>
 
         <q-card-section>
-          <CustomProduct
-            :selectedProduct="selectedProduct"
-            @changeSelection="changeSelection"
-            @changeIngredients="changeIngredients"
-          />
+          <CustomProduct />
         </q-card-section>
 
         <q-card-actions class="sticky-bottom bg-white">
-          <q-btn
-            :label="$tt('product_orders', 'btn', 'close')"
-            color="primary"
-            @click="closeDialog"
-          />
-          <q-btn
-            :label="$tt('product_orders', 'btn', 'add')"
-            color="primary"
-            @click="addCustomToCart"
-          />
+          <addProduct @saved="saved" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -73,11 +65,13 @@ import { mapActions, mapGetters } from "vuex";
 import debounce from "lodash/debounce";
 import CustomProduct from "@controleonline/ui-orders/src/components/CustomProduct.vue";
 import ProductQuantity from "@controleonline/ui-orders/src/components/ProductQuantity.vue";
+import addProduct from "@controleonline/ui-orders/src/components/cart/addProduct";
 
 export default {
   components: {
     CustomProduct,
     ProductQuantity,
+    addProduct,
   },
   props: {
     configs: {
@@ -86,18 +80,18 @@ export default {
   },
   data() {
     return {
-      selectedIngredients: [],
-      products: [],
       showDialog: false,
       totalPrice: 0,
-      selectedProduct: null,
-      selectedItems: [],
+      products: [],
     };
   },
   computed: {
     ...mapGetters({
       myCompany: "people/currentCompany",
       filters: "product_group/filters",
+      customProducts: "cart/customProducts",
+      product: "cart/product",
+      order: "csrt/order",
     }),
     carouselConfigs() {
       return {
@@ -110,12 +104,12 @@ export default {
   created() {
     this.init();
   },
-  watch: {},
   methods: {
     ...mapActions({
       deleteOrderProducts: "product_orders/remove",
-      saveOrderProducts: "product_orders/save",
       getProducts: "products/getItems",
+      setCustomProducts: "cart/setCustomProducts",
+      setProduct: "cart/setProduct",
     }),
     init() {
       this.getProducts({
@@ -126,68 +120,32 @@ export default {
       });
     },
     addCustomProduct(product) {
-      this.selectedProduct = product;
+      this.setProduct(product);
       this.showDialog = true;
     },
     increaseQuantity(product, index) {
       let products = this.$copyObject(this.products);
       products[index] = product;
-      this.products = products;
+      this.setCustomProducts(products);
       this.changeCart(index);
     },
     decreaseQuantity(product, index) {
       let products = this.$copyObject(this.products);
       products[index] = product;
-      this.products = products;
+      this.setCustomProducts(products);
       this.changeCart(index);
     },
-    addCustomToCart() {
-      let order_products = [];
 
-      this.selectedItems.forEach((group, groupId) => {
-        group.forEach((product) => {
-          order_products.push({
-            productGroup: groupId,
-            product: product.productChild["@id"].replace(/\D/g, ""),
-            quantity: 1,
-          });
-        });
-      });
-
-      let main_product = {
-        parentProduct: null,
-        product: this.selectedProduct["@id"],
-        quantity: 1,
-        order: "/orders/" + this.configs.orderId,
-        sub_products: order_products,
-      };
-
-      this.save(main_product)
-        .then((result) => {})
-        .finally(() => {
-          this.reload();
-          this.closeDialog();
-        });
-    },
-    async save(order_product) {
-      return await this.saveOrderProducts(order_product).then((result) => {
-        return result;
-      });
+    saved() {
+      this.reload();
+      this.closeDialog();
     },
 
     reload() {
       this.$emit("loadData");
       this.$emit("reload");
     },
-    changeIngredients(selectedIngredients) {
-      this.selectedIngredients = selectedIngredients;
-      this.calculatePrice();
-    },
-    changeSelection(selectedItems) {
-      this.selectedItems = selectedItems;
-      this.calculatePrice();
-    },
-    calculatePrice() {},
+
     changeCart: debounce(function (index) {
       let quantity = this.products[index].quantity || 0;
       if (quantity == 0 && this.products[index]?.order_products) {
@@ -204,7 +162,7 @@ export default {
         product: this.products[index]["@id"],
         product_group_id: null,
         quantity: quantity,
-        order: "/orders/" + this.configs.orderId,
+        order: this.order["@id"],
       };
 
       this.save(order_product).then((result) => {

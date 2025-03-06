@@ -71,11 +71,7 @@
 import { mapActions, mapGetters } from "vuex";
 export default {
   components: {},
-  props: {
-    selectedProduct: {
-      required: true,
-    },
-  },
+  props: {},
   data() {
     return {
       selectedIngredients: [],
@@ -88,6 +84,8 @@ export default {
   computed: {
     ...mapGetters({
       filters: "product_group/filters",
+      product: "cart/product",
+      customProducts: "cart/customProducts",
     }),
   },
   created() {
@@ -96,14 +94,14 @@ export default {
   watch: {
     selectedIngredients: {
       handler() {
-        this.$emit("changeIngredients", this.selectedIngredients);
+        //this.$emit("changeIngredients", this.selectedIngredients);
       },
       deep: true,
     },
 
     selectedItems: {
       handler() {
-        this.$emit("changeSelection", this.selectedItems);
+        this.setCustomProducts(this.$copyObject(this.selectedItems));
       },
       deep: true,
     },
@@ -113,15 +111,18 @@ export default {
       getProductGroups: "product_group/getItems",
       getProductGroupProducts: "product_group_product/getItems",
       setFilters: "product_group/setFilters",
+      setCustomProducts: "cart/setCustomProducts",
     }),
     init() {
       let filters = this.$copyObject(this.filters);
-      filters.product = this.selectedProduct.id;
+      filters.product = this.product.id;
 
       filters["product.productType"] = "component";
       this.setFilters(filters);
+
       this.getProductGroups(filters).then((response) => {
         let groups = this.$copyObject(response);
+
         groups.forEach((group) => {
           this.fetchProductGroupProducts(group).then((response) => {
             this.selectedItems[group.id] = [];

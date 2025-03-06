@@ -74,7 +74,7 @@ export default {
                 store: "product_orders",
                 label: "products",
                 icon: "add",
-                orderId: this.orderId,
+              
               },
             },
           ],

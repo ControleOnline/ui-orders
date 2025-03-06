@@ -30,7 +30,7 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side v-if="order">
-                  <q-badge color="white" :text-color="order.status.color">
+                  <q-badge color="white" :text-color="order.status?.color">
                     <DefaultInput
                       columnName="status"
                       :row="order"
@@ -146,11 +146,13 @@ export default {
   methods: {
     ...mapActions({
       getOrder: "orders/get",
+      setCart:"cart/setOrder"
     }),
     init() {
       if (!this.isLoading)
-        this.getOrder(this.orderId).then(() => {
-          this.$store.commit(this.configs.store + "/SET_ITEMS", [this.order]);
+        this.getOrder(this.orderId).then((order) => {
+          this.$store.commit(this.configs.store + "/SET_ITEMS", [order]);
+          this.setCart(order);
         });
     },
     reload() {
