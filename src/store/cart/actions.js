@@ -28,3 +28,7 @@ export const setCustomProducts = ({ commit }, customProducts = []) => {
 export const setProduct = ({ commit }, product = []) => {
   commit(types.SET_PRODUCT, product);
 };
+
+export const setReload = ({ commit }, reload = false) => {
+  commit(types.SET_RELOAD, reload);
+};

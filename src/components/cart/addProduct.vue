@@ -4,8 +4,7 @@
       <ProductQuantity
         :defaultQuantity="1"
         :product="product"
-        @increaseQuantity="increaseQuantity"
-        @decreaseQuantity="decreaseQuantity"
+        @changeQuantity="changeQuantity"
       />
     </div>
     <div class="col flex items-center justify-center">
@@ -35,6 +34,8 @@ export default {
   methods: {
     ...mapActions({
       saveOrderProducts: "product_orders/save",
+      getCart: "orders/get",
+      setReload: "cart/setReload",
     }),
     addCustomToCart() {
       let order_products = [];
@@ -44,7 +45,7 @@ export default {
           order_products.push({
             productGroup: groupId,
             product: product.productChild["@id"].replace(/\D/g, ""),
-            quantity: 1,
+            quantity: product.productChild.quantity || 0,
           });
         });
       });
@@ -52,13 +53,14 @@ export default {
       let main_product = {
         parentProduct: null,
         product: this.product["@id"],
-        quantity: 1,
+        quantity: this.product.quantity || 0,
         order: this.order["@id"],
         sub_products: order_products,
       };
 
       this.save(main_product).then((result) => {
         this.$emit("saved", result);
+        this.setReload(true);
       });
     },
     async save(order_product) {

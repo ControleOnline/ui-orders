@@ -19,6 +19,7 @@ export default {
   computed: {
     ...mapGetters({
       order: "cart/order",
+      reload: "cart/reload",
     }),
   },
   props: {
@@ -34,10 +35,17 @@ export default {
   created() {
     this.init();
   },
+  watch: {
+    reload() {
+      if (this.reload == true) this.init();
+      this.setReload(false);
+    },
+  },
   methods: {
     ...mapActions({
       setOrder: "cart/setOrder",
       getOrder: "orders/get",
+      setReload: "cart/setReload",
     }),
 
     init() {

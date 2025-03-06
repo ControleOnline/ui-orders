@@ -27,4 +27,7 @@ export default {
   [types.SET_PRODUCT](state, product) {
     state.product = product || [];
   },
+  [types.SET_RELOAD](state, reload) {
+    state.reload = reload || false;
+  },
 };

@@ -87,12 +87,12 @@ export default {
     }),
   },
   created() {
-    console.log(this.product);
     this.init();
   },
   watch: {
     product: {
       handler() {
+        if (this.groups.length) return;
         this.init();
       },
       deep: true,

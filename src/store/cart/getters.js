@@ -5,3 +5,4 @@ export const violations = (state) => state.violations;
 export const order = (state) => state.order;
 export const customProducts = (state) => state.customProducts;
 export const product = (state) => state.product;
+export const reload = (state) => state.reload;

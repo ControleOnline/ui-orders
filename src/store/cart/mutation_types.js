@@ -5,4 +5,4 @@ export const SET_VIOLATIONS = "SET_VIOLATIONS";
 export const SET_ORDER = "SET_ORDER";
 export const SET_CUSTOM_PRODUCTS = "SET_CUSTOM_PRODUCTS";
 export const SET_PRODUCT = "SET_PRODUCT";
-
+export const SET_RELOAD = "SET_RELOAD";

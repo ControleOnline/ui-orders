@@ -1,5 +1,6 @@
 <template>
   <div
+    @click="clickProduct(product)"
     class="q-card q-hoverable product-card q-card col-6 col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-gutter-md q-mt-md"
   >
     <DefaultCarousel
@@ -23,8 +24,7 @@
           <div v-else class="row items-center">
             <ProductQuantity
               :product="product"
-              @increaseQuantity="increaseQuantity"
-              @decreaseQuantity="decreaseQuantity"
+              @changeQuantity="changeQuantity"
             />
           </div>
         </div>
@@ -91,12 +91,15 @@ export default {
   methods: {
     ...mapActions({
       deleteOrderProducts: "product_orders/remove",
-      setCustomProducts: "cart/setCustomProducts",
       saveOrderProducts: "product_orders/save",
       setProducts: "products/setItems",
+      setReload: "cart/setReload",
     }),
     showDetails(product) {
       this.$emit("showDetails", product);
+    },
+    clickProduct(product) {
+      this.$emit("clickProduct", product);
     },
     changeCart: debounce(function (index) {
       let products = this.$copyObject(this.products);
@@ -106,6 +109,7 @@ export default {
         this.deleteOrderProducts(products[index].order_products);
         this.$emit("deleted", products[index].order_products);
         this.$emit("reload");
+        this.setReload(true);
         products[index].order_products = null;
         this.setProducts(products);
         return;
@@ -130,26 +134,15 @@ export default {
       if (!row) return -1;
       return this.products.findIndex((item) => item["@id"] == row["@id"]);
     },
-    increaseQuantity(product) {
-      let products = this.$copyObject(this.products);
+    changeQuantity(product) {
       let index = this.getIndex(product);
-      products[index] = product;
-      this.setCustomProducts(products);
-      this.setProducts(products);
-      this.changeCart(index);
-    },
-    decreaseQuantity(product) {
-      let products = this.$copyObject(this.products);
-      let index = this.getIndex(product);
-      products[index] = product;
-      this.setCustomProducts(products);
-      this.setProducts(products);
       this.changeCart(index);
     },
     saved() {
       this.$emit("saved");
     },
     reload() {
+      this.setReload(true);
       this.$emit("reload");
     },
     async save(order_product) {
