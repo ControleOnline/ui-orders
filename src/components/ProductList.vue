@@ -1,5 +1,5 @@
 <template>
-  <div class="row justify-between q-pa-sm q-pl-lg q-pt-lg">
+  <div class="row col-12 justify-between q-pa-sm q-pl-lg q-pt-lg">
     <div
       v-for="(product, index) in products"
       :key="product.id"
@@ -34,6 +34,16 @@
       </q-card>
     </div>
 
+    <div class="row col-12 justify-between q-pa-sm q-pl-lg q-pt-lg">
+      <template
+        v-for="product in products"
+        :key="product.id"
+        @click="clickProduct(product)"
+      >
+        <productCard :product="product" @showDetails="showDetails" />
+      </template>
+    </div>
+
     <q-dialog v-model="showDialog" full-width>
       <q-card style="min-width: 350px">
         <q-btn
@@ -66,11 +76,13 @@ import debounce from "lodash/debounce";
 import CustomProduct from "@controleonline/ui-orders/src/components/CustomProduct.vue";
 import ProductQuantity from "@controleonline/ui-orders/src/components/cart/ProductQuantity.vue";
 import addProduct from "@controleonline/ui-orders/src/components/cart/addProduct";
+import productCard from "@controleonline/ui-orders/src/components/cart/productCard";
 
 export default {
   components: {
     CustomProduct,
     ProductQuantity,
+    productCard,
     addProduct,
   },
   props: {
