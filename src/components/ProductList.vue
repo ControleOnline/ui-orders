@@ -1,87 +1,53 @@
 <template>
   <div class="row col-12 justify-between q-pa-sm q-pl-lg q-pt-lg">
-    <div
-      v-for="(product, index) in products"
+    <template
+      v-for="product in products"
       :key="product.id"
-      class="row col-6 col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-card q-gutter-md q-mt-md"
+      @click="clickProduct(product)"
     >
-      <q-card class="full-width">
-        <q-card-section>
-          <h3>{{ product.product }}</h3>
-          <p>{{ product.description }}</p>
-          <p>Preço: {{ product.price | currency }}</p>
-          <DefaultCarousel
-            :object="{ product: product['@id'] }"
-            :configs="carouselConfigs"
-            :files="product.productFiles"
-          />
-        </q-card-section>
-        <q-card-section>
-          <q-btn
-            v-if="product.type === 'custom'"
-            :label="$tt('product_orders', 'btn', 'add')"
-            color="primary"
-            @click="addCustomProduct(product)"
-          />
-          <div v-else class="row items-center">
-            <ProductQuantity
-              :product="product"
-              @increaseQuantity="increaseQuantity"
-              @decreaseQuantity="decreaseQuantity"
-            />
-          </div>
-        </q-card-section>
-      </q-card>
-    </div>
-
-    <div class="row col-12 justify-between q-pa-sm q-pl-lg q-pt-lg">
-      <template
-        v-for="product in products"
-        :key="product.id"
-        @click="clickProduct(product)"
-      >
-        <productCard :product="product" @showDetails="showDetails" />
-      </template>
-    </div>
-
-    <q-dialog v-model="showDialog" full-width>
-      <q-card style="min-width: 350px">
-        <q-btn
-          :label="$tt('product_orders', 'btn', 'close')"
-          color="primary"
-          @click="closeDialog"
-        />
-        <q-card-section>
-          <div class="text-h6">
-            Seleção de Produto: {{ product.product }} Total:
-            {{ totalPrice }}
-          </div>
-        </q-card-section>
-
-        <q-card-section>
-          <CustomProduct />
-        </q-card-section>
-
-        <q-card-actions class="sticky-bottom bg-white">
-          <addProduct @saved="saved" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+      <productCard
+        :product="product"
+        @showDetails="addCustomProduct"
+        @saved="saved"
+        @reload="reload"
+      />
+    </template>
   </div>
+
+  <q-dialog v-model="showDialog" full-width>
+    <q-card style="min-width: 350px">
+      <q-btn
+        :label="$tt('product_orders', 'btn', 'close')"
+        color="primary"
+        @click="closeDialog"
+      />
+      <q-card-section>
+        <div class="text-h6">
+          Seleção de Produto: {{ product.product }} Total:
+          {{ totalPrice }}
+        </div>
+      </q-card-section>
+
+      <q-card-section>
+        <CustomProduct />
+      </q-card-section>
+
+      <q-card-actions class="sticky-bottom bg-white">
+        <addProduct @saved="saved" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import debounce from "lodash/debounce";
 import CustomProduct from "@controleonline/ui-orders/src/components/CustomProduct.vue";
-import ProductQuantity from "@controleonline/ui-orders/src/components/cart/ProductQuantity.vue";
 import addProduct from "@controleonline/ui-orders/src/components/cart/addProduct";
 import productCard from "@controleonline/ui-orders/src/components/cart/productCard";
 
 export default {
   components: {
     CustomProduct,
-    ProductQuantity,
     productCard,
     addProduct,
   },
@@ -94,7 +60,6 @@ export default {
     return {
       showDialog: false,
       totalPrice: 0,
-      products: [],
     };
   },
   computed: {
@@ -103,49 +68,26 @@ export default {
       filters: "product_group/filters",
       customProducts: "cart/customProducts",
       product: "cart/product",
-      order: "csrt/order",
+      products: "products/items",
     }),
-    carouselConfigs() {
-      return {
-        store: "product_file",
-        isAdmin: false,
-        context: "products",
-      };
-    },
   },
   created() {
     this.init();
   },
   methods: {
     ...mapActions({
-      deleteOrderProducts: "product_orders/remove",
       getProducts: "products/getItems",
-      setCustomProducts: "cart/setCustomProducts",
       setProduct: "cart/setProduct",
     }),
     init() {
       this.getProducts({
         type: ["product", "custom"],
         company: "/people/" + this.myCompany.id,
-      }).then((response) => {
-        this.products = response;
       });
     },
     addCustomProduct(product) {
       this.setProduct(product);
       this.showDialog = true;
-    },
-    increaseQuantity(product, index) {
-      let products = this.$copyObject(this.products);
-      products[index] = product;
-      this.setCustomProducts(products);
-      this.changeCart(index);
-    },
-    decreaseQuantity(product, index) {
-      let products = this.$copyObject(this.products);
-      products[index] = product;
-      this.setCustomProducts(products);
-      this.changeCart(index);
     },
 
     saved() {
@@ -157,31 +99,6 @@ export default {
       this.$emit("loadData");
       this.$emit("reload");
     },
-
-    changeCart: debounce(function (index) {
-      let quantity = this.products[index].quantity || 0;
-      if (quantity == 0 && this.products[index]?.order_products) {
-        this.deleteOrderProducts(this.products[index].order_products);
-        this.$emit("deleted", this.products[index].order_products);
-        this.$emit("reload");
-        this.products[index].order_products = null;
-        return;
-      }
-
-      let order_product = {
-        id: this.products[index]?.order_products || null,
-        parentProduct: null,
-        product: this.products[index]["@id"],
-        product_group_id: null,
-        quantity: quantity,
-        order: this.order["@id"],
-      };
-
-      this.save(order_product).then((result) => {
-        this.products[index].order_products = result["@id"].replace(/\D/g, "");
-        this.reload();
-      });
-    }, 500),
 
     closeDialog() {
       this.showDialog = false;

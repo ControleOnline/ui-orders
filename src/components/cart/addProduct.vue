@@ -2,6 +2,7 @@
   <div class="row col-12 product-add">
     <div class="col flex items-center justify-center">
       <ProductQuantity
+        :defaultQuantity="1"
         :product="product"
         @increaseQuantity="increaseQuantity"
         @decreaseQuantity="decreaseQuantity"
