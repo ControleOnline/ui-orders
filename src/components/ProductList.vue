@@ -87,7 +87,6 @@ export default {
   data() {
     return {
       selectedIngredients: [],
-      products: [],
       showDialog: false,
       totalPrice: 0,
       selectedProduct: null,
@@ -98,6 +97,7 @@ export default {
     ...mapGetters({
       myCompany: "people/currentCompany",
       filters: "product_group/filters",
+      products: "products/items",
     }),
     carouselConfigs() {
       return {
@@ -116,13 +116,12 @@ export default {
       deleteOrderProducts: "product_orders/remove",
       saveOrderProducts: "product_orders/save",
       getProducts: "products/getItems",
+      setProducts: "products/setItems",
     }),
     init() {
       this.getProducts({
         type: ["product", "custom"],
         company: "/people/" + this.myCompany.id,
-      }).then((response) => {
-        this.products = response;
       });
     },
     addCustomProduct(product) {
@@ -132,13 +131,13 @@ export default {
     increaseQuantity(product, index) {
       let products = this.$copyObject(this.products);
       products[index] = product;
-      this.products = products;
+      this.setProducts(products);
       this.changeCart(index);
     },
     decreaseQuantity(product, index) {
       let products = this.$copyObject(this.products);
       products[index] = product;
-      this.products = products;
+      this.setProducts(products);
       this.changeCart(index);
     },
     addCustomToCart() {
@@ -189,26 +188,29 @@ export default {
     },
     calculatePrice() {},
     changeCart: debounce(function (index) {
-      let quantity = this.products[index].quantity || 0;
-      if (quantity == 0 && this.products[index]?.order_products) {
-        this.deleteOrderProducts(this.products[index].order_products);
-        this.$emit("deleted", this.products[index].order_products);
+      let products = this.$copyObject(this.products);
+      let quantity = products[index].quantity || 0;
+      if (quantity == 0 && products[index]?.order_products) {
+        this.deleteOrderProducts(products[index].order_products);
+        this.$emit("deleted", products[index].order_products);
         this.$emit("reload");
-        this.products[index].order_products = null;
+        products[index].order_products = null;
+
+        this.setProducts(products);
         return;
       }
 
       let order_product = {
-        id: this.products[index]?.order_products || null,
+        id: products[index]?.order_products || null,
         parentProduct: null,
-        product: this.products[index]["@id"],
+        product: products[index]["@id"],
         product_group_id: null,
         quantity: quantity,
         order: "/orders/" + this.configs.orderId,
       };
 
       this.save(order_product).then((result) => {
-        this.products[index].order_products = result["@id"].replace(/\D/g, "");
+        products[index].order_products = result["@id"].replace(/\D/g, "");
         this.reload();
       });
     }, 500),

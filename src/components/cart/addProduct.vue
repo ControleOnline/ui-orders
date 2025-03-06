@@ -16,14 +16,24 @@
   </div>
 </template>
 <script>
+import { mapActions, mapGetters } from "vuex";
 import ProductQuantity from "@controleonline/ui-orders/src/components/ProductQuantity.vue";
 export default {
   components: {
     ProductQuantity,
   },
-  props: {
+  computed: {
+    ...mapGetters({
+      product: "products/item",
+    }),
+  },
+  created() {},
+  watch: {
     product: {
-      required: true,
+      handler() {
+        console.log(this.product);
+      },
+      deep: true,
     },
   },
 };
