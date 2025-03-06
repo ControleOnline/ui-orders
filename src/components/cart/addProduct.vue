@@ -17,7 +17,6 @@
   </div>
 </template>
 <script>
-import { mapActions, mapGetters } from "vuex";
 import ProductQuantity from "@controleonline/ui-orders/src/components/ProductQuantity.vue";
 import { mapActions, mapGetters } from "vuex";
 

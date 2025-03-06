@@ -115,6 +115,8 @@ export default {
       this.getProducts({
         type: ["product", "custom"],
         company: "/people/" + this.myCompany.id,
+      }).then((response) => {
+        this.products = response;
       });
     },
     addCustomProduct(product) {
@@ -145,29 +147,26 @@ export default {
     },
 
     changeCart: debounce(function (index) {
-      let products = this.$copyObject(this.products);
-      let quantity = products[index].quantity || 0;
-      if (quantity == 0 && products[index]?.order_products) {
-        this.deleteOrderProducts(products[index].order_products);
-        this.$emit("deleted", products[index].order_products);
+      let quantity = this.products[index].quantity || 0;
+      if (quantity == 0 && this.products[index]?.order_products) {
+        this.deleteOrderProducts(this.products[index].order_products);
+        this.$emit("deleted", this.products[index].order_products);
         this.$emit("reload");
-        products[index].order_products = null;
-
-        this.setProducts(products);
+        this.products[index].order_products = null;
         return;
       }
 
       let order_product = {
-        id: products[index]?.order_products || null,
+        id: this.products[index]?.order_products || null,
         parentProduct: null,
-        product: products[index]["@id"],
+        product: this.products[index]["@id"],
         product_group_id: null,
         quantity: quantity,
         order: this.order["@id"],
       };
 
       this.save(order_product).then((result) => {
-        products[index].order_products = result["@id"].replace(/\D/g, "");
+        this.products[index].order_products = result["@id"].replace(/\D/g, "");
         this.reload();
       });
     }, 500),

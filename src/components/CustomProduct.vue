@@ -119,14 +119,14 @@ export default {
 
       filters["product.productType"] = "component";
       this.setFilters(filters);
-
+      
       this.getProductGroups(filters).then((response) => {
         let groups = this.$copyObject(response);
-
+        
         groups.forEach((group) => {
           this.fetchProductGroupProducts(group).then((response) => {
             this.selectedItems[group.id] = [];
-            this.selectedIngredients[group.id] = [];
+              this.selectedIngredients[group.id] = [];
             group.products = response.map((product) => ({
               ...product,
               selected: false,
