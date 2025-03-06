@@ -70,8 +70,6 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 export default {
-  components: {},
-  props: {},
   data() {
     return {
       selectedIngredients: [],
@@ -89,9 +87,16 @@ export default {
     }),
   },
   created() {
+    console.log(this.product);
     this.init();
   },
   watch: {
+    product: {
+      handler() {
+        this.init();
+      },
+      deep: true,
+    },
     selectedIngredients: {
       handler() {
         //this.$emit("changeIngredients", this.selectedIngredients);
@@ -114,19 +119,21 @@ export default {
       setCustomProducts: "cart/setCustomProducts",
     }),
     init() {
+      if (!this.product || !this.product["@id"]) return;
+
       let filters = this.$copyObject(this.filters);
       filters.product = this.product.id;
 
       filters["product.productType"] = "component";
       this.setFilters(filters);
-      
+
       this.getProductGroups(filters).then((response) => {
         let groups = this.$copyObject(response);
-        
+
         groups.forEach((group) => {
           this.fetchProductGroupProducts(group).then((response) => {
             this.selectedItems[group.id] = [];
-              this.selectedIngredients[group.id] = [];
+            this.selectedIngredients[group.id] = [];
             group.products = response.map((product) => ({
               ...product,
               selected: false,

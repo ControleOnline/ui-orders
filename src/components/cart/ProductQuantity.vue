@@ -6,7 +6,7 @@
     color="grey"
     @click="decreaseQuantity(cproduct, index)"
   />
-  <span class="q-mx-md">{{ cproduct.quantity || 0 }}</span>
+  <span class="q-mx-md">{{ cproduct.quantity || 1 }}</span>
   <q-btn
     flat
     dense
@@ -36,7 +36,7 @@ export default {
   watch: {},
   methods: {
     increaseQuantity(cproduct, index) {
-      cproduct.quantity = (cproduct.quantity || 0) + 1;
+      cproduct.quantity = (cproduct.quantity || 1) + 1;
 
       this.$emit("increaseQuantity", cproduct, index);
     },
