@@ -99,7 +99,7 @@ export default {
       this.$emit("showDetails", product);
     },
     clickProduct(product) {
-      this.$emit("clickProduct", product);
+      //this.$emit("clickProduct", product);
     },
     changeCart: debounce(function (index) {
       let products = this.$copyObject(this.products);
