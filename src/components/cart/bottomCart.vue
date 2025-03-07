@@ -5,7 +5,11 @@
     >
       <div class="col flex items-center justify-center">{{ order.price }}</div>
       <div class="col flex items-center justify-center">
-        <q-btn class="full-width q-pa-xs btn-primary" label="Ver Carrinho" />
+        <q-btn
+          class="full-width q-pa-xs btn-primary"
+          label="Ver Carrinho"
+          @click="toCart"
+        />
       </div>
     </div>
   </template>
@@ -52,6 +56,9 @@ export default {
       this.getOrder(this.orderId).then((result) => {
         this.setOrder(result);
       });
+    },
+    toCart() {
+      this.$router.push({ name: "ShopCart" });
     },
   },
 };

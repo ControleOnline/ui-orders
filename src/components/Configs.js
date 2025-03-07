@@ -12,7 +12,7 @@ export default function getConfigs(context, myCompany, invoice, peopleId) {
       category: {
         filters: {
           context: context,
-          company: "/people/" + myCompany.id,
+          company: "/people/" + myCompany?.id,
         },
       },
       addressDestination: {

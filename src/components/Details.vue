@@ -24,7 +24,7 @@
                       columnName="orderDate"
                       :row="order"
                       :configs="configs"
-                      @saved="loadData"
+                      @saved="saved"
                     />
                   </q-item-label>
                 </q-item-section>
@@ -34,7 +34,7 @@
                       columnName="status"
                       :row="order"
                       :configs="configs"
-                      @saved="loadData"
+                      @saved="saved"
                     />
                   </q-badge>
                   <DefaultInput
@@ -42,7 +42,7 @@
                     columnName="price"
                     :row="order"
                     :configs="configs"
-                    @saved="loadData"
+                    @saved="saved"
                   />
                 </q-item-section>
               </q-item>
@@ -59,7 +59,7 @@
           context="client"
           :row="order"
           :configs="configs"
-          @saved="loadData"
+          @saved="saved"
         />
 
         <AddressWidget
@@ -68,7 +68,7 @@
           columnName="addressDestination"
           :configs="configs"
           :row="order"
-          @saved="loadData"
+          @saved="saved"
         />
       </div>
     </div>
@@ -133,6 +133,7 @@ export default {
     return {};
   },
   created() {
+    if ((this.order && this.order.id == this.orderId) || this.isLoading) return;
     this.loadData();
   },
   methods: {
@@ -151,7 +152,11 @@ export default {
       this.setOrders(data);
       this.setOrder(data[0]);
       this.setCart(order);
+    },
+
+    saved(data) {
       this.$emit("saved", data);
+      this.loaded(data);
     },
   },
 };
