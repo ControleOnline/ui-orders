@@ -94,7 +94,8 @@ export default {
       const children = this.orderProducts.filter((op) => {
         return (
           op.parentProduct &&
-          op.parentProduct["@id"] === orderProduct.product["@id"]
+          op.parentProduct["@id"] === orderProduct.product["@id"] &&
+          op.orderProduct["@id"] == orderProduct["@id"]
         );
       });
       return children;
