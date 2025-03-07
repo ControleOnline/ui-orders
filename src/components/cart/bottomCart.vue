@@ -32,30 +32,25 @@ export default {
     },
   },
   data() {
-    return {
-      orderId: 59628,
-    };
+    return {};
   },
   created() {
     this.init();
   },
   watch: {
     reload() {
-      if (this.reload == true) this.init();
+      if (this.reload == true) this.init(this.reload);
       this.setReload(false);
     },
   },
   methods: {
     ...mapActions({
-      setOrder: "cart/setOrder",
-      getOrder: "orders/get",
+      discoveryCard: "cart/discoveryCard",
       setReload: "cart/setReload",
     }),
 
-    init() {
-      this.getOrder(this.orderId).then((result) => {
-        this.setOrder(result);
-      });
+    init(reload) {
+      if (!this.order?.id || reload) this.discoveryCard();
     },
     toCart() {
       this.$router.push({ name: "ShopCart" });

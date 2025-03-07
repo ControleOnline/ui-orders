@@ -1,6 +1,24 @@
 import { api } from "@controleonline/ui-common/src/api";
 import * as types from "./mutation_types";
 
+export const discoveryCard = ({ commit, getters }, params = {}) => {
+  commit(types.SET_ISLOADING, true);
+  return api
+    .fetch("cart", { params: params })
+
+    .then((data) => {
+      commit(types.SET_ORDER, data);
+      return result;
+    })
+    .catch((e) => {
+      commit(types.SET_ERROR, e.message);
+      throw e;
+    })
+    .finally((e) => {
+      commit(types.SET_ISLOADING, false);
+    });
+};
+
 export const setError = ({ commit }, error = null) => {
   commit(types.SET_ERROR, error);
 };
