@@ -74,9 +74,18 @@
     </div>
 
     <div class="row">
+      <div class="col-12 q-mt-md">
+        <DefaultButtonDialog :configs="componentConfigs" />
+      </div>
       <div class="col-12">
         <q-card class="q-mt-md">
-          <Products :orderId="orderId" :context="context" />
+          <ProductsTable
+            :orderId="orderId"
+            :context="context"
+            @reload="reload"
+            v-if="orderId"
+          />
+          <!--<Products :orderId="orderId" :context="context" />-->
           <!-- <Invoice :orderId="orderId" :context="context" v-if="orderId" />-->
         </q-card>
       </div>
@@ -86,20 +95,22 @@
 <script>
 import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
 import Invoice from "@controleonline/ui-financial/src/components/Invoice";
-import Products from "./Products";
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
 import AddressWidget from "@controleonline/ui-people/src/components/Address/Widget.vue";
+import ProductsTable from "./ProductsTable";
+import ProductList from "./ProductList";
 
 import ClientWidget from "@controleonline/ui-people/src/components/People/Widget.vue";
 
 export default {
   components: {
+    ProductsTable,
     DefaultDetail,
     ClientWidget,
     AddressWidget,
     Invoice,
-    Products,
+    ProductList,
   },
   props: {
     context: {
@@ -128,6 +139,14 @@ export default {
       config["full-height"] = false;
       return config;
     },
+    componentConfigs() {
+      return {
+        component: ProductList,
+        store: "order_products",
+        label: "products",
+        icon: "add",
+      };
+    },
   },
   data() {
     return {};
@@ -151,7 +170,7 @@ export default {
     loaded(data) {
       this.setOrders(data);
       this.setOrder(data[0]);
-      this.setCart(order);
+      this.setCart(data[0]);
     },
 
     saved(data) {
