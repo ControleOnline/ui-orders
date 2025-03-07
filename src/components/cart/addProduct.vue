@@ -9,7 +9,7 @@
     </div>
     <div class="col flex items-center justify-center">
       <q-btn
-        :label="$tt('product_orders', 'btn', 'add')"
+        :label="$tt('order_products', 'btn', 'add')"
         class="full-width q-pa-xs btn-primary"
         @click="addCustomToCart"
       />
@@ -33,7 +33,7 @@ export default {
   },
   methods: {
     ...mapActions({
-      saveOrderProducts: "product_orders/save",
+      saveOrderProducts: "order_products/save",
       getCart: "orders/get",
       setReload: "cart/setReload",
     }),

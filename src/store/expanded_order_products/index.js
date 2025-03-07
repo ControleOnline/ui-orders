@@ -10,7 +10,7 @@ export default {
  item:{},
 items:[],
     resourceEndpoint: "order_products",
-    store: "expanded_product_orders",
+    store: "expanded_order_products",
     isLoading: false,
     error: "",
     violations: null,

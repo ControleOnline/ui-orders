@@ -90,8 +90,8 @@ export default {
 
   methods: {
     ...mapActions({
-      deleteOrderProducts: "product_orders/remove",
-      saveOrderProducts: "product_orders/save",
+      deleteOrderProducts: "order_products/remove",
+      saveOrderProducts: "order_products/save",
       setProducts: "products/setItems",
       setReload: "cart/setReload",
     }),

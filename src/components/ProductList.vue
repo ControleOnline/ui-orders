@@ -17,7 +17,7 @@
   <q-dialog v-model="showDialog" full-width>
     <q-card style="min-width: 350px">
       <q-btn
-        :label="$tt('product_orders', 'btn', 'close')"
+        :label="$tt('order_products', 'btn', 'close')"
         color="primary"
         @click="closeDialog"
       />

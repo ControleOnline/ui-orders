@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="q-pa-md" v-if="!isLoading">
     <div class="row q-col-gutter-md">
       <!-- Card Principal -->
       <div class="col-12 col-md-8">
@@ -24,8 +24,7 @@
                       columnName="orderDate"
                       :row="order"
                       :configs="configs"
-                      @saved="saved"
-                      @loadData="loadData"
+                      @saved="loadData"
                     />
                   </q-item-label>
                 </q-item-section>
@@ -35,8 +34,7 @@
                       columnName="status"
                       :row="order"
                       :configs="configs"
-                      @saved="saved"
-                      @loadData="loadData"
+                      @saved="loadData"
                     />
                   </q-badge>
                   <DefaultInput
@@ -44,8 +42,7 @@
                     columnName="price"
                     :row="order"
                     :configs="configs"
-                    @saved="saved"
-                    @loadData="loadData"
+                    @saved="loadData"
                   />
                 </q-item-section>
               </q-item>
@@ -79,12 +76,7 @@
     <div class="row">
       <div class="col-12">
         <q-card class="q-mt-md">
-          <Products
-            :orderId="orderId"
-            :context="context"
-            @reload="reload"
-            v-if="orderId"
-          />
+          <Products :orderId="orderId" :context="context" />
           <!-- <Invoice :orderId="orderId" :context="context" v-if="orderId" />-->
         </q-card>
       </div>
@@ -113,6 +105,9 @@ export default {
     context: {
       required: true,
     },
+    orderId: {
+      required: true,
+    },
   },
   computed: {
     ...mapGetters({
@@ -135,36 +130,27 @@ export default {
     },
   },
   data() {
-    return {
-      orderId: null,
-    };
+    return {};
   },
   created() {
-    this.orderId = decodeURIComponent(this.$route.params.id);
-    this.init();
+    this.loadData();
   },
   methods: {
     ...mapActions({
       getOrder: "orders/get",
-      setCart:"cart/setOrder"
+      setOrder: "orders/setItem",
+      setOrders: "orders/setItems",
+      setCart: "cart/setOrder",
     }),
-    init() {
-      if (!this.isLoading)
-        this.getOrder(this.orderId).then((order) => {
-          this.$store.commit(this.configs.store + "/SET_ITEMS", [order]);
-          this.setCart(order);
-        });
-    },
-    reload() {
-      this.init();
-    },
     loadData() {
-      this.reload();
+      this.getOrder(this.orderId).then((order) => {
+        this.loaded([order]);
+      });
     },
-    saved(data) {
-      this.$store.commit(this.configs.store + "/SET_ITEMS", data);
-      this.$store.commit(this.configs.store + "/SET_ITEM", data[0]);
-
+    loaded(data) {
+      this.setOrders(data);
+      this.setOrder(data[0]);
+      this.setCart(order);
       this.$emit("saved", data);
     },
   },

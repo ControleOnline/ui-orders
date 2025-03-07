@@ -6,8 +6,8 @@ import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
 export default {
   namespaced: true,
   state: {
- item:{},
-items:[],
+    item: {},
+    items: [],
     resourceEndpoint: "order_products",
     store: "order_products",
     isLoading: false,
@@ -34,7 +34,7 @@ items:[],
               value: value["@id"].split("/").pop(),
               label: (value?.sku ? value?.sku + " - " : "") + value?.product,
             };
-            return value;
+          return value;
         },
         saveFormat: function (value) {
           return value ? "/products/" + (value?.value || value) : null;

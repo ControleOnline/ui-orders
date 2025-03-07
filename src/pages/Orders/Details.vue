@@ -1,5 +1,5 @@
 <template>
-  <Orders :context="context" v-if="context" />
+  <Orders :context="context" v-if="context" :orderId="orderId" />
 </template>
 
 <script>
@@ -13,8 +13,11 @@ export default {
   data() {
     return {
       context: "sales",
+      orderId: null,
     };
   },
-  created() {},
+  created() {
+    this.orderId = decodeURIComponent(this.$route.params.id);
+  },
 };
 </script>
