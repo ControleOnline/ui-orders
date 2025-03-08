@@ -26,76 +26,64 @@
       >
         <template v-slot:label="opt">
           <div class="row items-center full-width q-pa-md">
-            <div class="row col-4">
+            <div class="row col-6">
               <span>{{ opt.label }}</span>
             </div>
 
-            <div class="row col-3 items-center justify-center">
-              <template v-if="opt.value?.productChild?.ingredients?.length">
-                <q-btn
-                  v-if="isSelected(group.id, opt.value)"
-                  @click="handleShowCustom(opt, $event)"
-                  class="col q-ml-sm"
-                  icon="add"
-                  flat
-                >
-                  <q-tooltip>Adicionar Ingredientes</q-tooltip>
-                </q-btn>
-
-                <q-btn
-                  v-if="isSelected(group.id, opt.value)"
-                  @click="handleShowCustom(opt, $event)"
-                  class="col q-ml-sm"
-                  icon="remove"
-                  flat
-                >
-                  <q-tooltip>Remover Ingredientes</q-tooltip>
-                </q-btn>
-              </template>
-            </div>
-            <div class="row col-3 items-center justify-end">
+            <div class="row col-6 items-center justify-end">
+              <q-btn
+                flat
+                :disabled="!opt.value?.productChild?.ingredients?.length"
+                @click="handleShowCustom(opt.value?.productChild, $event)"
+                class="col q-ml-sm"
+                :icon="
+                  opt.value?.productChild?.ingredients?.length &&
+                  isSelected(group.id, opt.value)
+                    ? 'remove'
+                    : ''
+                "
+              >
+                <q-tooltip>Remover Ingredientes</q-tooltip>
+              </q-btn>
               {{
                 "R$ " + $formatter.formatMoney(opt.value.price, "BRL", "pt-br")
               }}
+              <q-btn
+                flat
+                :disabled="!isSelected(group.id, opt.value)"
+                @click="handleShowCustom(opt.value?.productChild, $event)"
+                class="col q-ml-sm"
+                :icon="isSelected(group.id, opt.value) ? 'add' : ' '"
+              >
+                <q-tooltip>Adicionar Ingredientes</q-tooltip>
+              </q-btn>
             </div>
-            <q-dialog v-model="showCustom[opt.value.id]">
-              <q-card style="min-width: 350px">
-                <q-card-section>
-                  {{ opt.removeble }}
-                </q-card-section>
-                <q-card-section> </q-card-section>
-                <q-chip
-                  v-for="ingredient in opt.value.productChild.ingredients"
-                  removable
-                  v-model="selectedIngredients[group.id]"
-                  @remove="removeIngredient(opt, ingredient)"
-                  color="teal"
-                  text-color="white"
-                  icon="cake"
-                  :label="ingredient"
-                >
-                  <q-tooltip>{{ chocolateLabel }}</q-tooltip>
-                </q-chip>
-              </q-card>
-            </q-dialog>
           </div>
         </template>
       </q-option-group>
     </div>
   </div>
+
+  <q-dialog v-model="showCustom">
+    <customIngredients :product="customProductChild" />
+  </q-dialog>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-
+import customIngredients from "./cart/customIngredients.vue";
 export default {
+  components: {
+    customIngredients,
+  },
   data() {
     return {
       selectedIngredients: [],
       selectedItems: [],
-      showCustom: [],
+      showCustom: false,
       groups: [],
       isUpdating: false,
+      customProductChild: {},
     };
   },
   computed: {
@@ -190,7 +178,7 @@ export default {
         label: product.productChild.product,
         value: product,
         ingredients: [],
-        removeble: [],
+        removed: [],
       }));
     },
     fetchProductGroupProducts(group) {
@@ -199,13 +187,7 @@ export default {
       filters.productType = "component";
       return this.getProductGroupProducts(filters);
     },
-    handleRemoveIngredient(ingredient, product) {
-      console.log(ingredient, product);
-    },
-    removeIngredient(opt, ingredient) {
-      opt.removeble.push(ingredient);
-      this.handleRemoveIngredient(ingredient, opt);
-    },
+
     updateProductIngredients(groupIndex, productIndex, ingredients) {
       this.groups[groupIndex].products[productIndex].productChild.ingredients =
         ingredients;
@@ -236,9 +218,10 @@ export default {
         });
       });
     },
-    handleShowCustom(opt, $event) {
+    handleShowCustom(productChild, $event) {
       $event.stopPropagation();
-      this.showCustom[opt.value.id] = true;
+      this.customProductChild = productChild;
+      this.showCustom = true;
     },
     findGroupIndex(productGroupId) {
       return this.groups.findIndex((group) => group["@id"] === productGroupId);
