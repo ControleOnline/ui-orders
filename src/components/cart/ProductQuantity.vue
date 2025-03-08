@@ -2,7 +2,7 @@
   <q-btn
     flat
     dense
-    :disabled="product.quantity == 0 || isSaving"
+    :disabled="product.quantity == 0 || isSaving || isLoading"
     :icon="
       product.quantity == 1 ? 'delete' : product.quantity == 0 ? '' : 'remove'
     "
@@ -11,7 +11,7 @@
   />
   <span class="q-mx-md">{{ product.quantity || defaultQuantity }}</span>
   <q-btn
-    :disabled="isSaving"
+    :disabled="isSaving || isLoading"
     flat
     dense
     icon="add"
@@ -39,6 +39,7 @@ export default {
       products: "products/items",
       order: "cart/order",
       isSaving: "order_products/isSaving",
+      isLoading: "cart/isLoading",
     }),
   },
   data() {
