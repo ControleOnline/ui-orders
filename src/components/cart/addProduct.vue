@@ -1,10 +1,7 @@
 <template>
   <div class="row col-12 product-add">
     <div class="col flex items-center justify-center">
-      <ProductQuantity
-        :defaultQuantity="1"
-        :product="product"
-      />
+      <ProductQuantity :defaultQuantity="1" :product="product" />
     </div>
     <div class="col flex items-center justify-center">
       <q-btn
@@ -30,10 +27,10 @@ export default {
       order: "cart/order",
     }),
   },
+  created() {},
   methods: {
     ...mapActions({
       saveOrderProducts: "order_products/save",
-      getCart: "orders/get",
       setReload: "cart/setReload",
     }),
     addCustomToCart() {

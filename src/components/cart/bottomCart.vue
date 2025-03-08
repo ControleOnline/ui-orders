@@ -3,7 +3,9 @@
     <div
       class="row col-12 bottom-cart sticky-bottom full-width bg-white q-pa-md"
     >
-      <div class="col flex items-center justify-center">{{ order.price }}</div>
+      <div class="col flex items-center justify-center text-primary">
+        {{ "R$ " + $formatter.formatMoney(order.price, "BRL", "pt-br") }}
+      </div>
       <div class="col flex items-center justify-center">
         <q-btn
           class="full-width q-pa-xs btn-primary"
