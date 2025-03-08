@@ -18,6 +18,7 @@
         v-model="selectedItems[group.id]"
         type="checkbox"
         :options="getProcessedOptions(group)"
+        @update:model-value="getIngredients(selectedItems[group.id])"
         multiple
         emit-value
         map-options
@@ -30,31 +31,27 @@
             </div>
 
             <div class="row col-3 items-center justify-center">
-              <q-btn
-                v-if="isSelected(group.id, opt.value)"
-                @click="handleShowCustom(opt, $event)"
-                class="col q-ml-sm"
-                icon="add"
-                flat
-                :disable="
-                  isMaxSelectedForGroup(opt.value.productGroup, opt.value)
-                "
-              >
-                <q-tooltip>Adicionar Ingredientes</q-tooltip>
-              </q-btn>
+              <template v-if="opt.value?.productChild?.ingredients?.length">
+                <q-btn
+                  v-if="isSelected(group.id, opt.value)"
+                  @click="handleShowCustom(opt, $event)"
+                  class="col q-ml-sm"
+                  icon="add"
+                  flat
+                >
+                  <q-tooltip>Adicionar Ingredientes</q-tooltip>
+                </q-btn>
 
-              <q-btn
-                v-if="isSelected(group.id, opt.value)"
-                @click="handleShowCustom(opt, $event)"
-                class="col q-ml-sm"
-                icon="remove"
-                flat
-                :disable="
-                  isMaxSelectedForGroup(opt.value.productGroup, opt.value)
-                "
-              >
-                <q-tooltip>Remover Ingredientes</q-tooltip>
-              </q-btn>
+                <q-btn
+                  v-if="isSelected(group.id, opt.value)"
+                  @click="handleShowCustom(opt, $event)"
+                  class="col q-ml-sm"
+                  icon="remove"
+                  flat
+                >
+                  <q-tooltip>Remover Ingredientes</q-tooltip>
+                </q-btn>
+              </template>
             </div>
             <div class="row col-3 items-center justify-end">
               {{
@@ -76,9 +73,6 @@
                   text-color="white"
                   icon="cake"
                   :label="ingredient"
-                  :disable="
-                    isMaxSelectedForGroup(opt.value.productGroup, opt.value)
-                  "
                 >
                   <q-tooltip>{{ chocolateLabel }}</q-tooltip>
                 </q-chip>
@@ -93,6 +87,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+
 export default {
   data() {
     return {
@@ -146,7 +141,6 @@ export default {
 
       let filters = this.$copyObject(this.filters);
       filters.product = this.product.id;
-
       filters["product.productType"] = "component";
       this.setFilters(filters);
 
@@ -166,42 +160,28 @@ export default {
         this.groups = groups;
       });
     },
-
-    isMaxSelectedForGroup(groupId, product) {
-      const groupIndex = this.findGroupIndex(groupId);
-      if (groupIndex === -1) return false;
-      return this.isMaxSelected(this.groups[groupIndex], product);
-    },
-
     getProcessedOptions(group) {
-      // Obtém todas as opções de produtos
       let options = this.getProductOptions(group);
-
-      // Verifica se o número máximo foi atingido
       const selectedCount = this.selectedItems[group.id]?.length || 0;
       const isMaxReached = group.maximum && selectedCount >= group.maximum;
 
-      // Se o máximo foi atingido, filtra apenas os produtos selecionados
       if (isMaxReached) {
         options = options.filter((option) =>
           this.isSelected(group.id, option.value)
         );
       }
 
-      // Retorna as opções processadas com a propriedade disable
       return options.map((option) => ({
         ...option,
         disable: this.isMaxSelected(group, option.value),
       }));
     },
-
     isSelected(groupId, value) {
       return (
         this.selectedItems[groupId] &&
         this.selectedItems[groupId].some((item) => item["@id"] === value["@id"])
       );
     },
-
     getProductOptions(group) {
       if (!Array.isArray(group.products)) {
         return [];
@@ -213,61 +193,60 @@ export default {
         removeble: [],
       }));
     },
-
     fetchProductGroupProducts(group) {
       let filters = {};
       filters.productGroup = "/product_groups/" + group.id;
       filters.productType = "component";
       return this.getProductGroupProducts(filters);
     },
-
     handleRemoveIngredient(ingredient, product) {
       console.log(ingredient, product);
     },
-
     removeIngredient(opt, ingredient) {
       opt.removeble.push(ingredient);
       this.handleRemoveIngredient(ingredient, opt);
     },
+    updateProductIngredients(groupIndex, productIndex, ingredients) {
+      this.groups[groupIndex].products[productIndex].productChild.ingredients =
+        ingredients;
+    },
+    getIngredients(products) {
+      products.forEach((product) => {
+        const groupIndex = this.findGroupIndex(product.productGroup);
+        if (groupIndex === -1) return;
 
+        const productIndex = this.findProductIndex(
+          this.groups[groupIndex],
+          product["@id"]
+        );
+
+        if (
+          this.groups[groupIndex].products[productIndex].productChild
+            .ingredients
+        )
+          return;
+
+        this.getProductGroupProducts({
+          product: product.productChild["@id"],
+          productGroup: product.productGroup,
+          productType: "feedstock",
+        }).then((result) => {
+          if (productIndex === -1) return;
+          this.updateProductIngredients(groupIndex, productIndex, result);
+        });
+      });
+    },
     handleShowCustom(opt, $event) {
       $event.stopPropagation();
-
-      this.getProductGroupProducts({
-        product: opt.value.productChild["@id"],
-        productGroup: opt.value.productGroup,
-        productType: "feedstock",
-      })
-        .then((result) => {
-          const groupIndex = this.findGroupIndex(opt.value.productGroup);
-          if (groupIndex === -1) return;
-
-          const productIndex = this.findProductIndex(
-            this.groups[groupIndex],
-            opt.value["@id"]
-          );
-          if (productIndex === -1) return;
-
-          this.updateProductIngredients(groupIndex, productIndex, result);
-        })
-        .finally(() => {
-          this.showCustom[opt.value.id] = true;
-        });
+      this.showCustom[opt.value.id] = true;
     },
-
     findGroupIndex(productGroupId) {
       return this.groups.findIndex((group) => group["@id"] === productGroupId);
     },
-
     findProductIndex(group, productId) {
       return group.products.findIndex(
         (product) => product["@id"] === productId
       );
-    },
-
-    updateProductIngredients(groupIndex, productIndex, ingredients) {
-      this.groups[groupIndex].products[productIndex].productChild.ingredients =
-        ingredients;
     },
 
     isMaxSelected(group, product) {
@@ -278,12 +257,10 @@ export default {
         !selectedGroup.some((p) => p["@id"] === product["@id"])
       );
     },
-
     isProductSelected(groupId, product) {
       const selectedGroup = this.selectedItems[groupId] || [];
       return !selectedGroup.some((p) => p["@id"] === product["@id"]);
     },
-
     getGroupLimits(groupId) {
       const group = this.groups.find((g) => g.id === groupId);
       return { minimum: group.minimum, maximum: group.maximum };
