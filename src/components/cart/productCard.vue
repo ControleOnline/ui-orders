@@ -106,12 +106,16 @@ export default {
 
       let quantity = products[index].quantity || 0;
       if (quantity == 0 && products[index]?.order_products) {
-        this.deleteOrderProducts(products[index].order_products);
-        this.$emit("deleted", products[index].order_products);
-        this.$emit("reload");
-        this.setReload(true);
-        products[index].order_products = null;
-        this.setProducts(products);
+        this.deleteOrderProducts(products[index].order_products)
+          .then(() => {
+            this.$emit("deleted", products[index].order_products);
+            products[index].order_products = null;
+            this.setProducts(products);
+          })
+          .finally(() => {
+            this.reload();
+          });
+
         return;
       }
 
@@ -124,11 +128,14 @@ export default {
         order: this.order["@id"],
       };
 
-      this.save(order_product).then((result) => {
-        products[index].order_products = result["@id"].replace(/\D/g, "");
-        this.setProducts(products);
-        this.reload();
-      });
+      this.save(order_product)
+        .then((result) => {
+          products[index].order_products = result["@id"].replace(/\D/g, "");
+          this.setProducts(products);
+        })
+        .finally(() => {
+          this.reload();
+        });
     }, 500),
     getIndex(row) {
       if (!row) return -1;

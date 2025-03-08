@@ -4,7 +4,6 @@
       <ProductQuantity
         :defaultQuantity="1"
         :product="product"
-        @changeQuantity="changeQuantity"
       />
     </div>
     <div class="col flex items-center justify-center">

@@ -8,7 +8,7 @@ export const discoveryCard = ({ commit, getters }, params = {}) => {
 
     .then((data) => {
       commit(types.SET_ORDER, data);
-      return result;
+      return data;
     })
     .catch((e) => {
       commit(types.SET_ERROR, e.message);
