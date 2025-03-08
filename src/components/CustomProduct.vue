@@ -21,22 +21,46 @@
         multiple
         emit-value
         map-options
+        class="custom-box full-width"
       >
-        <template v-slot:label="opt" class="full-width">
-          <div class="row items-center">
-            <span>{{ opt.label }}</span>
-            <q-btn
-              v-if="isSelected(group.id, opt.value)"
-              @click="handleShowCustom(opt, $event)"
-              class="q-ml-sm"
-              icon="settings"
-              flat
-              :disable="
-                isMaxSelectedForGroup(opt.value.productGroup, opt.value)
-              "
-            >
-              <q-tooltip>Customizar</q-tooltip>
-            </q-btn>
+        <template v-slot:label="opt">
+          <div class="row items-center full-width q-pa-md">
+            <div class="row col-4">
+              <span>{{ opt.label }}</span>
+            </div>
+
+            <div class="row col-3 items-center justify-center">
+              <q-btn
+                v-if="isSelected(group.id, opt.value)"
+                @click="handleShowCustom(opt, $event)"
+                class="col q-ml-sm"
+                icon="add"
+                flat
+                :disable="
+                  isMaxSelectedForGroup(opt.value.productGroup, opt.value)
+                "
+              >
+                <q-tooltip>Adicionar Ingredientes</q-tooltip>
+              </q-btn>
+
+              <q-btn
+                v-if="isSelected(group.id, opt.value)"
+                @click="handleShowCustom(opt, $event)"
+                class="col q-ml-sm"
+                icon="remove"
+                flat
+                :disable="
+                  isMaxSelectedForGroup(opt.value.productGroup, opt.value)
+                "
+              >
+                <q-tooltip>Remover Ingredientes</q-tooltip>
+              </q-btn>
+            </div>
+            <div class="row col-3 items-center justify-end">
+              {{
+                "R$ " + $formatter.formatMoney(opt.value.price, "BRL", "pt-br")
+              }}
+            </div>
             <q-dialog v-model="showCustom[opt.value.id]">
               <q-card style="min-width: 350px">
                 <q-card-section>
@@ -103,7 +127,6 @@ export default {
       },
       deep: true,
     },
-
     selectedItems: {
       handler() {
         this.setCustomProducts(this.$copyObject(this.selectedItems));
@@ -151,7 +174,22 @@ export default {
     },
 
     getProcessedOptions(group) {
-      return this.getProductOptions(group).map((option) => ({
+      // Obtém todas as opções de produtos
+      let options = this.getProductOptions(group);
+
+      // Verifica se o número máximo foi atingido
+      const selectedCount = this.selectedItems[group.id]?.length || 0;
+      const isMaxReached = group.maximum && selectedCount >= group.maximum;
+
+      // Se o máximo foi atingido, filtra apenas os produtos selecionados
+      if (isMaxReached) {
+        options = options.filter((option) =>
+          this.isSelected(group.id, option.value)
+        );
+      }
+
+      // Retorna as opções processadas com a propriedade disable
+      return options.map((option) => ({
         ...option,
         disable: this.isMaxSelected(group, option.value),
       }));
@@ -160,26 +198,29 @@ export default {
     isSelected(groupId, value) {
       return (
         this.selectedItems[groupId] &&
-        this.selectedItems[groupId].includes(value)
+        this.selectedItems[groupId].some((item) => item["@id"] === value["@id"])
       );
     },
+
     getProductOptions(group) {
       if (!Array.isArray(group.products)) {
-        return []; // Retorna um array vazio caso products não seja válido
+        return [];
       }
       return group.products.map((product) => ({
-        label: `${product.productChild.product} - ${product.price}`,
+        label: product.productChild.product,
         value: product,
         ingredients: [],
         removeble: [],
       }));
     },
+
     fetchProductGroupProducts(group) {
       let filters = {};
       filters.productGroup = "/product_groups/" + group.id;
       filters.productType = "component";
       return this.getProductGroupProducts(filters);
     },
+
     handleRemoveIngredient(ingredient, product) {
       console.log(ingredient, product);
     },
@@ -228,18 +269,21 @@ export default {
       this.groups[groupIndex].products[productIndex].productChild.ingredients =
         ingredients;
     },
+
     isMaxSelected(group, product) {
       if (!group.maximum) return false;
-      const selectedGroup = this.selectedItems[group.id];
+      const selectedGroup = this.selectedItems[group.id] || [];
       return (
         selectedGroup.length >= group.maximum &&
-        !selectedGroup.map((p) => p.id).includes(product.id)
+        !selectedGroup.some((p) => p["@id"] === product["@id"])
       );
     },
+
     isProductSelected(groupId, product) {
-      const selectedGroup = this.selectedItems[groupId];
-      return !selectedGroup.includes(product.id);
+      const selectedGroup = this.selectedItems[groupId] || [];
+      return !selectedGroup.some((p) => p["@id"] === product["@id"]);
     },
+
     getGroupLimits(groupId) {
       const group = this.groups.find((g) => g.id === groupId);
       return { minimum: group.minimum, maximum: group.maximum };
@@ -247,3 +291,13 @@ export default {
   },
 };
 </script>
+
+<style>
+.custom-box .q-checkbox__label,
+.custom-box .q-checkbox {
+  width: 100%;
+}
+.custom-box > div:nth-child(odd) {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+</style>
