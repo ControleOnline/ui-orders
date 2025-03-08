@@ -2,7 +2,7 @@
   <q-btn
     flat
     dense
-    :disabled="product.quantity == 0"
+    :disabled="product.quantity == 0 || isSaving"
     :icon="
       product.quantity == 1 ? 'delete' : product.quantity == 0 ? '' : 'remove'
     "
@@ -10,7 +10,14 @@
     @click="decreaseQuantity()"
   />
   <span class="q-mx-md">{{ product.quantity || defaultQuantity }}</span>
-  <q-btn flat dense icon="add" color="red" @click="increaseQuantity()" />
+  <q-btn
+    :disabled="isSaving"
+    flat
+    dense
+    icon="add"
+    color="red"
+    @click="increaseQuantity()"
+  />
 </template>
 
 <script>
@@ -31,6 +38,7 @@ export default {
     ...mapGetters({
       products: "products/items",
       order: "cart/order",
+      isSaving: "order_products/isSaving",
     }),
   },
   data() {
