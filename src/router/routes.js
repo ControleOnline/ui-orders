@@ -13,8 +13,7 @@ export const routes = [
         name: "OrderDetails",
         path: "sales/id/:id",
         component: () => import("../pages/Orders/Details.vue"),
-      },     
-      
+      },
       {
         name: "PurchasingOrderIndex",
         path: "purchasing",
@@ -24,7 +23,34 @@ export const routes = [
         name: "PurchasingOrderDetails",
         path: "purchasing/id/:id",
         component: () => import("../pages/Orders/Details.vue"),
-      },  
+      },
+    ],
+  },
+  {
+    path: "/orders/",
+    component: () =>
+      import("@controleonline/ui-layout/src/layouts/MainLayout.vue"),
+    children: [
+      {
+        name: "ClientOrdersIndex",
+        path: "my",
+        component: () => import("../pages/Orders"),
+      },
+      {
+        name: "ClientOrderDetails",
+        path: "my/id/:id",
+        component: () => import("../pages/Orders/Details.vue"),
+      },
+      {
+        name: "PurchasingOrderIndex",
+        path: "purchasing",
+        component: () => import("../pages/Orders"),
+      },
+      {
+        name: "PurchasingOrderDetails",
+        path: "purchasing/id/:id",
+        component: () => import("../pages/Orders/Details.vue"),
+      },
     ],
   },
 ];
