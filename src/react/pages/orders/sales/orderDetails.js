@@ -6,16 +6,14 @@ import ProductsList from '@controleonline/ui-products/src/react/components/produ
 import {ordersStore} from '@controleonline/ui-orders/src/store/orders/react';
 
 const OrderDetails = ({route, navigation}) => {
-  const {getters, actions, commit} = ordersStore();
+  const {getters, actions} = ordersStore();
   const {item, isLoading, error, columns} = getters;
   const orderId = route.params.orderId;
 
   useEffect(() => {
-    actions.get({commit, getters}, orderId).then(data => {
-      console.log(orderId, item.id, data.id);
-    });
+    actions.get(orderId);
   }, [orderId]);
-  
+
   const handleAddProduct = () => {
     navigation.navigate('AddProductToOrder', {orderId});
   };

@@ -12,19 +12,16 @@ import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import {ordersStore} from '@controleonline/ui-orders/src/store/orders/react';
 
 const Orders = ({navigation}) => {
-  const {getters, actions, commit} = ordersStore();
+  const {getters, actions} = ordersStore();
   const {items, isLoading, error, columns} = getters;
 
   useEffect(() => {
-    actions.getItems(
-      {commit, getters},
-      {
-        page: 1,
-        itemsPerPage: 50,
-        //provider: '/people/8',
-        //status: [6],
-      },
-    );
+    actions.getItems({
+      page: 1,
+      itemsPerPage: 50,
+      //provider: '/people/8',
+      //status: [6],
+    });
   }, []);
 
   const handlePay = orderId => {
@@ -35,7 +32,7 @@ const Orders = ({navigation}) => {
     navigation.navigate('OrderDetails', {orderId: orderId});
   };
 
-  if (isLoading || items.length < 1 ) {
+  if (isLoading || items.length < 1) {
     return (
       <View style={globalStyles.loadingContainer}>
         <ActivityIndicator size="large" color="#3FB8AF" />
