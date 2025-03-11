@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View, ScrollView, ActivityIndicator } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import globalStyles from "@controleonline/ui-shop/src/vue/react/styles/global";
-import ErrorPopup from '@controleonline/ui-common/src/vue/react/components/default/error';
+import globalStyles from "@controleonline/ui-shop/src/react/styles/global";
+import ErrorPopup from '@controleonline/ui-common/src/react/components/default/error';
 import Cielo from '../../services/Cielo';
 
 export default Checkout = ({ route }) => {
