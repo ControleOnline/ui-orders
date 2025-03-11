@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from "react-native";
-import globalStyles from "../../../../../../ui-shop/src/react/styles/global";
+import globalStyles from "../../../../../../ui-shop/src/vue/react/styles/global";
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import ProductsList from '@controleonline/ui-products/src/react/components/products/index';
+import ProductsList from '@controleonline/ui-products/src/vue/react/components/products/index';
 
 export default OrderDetails = ({ route, navigation }) => {
     const [orderId, setOrderId] = useState(route.params.orderId);

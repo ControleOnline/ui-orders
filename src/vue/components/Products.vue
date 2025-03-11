@@ -28,7 +28,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import * as DefaultFiltersMethods from "@controleonline/ui-default/src/components/Default/Scripts/DefaultFiltersMethods";
+import * as DefaultFiltersMethods from "@controleonline/ui-default/src/vue/components/Default/Scripts/DefaultFiltersMethods";
 import ProductList from "./ProductList";
 
 export default {

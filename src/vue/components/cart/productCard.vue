@@ -56,7 +56,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import ProductQuantity from "@controleonline/ui-orders/src/components/cart/ProductQuantity.vue";
+import ProductQuantity from "@controleonline/ui-orders/src/vue/components/cart/ProductQuantity.vue";
 import debounce from "lodash/debounce";
 
 export default {

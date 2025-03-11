@@ -2,7 +2,7 @@ export const routes = [
   {
     path: "/orders/",
     component: () =>
-      import("@controleonline/ui-layout/src/layouts/AdminLayout.vue"),
+      import("@controleonline/ui-layout/src/vue/layouts/AdminLayout.vue"),
     children: [
       {
         name: "SalesOrderIndex",
@@ -29,7 +29,7 @@ export const routes = [
   {
     path: "/orders/",
     component: () =>
-      import("@controleonline/ui-layout/src/layouts/MainLayout.vue"),
+      import("@controleonline/ui-layout/src/vue/layouts/MainLayout.vue"),
     children: [
       {
         name: "ClientOrdersIndex",

@@ -41,9 +41,9 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import CustomProduct from "@controleonline/ui-orders/src/components/CustomProduct.vue";
-import addProduct from "@controleonline/ui-orders/src/components/cart/addProduct";
-import productCard from "@controleonline/ui-orders/src/components/cart/productCard";
+import CustomProduct from "@controleonline/ui-orders/src/vue/components/CustomProduct.vue";
+import addProduct from "@controleonline/ui-orders/src/vue/components/cart/addProduct";
+import productCard from "@controleonline/ui-orders/src/vue/components/cart/productCard";
 
 export default {
   components: {

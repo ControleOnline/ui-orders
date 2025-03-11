@@ -13,7 +13,7 @@
   </div>
 </template>
 <script>
-import ProductQuantity from "@controleonline/ui-orders/src/components/cart/ProductQuantity.vue";
+import ProductQuantity from "@controleonline/ui-orders/src/vue/components/cart/ProductQuantity.vue";
 import { mapActions, mapGetters } from "vuex";
 
 export default {

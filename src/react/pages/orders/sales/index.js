@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import globalStyles from '../../../../../../ui-shop/src/react/styles/global';
+import globalStyles from '../../../../../../ui-shop/src/vue/react/styles/global';
 import {ordersStore} from '@controleonline/ui-orders/src/store/orders/react';
 
 const Orders = ({navigation}) => {

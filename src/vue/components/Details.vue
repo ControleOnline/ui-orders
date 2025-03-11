@@ -93,15 +93,15 @@
   </q-page>
 </template>
 <script>
-import DefaultDetail from "@controleonline/ui-default/src/components/Default/Common/DefaultDetail.vue";
-import Invoice from "@controleonline/ui-financial/src/components/Invoice";
+import DefaultDetail from "@controleonline/ui-default/src/vue/components/Default/Common/DefaultDetail.vue";
+import Invoice from "@controleonline/ui-financial/src/vue/components/Invoice";
 import { mapActions, mapGetters } from "vuex";
 import getConfigs from "./Configs";
-import AddressWidget from "@controleonline/ui-people/src/components/Address/Widget.vue";
+import AddressWidget from "@controleonline/ui-people/src/vue/components/Address/Widget.vue";
 import ProductsTable from "./ProductsTable";
 import ProductList from "./ProductList";
 
-import ClientWidget from "@controleonline/ui-people/src/components/People/Widget.vue";
+import ClientWidget from "@controleonline/ui-people/src/vue/components/People/Widget.vue";
 
 export default {
   components: {
