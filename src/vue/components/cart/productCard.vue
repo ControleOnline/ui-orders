@@ -1,7 +1,7 @@
 <template>
   <div
     @click="clickProduct(product)"
-    class="q-card q-hoverable product-card q-card col-6 col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 q-gutter-md q-mt-md"
+    class="q-card q-hoverable product-card q-card col-6 col-xs-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 q-gutter-md q-mt-md"
   >
     <DefaultCarousel
       v-if="product.productFiles"
