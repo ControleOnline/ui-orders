@@ -9,10 +9,10 @@ import {
   SafeAreaView,
 } from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
-import {ordersStore} from '@controleonline/ui-orders/src/store/orders/react';
+import {useStore} from '@store';
 
 const Orders = ({navigation}) => {
-  const {getters, actions} = ordersStore();
+  const {getters, actions} = useStore('orders');
   const {items, isLoading, error, columns} = getters;
 
   useEffect(() => {

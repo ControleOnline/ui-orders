@@ -1,12 +1,13 @@
 import React, {useState, useEffect} from 'react';
-import {Button, StyleSheet, Text, View} from 'react-native';
+import {Button, StyleSheet, Text, ActivityIndicator, View} from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ProductsList from '@controleonline/ui-products/src/react/components/products/index';
-import {ordersStore} from '@controleonline/ui-orders/src/store/orders/react';
+import {useStore} from '@store';
+import * as DefaultFiltersMethods from '@controleonline/ui-default/src/vue/components/Default/Scripts/DefaultFiltersMethods.js';
 
 const OrderDetails = ({route, navigation}) => {
-  const {getters, actions} = ordersStore();
+  const {getters, actions} = useStore('orders');
   const {item, isLoading, error, columns} = getters;
   const orderId = route.params.orderId;
 
@@ -20,8 +21,8 @@ const OrderDetails = ({route, navigation}) => {
 
   if (isLoading) {
     return (
-      <View style={globalStyles.container}>
-        <Text>Carregando...</Text>
+      <View style={globalStyles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3FB8AF" />
       </View>
     );
   }
