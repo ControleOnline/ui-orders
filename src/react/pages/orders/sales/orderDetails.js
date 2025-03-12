@@ -3,11 +3,11 @@ import {Button, StyleSheet, Text, ActivityIndicator, View} from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ProductsList from '@controleonline/ui-products/src/react/components/products/index';
-import {useStore} from '@store';
+import {getStore} from '@store';
 import * as DefaultFiltersMethods from '@controleonline/ui-default/src/vue/components/Default/Scripts/DefaultFiltersMethods.js';
 
 const OrderDetails = ({route, navigation}) => {
-  const {getters, actions} = useStore('orders');
+  const {getters, actions} = getStore('orders');
   const {item, isLoading, error, columns} = getters;
   const orderId = route.params.orderId;
 
