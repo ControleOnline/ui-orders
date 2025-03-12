@@ -2,9 +2,9 @@
   <q-btn
     flat
     dense
-    :disabled="product.quantity == 0 || isSaving || isLoading"
+    :disabled="!product.quantity || isSaving || isLoading"
     :icon="
-      product.quantity == 1 ? 'delete' : product.quantity == 0 ? '' : 'remove'
+      product.quantity == 1 ? 'delete' : !product.quantity ? '' : 'remove'
     "
     color="red"
     @click="decreaseQuantity()"

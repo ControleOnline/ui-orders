@@ -12,42 +12,36 @@
     <div class="badge sale btn-primary">ON SALE</div>
     <div class="q-pa-sm text-center">
       <div class="row q-pa-sm col-12">
-        <div class="icon-container row col-12">
-          <q-btn
-            flat
-            round
-            icon="info"
-            class="icon-box"
-            v-if="product.type === 'custom'"
-            @click="showDetails(product)"
-          />
-          <div v-else class="row items-center">
-            <ProductQuantity
-              :product="product"
-              @changeQuantity="changeQuantity"
-            />
-          </div>
-        </div>
         <div class="row col-8 text-left column">
-          <div class="text-subtitle1 text-weight-bolder">
-            <q-rating
-              :model-value="4"
-              :max="5"
-              size="16px"
-              color="amber"
-              color-inactive="grey"
-              readonly
-            />
-          </div>
           <div class="text-subtitle1 text-weight-bolder">
             {{ product.product }}
           </div>
         </div>
         <div class="col-4 text-right column">
-          <div class="text-grey-6 text-subtitle1">
-            {{ "R$ " + $formatter.formatMoney(product.price, "BRL", "pt-br") }}
+          <div class="text-subtitle1 text-blue-8">
+            {{ $formatter.formatMoney(product.price, "R$", "pt-br") }}
           </div>
-          <div class="text-subtitle1 text-h6 text-blue-8">$ 24.05</div>
+        </div>
+        <div
+          class="icon-container row col-12 justify-center full-width q-pt-md"
+        >
+          <q-btn
+            flat
+            round
+            icon="shopping_cart"
+            class="full-width icon-box"
+            :label="$tt('cart', 'btn', 'Customize')"
+            v-if="product.type === 'custom'"
+            @click="showDetails(product)"
+          />
+          <div v-else class="row items-center justify-center full-width" >
+            <div class="icon-box full-width  " :style="{ borderRadius: '5px'}">
+              <ProductQuantity
+                :product="product"
+                @changeQuantity="changeQuantity"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
