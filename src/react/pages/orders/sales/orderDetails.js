@@ -1,78 +1,163 @@
-import React, {useState, useEffect} from 'react';
-import {Button, StyleSheet, Text, ActivityIndicator, View} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  ActivityIndicator,
+  SafeAreaView,
+} from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import ProductsList from '@controleonline/ui-products/src/react/components/products/index';
 import {getStore} from '@store';
-import * as DefaultFiltersMethods from '@controleonline/ui-default/src/vue/components/Default/Scripts/DefaultFiltersMethods.js';
 
 const OrderDetails = ({route, navigation}) => {
+  const orderId = route.params.orderId;
   const {getters, actions} = getStore('orders');
   const {item, isLoading, error, columns} = getters;
-  const orderId = route.params.orderId;
 
   useEffect(() => {
     actions.get(orderId);
   }, [orderId]);
 
-  const handleAddProduct = () => {
-    navigation.navigate('AddProductToOrder', {orderId});
-  };
-
-  if (isLoading) {
+  if (isLoading || (!item && orderId)) {
     return (
       <View style={globalStyles.loadingContainer}>
         <ActivityIndicator size="large" color="#3FB8AF" />
+        {!isLoading && !item && (
+          <Text style={styles.errorText}>Pedido não encontrado</Text>
+        )}
       </View>
     );
   }
 
-  if (error) {
-    return (
-      <View style={globalStyles.container}>
-        <Text>Erro: {error}</Text>
-      </View>
-    );
-  }
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.orderContainer}>
+          <Text style={styles.header}>
+            Detalhes do Pedido #{item.id || orderId}
+          </Text>
 
-  if (!item) {
-    return (
-      <View style={globalStyles.container}>
-        <Text>Pedido não encontrado</Text>
-      </View>
-    );
-  }
-  if (!isLoading && item) {
-    return (
-      <View style={globalStyles.container}>
-        <View style={styles.boxHeader}>
-          <Text style={styles.boxTitleText}># {item.id}</Text>
-          <Text style={styles.boxTitleText}>Lista de Produtos</Text>
-          <Icon.Button
-            style={globalStyles.button}
-            name="add"
-            backgroundColor="#40b8af"
-            onPress={handleAddProduct}>
-            Adicionar
-          </Icon.Button>
+          {/* Informações do pedido */}
+          <View style={styles.boxWrap}>
+            <View style={styles.boxHeader}>
+              <Text style={[styles.boxTextColor, styles.boxOrderText]}>
+                Pedido: #{item.id || orderId}
+              </Text>
+              <Text style={[styles.boxTextColor, styles.boxPrice]}>
+                {item.totalPrice}
+              </Text>
+            </View>
+            <View style={styles.boxContent}>
+              <Text style={[styles.boxDateText, styles.boxTextColor]}>
+                {item.orderDate}
+              </Text>
+              <Text style={styles.boxStatusText}>{item.status?.status}</Text>
+            </View>
+          </View>
+
+          {/* Lista de produtos do pedido */}
+          <View style={styles.itemsSection}>
+            <Text style={styles.subHeader}>Itens do Pedido</Text>
+            <ProductsList orderId={orderId} />
+          </View>
         </View>
-        <ProductsList orderId={orderId} />
-        <Text style={styles.boxTitleText}> {item.price}</Text>
-      </View>
-    );
-  }
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContent: {
+    padding: 10,
+    paddingBottom: 70, // Espaço para o BottomToolbar
+  },
+  orderContainer: {
+    flex: 1,
+  },
+  header: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1B5587',
+    marginBottom: 15,
+  },
+  boxWrap: {
+    backgroundColor: '#fff',
+    marginBottom: 15,
+    borderLeftColor: '#5bbf4b',
+    borderLeftWidth: 7,
+    elevation: 3,
+  },
   boxHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 10,
+    borderTopEndRadius: 7,
+    borderTopLeftRadius: 7,
+    borderBottomColor: '#ccc',
+    borderBottomWidth: 1,
   },
-  boxTitleText: {
-    fontSize: 20,
+  boxContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+  },
+  boxOrderText: {
+    fontWeight: '700',
+  },
+  boxTextColor: {
+    color: '#000000',
+  },
+  boxDateText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  boxPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  boxStatusText: {
+    padding: 7,
+    borderRadius: 20,
+    fontSize: 13,
+    color: '#5bbf4b',
+    fontWeight: '500',
+  },
+  itemsSection: {
+    marginTop: 20,
+  },
+  subHeader: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: '#1B5587',
+    marginBottom: 10,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  btnBack: {
+    backgroundColor: '#ccc',
+    padding: 15,
+    flex: 1,
+    alignItems: 'center',
+  },
+  btnBackText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#FF0000',
   },
 });
 

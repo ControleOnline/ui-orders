@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,13 +7,13 @@ import {
   ScrollView,
   ActivityIndicator,
   SafeAreaView,
-} from 'react-native';
-import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
-import {getStore} from '@store';
+} from "react-native";
+import globalStyles from "@controleonline/ui-shop/src/react/styles/global";
+import { getStore } from "@store";
 
-const Orders = ({navigation}) => {
-  const {getters, actions} = getStore('orders');
-  const {items, isLoading, error, columns} = getters;
+const Orders = ({ navigation }) => {
+  const { getters, actions } = getStore("orders");
+  const { items, isLoading, error, columns } = getters;
 
   useEffect(() => {
     actions.getItems({
@@ -24,12 +24,12 @@ const Orders = ({navigation}) => {
     });
   }, []);
 
-  const handlePay = orderId => {
-    navigation.navigate('Checkout', {orderId: orderId});
+  const handlePay = (orderId) => {
+    navigation.navigate("Checkout", { orderId: orderId });
   };
 
-  const handleEdit = async orderId => {
-    navigation.navigate('OrderDetails', {orderId: orderId});
+  const handleEdit = (orderId) => {
+    navigation.navigate("OrderDetails", { orderId: orderId });
   };
 
   if (isLoading || items.length < 1) {
@@ -41,14 +41,15 @@ const Orders = ({navigation}) => {
   } else {
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View>
-            {items.map(order => (
+            {items.map((order) => (
               <View
                 key={order.id}
                 activeOpacity={0.6}
                 onPress={() => handleEdit(order.id)}
-                style={styles.boxWrap}>
+                style={styles.boxWrap}
+              >
                 <View>
                   <View style={styles.boxHeader}>
                     <Text style={[styles.boxTextColor, styles.boxOrderText]}>
@@ -71,13 +72,15 @@ const Orders = ({navigation}) => {
                 <View style={styles.ordersAction}>
                   <TouchableOpacity
                     onPress={() => handleEdit(order.id)}
-                    style={[globalStyles.button, styles.btnEdit]}>
+                    style={[globalStyles.button, styles.btnEdit]}
+                  >
                     <Text style={styles.btnEditText}>EDITAR</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => handlePay(order.id)}
-                    style={[globalStyles.button, styles.btnPay]}>
+                    style={[globalStyles.button, styles.btnPay]}
+                  >
                     <Text style={styles.textWhite}>PAGAR</Text>
                   </TouchableOpacity>
                 </View>
@@ -89,88 +92,84 @@ const Orders = ({navigation}) => {
     );
   }
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
-
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#1B5587',
+  scrollContent: {
+    paddingBottom: 70, // Espaço para o BottomToolbar
   },
   boxWrap: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginBottom: 15,
-    borderLeftColor: '#5bbf4b',
+    borderLeftColor: "#5bbf4b",
     borderLeftWidth: 7,
     elevation: 3,
   },
-
   boxHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 10,
     borderTopEndRadius: 7,
     borderTopLeftRadius: 7,
-    borderBottomColor: '#ccc',
+    borderBottomColor: "#ccc",
     borderBottomWidth: 1,
   },
   boxContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 10,
     borderTopEndRadius: 7,
     borderTopLeftRadius: 7,
   },
   boxOrderText: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   boxTextColor: {
-    color: '#000000',
+    color: "#000000",
   },
   boxDateText: {
-    color: '#000000',
+    color: "#000000",
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   boxPrice: {
-    color: '#000000',
+    color: "#000000",
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   boxStatusText: {
     padding: 7,
     borderRadius: 20,
     fontSize: 13,
-    color: '#5bbf4b',
-    fontWeight: '500',
+    color: "#5bbf4b",
+    fontWeight: "500",
   },
   ordersAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
   },
   btnPay: {
-    backgroundColor: '#40b8af',
+    backgroundColor: "#40b8af",
     flex: 1,
   },
   textWhite: {
-    color: '#fff',
+    color: "#fff",
   },
   btnEdit: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     flex: 1,
   },
   btnEditText: {
-    color: '#000000',
-    fontWeight: 'bold',
+    color: "#000000",
+    fontWeight: "bold",
   },
 });
 
