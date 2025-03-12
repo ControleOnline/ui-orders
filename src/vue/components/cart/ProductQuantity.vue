@@ -11,13 +11,15 @@
   />
   <span class="q-mx-md">{{ product.quantity || defaultQuantity }}</span>
   <q-btn
-    :disabled="isSaving || isLoading"
-    flat
-    dense
-    icon="add"
-    color="red"
-    @click="increaseQuantity()"
-  />
+  :disabled="isSaving || isLoading"
+  flat
+  dense
+  icon="add"
+  color="blue"
+  text-color="blue"
+  @click="increaseQuantity()"
+  class="btn-hover"
+/>
 </template>
 
 <script>
@@ -102,3 +104,9 @@ export default {
   },
 };
 </script>
+
+<style lang="css" scoped>
+.btn-hover:hover :deep(.q-icon) {
+  color: white !important;
+}
+</style>
