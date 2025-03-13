@@ -1,6 +1,6 @@
 import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/index';
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
-import Checkout from '@controleonline/ui-orders/src/react/components/checkout/index';
+import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/index';
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 
 const WrappedOrdersPage = ({navigation, route}) => (
@@ -10,9 +10,7 @@ const WrappedOrdersPage = ({navigation, route}) => (
 );
 
 const WrappedOrderDetails = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
-    <OrderDetails navigation={navigation} route={route} />
-  </ShopLayout>
+  <OrderDetails navigation={navigation} route={route} />
 );
 
 const ordersRoutes = [
@@ -37,7 +35,7 @@ const ordersRoutes = [
   },
   {
     name: 'Checkout',
-    component: Checkout, // Sem ShopLayout, então passa route diretamente
+    component: Checkout, 
     options: {headerShown: true, title: 'Forma de Pagamento', store: 'cart'},
     initialParams: {store: 'cart'},
   },
