@@ -1,5 +1,6 @@
 import {StyleSheet} from 'react-native';
 import {useTheme} from '@controleonline/ui-layout/src/react/components/ThemeProvider';
+import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 
 const css = () => {
   const {colors} = useTheme();
@@ -170,48 +171,48 @@ const css = () => {
       fontWeight: 'bold',
     },
     boxPayment: {
-        flexDirection: 'row',
-        backgroundColor: '#fff',
-        padding: 20,
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-        borderRadius: 7,
-        elevation: 3,
+      flexDirection: 'row',
+      backgroundColor: '#fff',
+      padding: 20,
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 15,
+      borderRadius: 7,
+      elevation: 3,
     },
     selectedBoxPayment: {
-        backgroundColor: '#ffffff',
+      backgroundColor: '#ffffff',
     },
     paymentIcon: {
-        width: 24,
-        marginRight: 10,
+      width: 24,
+      marginRight: 10,
     },
     boxInfos: {
-        padding: 20,
-        marginVertical: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc'
+      padding: 20,
+      marginVertical: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: '#ccc',
     },
     infos: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
     },
     infoText: {
-        fontSize: 16,
-        fontWeight: 'bold',
+      fontSize: 16,
+      fontWeight: 'bold',
     },
     btnText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: 'bold',
     },
     scrollV: {
-        maxHeight: 310,
-    }
+      maxHeight: 310,
+    },
   });
 
-  return styles;
+  return {styles, globalStyles};
 };
 
 export default css;

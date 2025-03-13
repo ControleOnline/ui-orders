@@ -14,7 +14,7 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 const Orders = ({navigation}) => {
   const {getters, actions} = getStore('orders');
   const {items, isLoading, error, columns} = getters;
-  const styles = css();
+  const {styles, globalStyles} = css();
 
   useEffect(() => {
     actions.getItems({

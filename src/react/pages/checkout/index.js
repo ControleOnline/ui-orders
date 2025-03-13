@@ -13,7 +13,7 @@ import Cielo from '../../services/Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
 export default Checkout = ({route}) => {
-  const styles = css();
+  const {styles, globalStyles} = css();
 
   const [payments, setPayments] = useState([]);
   const [selectedPayment, setSelectedPayment] = useState(null);

@@ -1,10 +1,9 @@
 import React from 'react';
 import {Text, View, TouchableOpacity} from 'react-native';
-import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
 const OrderHeader = ({order}) => {
-  const styles = css();
+  const {styles, globalStyles} = css();
 
   return (
     <View activeOpacity={0.6} style={styles.boxWrap}>

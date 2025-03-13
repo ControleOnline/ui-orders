@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import ProductsList from '@controleonline/ui-products/src/react/components/products/index';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {getStore} from '@store';
@@ -16,7 +15,7 @@ const OrderDetails = ({route, navigation}) => {
   const orderId = route.params.orderId;
   const {getters, actions} = getStore('orders');
   const {item, isLoading, error, columns} = getters;
-  const styles = css();
+  const {styles, globalStyles} = css();
 
   useEffect(() => {
     actions.get(orderId);
@@ -42,7 +41,13 @@ const OrderDetails = ({route, navigation}) => {
             <TouchableOpacity
               onPress={() => handlePay(orderId)}
               style={[globalStyles.button, styles.btnPay]}>
-              <Text style={styles.textWhite}>PAGAR</Text>
+              <Text style={styles.textWhite}>ADICIONAR ITENS</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handlePay(orderId)}
+              style={[globalStyles.button, styles.btnPay]}>
+              <Text style={styles.textWhite}>FINALIZAR</Text>
             </TouchableOpacity>
           </View>
         </>
