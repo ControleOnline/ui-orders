@@ -19,53 +19,42 @@ const OrderDetails = ({route, navigation}) => {
   useEffect(() => {
     actions.get(orderId);
   }, [orderId]);
-
-  if (isLoading || (!item && orderId)) {
+  if (!isLoading)
     return (
-      <View style={globalStyles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3FB8AF" />
-        {!isLoading && !item && (
-          <Text style={styles.errorText}>Pedido não encontrado</Text>
-        )}
-      </View>
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.orderContainer}>
+            <Text style={styles.header}>
+              Detalhes do Pedido #{item.id || orderId}
+            </Text>
+
+            {/* Informações do pedido */}
+            <View style={styles.boxWrap}>
+              <View style={styles.boxHeader}>
+                <Text style={[styles.boxTextColor, styles.boxOrderText]}>
+                  Pedido: #{item.id || orderId}
+                </Text>
+                <Text style={[styles.boxTextColor, styles.boxPrice]}>
+                  {item.totalPrice}
+                </Text>
+              </View>
+              <View style={styles.boxContent}>
+                <Text style={[styles.boxDateText, styles.boxTextColor]}>
+                  {item.orderDate}
+                </Text>
+                <Text style={styles.boxStatusText}>{item.status?.status}</Text>
+              </View>
+            </View>
+
+            {/* Lista de produtos do pedido */}
+            <View style={styles.itemsSection}>
+              <Text style={styles.subHeader}>Itens do Pedido</Text>
+              <ProductsList orderId={orderId} />
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
-  }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.orderContainer}>
-          <Text style={styles.header}>
-            Detalhes do Pedido #{item.id || orderId}
-          </Text>
-
-          {/* Informações do pedido */}
-          <View style={styles.boxWrap}>
-            <View style={styles.boxHeader}>
-              <Text style={[styles.boxTextColor, styles.boxOrderText]}>
-                Pedido: #{item.id || orderId}
-              </Text>
-              <Text style={[styles.boxTextColor, styles.boxPrice]}>
-                {item.totalPrice}
-              </Text>
-            </View>
-            <View style={styles.boxContent}>
-              <Text style={[styles.boxDateText, styles.boxTextColor]}>
-                {item.orderDate}
-              </Text>
-              <Text style={styles.boxStatusText}>{item.status?.status}</Text>
-            </View>
-          </View>
-
-          {/* Lista de produtos do pedido */}
-          <View style={styles.itemsSection}>
-            <Text style={styles.subHeader}>Itens do Pedido</Text>
-            <ProductsList orderId={orderId} />
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
 };
 
 const styles = StyleSheet.create({

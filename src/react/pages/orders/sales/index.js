@@ -114,13 +114,7 @@ const Orders = ({navigation}) => {
     },
   });
 
-  if (isLoading || items.length < 1) {
-    return (
-      <View style={globalStyles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3FB8AF" />
-      </View>
-    );
-  } else {
+  if (!isLoading)
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -169,6 +163,5 @@ const Orders = ({navigation}) => {
         </ScrollView>
       </SafeAreaView>
     );
-  }
 };
 export default Orders;
