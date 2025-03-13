@@ -4,7 +4,7 @@ import {
   Text,
   View,
   ScrollView,
-  ActivityIndicator,
+ 
   SafeAreaView,
 } from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';

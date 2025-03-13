@@ -3,14 +3,14 @@ import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales
 import Checkout from '@controleonline/ui-orders/src/react/components/checkout/index';
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 
-const WrappedOrdersPage = ({navigation, route, store}) => (
-  <ShopLayout navigation={navigation} route={route} store={store}>
+const WrappedOrdersPage = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
     <OrdersPage navigation={navigation} route={route} />
   </ShopLayout>
 );
 
-const WrappedOrderDetails = ({navigation, route, store}) => (
-  <ShopLayout navigation={navigation} route={route} store={store}>
+const WrappedOrderDetails = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
     <OrderDetails navigation={navigation} route={route} />
   </ShopLayout>
 );
@@ -23,8 +23,8 @@ const ordersRoutes = [
       headerShown: true,
       title: 'Pedidos de Venda',
       headerBackButtonMenuEnabled: false,
-      store: 'orders',
     },
+    initialParams: {store: 'orders'},
   },
   {
     name: 'OrderDetails',
@@ -32,13 +32,14 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       title: 'Detalhes do pedido',
-      store: 'orders',
     },
+    initialParams: {store: 'orders'},
   },
   {
     name: 'Checkout',
     component: Checkout, // Sem ShopLayout, então passa route diretamente
     options: {headerShown: true, title: 'Forma de Pagamento', store: 'cart'},
+    initialParams: {store: 'cart'},
   },
 ];
 
