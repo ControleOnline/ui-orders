@@ -1,15 +1,9 @@
 import React, {useEffect, useState} from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
- 
-  SafeAreaView,
-} from 'react-native';
+import {StyleSheet, Text, View, ScrollView, SafeAreaView} from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import ProductsList from '@controleonline/ui-products/src/react/components/products/index';
 import {getStore} from '@store';
+import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 
 const OrderDetails = ({route, navigation}) => {
   const orderId = route.params.orderId;
@@ -19,9 +13,10 @@ const OrderDetails = ({route, navigation}) => {
   useEffect(() => {
     actions.get(orderId);
   }, [orderId]);
-  if (!isLoading)
-    return (
-      <SafeAreaView style={styles.container}>
+  return (
+    <SafeAreaView style={styles.container}>
+      <StateStore store="orders" />
+      {!isLoading && item && !error && (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.orderContainer}>
             <Text style={styles.header}>
@@ -53,8 +48,9 @@ const OrderDetails = ({route, navigation}) => {
             </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
-    );
+      )}
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({

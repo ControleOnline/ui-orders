@@ -10,6 +10,7 @@ import {
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import {getStore} from '@store';
 import {useTheme} from '@controleonline/ui-layout/src/react/components/ThemeProvider';
+import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 
 const Orders = ({navigation}) => {
   const {getters, actions} = getStore('orders');
@@ -113,9 +114,10 @@ const Orders = ({navigation}) => {
     },
   });
 
-  if (!isLoading)
-    return (
-      <SafeAreaView style={styles.container}>
+  return (
+    <SafeAreaView style={styles.container}>
+      <StateStore store="orders" />
+      {!isLoading && items.length > 0 && !error && (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View>
             {items.map(order => (
@@ -160,7 +162,8 @@ const Orders = ({navigation}) => {
             ))}
           </View>
         </ScrollView>
-      </SafeAreaView>
-    );
+      )}
+    </SafeAreaView>
+  );
 };
 export default Orders;
