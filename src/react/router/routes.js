@@ -1,23 +1,23 @@
 import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/index';
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
 import Checkout from '@controleonline/ui-orders/src/react/components/checkout/index';
-import ScreenWithToolbar from '@controleonline/ui-layout/src/react/components/ScreenWithToolbar';
+import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 
 const WrappedOrdersPage = ({navigation, route}) => (
-  <ScreenWithToolbar navigation={navigation} route={route}>
+  <ShopLayout navigation={navigation} route={route}>
     <OrdersPage navigation={navigation} route={route} />
-  </ScreenWithToolbar>
+  </ShopLayout>
 );
 
 const WrappedOrderDetails = ({navigation, route}) => (
-  <ScreenWithToolbar navigation={navigation} route={route}>
+  <ShopLayout navigation={navigation} route={route}>
     <OrderDetails navigation={navigation} route={route} />
-  </ScreenWithToolbar>
+  </ShopLayout>
 );
 
 const ordersRoutes = [
   {
-    name: 'SalesOrdersPage',
+    name: 'SalesOrderIndex',
     component: WrappedOrdersPage,
     options: {
       headerShown: true,
@@ -35,7 +35,7 @@ const ordersRoutes = [
   },
   {
     name: 'Checkout',
-    component: Checkout, // Sem ScreenWithToolbar, então passa route diretamente
+    component: Checkout, // Sem ShopLayout, então passa route diretamente
     options: {headerShown: true, title: 'Forma de Pagamento'},
   },
 ];
