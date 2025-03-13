@@ -46,7 +46,7 @@
                 <q-tooltip>Remover Ingredientes</q-tooltip>
               </q-btn>
               {{
-                "R$ " + $formatter.formatMoney(opt.value.price, "BRL", "pt-br")
+                $formatter.formatMoney(opt.value.price, "R$", "pt-br")
               }}
               <q-btn
                 flat

@@ -29,13 +29,13 @@
             flat
             round
             icon="shopping_cart"
-            class="full-width icon-box"
+            class="full-width icon-box icon-box-hover"
             :label="$tt('cart', 'btn', 'Customize')"
             v-if="product.type === 'custom'"
             @click="showDetails(product)"
           />
-          <div v-else class="row items-center justify-center full-width" >
-            <div class="icon-box full-width  " :style="{ borderRadius: '5px'}">
+          <div v-else class="row items-center justify-center full-width">
+            <div class="icon-box full-width" :style="{ borderRadius: '5px' }">
               <ProductQuantity
                 :product="product"
                 @changeQuantity="changeQuantity"
@@ -209,10 +209,10 @@ export default {
   transition: box-shadow 0.3s ease;
 }
 .product-card:hover,
-.icon-box:hover {
+.icon-box-hover:hover {
   box-shadow: 0 4px 8px rgb(0 0 0 / 53%);
 }
-.icon-box:hover {
+.icon-box-hover:hover {
   background-color: var(--primary) !important;
   color: var(--text-primary) !important;
 }

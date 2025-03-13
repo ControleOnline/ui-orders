@@ -4,7 +4,7 @@
       class="row col-12 bottom-cart sticky-bottom full-width bg-white q-pa-md"
     >
       <div class="col flex items-center justify-center text-primary">
-        {{ "R$ " + $formatter.formatMoney(order.price, "BRL", "pt-br") }}
+        {{ $formatter.formatMoney(order.price, "R$", "pt-br") }}
       </div>
       <div class="col flex items-center justify-center">
         <q-btn
