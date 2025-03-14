@@ -1,9 +1,9 @@
-import {StyleSheet} from 'react-native';
-import {useTheme} from '@controleonline/ui-layout/src/react/components/ThemeProvider';
+import { StyleSheet } from 'react-native';
+import { useTheme } from '@controleonline/ui-layout/src/react/components/ThemeProvider';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 
 const css = () => {
-  const {colors} = useTheme();
+  const { colors } = useTheme();
 
   const styles = StyleSheet.create({
     container: {
@@ -14,91 +14,7 @@ const css = () => {
     scrollContent: {
       paddingBottom: 70, // Espaço para o BottomToolbar
     },
-    boxWrap: {
-      flex: 1,
-      backgroundColor: '#fff',
-      marginBottom: 15,
-      borderLeftColor: colors['primary'],
-      borderLeftWidth: 7,
-      elevation: 3,
-    },
-    boxHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 10,
-      borderTopEndRadius: 7,
-      borderTopLeftRadius: 7,
-      borderBottomColor: '#ccc',
-      borderBottomWidth: 1,
-    },
-    boxContent: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 10,
-      borderTopEndRadius: 7,
-      borderTopLeftRadius: 7,
-    },
-    boxOrderText: {
-      fontWeight: '700',
-    },
-    boxTextColor: {
-      color: '#000000',
-    },
-    boxDateText: {
-      color: '#000000',
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    boxPrice: {
-      color: '#000000',
-      fontSize: 14,
-      fontWeight: '700',
-    },
-    boxStatusText: {
-      padding: 7,
-      borderRadius: 20,
-      fontSize: 13,
-      color: colors['primary'],
-      fontWeight: '500',
-    },
 
-    textWhite: {
-      color: '#fff',
-    },
-    btnEdit: {
-      backgroundColor: '#fff',
-      flex: 1,
-    },
-    btnEditText: {
-      color: '#000000',
-      fontWeight: 'bold',
-    },
-    container: {
-      flex: 1,
-      backgroundColor: '#fff',
-    },
-    scrollContent: {
-      padding: 10,
-      paddingBottom: 70,
-    },
-    orderContainer: {
-      flex: 1,
-    },
-    header: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#1B5587',
-      marginBottom: 15,
-    },
-    boxWrap: {
-      backgroundColor: '#fff',
-      marginBottom: 15,
-      borderLeftColor: '#5bbf4b',
-      borderLeftWidth: 7,
-      elevation: 3,
-    },
     boxHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -136,6 +52,17 @@ const css = () => {
       color: '#5bbf4b',
       fontWeight: '500',
     },
+    textWhite: {
+      color: '#fff',
+    },
+    btnEdit: {
+      backgroundColor: '#fff',
+      flex: 1,
+    },
+    btnEditText: {
+      color: '#000000',
+      fontWeight: 'bold',
+    },
     itemsSection: {
       marginTop: 20,
     },
@@ -165,10 +92,6 @@ const css = () => {
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: colors['primary'],
-    },
-    textWhite: {
-      color: '#fff',
-      fontWeight: 'bold',
     },
     boxPayment: {
       flexDirection: 'row',
@@ -210,9 +133,50 @@ const css = () => {
     scrollV: {
       maxHeight: 310,
     },
+    OrderHeader: {
+      boxWrap: {
+        backgroundColor: '#fff', // Fundo branco para o card
+        marginHorizontal: 2, // Margem lateral para separação
+        marginVertical: 8, // Margem vertical para separação
+        borderRadius: 8, // Bordas arredondadas
+        elevation: 4, // Sombra no Android
+        shadowColor: '#000', // Sombra no iOS
+        shadowOffset: { width: 0, height: 2 }, // Sombra no iOS
+        shadowOpacity: 0.1, // Sombra no iOS
+        shadowRadius: 4, // Sombra no iOS
+      },
+      container: {
+        padding: 10,
+      },
+      topInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+      },
+      infoText: {
+        color: '#999999',
+        fontSize: 14,
+      },
+      customerName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#999999',
+        marginVertical: 4,
+      },
+      statusText: {
+        color: '#28a745',
+      },
+      tableNumber: {
+        fontSize: 14,
+        fontWeight: '600',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+      },
+    },
   });
 
-  return {styles, globalStyles};
+  return { styles, globalStyles };
 };
 
 export default css;

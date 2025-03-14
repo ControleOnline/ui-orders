@@ -1,27 +1,57 @@
 import React from 'react';
-import {Text, View, TouchableOpacity} from 'react-native';
+import { Text, View, TextInput } from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
+import Formatter from '@controleonline/ui-common/src/utils/formatter';
 
-const OrderHeader = ({order}) => {
-  const {styles, globalStyles} = css();
+const OrderHeader = ({ order, showId = false }) => {
+  const { styles, globalStyles } = css();
+  const oh = styles.OrderHeader;
 
   return (
-    <View activeOpacity={0.6} style={styles.boxWrap}>
-      <View>
-        <View style={styles.boxHeader}>
-          <Text style={[styles.boxTextColor, styles.boxOrderText]}>
+    <View style={oh.boxWrap}>
+      <View style={oh.container}>
+        {showId ? (
+          <Text style={[oh.boxTextColor, oh.infoText]}>
             Pedido: #{order.id}
           </Text>
-          <Text style={[styles.boxTextColor, styles.boxPrice]}>
-            {order.totalPrice}
+        ) : null}
+        <View style={oh.topInfo}>
+          <Text style={[oh.boxTextColor, oh.boxStatusText, oh.statusText]}>
+            {order.status?.status}
+          </Text>
+          <Text style={[oh.boxTextColor, oh.infoText]}>
+            {Formatter.formatDateYmdTodmY(order.orderDate, true)}
           </Text>
         </View>
-        <View style={styles.boxContent}>
-          <Text style={[styles.boxDateText, styles.boxTextColor]}>
-            {order.orderDate}
+        {order.client?.name ? (
+          <Text style={[oh.boxTextColor, oh.customerName]}>
+            {order.client.name}
           </Text>
-          <Text style={styles.boxStatusText}>{order.status?.status}</Text>
-        </View>
+        ) : null}
+        {/*
+        <View
+          style={[
+            oh.boxContent,
+            {flexDirection: 'row', justifyContent: 'space-between'},
+          ]}>
+          <Text
+            style={[
+              oh.boxTextColor,
+              oh.tableNumber,
+              {backgroundColor: 'transparent'},
+            ]}>
+            Mesa:
+          </Text>
+          <TextInput
+            style={[
+              oh.boxTextColor,
+              oh.tableNumber,
+              {backgroundColor: 'transparent', borderWidth: 0},
+            ]}
+            value={order.tableNumber}
+            editable={true}
+          />
+        </View>*/}
       </View>
     </View>
   );
