@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import ProductsList from '@controleonline/ui-products/src/react/components/products/index';
+import ProductsList from '@controleonline/ui-orders/src/react/components/cart';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
@@ -38,11 +38,7 @@ const OrderDetails = ({route, navigation}) => {
             </View>
           </ScrollView>
           <View style={styles.toolbar}>
-            <TouchableOpacity
-              onPress={() => handlePay(orderId)}
-              style={[globalStyles.button, styles.btnPay]}>
-              <Text style={styles.textWhite}>ADICIONAR ITENS</Text>
-            </TouchableOpacity>
+            <Text style={styles.primary}>R$ 50,00</Text>
 
             <TouchableOpacity
               onPress={() => handlePay(orderId)}
