@@ -31,12 +31,12 @@ const styles = {
 };
 
 const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
-  const {getters: orderGetters, actions: orderActions} = getStore('orders');
+  const {getters: orderGetters} = getStore('orders');
   const {actions: cartActions} = getStore('cart');
 
   const {getters: orderProductGetters, actions: orderProductActions} =
     getStore('order_products');
-  const {item: order, isLoading, reload} = orderGetters;
+  const {item: order, isLoading} = orderGetters;
   const {isSaving} = orderProductGetters;
 
   const getInitialQuantity = () => {
@@ -77,15 +77,12 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
         order: order['@id'],
       };
 
-      orderProductActions
-        .save(order_product)
-        .then(result => {
-          const index = getIndex(updatedProduct);
-          if (index >= 0) order.orderProducts[index] = result;
-          else order.orderProducts.push(result);
-          cartActions.setReload(true);
-        })
-        .finally(() => {});
+      orderProductActions.save(order_product).then(result => {
+        const index = getIndex(updatedProduct);
+        if (index >= 0) order.orderProducts[index] = result;
+        else order.orderProducts.push(result);
+        cartActions.setReload(true);
+      });
     }, 500),
   );
   const getIndex = updatedProduct => {
