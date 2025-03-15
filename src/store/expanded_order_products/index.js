@@ -14,7 +14,7 @@ export default {
     isLoading: false,
     isSaving: false,
     error: '',
-    violations: null,
+    
     totalItems: 0,
     filters: {},
     columns: [

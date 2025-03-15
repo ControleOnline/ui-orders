@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
-import ErrorPopup from '@controleonline/ui-common/src/react/components/default/error';
 import Cielo from '../../services/Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
@@ -25,8 +24,7 @@ export default Checkout = ({route}) => {
   const [errorMessage, setErrorMessage] = useState('');
 
   const showErrorPopup = message => {
-    setErrorMessage(message);
-    setPopupVisible(true);
+    console.log(message);
   };
 
   const onClosePopup = () => {
@@ -266,12 +264,6 @@ export default Checkout = ({route}) => {
           <Text style={styles.btnText}>PAGAR</Text>
         </TouchableOpacity>
       </View>
-
-      <ErrorPopup
-        isVisible={popupVisible}
-        onClose={onClosePopup}
-        errorData={errorMessage}
-      />
     </View>
   );
 };

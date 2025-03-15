@@ -15,13 +15,14 @@ const Orders = ({navigation}) => {
   const {getters, actions} = getStore('orders');
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
-
+  const {getters: peopleGetters} = getStore('people');
+  const {currentCompany} = peopleGetters;
   useEffect(() => {
     actions.getItems({
-      provider: '/people/4',
+      provider: '/people/' + currentCompany.id,
       //status: [6],
     });
-  }, []);
+  }, [currentCompany]);
 
   const handleEdit = orderId => {
     navigation.navigate('OrderDetails', {orderId: orderId});

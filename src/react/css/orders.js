@@ -1,9 +1,11 @@
 import {StyleSheet} from 'react-native';
-import {useTheme} from '@controleonline/ui-layout/src/react/components/ThemeProvider';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
+import {getStore} from '@store';
+import {background} from 'native-base/lib/typescript/theme/styled-system';
 
 const css = () => {
-  const {colors} = useTheme();
+  const {getters} = getStore('theme');
+  const {colors} = getters;
 
   const styles = StyleSheet.create({
     container: {
@@ -135,6 +137,57 @@ const css = () => {
     scrollV: {
       maxHeight: 310,
     },
+    Product: {
+      productsContainer: {
+        flexDirection: 'column',
+      },
+      productItem: {
+        padding: 10,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        marginBottom: 10,
+      },
+      productName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+      },
+      productPrice: {
+        fontSize: 16,
+        color: '#007AFF',
+        marginVertical: 5,
+      },
+      productDescription: {
+        fontSize: 14,
+        color: '#666',
+      },
+    },
+    Category: {
+      categoriesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        padding: 10,
+      },
+      categoryItem: {
+        width: '48%',
+        alignItems: 'center',
+        marginBottom: 20,
+      },
+      categorySquare: {
+        width: 100,
+        height: 100,
+        borderRadius: 10,
+      },
+      categoryName: {
+        marginTop: 8,
+        textAlign: 'center',
+        fontSize: 16,
+        color: colors['primary'],
+      },
+    },
+
     OrderHeader: {
       boxWrap: {
         backgroundColor: '#fff', // Fundo branco para o card

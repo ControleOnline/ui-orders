@@ -1,8 +1,8 @@
 import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/index';
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/index';
-import ProductCart from '@controleonline/ui-orders/src/react/pages/checkout/ProductCart';
-
+import Categories from '@controleonline/ui-orders/src/react/pages/checkout/Categories';
+import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 import React from 'react';
 
@@ -36,14 +36,24 @@ const ordersRoutes = [
     initialParams: {store: 'orders'},
   },
   {
-    name: 'AddProductScreen',
-    component: ProductCart,
+    name: 'ProductsPage',
+    component: Products,
     options: {
       headerShown: true,
-      title: 'Adicionar Produtos',
+      title: 'Escolher Produtos',
       headerBackButtonMenuEnabled: false,
     },
-    initialParams: {store: 'orders'},
+    initialParams: {store: 'products'},
+  },
+  {
+    name: 'AddProductScreen',
+    component: Categories,
+    options: {
+      headerShown: true,
+      title: 'Escolher Categoria',
+      headerBackButtonMenuEnabled: false,
+    },
+    initialParams: {store: 'categories'},
   },
   {
     name: 'OrderDetails',
