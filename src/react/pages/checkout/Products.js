@@ -14,8 +14,8 @@ const ProductsPage = ({navigation, route}) => {
 
   useEffect(() => {
     actions.getItems({
-      category: category['@id'],
-      active: 'true',
+      'productCategory.category': category['@id'],
+      active: 1,
       'order.name': 'ASC',
       type: ['custom', 'product'],
     });
