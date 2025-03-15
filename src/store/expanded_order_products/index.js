@@ -1,18 +1,19 @@
-import * as actions from "@controleonline/ui-default/src/store/default/actions";
-import * as getters from "@controleonline/ui-default/src/store/default/getters";
-import mutations from "@controleonline/ui-default/src/store/default/mutations";
-import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
-import { store } from "quasar/wrappers";
+import * as actions from '@controleonline/ui-default/src/store/default/actions';
+import * as getters from '@controleonline/ui-default/src/store/default/getters';
+import mutations from '@controleonline/ui-default/src/store/default/mutations';
+import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
+import {store} from 'quasar/wrappers';
 
 export default {
   namespaced: true,
   state: {
- item:{},
-items:[],
-    resourceEndpoint: "order_products",
-    store: "expanded_order_products",
+    item: {},
+    items: [],
+    resourceEndpoint: 'order_products',
+    store: 'expanded_order_products',
     isLoading: false,
-    error: "",
+    isSaving: false,
+    error: '',
     violations: null,
     totalItems: 0,
     filters: {},
@@ -22,25 +23,25 @@ items:[],
         sortable: true,
         editable: false,
         add: false,
-        list: "products/getItems",
-        name: "product",
-        label: "product",
-        align: "left",
+        list: 'products/getItems',
+        name: 'product',
+        label: 'product',
+        align: 'left',
         format(value, column, row) {
-          return (value?.sku ? value?.sku + " - " : "") + value?.product;
+          return (value?.sku ? value?.sku + ' - ' : '') + value?.product;
         },
 
         saveFormat: function (value) {
-          return value ? "/products/" + (value?.value || value) : null;
+          return value ? '/products/' + (value?.value || value) : null;
         },
       },
       {
-        inputType: "increase",
+        inputType: 'increase',
         sortable: true,
         editable: false,
-        name: "quantity",
-        label: "quantity",
-        align: "left",
+        name: 'quantity',
+        label: 'quantity',
+        align: 'left',
         format(value, column, row) {
           return parseFloat(value);
         },
@@ -48,10 +49,10 @@ items:[],
       {
         sortable: true,
         editable: false,
-        name: "price",
-        prefix: "R$ ",
-        label: "price",
-        align: "left",
+        name: 'price',
+        prefix: 'R$ ',
+        label: 'price',
+        align: 'left',
         format(value) {
           return Formatter.formatMoney(value);
         },
@@ -59,11 +60,11 @@ items:[],
       {
         sortable: true,
         editable: false,
-        name: "total",
-        prefix: "R$ ",
-        label: "total",
+        name: 'total',
+        prefix: 'R$ ',
+        label: 'total',
         sum: true,
-        align: "left",
+        align: 'left',
         format(value) {
           return Formatter.formatMoney(value);
         },

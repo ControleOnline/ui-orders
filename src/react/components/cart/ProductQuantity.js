@@ -61,8 +61,8 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
           const index = getIndex(updatedProduct);
           if (index) order.orderProducts.splice(index, 1);
           else order.orderProducts = [];
-          orderActions.setItem(order);
           orderActions.setReload(true);
+          //orderActions.setItem(order);
         });
         return;
       }
@@ -82,11 +82,8 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
           const index = getIndex(updatedProduct);
           if (index >= 0) order.orderProducts[index] = result;
           else order.orderProducts.push(result);
-          orderActions.setItem(order);
           orderActions.setReload(true);
-          setTimeout(() => {
-            console.log('ry', reload);
-          }, 1000);
+          //orderActions.setItem(order);
         })
         .finally(() => {});
     }, 500),

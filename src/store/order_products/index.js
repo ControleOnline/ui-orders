@@ -1,17 +1,18 @@
-import * as actions from "@controleonline/ui-default/src/store/default/actions";
-import * as getters from "@controleonline/ui-default/src/store/default/getters";
-import mutations from "@controleonline/ui-default/src/store/default/mutations";
-import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
+import * as actions from '@controleonline/ui-default/src/store/default/actions';
+import * as getters from '@controleonline/ui-default/src/store/default/getters';
+import mutations from '@controleonline/ui-default/src/store/default/mutations';
+import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
 
 export default {
   namespaced: true,
   state: {
     item: {},
     items: [],
-    resourceEndpoint: "order_products",
-    store: "order_products",
+    resourceEndpoint: 'order_products',
+    store: 'order_products',
     isLoading: false,
-    error: "",
+    isSaving: false,
+    error: '',
     violations: null,
     totalItems: 0,
     filters: {},
@@ -21,32 +22,32 @@ export default {
         sortable: true,
         editable: false,
         add: false,
-        list: "products/getItems",
-        name: "product",
-        label: "product",
-        align: "left",
+        list: 'products/getItems',
+        name: 'product',
+        label: 'product',
+        align: 'left',
         format(value, column, row) {
-          return (value?.sku ? value?.sku + " - " : "") + value?.product;
+          return (value?.sku ? value?.sku + ' - ' : '') + value?.product;
         },
         formatList: function (value, column, row) {
-          if (value && value["@id"])
+          if (value && value['@id'])
             return {
-              value: value["@id"].split("/").pop(),
-              label: (value?.sku ? value?.sku + " - " : "") + value?.product,
+              value: value['@id'].split('/').pop(),
+              label: (value?.sku ? value?.sku + ' - ' : '') + value?.product,
             };
           return value;
         },
         saveFormat: function (value) {
-          return value ? "/products/" + (value?.value || value) : null;
+          return value ? '/products/' + (value?.value || value) : null;
         },
       },
       {
-        inputType: "increase",
+        inputType: 'increase',
         sortable: true,
         editable: true,
-        name: "quantity",
-        label: "quantity",
-        align: "left",
+        name: 'quantity',
+        label: 'quantity',
+        align: 'left',
         format(value, column, row) {
           return parseFloat(value);
         },
@@ -54,10 +55,10 @@ export default {
       {
         sortable: true,
         editable: false,
-        name: "price",
-        prefix: "R$ ",
-        label: "price",
-        align: "left",
+        name: 'price',
+        prefix: 'R$ ',
+        label: 'price',
+        align: 'left',
         format(value) {
           return Formatter.formatMoney(value);
         },
@@ -65,11 +66,11 @@ export default {
       {
         sortable: true,
         editable: false,
-        name: "total",
-        prefix: "R$ ",
-        label: "total",
+        name: 'total',
+        prefix: 'R$ ',
+        label: 'total',
         sum: true,
-        align: "left",
+        align: 'left',
         format(value) {
           return Formatter.formatMoney(value);
         },

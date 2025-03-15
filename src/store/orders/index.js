@@ -10,6 +10,7 @@ export default {
     items: [],
     resourceEndpoint: 'orders',
     isLoading: false,
+    isSaving: false,
     error: '',
     violations: null,
     totalItems: 0,

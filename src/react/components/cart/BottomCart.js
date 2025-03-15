@@ -10,14 +10,11 @@ const ButtonCart = ({navigation}) => {
   const {styles, globalStyles} = css();
 
   useEffect(() => {
-    console.log(item['@id'],reload);
-    
+    console.log(item['@id'], reload);
 
-    if (item && item['@id'] && reload === true) console.log('ssss', reload);
-    if (item && item['@id'] && reload === true)
-      actions.get(item['@id']).finally(() => {
-        actions.forceReload(false);
-      });
+    if (item && item['@id'] && reload !== false)
+      console.log('aqwui');
+      //actions.get(item['@id']).finally(() => {                actions.setReload(false);      });
   }, [reload]);
 
   const handlePay = item => {

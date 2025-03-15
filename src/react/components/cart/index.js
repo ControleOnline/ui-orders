@@ -18,6 +18,7 @@ export default ProductsList = props => {
   const {items, isLoading, error} = getters;
 
   useEffect(() => {
+    console.log('op',orderId)
     actions.getItems({
       company: '/people/4',
       order: 'orders/' + orderId,
