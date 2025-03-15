@@ -32,6 +32,8 @@ const styles = {
 
 const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
   const {getters: orderGetters, actions: orderActions} = getStore('orders');
+  const {actions: cartActions} = getStore('cart');
+
   const {getters: orderProductGetters, actions: orderProductActions} =
     getStore('order_products');
   const {item: order, isLoading, reload} = orderGetters;
@@ -61,8 +63,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
           const index = getIndex(updatedProduct);
           if (index) order.orderProducts.splice(index, 1);
           else order.orderProducts = [];
-          orderActions.setReload(true);
-          //orderActions.setItem(order);
+          cartActions.setReload(true);
         });
         return;
       }
@@ -82,8 +83,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
           const index = getIndex(updatedProduct);
           if (index >= 0) order.orderProducts[index] = result;
           else order.orderProducts.push(result);
-          orderActions.setReload(true);
-          //orderActions.setItem(order);
+          cartActions.setReload(true);
         })
         .finally(() => {});
     }, 500),

@@ -1,7 +1,0 @@
-export const error = (state) => state.error;
-export const isLoading = (state) => state.isLoading;
-export const isSaving = (state) => state.isSaving;
-export const order = (state) => state.order;
-export const customProducts = (state) => state.customProducts;
-export const product = (state) => state.product;
-export const reload = (state) => state.reload;

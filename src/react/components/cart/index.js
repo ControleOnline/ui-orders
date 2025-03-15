@@ -12,13 +12,12 @@ import {useNavigation} from '@react-navigation/native';
 export default ProductsList = props => {
   const {orderId} = props;
   const {styles, globalStyles} = css();
-  const navigation = useNavigation(); // Hook para navegação
+  const navigation = useNavigation();
 
   const {getters, actions} = getStore('order_products');
   const {items, isLoading, error} = getters;
 
   useEffect(() => {
-    console.log('op',orderId)
     actions.getItems({
       company: '/people/4',
       order: 'orders/' + orderId,

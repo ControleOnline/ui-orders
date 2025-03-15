@@ -1,21 +1,26 @@
 import React, {useEffect, useState} from 'react';
-import {Text, View, TouchableOpacity} from 'react-native';
+import {Text, View, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
 const ButtonCart = ({navigation}) => {
-  const {getters, actions} = getStore('orders');
-  const {item, reload} = getters;
+  const {getters, actions} = getStore('cart');
+  const {getters: ordersGetters} = getStore('orders');
+  const {item: order} = ordersGetters;
+  const {item, reload, isLoading} = getters;
   const {styles, globalStyles} = css();
 
   useEffect(() => {
-    console.log(item['@id'], reload);
-
-    if (item && item['@id'] && reload !== false)
-      console.log('aqwui');
-      //actions.get(item['@id']).finally(() => {                actions.setReload(false);      });
+    if (item && item['@id'] && reload === true)
+      actions.get(item['@id']).finally(() => {
+        actions.setReload(false);
+      });
   }, [reload]);
+
+  useEffect(() => {
+    actions.setItem(order);
+  }, [order]);
 
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});
@@ -23,9 +28,17 @@ const ButtonCart = ({navigation}) => {
 
   return (
     <View style={[styles.toolbar, {flexDirection: 'row'}]}>
-      <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
-        {Formatter.formatMoney(item.price)}
-      </Text>
+      {isLoading ? (
+        <ActivityIndicator 
+          size="small" 
+          color={styles.primary?.color || "#000"} 
+          style={{flex: 1}}
+        />
+      ) : (
+        <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
+          {Formatter.formatMoney(item.price)}
+        </Text>
+      )}
 
       <TouchableOpacity
         onPress={() => handlePay(item)}
