@@ -11,6 +11,7 @@ import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHea
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
+import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 const OrderDetails = ({route, navigation}) => {
   const orderId = route.params.orderId;
   const {getters, actions} = getStore('orders');
@@ -21,9 +22,6 @@ const OrderDetails = ({route, navigation}) => {
     actions.get(orderId);
   }, [orderId]);
 
-  const handlePay = orderId => {
-    navigation.navigate('Checkout', {orderId: orderId});
-  };
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="orders" />
@@ -37,15 +35,7 @@ const OrderDetails = ({route, navigation}) => {
               </View>
             </View>
           </ScrollView>
-          <View style={styles.toolbar}>
-            <Text style={styles.primary}>R$ 50,00</Text>
-
-            <TouchableOpacity
-              onPress={() => handlePay(orderId)}
-              style={[globalStyles.button, styles.btnPay]}>
-              <Text style={styles.textWhite}>FINALIZAR</Text>
-            </TouchableOpacity>
-          </View>
+          <BottomCart navigation={navigation} />
         </>
       )}
     </SafeAreaView>

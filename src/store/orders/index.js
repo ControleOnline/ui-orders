@@ -1,111 +1,112 @@
-import * as actions from "@controleonline/ui-default/src/store/default/actions";
-import * as getters from "@controleonline/ui-default/src/store/default/getters";
-import mutations from "@controleonline/ui-default/src/store/default/mutations";
-import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
+import * as actions from '@controleonline/ui-default/src/store/default/actions';
+import * as getters from '@controleonline/ui-default/src/store/default/getters';
+import mutations from '@controleonline/ui-default/src/store/default/mutations';
+import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
 
 export default {
   namespaced: true,
   state: {
     item: {},
     items: [],
-    resourceEndpoint: "orders",
+    resourceEndpoint: 'orders',
     isLoading: false,
-    error: "",
+    error: '',
     violations: null,
     totalItems: 0,
     filters: {},
+    reload: false,
     columns: [
       {
         externalFilter: false,
         //filter:false,
         isIdentity: true,
         sortable: true,
-        name: "id",
-        label: "id",
-        align: "left",
+        name: 'id',
+        label: 'id',
+        align: 'left',
         format(value) {
-          return "#" + value;
+          return '#' + value;
         },
       },
       {
         sortable: true,
-        name: "app",
+        name: 'app',
         editable: true,
-        label: "app",
-        align: "left",
+        label: 'app',
+        align: 'left',
         format(value, column, row) {
           return value;
         },
       },
       {
         sortable: true,
-        name: "orderType",
+        name: 'orderType',
         editable: false,
-        label: "orderType",
-        align: "left",
+        label: 'orderType',
+        align: 'left',
         format(value, column, row) {
           return value;
         },
       },
       {
         sortable: true,
-        name: "status",
-        align: "left",
-        label: "status",
-        list: "status/getItems",
-        searchParam: "status",
+        name: 'status',
+        align: 'left',
+        label: 'status',
+        list: 'status/getItems',
+        searchParam: 'status',
         externalFilter: false,
         style: function (row) {
-          return { color: row?.status?.color };
+          return {color: row?.status?.color};
         },
         format: function (value) {
           return value?.status;
         },
 
         saveFormat: function (value) {
-          return value ? "/statuses/" + (value.value || value) : null;
+          return value ? '/statuses/' + (value.value || value) : null;
         },
       },
       {
         sortable: true,
-        name: "client",
-        align: "left",
-        label: "client",
-        list: "people/getItems",
+        name: 'client',
+        align: 'left',
+        label: 'client',
+        list: 'people/getItems',
         externalFilter: false,
         format: function (value) {
-          return value ? value?.name + " - " + value?.alias : " - ";
+          return value ? value?.name + ' - ' + value?.alias : ' - ';
         },
         formatList: function (value) {
-          if (value && value["@id"])
+          if (value && value['@id'])
             return {
-              value: value["@id"].split("/").pop(),
-              label: value?.name + " - " + value?.alias,
+              value: value['@id'].split('/').pop(),
+              label: value?.name + ' - ' + value?.alias,
             };
 
           return value;
         },
         saveFormat: function (value) {
-          return value ? "/people/" + (value.value || value) : null;
+          return value ? '/people/' + (value.value || value) : null;
         },
       },
       {
-        inputType: "address",
+        inputType: 'address',
         sortable: true,
         editable: true,
-        name: "addressDestination",
-        align: "center",
-        label: "addressDestination",
+        name: 'addressDestination',
+        align: 'center',
+        label: 'addressDestination',
         externalFilter: false,
-        list: "address/getItems",
+        list: 'address/getItems',
         saveFormat: function (data) {
-          return data ? "addresses/" + data : null;
+          return data ? 'addresses/' + data : null;
         },
         formatList: function (data) {
           if (!data) return null;
 
           return {
-            value: data["@id"].split("/").pop(),
+            value: data['@id'].split('/').pop(),
             label: `${data.nickname} - ${data.street.street}, ${data.number} - ${data.street.district.district} - ${data.street.district.city.city} - ${data.street.district.city.state.uf} - ${data.street.cep.cep} - ${data.street.district.city.state.country.countryname}`,
           };
         },
@@ -115,12 +116,12 @@ export default {
         },
       },
       {
-        inputType: "date-range",
+        inputType: 'date-range',
         sortable: true,
         editable: false,
-        name: "orderDate",
-        align: "center",
-        label: "orderDate",
+        name: 'orderDate',
+        align: 'center',
+        label: 'orderDate',
         externalFilter: false,
         saveFormat: function (value) {
           return undefined;
@@ -133,27 +134,27 @@ export default {
       {
         editable: false,
         sortable: true,
-        type: "range-date",
-        name: "alterDate",
-        label: "alterDate",
-        align: "left",
+        type: 'range-date',
+        name: 'alterDate',
+        label: 'alterDate',
+        align: 'left',
         saveFormat: function (value) {
           return undefined;
         },
-        format: (val) => (val ? Formatter.formatDateYmdTodmY(val, true) : ""),
+        format: val => (val ? Formatter.formatDateYmdTodmY(val, true) : ''),
       },
 
       {
-        inputType: "float",
-        filterClass: "col-2 q-pa-xs",
-        formClass: "col-6",
-        prefix: "R$ ",
+        inputType: 'float',
+        filterClass: 'col-2 q-pa-xs',
+        formClass: 'col-6',
+        prefix: 'R$ ',
         filters: false,
         editable: false,
         sortable: true,
-        name: "price",
-        align: "left",
-        label: "price",
+        name: 'price',
+        align: 'left',
+        label: 'price',
         sum: true,
         editFormat(value) {
           return Formatter.formatMoney(value);

@@ -1,19 +1,21 @@
-import React, { useEffect } from 'react';
-import { TouchableOpacity, Text, View } from 'react-native';
-import { getStore } from '@store';
+import React, {useEffect} from 'react';
+import {TouchableOpacity, Text, View} from 'react-native';
+import {getStore} from '@store';
 import css from '@controleonline/ui-products/src/react/css/products';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
-import Icon from 'react-native-vector-icons/MaterialIcons'; 
-import { useNavigation } from '@react-navigation/native'; 
+import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import ProductQuantity from '@controleonline/ui-orders/src/react/components/cart/ProductQuantity';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useNavigation} from '@react-navigation/native';
 
 export default ProductsList = props => {
-  const { orderId } = props;
-  const { styles, globalStyles } = css();
+  const {orderId} = props;
+  const {styles, globalStyles} = css();
   const navigation = useNavigation(); // Hook para navegação
 
-  const { getters, actions } = getStore('order_products');
-  const { items, isLoading, error } = getters;
+  const {getters, actions} = getStore('order_products');
+  const {items, isLoading, error} = getters;
 
   useEffect(() => {
     actions.getItems({
@@ -23,19 +25,18 @@ export default ProductsList = props => {
     });
   }, [orderId]);
 
-  const handleDetailProduct = productId => {
-    console.log('productId: ', productId);
-  };
-
   const handleAddProduct = () => {
-    navigation.navigate('AddProductScreen', { orderId });
+    navigation.navigate('AddProductScreen', {orderId});
+  };
+  const customize = product => {
+    console.log(product);
   };
 
   return (
     <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
         <Text style={styles.subHeader}>Itens do Pedido</Text>
-        <TouchableOpacity onPress={handleAddProduct} style={{ marginLeft: 10 }}>
+        <TouchableOpacity onPress={handleAddProduct} style={{marginLeft: 10}}>
           <Icon name="add-circle" size={24} color="#000" />
         </TouchableOpacity>
       </View>
@@ -43,10 +44,8 @@ export default ProductsList = props => {
       {!isLoading && items.length > 0 && !error && (
         <>
           {items.map(product => (
-            <TouchableOpacity
+            <View
               key={product.id}
-              onPress={() => handleDetailProduct(product.id)}
-              activeOpacity={0.6}
               style={[
                 styles.boxWrap,
                 {
@@ -56,13 +55,13 @@ export default ProductsList = props => {
                   backgroundColor: '#fff',
                 },
               ]}>
-              <View style={{ flexDirection: 'row', padding: 10 }}>
-                <View style={{ flex: 1, justifyContent: 'center' }}>
+              <View style={{flexDirection: 'row', padding: 10}}>
+                <View style={{flex: 1, justifyContent: 'center'}}>
                   <Text
                     style={[
                       styles.boxTextColor,
                       styles.boxOrderText,
-                      { fontSize: 16, fontWeight: 'bold' },
+                      {fontSize: 16, fontWeight: 'bold'},
                     ]}>
                     {product.product.product}
                   </Text>
@@ -70,26 +69,48 @@ export default ProductsList = props => {
                     style={[
                       styles.boxDateText,
                       styles.boxTextColor,
-                      { fontSize: 14, color: '#666' },
+                      {fontSize: 14, color: '#666'},
                     ]}>
                     {product.product.description}
                   </Text>
+                </View>
+
+                <View style={{width: 100, height: 100}}>
+                  <Carousel images={product.product.productFiles} />
+                </View>
+              </View>
+              <View style={{flexDirection: 'row', padding: 10}}>
+                <View style={{flex: 1, justifyContent: 'center'}}>
                   <Text
                     style={[
                       styles.boxStatusText,
-                      { fontSize: 16, color: '#000', fontWeight: 'bold' },
+                      {fontSize: 16, color: '#000', fontWeight: 'bold'},
                     ]}>
-                    {`R$ ${product.price}`}
+                    {Formatter.formatMoney(product.price)}
                   </Text>
                 </View>
-                {product.product.productFiles &&
-                  product.product.productFiles.length > 0 && (
-                    <View style={{ width: 100, height: 100 }}>
-                      <Carousel images={product.product.productFiles} />
-                    </View>
+                <View style={{flex: 1, justifyContent: 'center'}}>
+                  {product.product.type == 'product' && (
+                    <ProductQuantity product={product.product} />
                   )}
+                  {product.product.type == 'custom' && (
+                    <TouchableOpacity
+                      onPress={() => customize(product)}
+                      style={[
+                        globalStyles.button,
+                        styles.btnPay,
+                        {
+                          flex: 1,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        },
+                      ]}>
+                      <Text style={styles.textWhite}>CUSTOMIZAR</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-            </TouchableOpacity>
+            </View>
           ))}
         </>
       )}

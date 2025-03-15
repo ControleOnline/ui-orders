@@ -1,7 +1,7 @@
 import { api } from "@controleonline/ui-common/src/api";
 import * as types from "./mutation_types";
 
-export const discoveryCard = ({ commit, getters }, params = {}) => {
+export const discoveryCart = ({ commit, getters }, params = {}) => {
   commit(types.SET_ISLOADING, true);
   return api
     .fetch("cart", { params: params })

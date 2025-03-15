@@ -1,9 +1,9 @@
-import { StyleSheet } from 'react-native';
-import { useTheme } from '@controleonline/ui-layout/src/react/components/ThemeProvider';
+import {StyleSheet} from 'react-native';
+import {useTheme} from '@controleonline/ui-layout/src/react/components/ThemeProvider';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 
 const css = () => {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
 
   const styles = StyleSheet.create({
     container: {
@@ -14,7 +14,9 @@ const css = () => {
     scrollContent: {
       paddingBottom: 70, // Espaço para o BottomToolbar
     },
-
+    primary: {
+      color: colors['primary'],
+    },
     boxHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -141,7 +143,7 @@ const css = () => {
         borderRadius: 8, // Bordas arredondadas
         elevation: 4, // Sombra no Android
         shadowColor: '#000', // Sombra no iOS
-        shadowOffset: { width: 0, height: 2 }, // Sombra no iOS
+        shadowOffset: {width: 0, height: 2}, // Sombra no iOS
         shadowOpacity: 0.1, // Sombra no iOS
         shadowRadius: 4, // Sombra no iOS
       },
@@ -176,7 +178,7 @@ const css = () => {
     },
   });
 
-  return { styles, globalStyles };
+  return {styles, globalStyles};
 };
 
 export default css;

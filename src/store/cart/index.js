@@ -10,7 +10,6 @@ export default {
     product: {},
     isLoading: false,
     error: "",
-    violations: null,
     reload: false,
   },
   actions,

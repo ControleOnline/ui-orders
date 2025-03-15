@@ -47,12 +47,12 @@ export default {
   },
   methods: {
     ...mapActions({
-      discoveryCard: "cart/discoveryCard",
+      discoveryCart: "cart/discoveryCart",
       setReload: "cart/setReload",
     }),
 
     init(reload) {
-      if (!this.order?.id || reload) this.discoveryCard();
+      if (!this.order?.id || reload) this.discoveryCart();
     },
     toCart() {
       this.$router.push({ name: "ShopCart" });
