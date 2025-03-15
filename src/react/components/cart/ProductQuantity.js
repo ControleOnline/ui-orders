@@ -32,13 +32,12 @@ const styles = {
 
 const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
   const {getters: orderGetters} = getStore('orders');
-  const {actions: cartActions} = getStore('cart');
-
+  const {getters: cartGetters, actions: cartActions} = getStore('cart');
   const {getters: orderProductGetters, actions: orderProductActions} =
     getStore('order_products');
   const {item: order, isLoading} = orderGetters;
   const {isSaving} = orderProductGetters;
-
+  const {isLoading: cartIsLoading} = cartGetters;
   const getInitialQuantity = () => {
     if (product.type !== 'product' || !order?.orderProducts)
       return defaultQuantity;
@@ -91,6 +90,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
     );
   };
   const increaseQuantity = () => {
+    if (isSaving || isLoading || cartIsLoading) return;
     const newProduct = {
       ...localProduct,
       quantity: (localProduct.quantity || 0) + 1,
@@ -100,6 +100,8 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
   };
 
   const decreaseQuantity = () => {
+    if (!localProduct.quantity || isSaving || isLoading || cartIsLoading)
+      return;
     if (localProduct.quantity && localProduct.quantity >= 1) {
       const newProduct = {
         ...localProduct,
@@ -169,10 +171,12 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
       <TouchableOpacity
         style={[
           styles.button,
-          (!localProduct.quantity || isSaving || isLoading) &&
+          (!localProduct.quantity || isSaving || isLoading || cartIsLoading) &&
             styles.disabledButton,
         ]}
-        disabled={!localProduct.quantity || isSaving || isLoading}
+        disabled={
+          !localProduct.quantity || isSaving || isLoading || cartIsLoading
+        }
         onPress={decreaseQuantity}>
         {getDecreaseIcon() ? (
           <Icon name={getDecreaseIcon()} size={24} color="red" />
@@ -184,9 +188,9 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
       <TouchableOpacity
         style={[
           styles.button,
-          (isSaving || isLoading) && styles.disabledButton,
+          (isSaving || isLoading || cartIsLoading) && styles.disabledButton,
         ]}
-        disabled={isSaving || isLoading}
+        disabled={isSaving || isLoading || cartIsLoading}
         onPress={increaseQuantity}>
         <Icon name="add" size={24} color="red" />
       </TouchableOpacity>
