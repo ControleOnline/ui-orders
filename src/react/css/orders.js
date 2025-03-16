@@ -1,7 +1,6 @@
 import {StyleSheet} from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
 import {getStore} from '@store';
-import {background} from 'native-base/lib/typescript/theme/styled-system';
 
 const css = () => {
   const {getters} = getStore('theme');
@@ -231,7 +230,7 @@ const css = () => {
     },
   });
 
-  return {styles, globalStyles};
+  return {styles, globalStyles: globalStyles()};
 };
 
 export default css;

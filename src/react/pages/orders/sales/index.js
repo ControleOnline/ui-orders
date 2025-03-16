@@ -5,11 +5,13 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const Orders = ({navigation}) => {
   const {getters, actions} = getStore('orders');
@@ -17,10 +19,13 @@ const Orders = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany} = peopleGetters;
+  const status = currentCompany?.configs
+    ? currentCompany.configs['pdv-default-status']
+    : null;
   useEffect(() => {
     actions.getItems({
       provider: '/people/' + currentCompany.id,
-      //status: [6],
+      status: status,
     });
   }, [currentCompany]);
 
@@ -28,11 +33,54 @@ const Orders = ({navigation}) => {
     navigation.navigate('OrderDetails', {order: order});
   };
 
+  const handleConfirm = () => {
+    Alert.alert('Confirmação', 'Deseja criar um novo pedido?', [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Confirmar',
+        onPress: () => handleAddOrder(),
+      },
+    ]);
+  };
+
+  const handleAddOrder = () => {
+    actions
+      .save({
+        app: 'PDV',
+        provider: '/people/' + currentCompany.id,
+        status: '/statuses/' + status,
+      })
+      .then(order => {
+        const orders = [...items];
+        orders.push(order);
+        actions.setItems(orders);
+        handleEdit(order);
+      });
+  };
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="orders" />
       {!isLoading && items.length > 0 && !error && (
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          <TouchableOpacity
+            onPress={handleConfirm}
+            style={[
+              globalStyles.button,
+              globalStyles.btnAdd,
+              {
+                flex: 1,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+              },
+            ]}>
+            <Icon name="add-circle" size={24} color="#fff" />
+            <Text style={{color: '#fff', marginLeft: 8}}>Adicionar Pedido</Text>
+          </TouchableOpacity>
+
           <View>
             {items.map(order => (
               <TouchableOpacity

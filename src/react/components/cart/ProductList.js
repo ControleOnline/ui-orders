@@ -8,7 +8,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import ProductItem from '@controleonline/ui-orders/src/react/components/cart/ProductItem';
 
 export default function ProductsList() {
-  const {styles} = css();
+  const {styles, globalStyles} = css();
   const navigation = useNavigation();
   const {getters: ordersGetters} = getStore('orders');
   const {getters, actions} = getStore('order_products');
@@ -55,7 +55,7 @@ export default function ProductsList() {
           onPress={handleAddProduct}
           style={[
             globalStyles.button,
-            styles.btnAdd,
+            globalStyles.btnAdd,
             {
               flex: 1,
               flexDirection: 'row',

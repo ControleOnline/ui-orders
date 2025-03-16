@@ -27,13 +27,13 @@ const WrappedCategoryPage = ({navigation, route}) => (
 );
 
 const WrappedOrderDetails = ({navigation, route}) => {
-  const orderId = route.params?.orderId;
+  const order = route.params?.order;
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: orderId ? `Pedido #${orderId}` : 'Pedido',
+      title: order?.id ? `Pedido #${order.id}` : 'Pedido',
     });
-  }, [navigation, orderId]);
+  }, [navigation, order]);
 
   return (
     <CartLayout navigation={navigation} route={route}>
