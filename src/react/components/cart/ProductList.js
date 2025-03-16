@@ -18,7 +18,7 @@ export default function ProductsList() {
   const {currentCompany} = peopleGetters;
 
   useEffect(() => {
-    if (!items || items.length == 0) {
+    if ((!items || items.length == 0) && order && order['@id']) {
       actions.getItems({
         company: '/people/' + currentCompany.id,
         order: order['@id'],
@@ -30,7 +30,7 @@ export default function ProductsList() {
 
   useFocusEffect(
     useCallback(() => {
-      if (reload) {
+      if (reload && order && order['@id']) {
         actions
           .getItems({
             company: '/people/' + currentCompany.id,

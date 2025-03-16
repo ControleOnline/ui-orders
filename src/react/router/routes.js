@@ -1,6 +1,6 @@
 import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/index';
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
-import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/index';
+import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
 import Categories from '@controleonline/ui-orders/src/react/pages/checkout/Categories';
 import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
@@ -85,7 +85,7 @@ const ordersRoutes = [
   {
     name: 'Checkout',
     component: Checkout,
-    options: {headerShown: true, title: 'Forma de Pagamento', store: 'cart'},
+    options: {headerShown: true, title: 'Forma de Pagamento'},
     initialParams: {store: 'cart'},
   },
 ];
