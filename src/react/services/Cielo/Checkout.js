@@ -151,47 +151,55 @@ export default Checkout = ({route}) => {
           payments &&
           payments.length > 0 &&
           !error && (
-            <ScrollView contentContainerStyle={[styles.scrollContent,{flexGrow: 1,}]}>
-              <View>
-                {payments.map(payment => (
-                  <TouchableOpacity
-                    key={payment.paymentType.id}
-                    onPress={() => selectPayment(payment)}>
-                    <View
-                      style={[
-                        styles.boxPayment,
-                        selectedPayment.paymentType?.id ===
-                          payment.paymentType.id && styles.selectedBoxPayment,
-                      ]}>
-                      <View style={styles.paymentIcon}>
-                        {selectedPayment.paymentType?.id ===
-                        payment.paymentType.id ? (
-                          <Icon name="check-box" size={24} color="black" />
-                        ) : (
-                          <Icon
-                            name="check-box-outline-blank"
-                            size={22}
-                            color="black"
-                          />
-                        )}
+            <>
+              <ScrollView
+                contentContainerStyle={[styles.scrollContent, {flexGrow: 1}]}>
+                <View>
+                  {payments.map(payment => (
+                    <TouchableOpacity
+                      key={payment.paymentType.id}
+                      onPress={() => selectPayment(payment)}>
+                      <View
+                        style={[
+                          styles.boxPayment,
+                          selectedPayment.paymentType?.id ===
+                            payment.paymentType.id && styles.selectedBoxPayment,
+                        ]}>
+                        <View style={styles.paymentIcon}>
+                          {selectedPayment.paymentType?.id ===
+                          payment.paymentType.id ? (
+                            <Icon name="check-box" size={24} color="black" />
+                          ) : (
+                            <Icon
+                              name="check-box-outline-blank"
+                              size={22}
+                              color="black"
+                            />
+                          )}
+                        </View>
+                        <View>
+                          <Text>{payment.paymentType.paymentType}</Text>
+                        </View>
                       </View>
-                      <View>
-                        <Text>{payment.paymentType.paymentType}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+
+              <View style={[styles.toolbar]}>
+                <TouchableOpacity
+                  onPress={() => handlePay()}
+                  disabled={!selectedPayment}
+                  style={[
+                    globalStyles.button,
+                    globalStyles.primary,
+                    styles.btnPay,
+                  ]}>
+                  <Text style={styles.btnText}>PAGAR</Text>
+                </TouchableOpacity>
               </View>
-            </ScrollView>
+            </>
           )}
-        <View style={[styles.toolbar]}>
-          <TouchableOpacity
-            onPress={() => handlePay()}
-            disabled={!selectedPayment}
-            style={[globalStyles.button, globalStyles.primary, styles.btnPay]}>
-            <Text style={styles.btnText}>PAGAR</Text>
-          </TouchableOpacity>
-        </View>
       </SafeAreaView>
 
       <Modal
