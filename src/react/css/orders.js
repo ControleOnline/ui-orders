@@ -202,6 +202,10 @@ const css = () => {
       container: {
         padding: 10,
       },
+      price: {
+        color: colors['primary'],
+        fontSize: 14,
+      },
       topInfo: {
         flexDirection: 'row',
         justifyContent: 'space-between',
