@@ -61,25 +61,25 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
     debounce(updatedProduct => {
       const quantity = updatedProduct.quantity || 0;
       const orderProduct = getorderProduct(updatedProduct);
-      const newOrderProducts = [...orderProducts];
 
       if (quantity === 0 && orderProduct) {
         orderProductActions
           .remove(orderProduct['@id'])
           .then(() => {
             const index = getIndex(updatedProduct);
-            if (index) newOrderProducts.splice(index, 1);
-            else newOrderProducts = [];
+            if (index) orderProducts.splice(index, 1);
+            else orderProducts = [];
           })
           .finally(() => {
             cartActions.setReload(true);
             if (currentPageName == 'ProductsPage')
               orderProductActions.setReload(true);
-            orderProductActions.setItems(newOrderProducts);
+            orderProductActions.setItems(orderProducts);
           });
         return;
       }
 
+      console.log(orderProduct?.['@id']);
       const order_product = {
         id: orderProduct?.['@id'] || null,
         parentProduct: null,
@@ -93,14 +93,17 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
         .save(order_product)
         .then(result => {
           const index = getIndex(updatedProduct);
-          if (index >= 0) newOrderProducts[index] = result;
-          else newOrderProducts.push(result);
+          if (index >= 0) orderProducts[index] = result;
+          else orderProducts.push(result);
+          console.log('save', orderProducts);
         })
         .finally(() => {
           cartActions.setReload(true);
           if (currentPageName == 'ProductsPage')
             orderProductActions.setReload(true);
-          orderProductActions.setItems(newOrderProducts);
+
+          orderProductActions.setItems(orderProducts);
+          console.log('New', orderProducts);
         });
     }, 500),
   );
@@ -139,7 +142,6 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
   };
 
   const getorderProduct = product => {
-    if (!product || !orderProducts) return -1;
     const index = orderProducts?.findIndex(
       item => item.product['@id'] === product['@id'],
     );
