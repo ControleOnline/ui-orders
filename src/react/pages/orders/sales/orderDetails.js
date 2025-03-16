@@ -11,16 +11,17 @@ import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHea
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 const OrderDetails = ({route, navigation}) => {
-  const orderId = route.params.orderId;
+  const order = route.params.order;
   const {getters, actions} = getStore('orders');
-  const {item, isLoading, error, columns} = getters;
+  const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
   useEffect(() => {
-    actions.get(orderId);
-  }, [orderId]);
+    if (!item || item['@id'] != order['@id']) {
+      actions.get(order['@id']);
+    }
+  }, [order]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -31,12 +32,11 @@ const OrderDetails = ({route, navigation}) => {
             <View style={styles.orderContainer}>
               <OrderHeader key={item.id} order={item} />
               <View style={styles.itemsSection}>
-                <ProductsList orderId={orderId} />
+                <ProductsList />
               </View>
             </View>
           </ScrollView>
-          <BottomCart navigation={navigation} />
-        </>
+          </>
       )}
     </SafeAreaView>
   );

@@ -3,22 +3,30 @@ import {Text, View, ScrollView, SafeAreaView} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 import ProductItem from '@controleonline/ui-orders/src/react/components/cart/ProductItem';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
   const {getters, actions} = getStore('products');
+  const {getters: categoryGetters, actions: categoryActions} =
+    getStore('categories');
   const {items, isLoading, error} = getters;
+  const {item} = categoryGetters;
   const {styles} = css();
 
   useEffect(() => {
-    actions.getItems({
-      'productCategory.category': category['@id'],
-      active: 1,
-      'order.name': 'ASC',
-      type: ['custom', 'product'],
-    });
+    if (!item || item['@id'] != category['@id']) {
+      actions
+        .getItems({
+          'productCategory.category': category['@id'],
+          active: 1,
+          'order.name': 'ASC',
+          type: ['custom', 'product'],
+        })
+        .finally(() => {
+          categoryActions.setItem(category);
+        });
+    }
   }, [category]);
 
   return (
@@ -35,7 +43,7 @@ const ProductsPage = ({navigation, route}) => {
           </View>
         </ScrollView>
       )}
-      <BottomCart navigation={navigation} />
+      
     </SafeAreaView>
   );
 };

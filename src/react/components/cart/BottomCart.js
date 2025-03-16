@@ -12,10 +12,11 @@ const ButtonCart = ({navigation}) => {
   const {styles, globalStyles} = css();
 
   useEffect(() => {
-    if (item && item['@id'] && reload === true)
-      actions.get(item['@id']).finally(() => {
-        actions.setReload(false);
-      });
+    if (item && item['@id'] && reload === true && !isLoading) {
+      console.log('ReloadCart');
+      actions.setReload(false);
+      actions.get(item['@id']);
+    }
   }, [reload]);
 
   useEffect(() => {
@@ -29,9 +30,9 @@ const ButtonCart = ({navigation}) => {
   return (
     <View style={[styles.toolbar, {flexDirection: 'row'}]}>
       {isLoading ? (
-        <ActivityIndicator 
-          size="small" 
-          color={styles.primary?.color || "#000"} 
+        <ActivityIndicator
+          size="small"
+          color={styles.primary?.color || '#000'}
           style={{flex: 1}}
         />
       ) : (

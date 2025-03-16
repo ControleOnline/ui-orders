@@ -1,44 +1,68 @@
-// ProductsList.js
-import React, {useEffect} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {TouchableOpacity, Text, View} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-products/src/react/css/products';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import ProductItem from '@controleonline/ui-orders/src/react/components/cart/ProductItem';
 
-export default ProductsList = props => {
-  const {orderId} = props;
+export default function ProductsList() {
   const {styles} = css();
   const navigation = useNavigation();
-
+  const {getters: ordersGetters} = getStore('orders');
   const {getters, actions} = getStore('order_products');
-  const {items, isLoading, error} = getters;
+  const {item: order} = ordersGetters;
+  const {items, isLoading, error, reload} = getters;
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany} = peopleGetters;
 
   useEffect(() => {
-    actions.getItems({
-      company: '/people/' + currentCompany.id,
-      order: 'orders/' + orderId,
-      'exists[parentProduct]': 'false',
-    });
-  }, [orderId, currentCompany]);
+    if (!items || items.length == 0) {
+      actions.getItems({
+        company: '/people/' + currentCompany.id,
+        order: order['@id'],
+        'exists[parentProduct]': 'false',
+      });
+    }
+  }, [order, currentCompany]);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log(':(', reload);
+      if (reload) {
+        console.log('Forçando', items);
+        actions.setItems([...items]);
+        actions.setReload(false);
+      }
+    }, [navigation, reload]),
+  );
 
   const handleAddProduct = () => {
-    navigation.navigate('AddProductScreen', {orderId});
+    navigation.navigate('AddProductScreen');
   };
 
   return (
     <View>
       <View style={{flexDirection: 'row', alignItems: 'center'}}>
-        <Text style={styles.subHeader}>Itens do Pedido</Text>
-        <TouchableOpacity onPress={handleAddProduct} style={{marginLeft: 10}}>
-          <Icon name="add-circle" size={24} color="#000" />
+        <TouchableOpacity
+          onPress={handleAddProduct}
+          style={[
+            globalStyles.button,
+            styles.btnAdd,
+            {
+              flex: 1,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+            },
+          ]}>
+          <Icon name="add-circle" size={24} color="#fff" />
+          <Text style={{color: '#fff', marginLeft: 8}}>Adicionar Item</Text>
         </TouchableOpacity>
       </View>
       <StateStore store="order_products" />
+
       {!isLoading && items.length > 0 && !error && (
         <>
           {items.map(product => (
@@ -48,4 +72,4 @@ export default ProductsList = props => {
       )}
     </View>
   );
-};
+}

@@ -1,6 +1,8 @@
 import React, {useEffect, useState, useRef} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
+
 import {getStore} from '@store';
 
 const debounce = (func, wait) => {
@@ -31,17 +33,20 @@ const styles = {
 };
 
 const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
+  const navigation = useNavigation();
+  const currentPageName =
+    navigation.getState().routes[navigation.getState().index].name;
   const {getters: orderGetters} = getStore('orders');
   const {getters: cartGetters, actions: cartActions} = getStore('cart');
   const {getters: orderProductGetters, actions: orderProductActions} =
     getStore('order_products');
   const {item: order, isLoading} = orderGetters;
-  const {isSaving} = orderProductGetters;
+  const {items: orderProducts, isSaving} = orderProductGetters;
   const {isLoading: cartIsLoading} = cartGetters;
+
   const getInitialQuantity = () => {
-    if (product.type !== 'product' || !order?.orderProducts)
-      return defaultQuantity;
-    const orderProduct = order.orderProducts.find(
+    if (!orderProducts) return defaultQuantity;
+    const orderProduct = orderProducts.find(
       p => p.product['@id'] === product['@id'],
     );
     return orderProduct?.quantity || defaultQuantity;
@@ -56,14 +61,22 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
     debounce(updatedProduct => {
       const quantity = updatedProduct.quantity || 0;
       const orderProduct = getorderProduct(updatedProduct);
+      const newOrderProducts = [...orderProducts];
 
       if (quantity === 0 && orderProduct) {
-        orderProductActions.remove(orderProduct['@id']).then(() => {
-          const index = getIndex(updatedProduct);
-          if (index) order.orderProducts.splice(index, 1);
-          else order.orderProducts = [];
-          cartActions.setReload(true);
-        });
+        orderProductActions
+          .remove(orderProduct['@id'])
+          .then(() => {
+            const index = getIndex(updatedProduct);
+            if (index) newOrderProducts.splice(index, 1);
+            else newOrderProducts = [];
+          })
+          .finally(() => {
+            cartActions.setReload(true);
+            if (currentPageName == 'ProductsPage')
+              orderProductActions.setReload(true);
+            orderProductActions.setItems(newOrderProducts);
+          });
         return;
       }
 
@@ -76,16 +89,23 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
         order: order['@id'],
       };
 
-      orderProductActions.save(order_product).then(result => {
-        const index = getIndex(updatedProduct);
-        if (index >= 0) order.orderProducts[index] = result;
-        else order.orderProducts.push(result);
-        cartActions.setReload(true);
-      });
+      orderProductActions
+        .save(order_product)
+        .then(result => {
+          const index = getIndex(updatedProduct);
+          if (index >= 0) newOrderProducts[index] = result;
+          else newOrderProducts.push(result);
+        })
+        .finally(() => {
+          cartActions.setReload(true);
+          if (currentPageName == 'ProductsPage')
+            orderProductActions.setReload(true);
+          orderProductActions.setItems(newOrderProducts);
+        });
     }, 500),
   );
   const getIndex = updatedProduct => {
-    order.orderProducts.findIndex(
+    return orderProducts.findIndex(
       p => p.product['@id'] === updatedProduct['@id'],
     );
   };
@@ -119,18 +139,18 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
   };
 
   const getorderProduct = product => {
-    if (!product || !order?.orderProducts) return -1;
-    const index = order?.orderProducts?.findIndex(
+    if (!product || !orderProducts) return -1;
+    const index = orderProducts?.findIndex(
       item => item.product['@id'] === product['@id'],
     );
 
-    return order?.orderProducts[index];
+    return orderProducts[index];
   };
 
   const syncQuantityWithOrder = () => {
-    if (localProduct.type !== 'product' || !order?.orderProducts) return;
+    if (localProduct.type !== 'product' || !orderProducts) return;
 
-    const orderProduct = order.orderProducts.find(
+    const orderProduct = orderProducts.find(
       p =>
         p.product['@id'] === localProduct['@id'] &&
         p.product.type === 'product',

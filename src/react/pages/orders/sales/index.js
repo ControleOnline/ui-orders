@@ -24,8 +24,8 @@ const Orders = ({navigation}) => {
     });
   }, [currentCompany]);
 
-  const handleEdit = orderId => {
-    navigation.navigate('OrderDetails', {orderId: orderId});
+  const handleEdit = order => {
+    navigation.navigate('OrderDetails', {order: order});
   };
 
   return (
@@ -37,7 +37,7 @@ const Orders = ({navigation}) => {
             {items.map(order => (
               <TouchableOpacity
                 key={order.id}
-                onPress={() => handleEdit(order.id)}
+                onPress={() => handleEdit(order)}
                 style={[styles.itemsSection]}>
                 <OrderHeader order={order} showId={true} />
               </TouchableOpacity>

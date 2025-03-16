@@ -10,7 +10,6 @@ import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 
 const CategoriesPage = ({navigation}) => {
   const {getters, actions} = getStore('categories');
@@ -20,12 +19,16 @@ const CategoriesPage = ({navigation}) => {
   const {styles, globalStyles} = css();
 
   useEffect(() => {
-    actions.getItems({
-      context: 'products',
-      company: currentCompany.id,
-    });
-  }, []);
+    if (!items || items.length == 0)
+      actions.getItems({
+        context: 'products',
+        company: currentCompany.id,
+      });
+  }, [currentCompany]);
 
+  const changeCategory = category => {
+    navigation.navigate('ProductsPage', {category: category});
+  };
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="categories" />
@@ -36,9 +39,7 @@ const CategoriesPage = ({navigation}) => {
               <TouchableOpacity
                 key={category.id}
                 style={styles.Category.categoryItem}
-                onPress={() =>
-                  navigation.navigate('ProductsPage', {category: category})
-                }>
+                onPress={() => changeCategory(category)}>
                 <View
                   style={[
                     styles.Category.categorySquare,
@@ -55,7 +56,7 @@ const CategoriesPage = ({navigation}) => {
           </View>
         </ScrollView>
       )}
-      <BottomCart navigation={navigation} />
+
     </SafeAreaView>
   );
 };

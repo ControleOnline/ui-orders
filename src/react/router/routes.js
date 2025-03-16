@@ -4,12 +4,26 @@ import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/index';
 import Categories from '@controleonline/ui-orders/src/react/pages/checkout/Categories';
 import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
+import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
+
 import React from 'react';
 
 const WrappedOrdersPage = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
     <OrdersPage navigation={navigation} route={route} />
   </ShopLayout>
+);
+
+const WrappedProductsPage = ({navigation, route}) => (
+  <CartLayout navigation={navigation} route={route}>
+    <Products navigation={navigation} route={route} />
+  </CartLayout>
+);
+
+const WrappedCategoryPage = ({navigation, route}) => (
+  <CartLayout navigation={navigation} route={route}>
+    <Categories navigation={navigation} route={route} />
+  </CartLayout>
 );
 
 const WrappedOrderDetails = ({navigation, route}) => {
@@ -21,7 +35,11 @@ const WrappedOrderDetails = ({navigation, route}) => {
     });
   }, [navigation, orderId]);
 
-  return <OrderDetails navigation={navigation} route={route} />;
+  return (
+    <CartLayout navigation={navigation} route={route}>
+      <OrderDetails navigation={navigation} route={route} />
+    </CartLayout>
+  );
 };
 
 const ordersRoutes = [
@@ -37,7 +55,7 @@ const ordersRoutes = [
   },
   {
     name: 'ProductsPage',
-    component: Products,
+    component: WrappedProductsPage,
     options: {
       headerShown: true,
       title: 'Escolher Produtos',
@@ -47,7 +65,7 @@ const ordersRoutes = [
   },
   {
     name: 'AddProductScreen',
-    component: Categories,
+    component: WrappedCategoryPage,
     options: {
       headerShown: true,
       title: 'Escolher Categoria',

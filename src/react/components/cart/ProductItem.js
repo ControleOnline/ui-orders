@@ -8,11 +8,9 @@ import ProductQuantity from '@controleonline/ui-orders/src/react/components/cart
 
 const ProductItem = ({product}) => {
   const {styles, globalStyles} = css();
-
   const customize = product => {
     console.log(product);
   };
-  
   return (
     <View
       style={[
@@ -59,9 +57,7 @@ const ProductItem = ({product}) => {
           </Text>
         </View>
         <View style={{flex: 1, justifyContent: 'center'}}>
-          {product.type === 'product' && (
-            <ProductQuantity product={product} />
-          )}
+          {product.type === 'product' && <ProductQuantity product={product} />}
           {product.type === 'custom' && (
             <TouchableOpacity
               onPress={() => customize(product)}
