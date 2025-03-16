@@ -25,15 +25,20 @@ export default function ProductsList() {
         'exists[parentProduct]': 'false',
       });
     }
-  }, [order, currentCompany]);
+  }, [order, currentCompany, reload]);
 
   useFocusEffect(
     useCallback(() => {
-      console.log(':(', reload);
       if (reload) {
-        console.log('Forçando', items);
-        actions.setItems([...items]);
-        actions.setReload(false);
+        actions
+          .getItems({
+            company: '/people/' + currentCompany.id,
+            order: order['@id'],
+            'exists[parentProduct]': 'false',
+          })
+          .finally(() => {
+            actions.setReload(false);
+          });
       }
     }, [navigation, reload]),
   );

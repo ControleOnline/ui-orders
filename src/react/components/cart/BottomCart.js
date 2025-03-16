@@ -1,8 +1,9 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {Text, View, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import css from '@controleonline/ui-orders/src/react/css/orders';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const ButtonCart = ({navigation}) => {
   const {getters, actions} = getStore('cart');
@@ -11,13 +12,14 @@ const ButtonCart = ({navigation}) => {
   const {item, reload, isLoading} = getters;
   const {styles, globalStyles} = css();
 
-  useEffect(() => {
-    if (item && item['@id'] && reload === true && !isLoading) {
-      console.log('ReloadCart');
-      actions.setReload(false);
-      actions.get(item['@id']);
-    }
-  }, [reload]);
+  useFocusEffect(
+    useCallback(() => {
+      if (item && item['@id'] && reload === true && !isLoading) {
+        actions.setReload(false);
+        actions.get(item['@id']);
+      }
+    }, [reload]),
+  );
 
   useEffect(() => {
     actions.setItem(order);
