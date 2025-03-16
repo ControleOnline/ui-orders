@@ -14,11 +14,14 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
+  const {actions: orderProductsActions} = getStore('order_products');
+
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
   useEffect(() => {
     if (!item || item['@id'] != order['@id']) {
+      orderProductsActions.setItems([]);
       actions.get(order['@id']);
     }
   }, [order]);
@@ -36,7 +39,7 @@ const OrderDetails = ({route, navigation}) => {
               </View>
             </View>
           </ScrollView>
-          </>
+        </>
       )}
     </SafeAreaView>
   );

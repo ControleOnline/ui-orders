@@ -22,6 +22,7 @@ export default function ProductsList() {
       actions.getItems({
         company: '/people/' + currentCompany.id,
         order: order['@id'],
+        'order.product.product': 'ASC',
         'exists[parentProduct]': 'false',
       });
     }

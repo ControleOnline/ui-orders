@@ -22,6 +22,7 @@ const CategoriesPage = ({navigation}) => {
     if (!items || items.length == 0)
       actions.getItems({
         context: 'products',
+        'order.name': 'ASC',
         company: currentCompany.id,
       });
   }, [currentCompany]);
@@ -56,7 +57,6 @@ const CategoriesPage = ({navigation}) => {
           </View>
         </ScrollView>
       )}
-
     </SafeAreaView>
   );
 };
