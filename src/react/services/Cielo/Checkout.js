@@ -74,7 +74,10 @@ export default Checkout = ({route}) => {
 
     try {
       if (!selectedPayment.paymentCode) {
-        setInputValue(Formatter.formatMoney(payable));
+        let value = 0;
+        if (payable > 0) value = 0;
+        else value = payable * -1;
+        setInputValue(Formatter.formatMoney(value));
         setModalVisible(true);
         return;
       }

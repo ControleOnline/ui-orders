@@ -6,8 +6,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 export default Checkout = ({route}) => {
   const {styles, globalStyles} = css();
   const {getters, actions} = getStore('cart');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters} = getStore('invoice');
   const {items: invoices} = invoiceGetters;
   const {item: order, payable} = getters;
 
@@ -16,7 +15,7 @@ export default Checkout = ({route}) => {
       (sum, invoice) => sum + parseFloat(invoice.price),
       0,
     );
-    actions.setPayable(paid - parseFloat(order.price));
+    actions.setPayable(parseFloat(paid) - parseFloat(order.price));
   }, [invoices]);
 
   return (
@@ -28,7 +27,7 @@ export default Checkout = ({route}) => {
       )}
       {payable >= 0 && (
         <Text style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
-          Pago: {Formatter.formatMoney(order.price)}
+          Pago: {Formatter.formatMoney(payable + parseFloat(order.price))}
         </Text>
       )}
     </View>

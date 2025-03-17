@@ -22,11 +22,9 @@ const OrderDetails = ({route}) => {
   const {getters: cartGetters} = getStore('cart');
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
-  const {payable} = cartGetters;
 
   return (
-    <SafeAreaView
-      style={[{paddingBottom: payable < 0 ? 180 : 0}, styles.container]}>
+    <SafeAreaView style={[{paddingBottom: 180}, styles.container]}>
       <StateStore store="orders" />
       {!isLoading && item && !error && (
         <View>
