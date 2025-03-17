@@ -63,13 +63,19 @@ const OrderDetails = ({route}) => {
           </ScrollView>
         </View>
       )}
-      {payable < 0 && (
-        <View style={[styles.payable.toolbar, ,]}>
+
+      <View style={[styles.payable.toolbar]}>
+        {payable < 0 && (
           <Text style={{color: 'red', fontSize: 18, textAlign: 'center'}}>
             Saldo Devedor: {Formatter.formatMoney(payable)}
           </Text>
-        </View>
-      )}
+        )}
+        {payable >= 0 && (
+          <Text style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
+            Pago: {Formatter.formatMoney(order.price)}
+          </Text>
+        )}
+      </View>
     </SafeAreaView>
   );
 };

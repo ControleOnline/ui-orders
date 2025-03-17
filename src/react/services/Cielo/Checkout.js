@@ -16,7 +16,6 @@ import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation} from '@react-navigation/native';
-import {position} from 'native-base/lib/typescript/theme/styled-system';
 
 export default Checkout = ({route}) => {
   const navigation = useNavigation();
@@ -27,7 +26,11 @@ export default Checkout = ({route}) => {
   const {getters: peopleGetters} = getStore('people');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
-  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
+  const {
+    IsSaving: invoiceIsSaving,
+    error: invoiceError,
+    items: invoices,
+  } = invoiceGetters;
 
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {currentCompany} = peopleGetters;
@@ -35,6 +38,7 @@ export default Checkout = ({route}) => {
   const [selectedPayment, setSelectedPayment] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [payable, setPayable] = useState(0);
 
   useEffect(() => {
     paymentTypeActions.getItems({
@@ -42,6 +46,14 @@ export default Checkout = ({route}) => {
       wallet: JSON.parse(currentCompany.configs['pdv-default-wallet']),
     });
   }, [order, currentCompany]);
+
+  useEffect(() => {
+    const paid = invoices.reduce(
+      (sum, invoice) => sum + parseFloat(invoice.price),
+      0,
+    );
+    setPayable(paid - parseFloat(order.price));
+  }, [invoices]);
 
   const selectPayment = payment => {
     setSelectedPayment(payment);
@@ -71,7 +83,7 @@ export default Checkout = ({route}) => {
 
     try {
       if (!selectedPayment.paymentCode) {
-        setInputValue(Formatter.formatMoney(order.price));
+        setInputValue(Formatter.formatMoney(payable));
         setModalVisible(true);
         return;
       }
@@ -106,9 +118,16 @@ export default Checkout = ({route}) => {
       order: order['@id'],
     };
 
-    invoiceActions.save(payload).finally(() => {
-      navigation.navigate('OrderTools', {order: order});
-    });
+    invoiceActions
+      .save(payload)
+      .then(invoice => {
+        let items = [...invoices];
+        items.push(invoice);
+        invoiceActions.setItems(items);
+      })
+      .finally(() => {
+        navigation.navigate('OrderTools', {order: order});
+      });
   };
 
   const handleConfirmValue = () => {
@@ -151,7 +170,11 @@ export default Checkout = ({route}) => {
           !error && (
             <>
               <ScrollView
-                contentContainerStyle={[styles.scrollContent, {flexGrow: 1}]}>
+                contentContainerStyle={[
+                  styles.scrollContent,
+                  {paddingBottom: 100},
+                  {flexGrow: 1},
+                ]}>
                 <View>
                   {payments.map(payment => (
                     <TouchableOpacity
@@ -183,8 +206,24 @@ export default Checkout = ({route}) => {
                   ))}
                 </View>
               </ScrollView>
-
+              <View style={[styles.payable.toolbar]}>
+                {payable < 0 && (
+                  <Text
+                    style={{color: 'red', fontSize: 18, textAlign: 'center'}}>
+                    Saldo Devedor: {Formatter.formatMoney(payable)}
+                  </Text>
+                )}
+                {payable >= 0 && (
+                  <Text
+                    style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
+                    Pago: {Formatter.formatMoney(order.price)}
+                  </Text>
+                )}
+              </View>
               <View style={[styles.toolbar]}>
+                <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
+                  {Formatter.formatMoney(order.price)}
+                </Text>
                 <TouchableOpacity
                   onPress={() => handlePay()}
                   disabled={!selectedPayment}
@@ -219,7 +258,7 @@ export default Checkout = ({route}) => {
               borderRadius: 10,
               width: '80%',
             }}>
-            <Text style={{marginBottom: 10}}>Insira o valor:</Text>
+            <Text style={{marginBottom: 10}}>Valor à pagar:</Text>
             <TextInput
               style={{
                 borderWidth: 1,
