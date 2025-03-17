@@ -17,7 +17,6 @@ const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
   const {actions: orderProductsActions} = getStore('order_products');
-
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
@@ -35,42 +34,38 @@ const OrderDetails = ({route, navigation}) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {paddingBottom: 120}]}>
       <StateStore store="orders" />
       {!isLoading && item && !error && (
         <>
-          <View style={styles.orderContainer}>
-            <OrderHeader key={item.id} order={item} />
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <TouchableOpacity
-                onPress={handleAddProduct}
-                style={[
-                  globalStyles.button,
-                  globalStyles.btnAdd,
-                  {marginRight: 5},
-                ]}>
-                <Icon name="add-circle" size={24} color="#fff" />
-                <Text style={{color: '#fff', marginLeft: 8}}>
-                  Adicionar Item
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleOrderTools}
-                style={[
-                  globalStyles.button,
-                  globalStyles.btnAdd,
-                  {marginLeft: 5},
-                ]}>
-                <Icon name="settings" size={24} color="#fff" />
-                <Text style={{color: '#fff', marginLeft: 8}}>Detalhes</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView contentContainerStyle={{paddingBottom: 250}}>
-              <View style={styles.itemsSection}>
-                <ProductsList />
-              </View>
-            </ScrollView>
+          <OrderHeader key={item.id} order={item} />
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <TouchableOpacity
+              onPress={handleAddProduct}
+              style={[
+                globalStyles.button,
+                globalStyles.btnAdd,
+                {marginRight: 5},
+              ]}>
+              <Icon name="add-circle" size={24} color="#fff" />
+              <Text style={{color: '#fff', marginLeft: 8}}>Adicionar Item</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleOrderTools}
+              style={[
+                globalStyles.button,
+                globalStyles.btnAdd,
+                {marginLeft: 5},
+              ]}>
+              <Icon name="settings" size={24} color="#fff" />
+              <Text style={{color: '#fff', marginLeft: 8}}>Detalhes</Text>
+            </TouchableOpacity>
           </View>
+          <ScrollView contentContainerStyle={{paddingBottom: 0}}>
+            <View style={styles.itemsSection}>
+              <ProductsList />
+            </View>
+          </ScrollView>
         </>
       )}
     </SafeAreaView>

@@ -56,8 +56,18 @@ const ProductItem = ({product}) => {
             {Formatter.formatMoney(product.price)}
           </Text>
         </View>
-        <View style={{flex: 1, justifyContent: 'center'}}>
-          {product.type === 'product' && <ProductQuantity product={product} />}
+        <View
+          style={{
+            flex: 1,
+            padding: 0,
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+          {product.type === 'product' && (
+            <View style={{alignSelf: 'flex-end'}}>
+              <ProductQuantity product={product} />
+            </View>
+          )}
           {product.type === 'custom' && (
             <TouchableOpacity
               onPress={() => customize(product)}
@@ -65,7 +75,6 @@ const ProductItem = ({product}) => {
                 globalStyles.button,
                 styles.btnPay,
                 {
-                  flex: 1,
                   justifyContent: 'center',
                   alignItems: 'center',
                 },

@@ -6,15 +6,9 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
 const OrderDetails = ({route}) => {
-  const {getters, actions} = getStore('invoice');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {item: order} = ordersGetters;
+  const {getters} = getStore('invoice');
   const {items, isLoading, error} = getters;
   const {styles, globalStyles} = css();
-
-  useEffect(() => {
-    actions.getItems({'order.order': order['@id']});
-  }, [order]);
 
   return (
     <>

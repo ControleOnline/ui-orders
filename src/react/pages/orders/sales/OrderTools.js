@@ -14,17 +14,14 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import OrderInvoices from './OrderInvoices';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
-import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
-
 const OrderDetails = ({route}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
-  const {getters: cartGetters} = getStore('cart');
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
   return (
-    <SafeAreaView style={[{paddingBottom: 180}, styles.container]}>
+    <SafeAreaView style={[{paddingBottom: 0}, styles.container]}>
       <StateStore store="orders" />
       {!isLoading && item && !error && (
         <View>
@@ -56,8 +53,6 @@ const OrderDetails = ({route}) => {
           </ScrollView>
         </View>
       )}
-
-      <PayableToolbar />
     </SafeAreaView>
   );
 };

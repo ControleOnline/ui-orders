@@ -4,12 +4,14 @@ import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import BottomToolbar from '@controleonline/ui-layout/src/react/components/BottomToolbar';
+import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 
 const ButtonCart = ({navigation}) => {
   const {getters, actions} = getStore('cart');
   const {getters: ordersGetters} = getStore('orders');
   const {item: order} = ordersGetters;
-  const {item, reload, isLoading} = getters;
+  const {item, reload, isLoading, payable} = getters;
   const {styles, globalStyles} = css();
 
   useFocusEffect(
@@ -28,31 +30,36 @@ const ButtonCart = ({navigation}) => {
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});
   };
-
   return (
-    <View style={[styles.toolbar, {flexDirection: 'row'}]}>
-      {isLoading ? (
-        <ActivityIndicator
-          size="small"
-          color={styles.primary?.color || '#000'}
-          style={{flex: 1}}
-        />
-      ) : (
-        <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
-          {Formatter.formatMoney(item.price)}
-        </Text>
-      )}
+    <>
+      <PayableToolbar />
+      {payable >= 0 && <BottomToolbar navigation={navigation} />}
+      {payable < 0 && (
+        <View style={[styles.toolbar, {flexDirection: 'row'}]}>
+          {isLoading ? (
+            <ActivityIndicator
+              size="small"
+              color={styles.primary?.color || '#000'}
+              style={{flex: 1}}
+            />
+          ) : (
+            <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
+              {Formatter.formatMoney(item.price)}
+            </Text>
+          )}
 
-      <TouchableOpacity
-        onPress={() => handlePay(item)}
-        style={[
-          globalStyles.button,
-          styles.btnPay,
-          {flex: 1, justifyContent: 'center', alignItems: 'center'},
-        ]}>
-        <Text style={styles.textWhite}>FINALIZAR</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity
+            onPress={() => handlePay(item)}
+            style={[
+              globalStyles.button,
+              styles.btnPay,
+              {flex: 1, justifyContent: 'center', alignItems: 'center'},
+            ]}>
+            <Text style={styles.textWhite}>FINALIZAR</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </>
   );
 };
 
