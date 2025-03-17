@@ -63,34 +63,39 @@ const Orders = ({navigation}) => {
     <SafeAreaView style={styles.container}>
       <StateStore store="orders" />
       {!isLoading && items.length > 0 && !error && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <TouchableOpacity
-            onPress={handleConfirm}
-            style={[
-              globalStyles.button,
-              globalStyles.btnAdd,
-              {
-                flex: 1,
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-              },
-            ]}>
-            <Icon name="add-circle" size={24} color="#fff" />
-            <Text style={{color: '#fff', marginLeft: 8}}>Adicionar Pedido</Text>
-          </TouchableOpacity>
-
-          <View>
-            {items.map(order => (
-              <TouchableOpacity
-                key={order.id}
-                onPress={() => handleEdit(order)}
-                style={[styles.itemsSection]}>
-                <OrderHeader order={order} showId={true} />
-              </TouchableOpacity>
-            ))}
+        <>
+          <View style={{ height: 50 }}>
+            <TouchableOpacity
+              onPress={handleConfirm}
+              style={[
+                globalStyles.button,
+                globalStyles.btnAdd,
+                {
+                  flex: 1,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}>
+              <Icon name="add-circle" size={24} color="#fff" />
+              <Text style={{color: '#fff', marginLeft: 8}}>
+                Adicionar Pedido
+              </Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View>
+              {items.map(order => (
+                <TouchableOpacity
+                  key={order.id}
+                  onPress={() => handleEdit(order)}
+                  style={[styles.itemsSection]}>
+                  <OrderHeader order={order} showId={true} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </>
       )}
     </SafeAreaView>
   );

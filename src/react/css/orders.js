@@ -13,7 +13,7 @@ const css = () => {
       backgroundColor: '#fff',
     },
     scrollContent: {
-      paddingBottom: 70, // Espaço para o BottomToolbar
+      paddingBottom: 50,
     },
     primary: {
       color: colors['primary'],
@@ -74,6 +74,23 @@ const css = () => {
       fontWeight: 'bold',
       color: '#1B5587',
       marginBottom: 10,
+    },
+    payable: {
+      toolbar: {
+        position: 'absolute',
+        bottom: 60,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 60,
+        backgroundColor: '#f8f8f8',
+        borderTopWidth: 1,
+        borderTopColor: '#ddd',
+        padding: 10,
+        height: 50,
+      },
     },
     toolbar: {
       position: 'absolute',

@@ -5,6 +5,7 @@ import Categories from '@controleonline/ui-orders/src/react/pages/checkout/Categ
 import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
+import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
 
 import React from 'react';
 
@@ -25,6 +26,22 @@ const WrappedCategoryPage = ({navigation, route}) => (
     <Categories navigation={navigation} route={route} />
   </CartLayout>
 );
+
+const WrappedOrderTools = ({navigation, route}) => {
+  const order = route.params?.order;
+
+  React.useEffect(() => {
+    navigation.setOptions({
+      title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+    });
+  }, [navigation, order]);
+
+  return (
+    <CartLayout navigation={navigation} route={route}>
+      <OrderTools navigation={navigation} route={route} />
+    </CartLayout>
+  );
+};
 
 const WrappedOrderDetails = ({navigation, route}) => {
   const order = route.params?.order;
@@ -50,6 +67,15 @@ const ordersRoutes = [
       headerShown: true,
       title: 'Pedidos de Venda',
       headerBackButtonMenuEnabled: false,
+    },
+    initialParams: {store: 'orders'},
+  },
+  {
+    name: 'OrderTools',
+    component: WrappedOrderTools,
+    options: {
+      headerShown: true,
+      title: 'Pedido',
     },
     initialParams: {store: 'orders'},
   },

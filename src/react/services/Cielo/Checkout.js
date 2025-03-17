@@ -107,7 +107,7 @@ export default Checkout = ({route}) => {
     };
 
     invoiceActions.save(payload).finally(() => {
-      navigation.navigate('PaymentResult', {order: order});
+      navigation.navigate('OrderTools', {order: order});
     });
   };
 
@@ -135,9 +135,7 @@ export default Checkout = ({route}) => {
       return;
     }
     const number = parseFloat(numericValue) / 100;
-    setInputValue(
-      number.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}),
-    );
+    setInputValue(Formatter.formatMoney(number));
   };
 
   return (
