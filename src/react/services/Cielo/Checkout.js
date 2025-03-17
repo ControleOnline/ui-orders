@@ -16,7 +16,7 @@ import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation} from '@react-navigation/native';
-
+import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 export default Checkout = ({route}) => {
   const navigation = useNavigation();
   const {styles, globalStyles} = css();
@@ -34,11 +34,10 @@ export default Checkout = ({route}) => {
 
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {currentCompany} = peopleGetters;
-  const {item: order} = getters;
+  const {item: order, payable} = getters;
   const [selectedPayment, setSelectedPayment] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [payable, setPayable] = useState(0);
 
   useEffect(() => {
     paymentTypeActions.getItems({
@@ -46,14 +45,6 @@ export default Checkout = ({route}) => {
       wallet: JSON.parse(currentCompany.configs['pdv-default-wallet']),
     });
   }, [order, currentCompany]);
-
-  useEffect(() => {
-    const paid = invoices.reduce(
-      (sum, invoice) => sum + parseFloat(invoice.price),
-      0,
-    );
-    setPayable(paid - parseFloat(order.price));
-  }, [invoices]);
 
   const selectPayment = payment => {
     setSelectedPayment(payment);
@@ -206,20 +197,9 @@ export default Checkout = ({route}) => {
                   ))}
                 </View>
               </ScrollView>
-              <View style={[styles.payable.toolbar]}>
-                {payable < 0 && (
-                  <Text
-                    style={{color: 'red', fontSize: 18, textAlign: 'center'}}>
-                    Saldo Devedor: {Formatter.formatMoney(payable)}
-                  </Text>
-                )}
-                {payable >= 0 && (
-                  <Text
-                    style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
-                    Pago: {Formatter.formatMoney(order.price)}
-                  </Text>
-                )}
-              </View>
+
+              <PayableToolbar />
+
               <View style={[styles.toolbar]}>
                 <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
                   {Formatter.formatMoney(order.price)}

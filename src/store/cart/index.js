@@ -12,7 +12,7 @@ export default {
     isLoading: false,
     isSaving: false,
     error: '',
-    
+    payable: 0,
     totalItems: 0,
     filters: {},
     reload: false,

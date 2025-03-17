@@ -13,22 +13,17 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import OrderInvoices from './OrderInvoices';
 import css from '@controleonline/ui-orders/src/react/css/orders';
+
+import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
+
 const OrderDetails = ({route}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
+  const {getters: cartGetters} = getStore('cart');
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
-  const {getters: invoiceGetters} = getStore('invoice');
-  const {items: invoices} = invoiceGetters;
-  const [payable, setPayable] = useState(0);
+  const {payable} = cartGetters;
 
-  useEffect(() => {
-    const paid = invoices.reduce(
-      (sum, invoice) => sum + parseFloat(invoice.price),
-      0,
-    );
-    setPayable(paid - parseFloat(order.price));
-  }, [invoices]);
   return (
     <SafeAreaView
       style={[{paddingBottom: payable < 0 ? 180 : 0}, styles.container]}>
@@ -64,18 +59,7 @@ const OrderDetails = ({route}) => {
         </View>
       )}
 
-      <View style={[styles.payable.toolbar]}>
-        {payable < 0 && (
-          <Text style={{color: 'red', fontSize: 18, textAlign: 'center'}}>
-            Saldo Devedor: {Formatter.formatMoney(payable)}
-          </Text>
-        )}
-        {payable >= 0 && (
-          <Text style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
-            Pago: {Formatter.formatMoney(order.price)}
-          </Text>
-        )}
-      </View>
+      <PayableToolbar />
     </SafeAreaView>
   );
 };
