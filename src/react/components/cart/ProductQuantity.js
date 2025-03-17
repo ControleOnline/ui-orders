@@ -79,7 +79,6 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
         return;
       }
 
-      console.log(orderProduct?.['@id']);
       const order_product = {
         id: orderProduct?.['@id'] || null,
         parentProduct: null,
@@ -95,15 +94,12 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
           const index = getIndex(updatedProduct);
           if (index >= 0) orderProducts[index] = result;
           else orderProducts.push(result);
-          console.log('save', orderProducts);
         })
         .finally(() => {
           cartActions.setReload(true);
           if (currentPageName == 'ProductsPage')
             orderProductActions.setReload(true);
-
           orderProductActions.setItems(orderProducts);
-          console.log('New', orderProducts);
         });
     }, 500),
   );
