@@ -22,17 +22,13 @@ const css = () => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: 10,
-      borderTopEndRadius: 7,
-      borderTopLeftRadius: 7,
-      borderBottomColor: '#ccc',
-      borderBottomWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
     },
     boxContent: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 10,
+      flexDirection: 'column',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
     },
     boxOrderText: {
       fontWeight: '700',
@@ -45,7 +41,7 @@ const css = () => {
       fontWeight: '700',
     },
     boxPrice: {
-      fontSize: 14,
+      fontSize: 16,
       fontWeight: '700',
     },
     boxStatusText: {
@@ -74,6 +70,50 @@ const css = () => {
       fontWeight: 'bold',
       color: '#1B5587',
       marginBottom: 10,
+    },
+    CashRegister: {
+      mainContainer: {
+        padding: 10,
+      },
+      header: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        textAlign: 'center',
+      },
+      groupContainer: {
+        marginBottom: 20,
+      },
+      groupTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 10,
+      },
+      walletContainer: {
+        borderRadius: 5,
+        marginBottom: 10,
+        backgroundColor: '#fff',
+        elevation: 2,
+      },
+      walletTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+      },
+      paymentText: {
+        fontSize: 16,
+        lineHeight: 22,
+      },
+      walletTotal: {
+        fontSize: 16,
+        fontWeight: 'bold',
+      },
+      groupTotal: {
+        fontSize: 18,
+        fontWeight: 'bold',
+      },
+      grandTotal: {
+        fontSize: 20,
+        fontWeight: 'bold',
+      },
     },
     payable: {
       toolbar: {
@@ -203,18 +243,15 @@ const css = () => {
         color: colors['primary'],
       },
     },
-
     OrderHeader: {
       boxWrap: {
-        backgroundColor: '#fff', // Fundo branco para o card
-        marginHorizontal: 2, // Margem lateral para separação
-        marginVertical: 8, // Margem vertical para separação
-        borderRadius: 8, // Bordas arredondadas
-        elevation: 4, // Sombra no Android
-        shadowColor: '#000', // Sombra no iOS
-        shadowOffset: {width: 0, height: 2}, // Sombra no iOS
-        shadowOpacity: 0.1, // Sombra no iOS
-        shadowRadius: 4, // Sombra no iOS
+        backgroundColor: '#fff',
+        color: colors['primary'],
+        fontSize: 18,
+        marginHorizontal: 2,
+        marginVertical: 8,
+        borderRadius: 8,
+        elevation: 4,
       },
       container: {
         padding: 10,

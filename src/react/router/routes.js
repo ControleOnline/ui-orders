@@ -6,12 +6,19 @@ import Products from '@controleonline/ui-orders/src/react/pages/checkout/Product
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
+import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 
 import React from 'react';
 
 const WrappedOrdersPage = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
     <OrdersPage navigation={navigation} route={route} />
+  </ShopLayout>
+);
+
+const WrappedCashRegister = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
+    <CashRegister navigation={navigation} route={route} />
   </ShopLayout>
 );
 
@@ -78,6 +85,14 @@ const ordersRoutes = [
       title: 'Pedido',
     },
     initialParams: {store: 'orders'},
+  },
+  {
+    name: 'CashRegisterIndex',
+    component: WrappedCashRegister,
+    options: {
+      headerShown: true,
+      title: 'Caixa',
+    },
   },
   {
     name: 'ProductsPage',

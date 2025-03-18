@@ -35,7 +35,7 @@ const OrderDetails = ({route}) => {
                 </View>
                 <View style={componentStyles.row}>
                   <Text style={componentStyles.cardText}>
-                    {invoice.wallet.wallet}
+                    {invoice.destinationWallet.wallet}
                   </Text>
                   <Text style={componentStyles.cardText}>
                     {invoice.paymentType.paymentType}

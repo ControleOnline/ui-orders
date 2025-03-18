@@ -43,7 +43,10 @@ export default Checkout = ({route}) => {
     if (payments.length == 0)
       paymentTypeActions.getItems({
         people: currentCompany.id,
-        wallet: JSON.parse(currentCompany.configs['pdv-default-wallet']),
+        wallet: [
+          currentCompany.configs['pdv-cielo-wallet'],
+          currentCompany.configs['pdv-cash-wallet'],
+        ],
       });
   }, [order, currentCompany]);
 
@@ -106,7 +109,7 @@ export default Checkout = ({route}) => {
     const payload = {
       dueDate: Formatter.getCurrentDate(),
       status: '/statuses/' + currentCompany.configs['pdv-paid-status'],
-      wallet: selectedPayment.wallet['@id'],
+      destinationWallet: selectedPayment.wallet['@id'],
       paymentType: selectedPayment.paymentType['@id'],
       price: total,
       receiver: '/people/' + currentCompany.id,
