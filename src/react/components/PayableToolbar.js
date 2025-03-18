@@ -9,7 +9,7 @@ export default PayableToolbar = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
-  const {items: invoices, reload: reloadInvoices, isLoading} = invoiceGetters;
+  const {items: invoices, isLoading} = invoiceGetters;
   const {item: order, reload, payable} = getters;
   const {items: orders} = ordersGetters;
 
@@ -22,11 +22,11 @@ export default PayableToolbar = ({route}) => {
   }, [invoices, reload]);
 
   useEffect(() => {
-    if ((invoices.length == 0 || reloadInvoices) && order && order['@id']) {
+    if (invoices.length == 0 && order && order['@id']) {
       console.log({'order.order': order['@id']});
       invoiceActions.getItems({'order.order': order['@id']});
     }
-  }, [order, reloadInvoices]);
+  }, [order]);
 
   useEffect(() => {
     if (payable >= 0 && order['@id']) {

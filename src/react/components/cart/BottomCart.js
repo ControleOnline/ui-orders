@@ -32,14 +32,17 @@ const ButtonCart = ({navigation}) => {
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});
   };
+  
   return (
     <>
       <PayableToolbar />
-      {!payable ||
-      payable < 0 ||
-      invoiceIsLoading ||
-      isLoading ||
-      ordersIsloading ? (
+      {payable != undefined &&
+      payable == 0 &&
+      !invoiceIsLoading &&
+      !isLoading &&
+      !ordersIsloading ? (
+        <BottomToolbar navigation={navigation} />
+      ) : (
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
           {isLoading ? (
             <ActivityIndicator
@@ -63,8 +66,6 @@ const ButtonCart = ({navigation}) => {
             <Text style={styles.textWhite}>FINALIZAR</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <BottomToolbar navigation={navigation} />
       )}
     </>
   );
