@@ -10,7 +10,9 @@ import PayableToolbar from '@controleonline/ui-orders/src/react/components/Payab
 const ButtonCart = ({navigation}) => {
   const {getters, actions} = getStore('cart');
   const {getters: ordersGetters} = getStore('orders');
-  const {item: order} = ordersGetters;
+  const {getters: invoiceGetters} = getStore('invoice');
+  const {isLoading: invoiceIsLoading} = invoiceGetters;
+  const {item: order, isLoading: ordersIsloading} = ordersGetters;
   const {item, reload, isLoading, payable} = getters;
   const {styles, globalStyles} = css();
 
@@ -33,8 +35,11 @@ const ButtonCart = ({navigation}) => {
   return (
     <>
       <PayableToolbar />
-      {payable >= 0 && <BottomToolbar navigation={navigation} />}
-      {payable < 0 && (
+      {!payable ||
+      payable < 0 ||
+      invoiceIsLoading ||
+      isLoading ||
+      ordersIsloading ? (
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
           {isLoading ? (
             <ActivityIndicator
@@ -58,6 +63,8 @@ const ButtonCart = ({navigation}) => {
             <Text style={styles.textWhite}>FINALIZAR</Text>
           </TouchableOpacity>
         </View>
+      ) : (
+        <BottomToolbar navigation={navigation} />
       )}
     </>
   );

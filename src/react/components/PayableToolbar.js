@@ -9,8 +9,8 @@ export default PayableToolbar = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
-  const {items: invoices, isLoading} = invoiceGetters;
-  const {item: order, payable} = getters;
+  const {items: invoices, reload: reloadInvoices, isLoading} = invoiceGetters;
+  const {item: order, reload, payable} = getters;
   const {items: orders} = ordersGetters;
 
   useEffect(() => {
@@ -19,14 +19,17 @@ export default PayableToolbar = ({route}) => {
       0,
     );
     actions.setPayable(parseFloat(paid) - parseFloat(order.price));
-  }, [invoices]);
+  }, [invoices, reload]);
 
   useEffect(() => {
-    invoiceActions.getItems({'order.order': order['@id']});
-  }, [order]);
+    if ((invoices.length == 0 || reloadInvoices) && order && order['@id']) {
+      console.log({'order.order': order['@id']});
+      invoiceActions.getItems({'order.order': order['@id']});
+    }
+  }, [order, reloadInvoices]);
 
   useEffect(() => {
-    if (payable >= 0) {
+    if (payable >= 0 && order['@id']) {
       const updatedOrders = orders.filter(item => item['@id'] !== order['@id']);
       ordersActions.setItems(updatedOrders);
     }

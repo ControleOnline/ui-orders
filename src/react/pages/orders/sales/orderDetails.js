@@ -17,12 +17,16 @@ const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
   const {actions: orderProductsActions} = getStore('order_products');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
+  const {items: invoices} = invoiceGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
   useEffect(() => {
     if (!item || item['@id'] != order['@id']) {
       orderProductsActions.setItems([]);
+      invoiceActions.setItems([]);
       actions.get(order['@id']);
     }
   }, [order]);
