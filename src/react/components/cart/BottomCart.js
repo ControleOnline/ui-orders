@@ -8,8 +8,8 @@ import BottomToolbar from '@controleonline/ui-layout/src/react/components/Bottom
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 
 const ButtonCart = ({navigation}) => {
-  const {getters, actions} = getStore('cart');
-  const {getters: ordersGetters} = getStore('orders');
+  const {getters, actions: cartActions} = getStore('cart');
+  const {getters: ordersGetters,actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
   const {item: order, isLoading: ordersIsloading} = ordersGetters;
@@ -19,20 +19,20 @@ const ButtonCart = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       if (item && item['@id'] && reload === true && !isLoading) {
-        actions.setReload(false);
-        actions.get(item['@id']);
+        cartActions.setReload(false);
+        ordersActions.get(item['@id']);
       }
     }, [reload]),
   );
 
   useEffect(() => {
-    actions.setItem(order);
+    cartActions.setItem(order);
   }, [order]);
 
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});
   };
-  
+
   return (
     <>
       <PayableToolbar />

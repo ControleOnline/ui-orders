@@ -10,7 +10,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import OrderInvoices from './OrderInvoices';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 

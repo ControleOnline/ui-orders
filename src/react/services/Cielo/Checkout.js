@@ -40,10 +40,11 @@ export default Checkout = ({route}) => {
   const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
-    paymentTypeActions.getItems({
-      people: currentCompany.id,
-      wallet: JSON.parse(currentCompany.configs['pdv-default-wallet']),
-    });
+    if (payments.length == 0)
+      paymentTypeActions.getItems({
+        people: currentCompany.id,
+        wallet: JSON.parse(currentCompany.configs['pdv-default-wallet']),
+      });
   }, [order, currentCompany]);
 
   const selectPayment = payment => {

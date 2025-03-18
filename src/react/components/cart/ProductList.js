@@ -10,44 +10,43 @@ export default function ProductsList() {
   const {styles, globalStyles} = css();
   const navigation = useNavigation();
   const {getters: ordersGetters} = getStore('orders');
-  const {getters, actions} = getStore('order_products');
+  const {getters, actions: orderProductsActions} = getStore('order_products');
   const {item: order} = ordersGetters;
   const {items, isLoading, error, reload} = getters;
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany} = peopleGetters;
 
-  useEffect(() => {
-    if ((!items || items.length == 0) && order && order['@id']) {
-      actions.getItems({
-        company: '/people/' + currentCompany.id,
-        order: order['@id'],
-        'order.product.product': 'ASC',
-        'exists[parentProduct]': 'false',
-      });
-    }
-  }, [order, currentCompany, reload]);
+  useFocusEffect(
+    useCallback(() => {
+      if (order && order['@id']) {
+        orderProductsActions.getItems({
+          company: '/people/' + currentCompany.id,
+          order: order['@id'],
+          'order.product.product': 'ASC',
+          'exists[parentProduct]': 'false',
+        });
+      }
+    }, [order, currentCompany, reload]),
+  );
 
   useFocusEffect(
     useCallback(() => {
       if (reload && order && order['@id']) {
-        actions
+        orderProductsActions
           .getItems({
             company: '/people/' + currentCompany.id,
             order: order['@id'],
             'exists[parentProduct]': 'false',
           })
           .finally(() => {
-            actions.setReload(false);
+            orderProductsActions.setReload(false);
           });
       }
-    }, [navigation, reload]),
+    }, [navigation, order, reload]),
   );
-
-
 
   return (
     <View>
-      
       <StateStore store="order_products" />
 
       {!isLoading && items.length > 0 && !error && (

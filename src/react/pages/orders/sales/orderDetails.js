@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   Text,
   View,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
+
 import ProductsList from '@controleonline/ui-orders/src/react/components/cart/ProductList';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {getStore} from '@store';
@@ -17,25 +19,27 @@ const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
   const {actions: orderProductsActions} = getStore('order_products');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {items: invoices} = invoiceGetters;
+  const {actions: invoiceActions} = getStore('invoice');
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
   useEffect(() => {
-    if (!item || item['@id'] != order['@id']) {
-      orderProductsActions.setItems([]);
-      invoiceActions.setItems([]);
-      actions.get(order['@id']);
-    }
+    if (!item || item['@id'] != order['@id']) actions.get(order['@id']);
   }, [order]);
+  
   const handleAddProduct = () => {
     navigation.navigate('AddProductScreen');
   };
   const handleOrderTools = () => {
     navigation.navigate('OrderTools', {order: order});
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (order && order['@id'])
+        invoiceActions.getItems({'order.order': order['@id']});
+    }, [order]),
+  );
 
   return (
     <SafeAreaView style={[styles.container, {paddingBottom: 120}]}>

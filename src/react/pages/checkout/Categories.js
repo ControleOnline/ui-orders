@@ -12,7 +12,7 @@ import Carousel from '@controleonline/ui-products/src/react/components/products/
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 
 const CategoriesPage = ({navigation}) => {
-  const {getters, actions} = getStore('categories');
+  const {getters, actions:categoryActions} = getStore('categories');
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
@@ -20,7 +20,7 @@ const CategoriesPage = ({navigation}) => {
 
   useEffect(() => {
     if (!items || items.length == 0)
-      actions.getItems({
+      categoryActions.getItems({
         context: 'products',
         'order.name': 'ASC',
         company: currentCompany.id,
