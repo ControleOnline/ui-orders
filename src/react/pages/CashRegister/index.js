@@ -1,10 +1,11 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {Text, View, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const CashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
@@ -24,7 +25,9 @@ const CashRegister = ({navigation}) => {
   });
 
   const [cashWallet] = useState(currentCompany.configs['pdv-cash-wallet']);
-  const [cieloWallet] = useState(currentCompany.configs['pdv-cielo-wallet']);
+  const [defaultWallets] = useState(
+    JSON.parse(currentCompany.configs['pdv-default-wallets'] || []),
+  );
 
   const handleWithdrawal = () => {
     navigation.navigate('Withdrawal');
@@ -37,16 +40,18 @@ const CashRegister = ({navigation}) => {
   useEffect(() => {
     paymentTypeActions.getItems({
       people: currentCompany.id,
-      wallet: [cashWallet, cieloWallet],
+      wallet: [cashWallet, defaultWallets],
     });
   }, [currentCompany]);
 
-  useEffect(() => {
-    invoiceActions.getInflow({
-      sourceWallet: [cashWallet, cieloWallet],
-      device: device,
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      invoiceActions.getInflow({
+        receiver: currentCompany.id,
+        device: device,
+      });
+    }, []),
+  );
 
   useEffect(() => {
     const processData = () => {
@@ -235,14 +240,16 @@ const CashRegister = ({navigation}) => {
               <Text style={{color: 'white', fontWeight: 'bold'}}>Sangria</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{
-                backgroundColor: '#4444ff',
-                padding: 15,
-                borderRadius: 5,
-                flex: 1,
-                marginLeft: 5,
-                alignItems: 'center',
-              }}
+              style={[
+                globalStyles.primary,
+                {
+                  padding: 15,
+                  borderRadius: 5,
+                  flex: 1,
+                  marginLeft: 5,
+                  alignItems: 'center',
+                },
+              ]}
               onPress={handleCloseCachRegister}>
               <Text style={{color: 'white', fontWeight: 'bold'}}>
                 Fechar Caixa
