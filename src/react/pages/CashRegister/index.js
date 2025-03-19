@@ -3,15 +3,8 @@ import {Text, View, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
-
-const handleSangria = () => {
-  console.log('Botão Sangria pressionado');
-};
-
-const handleFecharCaixa = () => {
-  console.log('Botão Fechar Caixa pressionado');
-};
 
 const CashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
@@ -22,7 +15,7 @@ const CashRegister = ({navigation}) => {
     getStore('walletPaymentType');
 
   const {currentCompany} = peopleGetters;
-  const {items: payments} = invoiceGetters;
+  const {items: payments, isLoading, error} = invoiceGetters;
 
   const device = JSON.parse(localStorage.getItem('device') || '{}');
   const [processedData, setProcessedData] = useState({
@@ -32,9 +25,14 @@ const CashRegister = ({navigation}) => {
 
   const [cashWallet] = useState(currentCompany.configs['pdv-cash-wallet']);
   const [cieloWallet] = useState(currentCompany.configs['pdv-cielo-wallet']);
-  const [withdrawlWallet] = useState(
-    currentCompany.configs['pdv-withdrawl-wallet'],
-  );
+
+  const handleWithdrawal = () => {
+    navigation.navigate('Withdrawal');
+  };
+
+  const handleCloseCachRegister = () => {
+    navigation.navigate('CloseCachRegister');
+  };
 
   useEffect(() => {
     paymentTypeActions.getItems({
@@ -44,7 +42,10 @@ const CashRegister = ({navigation}) => {
   }, [currentCompany]);
 
   useEffect(() => {
-    invoiceActions.getInflow();
+    invoiceActions.getInflow({
+      sourceWallet: [cashWallet, cieloWallet],
+      device: device,
+    });
   }, []);
 
   useEffect(() => {
@@ -139,7 +140,7 @@ const CashRegister = ({navigation}) => {
                   </Text>
                   <Text
                     style={[styles.CashRegister.paymentText, {color: 'red'}]}>
-                    {Formatter.formatMoney(payment.withdrawal * -1)}
+                    {Formatter.formatMoney(payment.withdrawal)}
                   </Text>
                 </View>
               )}
@@ -173,75 +174,83 @@ const CashRegister = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.CashRegister.mainContainer}>
-          {renderGroup(processedData.walletGroups)}
-          <View
-            style={[
-              styles.boxContent,
-              {
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                marginTop: 10,
-              },
-            ]}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                width: '100%',
-              }}>
-              <Text style={[styles.CashRegister.grandTotal, styles.primary]}>
-                Total
-              </Text>
-              <Text
+      <StateStore store="orders" />
+      {!isLoading && payments.length > 0 && !error && (
+        <>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.CashRegister.mainContainer}>
+              {renderGroup(processedData.walletGroups)}
+              <View
                 style={[
-                  styles.CashRegister.grandTotal,
-                  styles.primary,
-                  styles.boxPrice,
+                  styles.boxContent,
+                  {
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    marginTop: 10,
+                  },
                 ]}>
-                {Formatter.formatMoney(processedData.total)}
-              </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                  }}>
+                  <Text
+                    style={[styles.CashRegister.grandTotal, styles.primary]}>
+                    Total
+                  </Text>
+                  <Text
+                    style={[
+                      styles.CashRegister.grandTotal,
+                      styles.primary,
+                      styles.boxPrice,
+                    ]}>
+                    {Formatter.formatMoney(processedData.total)}
+                  </Text>
+                </View>
+              </View>
             </View>
+          </ScrollView>
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              padding: 10,
+              backgroundColor: 'white',
+            }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#ff4444',
+                padding: 15,
+                borderRadius: 5,
+                flex: 1,
+                marginRight: 5,
+                alignItems: 'center',
+              }}
+              onPress={handleWithdrawal}>
+              <Text style={{color: 'white', fontWeight: 'bold'}}>Sangria</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#4444ff',
+                padding: 15,
+                borderRadius: 5,
+                flex: 1,
+                marginLeft: 5,
+                alignItems: 'center',
+              }}
+              onPress={handleCloseCachRegister}>
+              <Text style={{color: 'white', fontWeight: 'bold'}}>
+                Fechar Caixa
+              </Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          padding: 10,
-          backgroundColor: 'white',
-        }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#ff4444',
-            padding: 15,
-            borderRadius: 5,
-            flex: 1,
-            marginRight: 5,
-            alignItems: 'center',
-          }}
-          onPress={handleSangria}>
-          <Text style={{color: 'white', fontWeight: 'bold'}}>Sangria</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#4444ff',
-            padding: 15,
-            borderRadius: 5,
-            flex: 1,
-            marginLeft: 5,
-            alignItems: 'center',
-          }}
-          onPress={handleFecharCaixa}>
-          <Text style={{color: 'white', fontWeight: 'bold'}}>Fechar Caixa</Text>
-        </TouchableOpacity>
-      </View>
+        </>
+      )}
     </SafeAreaView>
   );
 };

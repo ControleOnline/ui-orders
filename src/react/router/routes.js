@@ -7,6 +7,8 @@ import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
+import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
+import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
 
 import React from 'react';
 
@@ -16,6 +18,16 @@ const WrappedOrdersPage = ({navigation, route}) => (
   </ShopLayout>
 );
 
+const WrappedCloseCachRegister = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
+    <CloseCachRegister navigation={navigation} route={route} />
+  </ShopLayout>
+);
+const WrappedWithdrawal = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
+    <Withdrawal navigation={navigation} route={route} />
+  </ShopLayout>
+);
 const WrappedCashRegister = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
     <CashRegister navigation={navigation} route={route} />
@@ -92,6 +104,22 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       title: 'Caixa',
+    },
+  },
+  {
+    name: 'CloseCachRegister',
+    component: WrappedCloseCachRegister,
+    options: {
+      headerShown: true,
+      title: 'Fechar Caixa',
+    },
+  },
+  {
+    name: 'Withdrawal',
+    component: WrappedWithdrawal,
+    options: {
+      headerShown: true,
+      title: 'Sangria',
     },
   },
   {
