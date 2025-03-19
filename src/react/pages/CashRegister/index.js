@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useState, useCallback} from 'react';
 import {Text, View, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -37,13 +37,14 @@ const CashRegister = ({navigation}) => {
     navigation.navigate('CloseCachRegister');
   };
 
-  useEffect(() => {
-    paymentTypeActions.getItems({
-      people: currentCompany.id,
-      wallet: [cashWallet, defaultWallets],
-    });
-  }, [currentCompany]);
-
+  useFocusEffect(
+    useCallback(() => {
+      paymentTypeActions.getItems({
+        people: currentCompany.id,
+        wallet: [cashWallet, defaultWallets],
+      });
+    }, [currentCompany]),
+  );
   useFocusEffect(
     useCallback(() => {
       invoiceActions.getInflow({
@@ -53,42 +54,44 @@ const CashRegister = ({navigation}) => {
     }, []),
   );
 
-  useEffect(() => {
-    const processData = () => {
-      if (!payments || !payments[0] || !payments[0].payments) return;
-      const data = payments[0].payments;
+  useFocusEffect(
+    useCallback(() => {
+      const processData = () => {
+        if (!payments || !payments[0] || !payments[0].payments) return;
+        const data = payments[0].payments;
 
-      const formatData = data => {
-        return Object.keys(data.wallet || {}).map(walletId => {
-          const wallet = data.wallet[walletId] || {};
-          const paymentsList = Object.keys(wallet.payment || {}).map(
-            paymentId => ({
-              id: paymentId,
-              payment: wallet.payment[paymentId]?.payment,
-              inflow: wallet.payment[paymentId]?.inflow || 0,
-              withdrawal: wallet.payment[paymentId]?.withdrawal || 0,
-            }),
-          );
-          return {
-            walletName: wallet.wallet,
-            'withdrawal-wallet': wallet['withdrawal-wallet'],
-            payments: paymentsList,
-            total: wallet.total,
-          };
+        const formatData = data => {
+          return Object.keys(data.wallet || {}).map(walletId => {
+            const wallet = data.wallet[walletId] || {};
+            const paymentsList = Object.keys(wallet.payment || {}).map(
+              paymentId => ({
+                id: paymentId,
+                payment: wallet.payment[paymentId]?.payment,
+                inflow: wallet.payment[paymentId]?.inflow || 0,
+                withdrawal: wallet.payment[paymentId]?.withdrawal || 0,
+              }),
+            );
+            return {
+              walletName: wallet.wallet,
+              'withdrawal-wallet': wallet['withdrawal-wallet'],
+              payments: paymentsList,
+              total: wallet.total,
+            };
+          });
+        };
+
+        const walletGroups = formatData(data);
+        const total = data.total || 0;
+
+        setProcessedData({
+          walletGroups,
+          total,
         });
       };
 
-      const walletGroups = formatData(data);
-      const total = data.total || 0;
-
-      setProcessedData({
-        walletGroups,
-        total,
-      });
-    };
-
-    processData();
-  }, [payments]);
+      processData();
+    }, [payments]),
+  );
 
   const renderGroup = groups => (
     <View style={[styles.CashRegister.groupContainer]}>

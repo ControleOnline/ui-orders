@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useCallback} from 'react';
 import {
   Text,
   View,
@@ -10,22 +10,25 @@ import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const CategoriesPage = ({navigation}) => {
-  const {getters, actions:categoryActions} = getStore('categories');
+  const {getters, actions: categoryActions} = getStore('categories');
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
   const {styles, globalStyles} = css();
 
-  useEffect(() => {
-    if (!items || items.length == 0)
-      categoryActions.getItems({
-        context: 'products',
-        'order.name': 'ASC',
-        company: currentCompany.id,
-      });
-  }, [currentCompany]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!items || items.length == 0)
+        categoryActions.getItems({
+          context: 'products',
+          'order.name': 'ASC',
+          company: currentCompany.id,
+        });
+    }, [currentCompany]),
+  );
 
   const changeCategory = category => {
     navigation.navigate('ProductsPage', {category: category});

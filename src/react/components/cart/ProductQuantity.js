@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useCallback, useState, useRef} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
@@ -168,15 +168,17 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
     }
   };
 
-  useEffect(() => {
-    syncQuantityWithOrder();
-  }, [order]);
+  useFocusEffect(
+    useCallback(() => {
+      syncQuantityWithOrder();
+    }, [order]),
+  );
 
-  useEffect(() => {
-    return () => {
+  useFocusEffect(
+    useCallback(() => {
       saveRef.current.cancel();
-    };
-  }, []);
+    }, []),
+  );
 
   const getDecreaseIcon = () => {
     if (localProduct.quantity === 1) return 'delete';

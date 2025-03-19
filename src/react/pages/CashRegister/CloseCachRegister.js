@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback} from 'react';
 import {
   Text,
   View,
@@ -10,6 +10,7 @@ import {
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -22,12 +23,15 @@ const Orders = ({navigation}) => {
   const status = currentCompany?.configs
     ? currentCompany.configs['pdv-default-status']
     : null;
-  useEffect(() => {
-    ordersActions.getItems({
-      provider: '/people/' + currentCompany.id,
-      status: status,
-    });
-  }, [currentCompany]);
+
+  useFocusEffect(
+    useCallback(() => {
+      ordersActions.getItems({
+        provider: '/people/' + currentCompany.id,
+        status: status,
+      });
+    }, [currentCompany]),
+  );
 
   const handleEdit = order => {
     navigation.navigate('OrderDetails', {order: order});

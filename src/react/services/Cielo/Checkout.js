@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   ScrollView,
@@ -15,7 +15,7 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 export default Checkout = ({route}) => {
   const navigation = useNavigation();
@@ -39,16 +39,18 @@ export default Checkout = ({route}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  useEffect(() => {
-    if (payments.length == 0)
-      paymentTypeActions.getItems({
-        people: currentCompany.id,
-        wallet: [
-          currentCompany.configs['pdv-cielo-wallet'],
-          currentCompany.configs['pdv-cash-wallet'],
-        ],
-      });
-  }, [order, currentCompany]);
+  useFocusEffect(
+    useCallback(() => {
+      if (payments.length == 0)
+        paymentTypeActions.getItems({
+          people: currentCompany.id,
+          wallet: [
+            currentCompany.configs['pdv-cielo-wallet'],
+            currentCompany.configs['pdv-cash-wallet'],
+          ],
+        });
+    }, [order, currentCompany]),
+  );
 
   const selectPayment = payment => {
     setSelectedPayment(payment);

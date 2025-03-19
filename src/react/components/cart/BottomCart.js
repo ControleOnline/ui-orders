@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useCallback} from 'react';
 import {Text, View, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
@@ -9,7 +9,7 @@ import PayableToolbar from '@controleonline/ui-orders/src/react/components/Payab
 
 const ButtonCart = ({navigation}) => {
   const {getters, actions: cartActions} = getStore('cart');
-  const {getters: ordersGetters,actions: ordersActions} = getStore('orders');
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
   const {item: order, isLoading: ordersIsloading} = ordersGetters;
@@ -25,9 +25,11 @@ const ButtonCart = ({navigation}) => {
     }, [reload]),
   );
 
-  useEffect(() => {
-    cartActions.setItem(order);
-  }, [order]);
+  useFocusEffect(
+    useCallback(() => {
+      cartActions.setItem(order);
+    }, [order]),
+  );
 
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});

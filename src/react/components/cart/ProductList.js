@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useCallback} from 'react';
 import {TouchableOpacity, Text, View} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-products/src/react/css/products';
@@ -11,6 +11,9 @@ export default function ProductsList() {
   const navigation = useNavigation();
   const {getters: ordersGetters} = getStore('orders');
   const {getters, actions: orderProductsActions} = getStore('order_products');
+  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {item: config} = configsGetters;
+
   const {item: order} = ordersGetters;
   const {items, isLoading, error, reload} = getters;
   const {getters: peopleGetters} = getStore('people');
@@ -27,6 +30,18 @@ export default function ProductsList() {
         });
       }
     }, [order, currentCompany, reload]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (config && config['pdv-type'] == 'simple')
+        if (items && items.length == 0) {
+          navigation.reset({
+            index: 0,
+            routes: [{name: 'AddProductScreen'}],
+          });
+        }
+    }, [items, config]),
   );
 
   useFocusEffect(

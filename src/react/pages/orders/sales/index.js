@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useState, useCallback} from 'react';
 import {
   Text,
   View,
@@ -12,22 +12,53 @@ import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
   const {getters, actions: ordersActions} = getStore('orders');
+  const {getters: configsGetters, actions: configActions} = getStore('configs');
+
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
+  const device = JSON.parse(localStorage.getItem('device') || '{}');
+  const [pdvType, setPdvType] = useState(null);
+  const {item: config} = configsGetters;
   const {currentCompany} = peopleGetters;
   const status = currentCompany?.configs
     ? currentCompany.configs['pdv-default-status']
     : null;
-  useEffect(() => {
-    ordersActions.getItems({
-      provider: '/people/' + currentCompany.id,
-      status: status,
-    });
-  }, [currentCompany]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (currentCompany)
+        ordersActions
+          .getItems({
+            provider: '/people/' + currentCompany.id,
+            status: status,
+            device: device,
+          })
+          .then(data => {
+            if (!data || data.length == 0) handleAddOrder();
+          });
+    }, [currentCompany]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (config) setPdvType(config['pdv-type'] || 'full');
+    }, [config]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (config && config['pdv-type'] == 'simple' && items && items.length > 0)
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'OrderDetails', params: {order: items[0]}}],
+        });
+    }, [items, config]),
+  );
 
   const handleEdit = order => {
     navigation.navigate('OrderDetails', {order: order});
@@ -52,6 +83,7 @@ const Orders = ({navigation}) => {
         app: 'PDV',
         provider: '/people/' + currentCompany.id,
         status: '/statuses/' + status,
+        device: device,
       })
       .then(order => {
         items.push(order);

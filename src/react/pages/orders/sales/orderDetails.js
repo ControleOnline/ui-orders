@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useCallback} from 'react';
 import {
   Text,
   View,
@@ -23,10 +23,12 @@ const OrderDetails = ({route, navigation}) => {
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
-  useEffect(() => {
-    if (!item || item['@id'] != order['@id']) actions.get(order['@id']);
-  }, [order]);
-  
+  useFocusEffect(
+    useCallback(() => {
+      if (!item || item['@id'] != order['@id']) actions.get(order['@id']);
+    }, [order]),
+  );
+
   const handleAddProduct = () => {
     navigation.navigate('AddProductScreen');
   };

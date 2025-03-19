@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 export default function BleedScreen() {
   const navigation = useNavigation();
@@ -32,19 +32,20 @@ export default function BleedScreen() {
   );
   const [cashWallet] = useState(currentCompany.configs['pdv-cash-wallet']);
 
-  useEffect(() => {
-    if (cashWallet) {
-      paymentTypeActions.getItems({
-        wallet: cashWallet,
-      });
-    }
-  }, [cashWallet]);
+  useFocusEffect(
+    useCallback(() => {
+      if (cashWallet)
+        paymentTypeActions.getItems({
+          wallet: cashWallet,
+        });
+    }, [cashWallet]),
+  );
 
-  useEffect(() => {
-    if (paymentTypes.length > 0) {
-      setSelectedPaymentType(paymentTypes[0]);
-    }
-  }, [paymentTypes]);
+  useFocusEffect(
+    useCallback(() => {
+      if (paymentTypes.length > 0) setSelectedPaymentType(paymentTypes[0]);
+    }, [paymentTypes]),
+  );
 
   const handleValueChange = text => {
     const numericValue = text.replace(/\D/g, '');
