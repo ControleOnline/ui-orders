@@ -101,7 +101,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
             orderProductActions.setReload(true);
           orderProductActions.setItems(orderProducts);
         });
-    }, 500),
+    }, 1000),
   );
   const getIndex = updatedProduct => {
     return orderProducts.findIndex(
