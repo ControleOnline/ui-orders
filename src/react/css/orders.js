@@ -13,7 +13,7 @@ const css = () => {
       backgroundColor: '#fff',
     },
     scrollContent: {
-      paddingBottom: 50,
+      paddingBottom: 100,
     },
     primary: {
       color: colors['primary'],

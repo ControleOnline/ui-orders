@@ -38,15 +38,11 @@ const ButtonCart = ({navigation}) => {
   return (
     <>
       <PayableToolbar />
-      {payable != undefined &&
-      payable == 0 &&
-      !invoiceIsLoading &&
-      !isLoading &&
-      !ordersIsloading ? (
+      {payable != undefined && payable == 0 ? (
         <BottomToolbar navigation={navigation} />
       ) : (
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
-          {isLoading ? (
+          {isLoading || invoiceIsLoading || isLoading || ordersIsloading ? (
             <ActivityIndicator
               size="small"
               color={styles.primary?.color || '#000'}

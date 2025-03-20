@@ -57,50 +57,59 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
     quantity: getInitialQuantity(),
   });
 
+  const removeProduct = (orderProduct, updatedProduct) => {
+    let op = [...orderProducts];
+
+    orderProductActions
+      .remove(orderProduct['@id'])
+      .then(() => {
+        const index = getIndex(updatedProduct);
+        if (index) op.splice(index, 1);
+        else op = [];
+      })
+      .finally(() => {
+        cartActions.setReload(true);
+        if (currentPageName == 'ProductsPage')
+          orderProductActions.setReload(true);
+        orderProductActions.setItems(op);
+      });
+  };
+
+  const changeProduct = (orderProduct, updatedProduct) => {
+    const quantity = updatedProduct.quantity || 0;
+    let op = [...orderProducts];
+
+    const order_product = {
+      id: orderProduct?.['@id'] || null,
+      parentProduct: null,
+      product: updatedProduct['@id'],
+      product_group_id: null,
+      quantity: quantity,
+      order: order['@id'],
+    };
+
+    orderProductActions
+      .save(order_product)
+      .then(result => {
+        const index = getIndex(updatedProduct);
+        if (index >= 0) op[index] = result;
+        else op.push(result);
+      })
+      .finally(() => {
+        cartActions.setReload(true);
+        if (currentPageName == 'ProductsPage')
+          orderProductActions.setReload(true);
+        orderProductActions.setItems(op);
+      });
+  };
+
   const saveRef = useRef(
     debounce(updatedProduct => {
       const quantity = updatedProduct.quantity || 0;
       const orderProduct = getorderProduct(updatedProduct);
-
-      if (quantity === 0 && orderProduct) {
-        orderProductActions
-          .remove(orderProduct['@id'])
-          .then(() => {
-            const index = getIndex(updatedProduct);
-            if (index) orderProducts.splice(index, 1);
-            else orderProducts = [];
-          })
-          .finally(() => {
-            cartActions.setReload(true);
-            if (currentPageName == 'ProductsPage')
-              orderProductActions.setReload(true);
-            orderProductActions.setItems(orderProducts);
-          });
-        return;
-      }
-
-      const order_product = {
-        id: orderProduct?.['@id'] || null,
-        parentProduct: null,
-        product: updatedProduct['@id'],
-        product_group_id: null,
-        quantity: quantity,
-        order: order['@id'],
-      };
-
-      orderProductActions
-        .save(order_product)
-        .then(result => {
-          const index = getIndex(updatedProduct);
-          if (index >= 0) orderProducts[index] = result;
-          else orderProducts.push(result);
-        })
-        .finally(() => {
-          cartActions.setReload(true);
-          if (currentPageName == 'ProductsPage')
-            orderProductActions.setReload(true);
-          orderProductActions.setItems(orderProducts);
-        });
+      if (quantity === 0 && orderProduct)
+        removeProduct(orderProduct, updatedProduct);
+      else changeProduct(orderProduct, updatedProduct);
     }, 1000),
   );
   const getIndex = updatedProduct => {

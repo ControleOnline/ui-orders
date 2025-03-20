@@ -28,7 +28,7 @@ const OrderDetails = ({route}) => {
                   <Text
                     style={[
                       componentStyles.cardText,
-                      {color: invoice.status.color},
+                      {color: invoice.status?.color},
                     ]}>
                     {invoice.status.status}
                   </Text>
