@@ -148,6 +148,7 @@ export default function BleedScreen() {
               borderColor: '#ccc',
               padding: 10,
               fontSize: 16,
+              color: '#666',
             }}
             keyboardType="numeric"
             value={bleedValue}

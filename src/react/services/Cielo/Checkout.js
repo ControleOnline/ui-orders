@@ -257,6 +257,7 @@ export default Checkout = ({route}) => {
                 borderColor: '#ccc',
                 padding: 8,
                 marginBottom: 10,
+                color: '#666',
               }}
               keyboardType="numeric"
               value={inputValue}
