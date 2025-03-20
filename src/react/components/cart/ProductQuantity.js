@@ -203,7 +203,9 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
         ) : null}
       </TouchableOpacity>
 
-      <Text style={styles.quantityText}>{localProduct.quantity || 0}</Text>
+      <Text style={[styles.quantityText, {color: '#666'}]}>
+        {localProduct.quantity || '0'}
+      </Text>
 
       <TouchableOpacity
         style={[
