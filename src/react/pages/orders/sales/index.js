@@ -1,4 +1,4 @@
-import React, { useState, useCallback} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   Text,
   View,
@@ -31,7 +31,7 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (currentCompany)
+      if (currentCompany && Object.entries(currentCompany).length > 0)
         ordersActions
           .getItems({
             provider: '/people/' + currentCompany.id,

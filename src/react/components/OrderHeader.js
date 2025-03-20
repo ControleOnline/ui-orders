@@ -47,7 +47,7 @@ const OrderHeader = ({order, showId = false}) => {
             ]}>
             Mesa:
           </Text>
-          <TextInput
+          <TextInput placeholderTextColor="#666"
             style={[
               oh.boxTextColor,
               oh.tableNumber,

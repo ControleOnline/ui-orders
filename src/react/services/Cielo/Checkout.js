@@ -199,7 +199,9 @@ export default Checkout = ({route}) => {
                           )}
                         </View>
                         <View>
-                          <Text>{payment.paymentType.paymentType}</Text>
+                          <Text style={{color: '#666'}}>
+                            {payment.paymentType.paymentType}
+                          </Text>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -249,6 +251,7 @@ export default Checkout = ({route}) => {
             }}>
             <Text style={{marginBottom: 10}}>Valor à pagar:</Text>
             <TextInput
+              placeholderTextColor="#666"
               style={{
                 borderWidth: 1,
                 borderColor: '#ccc',

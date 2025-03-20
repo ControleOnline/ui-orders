@@ -96,7 +96,7 @@ export default function BleedScreen() {
               {flexDirection: 'row', alignItems: 'center', padding: 10},
             ]}
             onPress={() => setDropdownVisible(!dropdownVisible)}>
-            <Text>
+            <Text style={{color: '#666'}}>
               {selectedPaymentType
                 ? selectedPaymentType.paymentType.paymentType
                 : 'Selecione um tipo de pagamento'}
@@ -129,7 +129,9 @@ export default function BleedScreen() {
                     setSelectedPaymentType(paymentType);
                     setDropdownVisible(false);
                   }}>
-                  <Text>{paymentType.paymentType.paymentType}</Text>
+                  <Text style={{color: '#666'}}>
+                    {paymentType.paymentType.paymentType}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -140,6 +142,7 @@ export default function BleedScreen() {
         <View style={{marginBottom: 20}}>
           <Text style={{marginBottom: 5}}>Valor da sangria:</Text>
           <TextInput
+            placeholderTextColor="#666"
             style={{
               borderWidth: 1,
               borderColor: '#ccc',
