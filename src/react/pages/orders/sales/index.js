@@ -17,16 +17,16 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 const Orders = ({navigation}) => {
   const {getters, actions: ordersActions} = getStore('orders');
   const {getters: configsGetters, actions: configActions} = getStore('configs');
-
+  const {actions: authActions} = getStore('auth');
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const device = JSON.parse(localStorage.getItem('device') || '{}');
   const [pdvType, setPdvType] = useState(null);
-  const {item: config} = configsGetters;
+  const {item: config, items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const status = currentCompany?.configs
-    ? currentCompany.configs['pdv-default-status']
+    ? companyConfigs['pdv-default-status']
     : null;
 
   useFocusEffect(
@@ -46,7 +46,17 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (config) setPdvType(config['pdv-type'] || 'full');
+      if (config && Object.entries(config).length > 0)
+        setPdvType(config['pdv-type'] || 'full');
+      else if (
+        config != undefined &&
+        config !== false &&
+        authActions.isLogged()
+      )
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'SettingsPage'}],
+        });
     }, [config]),
   );
 
@@ -78,18 +88,19 @@ const Orders = ({navigation}) => {
   };
 
   const handleAddOrder = () => {
-    ordersActions
-      .save({
-        app: 'PDV',
-        provider: '/people/' + currentCompany.id,
-        status: '/statuses/' + status,
-        device: device,
-      })
-      .then(order => {
-        items.push(order);
-        ordersActions.setItems(items);
-        handleEdit(order);
-      });
+    if (status && currentCompany)
+      ordersActions
+        .save({
+          app: 'PDV',
+          provider: '/people/' + currentCompany.id,
+          status: '/statuses/' + status,
+          device: device,
+        })
+        .then(order => {
+          items.push(order);
+          ordersActions.setItems(items);
+          handleEdit(order);
+        });
   };
   return (
     <SafeAreaView style={styles.container}>

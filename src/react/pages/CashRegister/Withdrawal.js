@@ -26,11 +26,16 @@ export default function BleedScreen() {
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
   const [bleedValue, setBleedValue] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {item: config, items: companyConfigs} = configsGetters;
 
-  const [withdrawlWallet] = useState(
-    currentCompany.configs['pdv-withdrawl-wallet'],
+  const [cashWallet, setCashWallet] = useState(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (companyConfigs && companyConfigs['pdv-cash-wallet'])
+        setCashWallet(companyConfigs['pdv-cash-wallet']);
+    }, [companyConfigs]),
   );
-  const [cashWallet] = useState(currentCompany.configs['pdv-cash-wallet']);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,7 +74,7 @@ export default function BleedScreen() {
 
     const payload = {
       dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + currentCompany.configs['pdv-paid-status'],
+      status: '/statuses/' + companyConfigs['pdv-paid-status'],
       destinationWallet: '/wallets/' + withdrawlWallet,
       sourceWallet: '/wallets/' + cashWallet,
       price: numericValue,

@@ -31,7 +31,8 @@ export default Checkout = ({route}) => {
     error: invoiceError,
     items: invoices,
   } = invoiceGetters;
-
+  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {item: config, items: companyConfigs} = configsGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {currentCompany} = peopleGetters;
   const {item: order, payable} = getters;
@@ -41,15 +42,15 @@ export default Checkout = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (payments.length == 0)
+      if (payments.length == 0 && companyConfigs)
         paymentTypeActions.getItems({
           people: currentCompany.id,
           wallet: [
-            currentCompany.configs['pdv-cielo-wallet'],
-            currentCompany.configs['pdv-cash-wallet'],
+            companyConfigs['pdv-cielo-wallet'],
+            companyConfigs['pdv-cash-wallet'],
           ],
         });
-    }, [order, currentCompany]),
+    }, [order, currentCompany, companyConfigs]),
   );
 
   const selectPayment = payment => {
@@ -110,7 +111,7 @@ export default Checkout = ({route}) => {
   const createInvoice = total => {
     const payload = {
       dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + currentCompany.configs['pdv-paid-status'],
+      status: '/statuses/' + companyConfigs['pdv-paid-status'],
       destinationWallet: selectedPayment.wallet['@id'],
       paymentType: selectedPayment.paymentType['@id'],
       price: total,

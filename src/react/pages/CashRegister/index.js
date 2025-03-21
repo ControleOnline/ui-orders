@@ -14,7 +14,8 @@ const CashRegister = ({navigation}) => {
     getStore('invoice');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
-
+  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {item: config, items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;
 
@@ -24,9 +25,18 @@ const CashRegister = ({navigation}) => {
     total: 0,
   });
 
-  const [cashWallet] = useState(currentCompany.configs['pdv-cash-wallet']);
-  const [defaultWallets] = useState(
-    JSON.parse(currentCompany.configs['pdv-default-wallets'] || []),
+  const [cashWallet, setCashWallet] = useState(null);
+  const [defaultWallets, setDefaultWallets] = useState(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (companyConfigs && companyConfigs['pdv-cash-wallet'])
+        setCashWallet(companyConfigs['pdv-cash-wallet']);
+
+      if (companyConfigs && companyConfigs['pdv-default-wallet'])
+        setDefaultWallets(
+          JSON.parse(companyConfigs['pdv-default-wallets'] || []),
+        );
+    }, [companyConfigs]),
   );
 
   const handleWithdrawal = () => {
@@ -39,11 +49,12 @@ const CashRegister = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      paymentTypeActions.getItems({
-        people: currentCompany.id,
-        wallet: [cashWallet, defaultWallets],
-      });
-    }, [currentCompany]),
+      if (cashWallet && defaultWallets)
+        paymentTypeActions.getItems({
+          people: currentCompany.id,
+          wallet: [cashWallet, defaultWallets],
+        });
+    }, [currentCompany, cashWallet, defaultWallets]),
   );
   useFocusEffect(
     useCallback(() => {
@@ -182,7 +193,7 @@ const CashRegister = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StateStore store="orders" />
+      <StateStore store="invoice" />
       {!isLoading && payments.length > 0 && !error && (
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
