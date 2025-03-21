@@ -34,7 +34,7 @@ export default Checkout = ({route}) => {
   const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {item: config, items: companyConfigs} = configsGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
-  const {currentCompany} = peopleGetters;
+  const {currentCompany, defaultCompany} = peopleGetters;
   const {item: order, payable} = getters;
   const [selectedPayment, setSelectedPayment] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
@@ -111,7 +111,7 @@ export default Checkout = ({route}) => {
   const createInvoice = total => {
     const payload = {
       dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + companyConfigs['pdv-paid-status'],
+      status: '/statuses/' + defaultCompany?.configs['pdv-paid-status'],
       destinationWallet: selectedPayment.wallet['@id'],
       paymentType: selectedPayment.paymentType['@id'],
       price: total,

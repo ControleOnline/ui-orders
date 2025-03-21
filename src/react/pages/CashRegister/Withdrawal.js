@@ -21,7 +21,7 @@ export default function BleedScreen() {
     getStore('walletPaymentType');
   const {getters: peopleGetters} = getStore('people');
   const {items: paymentTypes} = paymentTypeGetters;
-  const {currentCompany} = peopleGetters;
+  const {currentCompany,defaultCompany} = peopleGetters;
   const {actions: invoiceActions} = getStore('invoice');
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
   const [bleedValue, setBleedValue] = useState('');
@@ -74,7 +74,7 @@ export default function BleedScreen() {
 
     const payload = {
       dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + companyConfigs['pdv-paid-status'],
+      status: '/statuses/' + defaultCompany?.configs['pdv-paid-status'],
       destinationWallet: '/wallets/' + withdrawlWallet,
       sourceWallet: '/wallets/' + cashWallet,
       price: numericValue,

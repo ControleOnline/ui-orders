@@ -60,7 +60,7 @@ const CashRegister = ({navigation}) => {
     useCallback(() => {
       invoiceActions.getInflow({
         receiver: currentCompany.id,
-        device: device,
+        device: device?.id,
       });
     }, []),
   );

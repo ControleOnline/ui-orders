@@ -19,10 +19,10 @@ const Orders = ({navigation}) => {
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
-  const {currentCompany} = peopleGetters;
+  const {currentCompany, defaultCompany} = peopleGetters;
   const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {item: config, items: companyConfigs} = configsGetters;
-  const status = companyConfigs['pdv-default-status'];
+  const status = defaultCompany?.configs['pdv-default-status'];
   useFocusEffect(
     useCallback(() => {
       ordersActions.getItems({

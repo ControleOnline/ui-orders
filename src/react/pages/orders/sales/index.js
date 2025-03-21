@@ -24,10 +24,8 @@ const Orders = ({navigation}) => {
   const device = JSON.parse(localStorage.getItem('device') || '{}');
   const [pdvType, setPdvType] = useState(null);
   const {item: config, items: companyConfigs} = configsGetters;
-  const {currentCompany} = peopleGetters;
-  const status = currentCompany?.configs
-    ? companyConfigs['pdv-default-status']
-    : null;
+  const {currentCompany, defaultCompany} = peopleGetters;
+  const status = defaultCompany?.configs['pdv-default-status'];
 
   useFocusEffect(
     useCallback(() => {
@@ -36,7 +34,7 @@ const Orders = ({navigation}) => {
           .getItems({
             provider: '/people/' + currentCompany.id,
             status: status,
-            device: device,
+            device: device?.id,
           })
           .then(data => {
             if (!data || data.length == 0) handleAddOrder();
@@ -46,7 +44,12 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (config && Object.entries(config).length > 0)
+      if (
+        config &&
+        Object.entries(config).length > 0 &&
+        device &&
+        config['config-version' == device.buildNumber]
+      )
         setPdvType(config['pdv-type'] || 'full');
       else if (
         config != undefined &&
@@ -57,7 +60,7 @@ const Orders = ({navigation}) => {
           index: 0,
           routes: [{name: 'SettingsPage'}],
         });
-    }, [config]),
+    }, [config, device]),
   );
 
   useFocusEffect(
@@ -94,7 +97,7 @@ const Orders = ({navigation}) => {
           app: 'PDV',
           provider: '/people/' + currentCompany.id,
           status: '/statuses/' + status,
-          device: device,
+          device: device?.id,
         })
         .then(order => {
           items.push(order);
