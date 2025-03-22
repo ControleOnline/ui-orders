@@ -39,7 +39,11 @@ export default PayableToolbar = ({route}) => {
   );
 
   return (
-    <View style={[styles.payable.toolbar]}>
+    <View
+      style={[
+        styles.payable.toolbar,
+        payable != undefined && payable == 0 ? {bottom: 0} : null,
+      ]}>
       {isLoading ? (
         <ActivityIndicator
           size="small"

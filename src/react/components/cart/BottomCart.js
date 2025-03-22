@@ -4,7 +4,6 @@ import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
-import BottomToolbar from '@controleonline/ui-layout/src/react/components/BottomToolbar';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 
 const ButtonCart = ({navigation}) => {
@@ -38,9 +37,7 @@ const ButtonCart = ({navigation}) => {
   return (
     <>
       <PayableToolbar />
-      {payable != undefined && payable == 0 ? (
-        <BottomToolbar navigation={navigation} />
-      ) : (
+      {payable != undefined && payable != 0 && (
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
           {isLoading || invoiceIsLoading || isLoading || ordersIsloading ? (
             <ActivityIndicator
@@ -61,7 +58,7 @@ const ButtonCart = ({navigation}) => {
               styles.btnPay,
               {flex: 1, justifyContent: 'center', alignItems: 'center'},
             ]}>
-            <Text style={styles.textWhite}>FINALIZAR</Text>
+            <Text style={styles.textWhite}>PAGAR</Text>
           </TouchableOpacity>
         </View>
       )}

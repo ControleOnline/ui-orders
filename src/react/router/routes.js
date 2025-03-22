@@ -35,15 +35,19 @@ const WrappedCashRegister = ({navigation, route}) => (
 );
 
 const WrappedProductsPage = ({navigation, route}) => (
-  <CartLayout navigation={navigation} route={route}>
-    <Products navigation={navigation} route={route} />
-  </CartLayout>
+  <ShopLayout navigation={navigation} route={route}>
+    <CartLayout navigation={navigation} route={route}>
+      <Products navigation={navigation} route={route} />
+    </CartLayout>
+  </ShopLayout>
 );
 
 const WrappedCategoryPage = ({navigation, route}) => (
-  <CartLayout navigation={navigation} route={route}>
-    <Categories navigation={navigation} route={route} />
-  </CartLayout>
+  <ShopLayout navigation={navigation} route={route}>
+    <CartLayout navigation={navigation} route={route}>
+      <Categories navigation={navigation} route={route} />
+    </CartLayout>
+  </ShopLayout>
 );
 
 const WrappedOrderTools = ({navigation, route}) => {
@@ -56,9 +60,11 @@ const WrappedOrderTools = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <CartLayout navigation={navigation} route={route}>
-      <OrderTools navigation={navigation} route={route} />
-    </CartLayout>
+    <ShopLayout navigation={navigation} route={route}>
+      <CartLayout navigation={navigation} route={route}>
+        <OrderTools navigation={navigation} route={route} />
+      </CartLayout>
+    </ShopLayout>
   );
 };
 
@@ -72,9 +78,11 @@ const WrappedOrderDetails = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <CartLayout navigation={navigation} route={route}>
-      <OrderDetails navigation={navigation} route={route} />
-    </CartLayout>
+    <ShopLayout navigation={navigation} route={route}>
+      <CartLayout navigation={navigation} route={route}>
+        <OrderDetails navigation={navigation} route={route} />
+      </CartLayout>
+    </ShopLayout>
   );
 };
 
