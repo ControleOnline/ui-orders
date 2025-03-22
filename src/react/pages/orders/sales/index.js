@@ -44,12 +44,7 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (
-        config &&
-        Object.entries(config).length > 0 &&
-        device &&
-        config['config-version'] == device.buildNumber
-      )
+      if (config && Object.entries(config).length > 0)
         setPdvType(config['pdv-type'] || 'full');
       else if (
         config != undefined &&
@@ -60,7 +55,7 @@ const Orders = ({navigation}) => {
           index: 0,
           routes: [{name: 'SettingsPage'}],
         });
-    }, [config, device]),
+    }, [config]),
   );
 
   useFocusEffect(

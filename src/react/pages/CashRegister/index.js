@@ -58,7 +58,7 @@ const CashRegister = ({navigation}) => {
   );
   useFocusEffect(
     useCallback(() => {
-      if (config && config['config-version'] == device.buildNumber)
+      if (config && device && config['config-version'] == device.buildNumber)
         invoiceActions.getInflow({
           receiver: currentCompany.id,
           device: device?.id,
