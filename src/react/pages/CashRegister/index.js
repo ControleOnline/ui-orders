@@ -25,18 +25,21 @@ const CashRegister = ({navigation}) => {
     total: 0,
   });
 
-  const [cashWallet, setCashWallet] = useState(null);
   const [defaultWallets, setDefaultWallets] = useState(null);
   useFocusEffect(
     useCallback(() => {
-      if (companyConfigs && companyConfigs['pdv-cash-wallet'])
-        setCashWallet(companyConfigs['pdv-cash-wallet']);
+      if (companyConfigs && config) {
+        let w = [];
 
-      if (companyConfigs && companyConfigs['pdv-default-wallet'])
-        setDefaultWallets(
-          JSON.parse(companyConfigs['pdv-default-wallets'] || []),
-        );
-    }, [companyConfigs]),
+        if (config['pdv-gateway'] == 'cielo')
+          w.push(companyConfigs['pdv-cielo-wallet']);
+        if (config['pdv-gateway'] == 'google')
+          w.push(companyConfigs['pdv-google-wallet']);
+
+        w.push(companyConfigs['pdv-cash-wallet']);
+        setDefaultWallets(w);
+      }
+    }, [companyConfigs, config]),
   );
 
   const handleWithdrawal = () => {
@@ -49,12 +52,12 @@ const CashRegister = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (cashWallet && defaultWallets)
+      if (defaultWallets)
         paymentTypeActions.getItems({
           people: '/people/' + currentCompany.id,
-          wallet: [cashWallet, defaultWallets],
+          wallet: defaultWallets,
         });
-    }, [currentCompany, cashWallet, defaultWallets]),
+    }, [currentCompany, defaultWallets]),
   );
   useFocusEffect(
     useCallback(() => {
