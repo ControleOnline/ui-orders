@@ -28,14 +28,14 @@ const CashRegister = ({navigation}) => {
   const [defaultWallets, setDefaultWallets] = useState(null);
   useFocusEffect(
     useCallback(() => {
-      if (companyConfigs && config) {
+      if (
+        companyConfigs &&
+        config &&
+        config['pdv-gateway'] &&
+        companyConfigs['pdv-cash-wallet']
+      ) {
         let w = [];
-
-        if (config['pdv-gateway'] == 'cielo')
-          w.push(companyConfigs['pdv-cielo-wallet']);
-        if (config['pdv-gateway'] == 'google')
-          w.push(companyConfigs['pdv-google-wallet']);
-
+        w.push(companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet']);
         w.push(companyConfigs['pdv-cash-wallet']);
         setDefaultWallets(w);
       }
