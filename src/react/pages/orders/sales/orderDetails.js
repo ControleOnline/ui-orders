@@ -19,7 +19,9 @@ const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
   const {actions: orderProductsActions} = getStore('order_products');
+  const {getters: peopleGetters} = getStore('people');
   const {actions: invoiceActions} = getStore('invoice');
+  const {currentCompany} = peopleGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
@@ -38,8 +40,15 @@ const OrderDetails = ({route, navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (order && order['@id'])
-        invoiceActions.getItems({'order.order': order['@id']});
+      console.log(order['@id'], item['@id']);
+      if (order && (!item || item['@id'] != order['@id'])) {
+        orderProductsActions.getItems({
+          company: '/people/' + currentCompany.id,
+          order: order['@id'],
+          'exists[parentProduct]': 'false',
+          'order.product.product': 'ASC',
+        });
+      }
     }, [order]),
   );
 
@@ -73,7 +82,7 @@ const OrderDetails = ({route, navigation}) => {
           </View>
           <ScrollView contentContainerStyle={{paddingBottom: 0}}>
             <View style={styles.itemsSection}>
-              <ProductsList />
+              <ProductsList order={order} />
             </View>
           </ScrollView>
         </>

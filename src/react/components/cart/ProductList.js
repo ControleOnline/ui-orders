@@ -6,31 +6,15 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import ProductItem from '@controleonline/ui-orders/src/react/components/cart/ProductItem';
 
-export default function ProductsList() {
+export default function ProductsList({route}) {
   const {styles, globalStyles} = css();
   const navigation = useNavigation();
   const {getters: ordersGetters} = getStore('orders');
   const {getters, actions: orderProductsActions} = getStore('order_products');
   const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {item: config} = configsGetters;
-
-  const {item: order} = ordersGetters;
-  const {items, isLoading, error, reload} = getters;
-  const {getters: peopleGetters} = getStore('people');
-  const {currentCompany} = peopleGetters;
-
-  useFocusEffect(
-    useCallback(() => {
-      if (order && order['@id']) {
-        orderProductsActions.getItems({
-          company: '/people/' + currentCompany.id,
-          order: order['@id'],
-          'order.product.product': 'ASC',
-          'exists[parentProduct]': 'false',
-        });
-      }
-    }, [order, currentCompany, reload]),
-  );
+  const {item} = ordersGetters;
+  const {items, isLoading, isSaving, error, reload} = getters;
 
   useFocusEffect(
     useCallback(() => {
@@ -44,27 +28,12 @@ export default function ProductsList() {
     }, [items, config]),
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (reload && order && order['@id']) {
-        orderProductsActions
-          .getItems({
-            company: '/people/' + currentCompany.id,
-            order: order['@id'],
-            'exists[parentProduct]': 'false',
-          })
-          .finally(() => {
-            orderProductsActions.setReload(false);
-          });
-      }
-    }, [navigation, order, reload]),
-  );
-
   return (
     <View>
-      <StateStore store="order_products" />
-
-      {!isLoading && items.length > 0 && !error && (
+      {(isLoading || isSaving || !error) && items.length == 0 && (
+        <StateStore store="order_products" />
+      )}
+      {items.length > 0 && !error && (
         <>
           {items.map(product => (
             <ProductItem key={product.id} product={product.product} />

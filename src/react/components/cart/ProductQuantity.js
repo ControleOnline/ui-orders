@@ -37,7 +37,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
   const currentPageName =
     navigation.getState().routes[navigation.getState().index].name;
   const {getters: orderGetters} = getStore('orders');
-  const {getters: cartGetters, actions: cartActions} = getStore('cart');
+  const {getters: cartGetters} = getStore('cart');
   const {getters: orderProductGetters, actions: orderProductActions} =
     getStore('order_products');
   const {item: order, isLoading} = orderGetters;
@@ -64,13 +64,13 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
       .remove(orderProduct['@id'])
       .then(() => {
         const index = getIndex(updatedProduct);
-        if (index) op.splice(index, 1);
+        console.log(index);
+        if (index >= 0) op.splice(index, 1);
         else op = [];
       })
       .finally(() => {
-        cartActions.setReload(true);
-        if (currentPageName == 'ProductsPage')
-          orderProductActions.setReload(true);
+        console.log(op);
+
         orderProductActions.setItems(op);
       });
   };
@@ -96,9 +96,6 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
         else op.push(result);
       })
       .finally(() => {
-        cartActions.setReload(true);
-        if (currentPageName == 'ProductsPage')
-          orderProductActions.setReload(true);
         orderProductActions.setItems(op);
       });
   };
@@ -203,9 +200,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
           (!localProduct.quantity || isSaving || isLoading || cartIsLoading) &&
             styles.disabledButton,
         ]}
-        disabled={
-          !localProduct.quantity || isSaving || isLoading || cartIsLoading
-        }
+        //disabled={!localProduct.quantity || isSaving || isLoading || cartIsLoading}
         onPress={decreaseQuantity}>
         {getDecreaseIcon() ? (
           <Icon name={getDecreaseIcon()} size={24} color="red" />
@@ -221,7 +216,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
           styles.button,
           (isSaving || isLoading || cartIsLoading) && styles.disabledButton,
         ]}
-        disabled={isSaving || isLoading || cartIsLoading}
+        //disabled={isSaving || isLoading || cartIsLoading}
         onPress={increaseQuantity}>
         <Icon name="add" size={24} color="red" />
       </TouchableOpacity>

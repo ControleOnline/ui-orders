@@ -19,6 +19,13 @@ const OrderDetails = ({route}) => {
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
+  useFocusEffect(
+    useCallback(() => {
+      if (order && order['@id'])
+        invoiceActions.getItems({'order.order': order['@id']});
+    }, [order]),
+  );
+
   return (
     <SafeAreaView style={[{paddingBottom: 0}, styles.container]}>
       <StateStore store="orders" />

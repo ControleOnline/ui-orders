@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Text, View, ScrollView, SafeAreaView} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -15,37 +15,49 @@ const ProductsPage = ({navigation, route}) => {
   const {item} = categoryGetters;
   const {styles} = css();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!item || item['@id'] != category['@id']) {
-        actions
-          .getItems({
-            'productCategory.category': category['@id'],
-            active: 1,
-            'order.name': 'ASC',
-            type: ['custom', 'product'],
-          })
-          .finally(() => {
-            categoryActions.setItem(category);
-          });
-      }
-    }, [category]),
+  const [products, setProducts] = useState(
+    JSON.parse(localStorage.getItem('products') || '{}'),
   );
+
+  useEffect(() => {
+    localStorage.setItem('products', JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    let p = {...products};
+
+    if (!p[category['@id']])
+      actions
+        .getItems({
+          'productCategory.category': category['@id'],
+          active: 1,
+          'order.name': 'ASC',
+          type: ['custom', 'product'],
+        })
+        .then(data => {
+          p[category['@id']] = data;
+          setProducts(p);
+        });
+  }, [category]);
 
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="products" />
-      {!isLoading && items && items.length > 0 && !error && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.Product.productsContainer}>
-            <>
-              {items.map(product => (
-                <ProductItem key={product.id} product={product} />
-              ))}
-            </>
-          </View>
-        </ScrollView>
-      )}
+      {!isLoading &&
+        products &&
+        products[category['@id']] &&
+        products[category['@id']].length > 0 &&
+        !error && (
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.Product.productsContainer}>
+              <>
+                {products[category['@id']].map(product => (
+                  <ProductItem key={product.id} product={product} />
+                ))}
+              </>
+            </View>
+          </ScrollView>
+        )}
     </SafeAreaView>
   );
 };

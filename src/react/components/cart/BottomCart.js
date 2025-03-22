@@ -9,6 +9,10 @@ import PayableToolbar from '@controleonline/ui-orders/src/react/components/Payab
 const ButtonCart = ({navigation}) => {
   const {getters, actions: cartActions} = getStore('cart');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {getters: orderProductGetters, actions: orderProductsActions} =
+    getStore('order_products');
+  const {items: orderProducts, isSaving} = orderProductGetters;
+
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
   const {item: order, isLoading: ordersIsloading} = ordersGetters;
@@ -17,17 +21,20 @@ const ButtonCart = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (item && item['@id'] && reload === true && !isLoading) {
-        cartActions.setReload(false);
-        ordersActions.get(item['@id']);
-      }
-    }, [reload]),
+      cartActions.setItem(order);
+    }, [order]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      cartActions.setItem(order);
-    }, [order]),
+      let price = 0;
+      let o = {...order};
+      orderProducts.forEach(op => {
+        price += op.price * op.quantity;
+      });
+      o.price = price;
+      ordersActions.setItem(o);
+    }, [orderProducts]),
   );
 
   const handlePay = item => {
