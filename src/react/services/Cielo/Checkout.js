@@ -42,11 +42,18 @@ export default Checkout = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (payments.length == 0 && companyConfigs) {
+      if (
+        payments.length == 0 &&
+        companyConfigs &&
+        config &&
+        config['pdv-gateway']
+      ) {
         let wallets = [];
 
-        if (companyConfigs['pdv-cielo-wallet'])
-          wallets.push(companyConfigs['pdv-cielo-wallet']);
+        if (companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet'])
+          wallets.push(
+            companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet'],
+          );
 
         if (companyConfigs['pdv-cash-wallet'])
           wallets.push(companyConfigs['pdv-cash-wallet']);
