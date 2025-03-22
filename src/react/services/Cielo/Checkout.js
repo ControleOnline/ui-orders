@@ -44,7 +44,7 @@ export default Checkout = ({route}) => {
     useCallback(() => {
       if (payments.length == 0 && companyConfigs)
         paymentTypeActions.getItems({
-          people: currentCompany.id,
+          people: '/people/' +currentCompany.id,
           wallet: [
             companyConfigs['pdv-cielo-wallet'],
             companyConfigs['pdv-cash-wallet'],

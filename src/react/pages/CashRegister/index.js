@@ -51,18 +51,19 @@ const CashRegister = ({navigation}) => {
     useCallback(() => {
       if (cashWallet && defaultWallets)
         paymentTypeActions.getItems({
-          people: currentCompany.id,
+          people: '/people/' + currentCompany.id,
           wallet: [cashWallet, defaultWallets],
         });
     }, [currentCompany, cashWallet, defaultWallets]),
   );
   useFocusEffect(
     useCallback(() => {
-      invoiceActions.getInflow({
-        receiver: currentCompany.id,
-        device: device?.id,
-      });
-    }, []),
+      if (config && config['config-version'] == device.buildNumber)
+        invoiceActions.getInflow({
+          receiver: currentCompany.id,
+          device: device?.id,
+        });
+    }, [config, device]),
   );
 
   useFocusEffect(
