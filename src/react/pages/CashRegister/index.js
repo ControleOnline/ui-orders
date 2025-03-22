@@ -63,7 +63,7 @@ const CashRegister = ({navigation}) => {
           receiver: currentCompany.id,
           device: device?.id,
         });
-    }, [config, device]),
+    }, []),
   );
 
   useFocusEffect(
