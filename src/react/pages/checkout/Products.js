@@ -31,18 +31,19 @@ const ProductsPage = ({navigation, route}) => {
   useEffect(() => {
     if (products) {
       ops = [];
-      products[category['@id']].forEach(product => {
-        const op = orderProducts.find(
-          orderProduct => orderProduct.product['@id'] === product['@id'],
-        );
+      if (products[category['@id']])
+        products[category['@id']].forEach(product => {
+          const op = orderProducts.find(
+            orderProduct => orderProduct.product['@id'] === product['@id'],
+          );
 
-        if (op) ops.push(op);
-        else
-          ops.push({
-            product: product,
-            quantity: 0,
-          });
-      });
+          if (op) ops.push(op);
+          else
+            ops.push({
+              product: product,
+              quantity: 0,
+            });
+        });
 
       setOProducts(ops);
     }

@@ -41,8 +41,8 @@ const ProductQuantityControl = ({orderProduct}) => {
   const {item: order} = orderGetters;
   const [localProduct, setLocalProduct] = useState({...orderProduct});
 
-  const removeProduct = () => {
-    orderProductActions.remove(localProduct['@id']);
+  const removeProduct = (product) => {
+    orderProductActions.remove(product['@id']);
   };
 
   const changeProduct = product => {
@@ -55,7 +55,9 @@ const ProductQuantityControl = ({orderProduct}) => {
       order: order['@id'],
     };
 
-    orderProductActions.save(order_product);
+    orderProductActions.save(order_product).then(data => {
+      setLocalProduct(data);
+    });
   };
 
   useFocusEffect(
@@ -66,7 +68,7 @@ const ProductQuantityControl = ({orderProduct}) => {
 
   const changeQuantity = useRef(
     debounce(product => {
-      if (product.quantity === 0) removeProduct();
+      if (product.quantity === 0) removeProduct(product);
       else changeProduct(product);
     }, 1000),
   );

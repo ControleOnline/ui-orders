@@ -5,33 +5,40 @@ import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
-export default PayableToolbar = ({route}) => {
+export default PayableToolbar = ({route, order}) => {
   const {styles, globalStyles} = css();
   const {getters, actions: cartActions} = getStore('cart');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
   const {items: invoices, isLoading} = invoiceGetters;
-  const {item: order, reload, payable} = getters;
+  const {item, reload, payable} = getters;
   const {items: orders} = ordersGetters;
 
   useFocusEffect(
     useCallback(() => {
-      if (order?.price == undefined) return;
+      if (order && item && order['@id'] != item['@id'])
+        invoiceActions.getItems({'order.order': order['@id']});
+    }, [order, item]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (item?.price == undefined) return;
       const paid = invoices.reduce(
         (sum, invoice) => sum + parseFloat(invoice.price),
         0,
       );
 
-      cartActions.setPayable(parseFloat(paid) - parseFloat(order.price));
-    }, [invoices, order]),
+      cartActions.setPayable(parseFloat(paid) - parseFloat(item.price));
+    }, [invoices, item]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      if (payable >= 0 && order['@id'] && order.price > 0) {
+      if (payable >= 0 && item['@id'] && item.price > 0) {
         const updatedOrders = orders.filter(
-          item => item['@id'] !== order['@id'],
+          item => item['@id'] !== item['@id'],
         );
         ordersActions.setItems(updatedOrders);
       }
@@ -58,7 +65,7 @@ export default PayableToolbar = ({route}) => {
             </Text>
           ) : (
             <Text style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
-              Pago: {Formatter.formatMoney(payable + parseFloat(order.price))}
+              Pago: {Formatter.formatMoney(payable + parseFloat(item.price))}
             </Text>
           )}
         </>

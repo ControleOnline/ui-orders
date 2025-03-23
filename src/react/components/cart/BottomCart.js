@@ -43,7 +43,7 @@ const ButtonCart = ({navigation}) => {
 
   return (
     <>
-      <PayableToolbar />
+      <PayableToolbar order={order}/>
       {payable != undefined && payable != 0 && (
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
           {isLoading || invoiceIsLoading || isLoading || ordersIsloading ? (
