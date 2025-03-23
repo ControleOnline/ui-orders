@@ -157,7 +157,7 @@ export default Checkout = ({route}) => {
   const handleConfirmValue = () => {
     const valorNumerico = parseFloat(inputValue.replace(/\D/g, '')) / 100;
     if (isNaN(valorNumerico) || valorNumerico <= 0) {
-      showErrorPopup('Por favor, insira um valor válido!');
+      paymentTypeActions.setError('Por favor, insira um valor válido!');
       return;
     }
 
