@@ -60,24 +60,11 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
   const removeProduct = (orderProduct, updatedProduct) => {
     let op = [...orderProducts];
 
-    orderProductActions
-      .remove(orderProduct['@id'])
-      .then(() => {
-        const index = getIndex(updatedProduct);
-        console.log(index);
-        if (index >= 0) op.splice(index, 1);
-        else op = [];
-      })
-      .finally(() => {
-        console.log(op);
-
-        orderProductActions.setItems(op);
-      });
+    orderProductActions.remove(orderProduct['@id']);
   };
 
   const changeProduct = (orderProduct, updatedProduct) => {
     const quantity = updatedProduct.quantity || 0;
-    let op = [...orderProducts];
 
     const order_product = {
       id: orderProduct?.['@id'] || null,
@@ -88,16 +75,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
       order: order['@id'],
     };
 
-    orderProductActions
-      .save(order_product)
-      .then(result => {
-        const index = getIndex(updatedProduct);
-        if (index >= 0) op[index] = result;
-        else op.push(result);
-      })
-      .finally(() => {
-        orderProductActions.setItems(op);
-      });
+    orderProductActions.save(order_product);
   };
 
   const saveRef = useRef(

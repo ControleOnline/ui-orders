@@ -21,19 +21,22 @@ export default function BleedScreen() {
     getStore('walletPaymentType');
   const {getters: peopleGetters} = getStore('people');
   const {items: paymentTypes} = paymentTypeGetters;
-  const {currentCompany,defaultCompany} = peopleGetters;
+  const {currentCompany, defaultCompany} = peopleGetters;
   const {actions: invoiceActions} = getStore('invoice');
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
   const [bleedValue, setBleedValue] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {item: config, items: companyConfigs} = configsGetters;
-
   const [cashWallet, setCashWallet] = useState(null);
+  const [withdrawlWallet, setWithdrawlWallet] = useState(null);
+
   useFocusEffect(
     useCallback(() => {
       if (companyConfigs && companyConfigs['pdv-cash-wallet'])
         setCashWallet(companyConfigs['pdv-cash-wallet']);
+      if (companyConfigs && companyConfigs['pdv-withdrawl-wallet'])
+        setWithdrawlWallet(companyConfigs['pdv-withdrawl-wallet']);
     }, [companyConfigs]),
   );
 
@@ -71,7 +74,15 @@ export default function BleedScreen() {
     }
 
     const numericValue = parseFloat(bleedValue.replace(/\D/g, '')) / 100;
+    console.log(withdrawlWallet);
 
+    if (
+      !withdrawlWallet ||
+      !cashWallet ||
+      !defaultCompany?.configs['pdv-paid-status'] ||
+      !currentCompany?.id
+    )
+      return;
     const payload = {
       dueDate: Formatter.getCurrentDate(),
       status: '/statuses/' + defaultCompany?.configs['pdv-paid-status'],

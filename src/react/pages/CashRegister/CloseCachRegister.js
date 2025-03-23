@@ -57,8 +57,6 @@ const Orders = ({navigation}) => {
         status: '/statuses/' + status,
       })
       .then(order => {
-        items.push(order);
-        ordersActions.setItems(items);
         handleEdit(order);
       });
   };

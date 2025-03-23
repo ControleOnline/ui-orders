@@ -95,8 +95,6 @@ const Orders = ({navigation}) => {
           device: device?.id,
         })
         .then(order => {
-          items.push(order);
-          ordersActions.setItems(items);
           handleEdit(order);
         });
   };

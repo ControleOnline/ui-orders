@@ -132,16 +132,9 @@ export default Checkout = ({route}) => {
       order: order['@id'],
     };
 
-    invoiceActions
-      .save(payload)
-      .then(invoice => {
-        let items = [...invoices];
-        items.push(invoice);
-        invoiceActions.setItems(items);
-      })
-      .finally(() => {
-        navigation.navigate('OrderTools', {order: order});
-      });
+    invoiceActions.save(payload).finally(() => {
+      navigation.navigate('OrderTools', {order: order});
+    });
   };
 
   const handleConfirmValue = () => {
