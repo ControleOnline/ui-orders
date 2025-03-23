@@ -6,10 +6,10 @@ import Carousel from '@controleonline/ui-products/src/react/components/products/
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import ProductQuantity from '@controleonline/ui-orders/src/react/components/cart/ProductQuantity';
 
-const ProductItem = ({product}) => {
+const ProductItem = ({orderProduct}) => {
   const {styles, globalStyles} = css();
   const customize = product => {
-    console.log(product);
+    console.log(orderProduct);
   };
   return (
     <View
@@ -30,7 +30,7 @@ const ProductItem = ({product}) => {
               styles.boxOrderText,
               {fontSize: 16, fontWeight: 'bold'},
             ]}>
-            {product.product}
+            {orderProduct.product.product}
           </Text>
           <Text
             style={[
@@ -38,12 +38,12 @@ const ProductItem = ({product}) => {
               styles.boxTextColor,
               {fontSize: 14, color: '#666'},
             ]}>
-            {product.description}
+            {orderProduct.product.description}
           </Text>
         </View>
 
         <View style={{width: 100, height: 100}}>
-          <Carousel images={product.productFiles} />
+          <Carousel images={orderProduct.product.productFiles} />
         </View>
       </View>
       <View style={{flexDirection: 'row', padding: 10}}>
@@ -53,7 +53,7 @@ const ProductItem = ({product}) => {
               styles.boxStatusText,
               {fontSize: 16, color: '#000', fontWeight: 'bold'},
             ]}>
-            {Formatter.formatMoney(product.price)}
+            {Formatter.formatMoney(orderProduct.product.price)}
           </Text>
         </View>
         <View
@@ -63,14 +63,14 @@ const ProductItem = ({product}) => {
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
-          {product.type === 'product' && (
+          {orderProduct.product.type === 'product' && (
             <View style={{alignSelf: 'flex-end'}}>
-              <ProductQuantity product={product} />
+              <ProductQuantity orderProduct={orderProduct} />
             </View>
           )}
-          {product.type === 'custom' && (
+          {orderProduct.product.type === 'custom' && (
             <TouchableOpacity
-              onPress={() => customize(product)}
+              onPress={() => customize(orderProduct)}
               style={[
                 globalStyles.button,
                 styles.btnPay,

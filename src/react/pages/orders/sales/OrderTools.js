@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   Text,
   View,
@@ -12,10 +12,13 @@ import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import OrderInvoices from './OrderInvoices';
 import css from '@controleonline/ui-orders/src/react/css/orders';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const OrderDetails = ({route}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
@@ -53,7 +56,7 @@ const OrderDetails = ({route}) => {
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.orderContainer}>
+            <View style={[styles.orderContainer, {paddingBottom: 100}]}>
               <OrderInvoices />
             </View>
           </ScrollView>

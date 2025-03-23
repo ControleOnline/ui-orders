@@ -40,14 +40,13 @@ const OrderDetails = ({route, navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log(order['@id'], item['@id']);
       if (order && (!item || item['@id'] != order['@id'])) {
         orderProductsActions.getItems({
           company: '/people/' + currentCompany.id,
           order: order['@id'],
           'exists[parentProduct]': 'false',
           'order.product.product': 'ASC',
-        });
+        })
       }
     }, [order]),
   );

@@ -9,19 +9,44 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
   const {getters, actions} = getStore('products');
-  const {getters: categoryGetters, actions: categoryActions} =
-    getStore('categories');
-  const {items, isLoading, error} = getters;
-  const {item} = categoryGetters;
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
+    getStore('order_products');
+  const {items: orderProducts} = orderProductsGetters;
+  const {isLoading, error} = getters;
+
   const {styles} = css();
 
   const [products, setProducts] = useState(
     JSON.parse(localStorage.getItem('products') || '{}'),
   );
 
+  const [oProducts, setOProducts] = useState(
+    JSON.parse(localStorage.getItem('products') || '{}'),
+  );
+
   useEffect(() => {
     localStorage.setItem('products', JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    if (products) {
+      ops = [];
+      products[category['@id']].forEach(product => {
+        const op = orderProducts.find(
+          orderProduct => orderProduct.product['@id'] === product['@id'],
+        );
+
+        if (op) ops.push(op);
+        else
+          ops.push({
+            product: product,
+            quantity: 0,
+          });
+      });
+
+      setOProducts(ops);
+    }
+  }, [products, orderProducts]);
 
   useEffect(() => {
     let p = {...products};
@@ -43,21 +68,20 @@ const ProductsPage = ({navigation, route}) => {
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="products" />
-      {!isLoading &&
-        products &&
-        products[category['@id']] &&
-        products[category['@id']].length > 0 &&
-        !error && (
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.Product.productsContainer}>
-              <>
-                {products[category['@id']].map(product => (
-                  <ProductItem key={product.id} product={product} />
-                ))}
-              </>
-            </View>
-          </ScrollView>
-        )}
+      {!isLoading && oProducts && oProducts.length > 0 && !error && (
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.Product.productsContainer}>
+            <>
+              {oProducts.map(orderProduct => (
+                <ProductItem
+                  key={orderProduct.product.id}
+                  orderProduct={orderProduct}
+                />
+              ))}
+            </>
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };

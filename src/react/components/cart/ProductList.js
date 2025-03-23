@@ -27,16 +27,15 @@ export default function ProductsList({route}) {
         }
     }, [items, config]),
   );
-
   return (
     <View>
-      {(isLoading || isSaving || !error) && items.length == 0 && (
+      {(error || ((isLoading || isSaving) && items.length == 0)) && (
         <StateStore store="order_products" />
       )}
       {items.length > 0 && !error && (
         <>
-          {items.map(product => (
-            <ProductItem key={product.id} product={product.product} />
+          {items.map(orderProduct => (
+            <ProductItem key={orderProduct.id} orderProduct={orderProduct} />
           ))}
         </>
       )}

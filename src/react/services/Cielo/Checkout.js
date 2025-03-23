@@ -87,6 +87,15 @@ export default Checkout = ({route}) => {
   };
 
   const handlePay = async () => {
+    if (
+      !selectedPayment ||
+      !selectedPayment.wallet ||
+      !selectedPayment.paymentType
+    ) {
+      paymentTypeActions.setError('Selecione uma forma de pagamento');
+      return;
+    }
+
     let totalPrice = Math.round(order.price * 100).toString();
     let items = formatProducts();
 
@@ -122,6 +131,14 @@ export default Checkout = ({route}) => {
   };
 
   const createInvoice = total => {
+    if (
+      !selectedPayment ||
+      !selectedPayment.wallet ||
+      !selectedPayment.paymentType
+    ) {
+      paymentTypeActions.setError('Selecione uma forma de pagamento');
+      return;
+    }
     const payload = {
       dueDate: Formatter.getCurrentDate(),
       status: '/statuses/' + defaultCompany?.configs['pdv-paid-status'],

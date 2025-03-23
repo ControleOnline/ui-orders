@@ -32,137 +32,61 @@ const styles = {
   },
 };
 
-const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
+const ProductQuantityControl = ({orderProduct}) => {
   const navigation = useNavigation();
   const currentPageName =
     navigation.getState().routes[navigation.getState().index].name;
   const {getters: orderGetters} = getStore('orders');
-  const {getters: cartGetters} = getStore('cart');
-  const {getters: orderProductGetters, actions: orderProductActions} =
-    getStore('order_products');
-  const {item: order, isLoading} = orderGetters;
-  const {items: orderProducts, isSaving} = orderProductGetters;
-  const {isLoading: cartIsLoading} = cartGetters;
+  const {actions: orderProductActions} = getStore('order_products');
+  const {item: order} = orderGetters;
+  const [localProduct, setLocalProduct] = useState({...orderProduct});
 
-  const getInitialQuantity = () => {
-    if (!orderProducts) return defaultQuantity;
-    const orderProduct = orderProducts.find(
-      p => p.product['@id'] === product['@id'],
-    );
-    return orderProduct?.quantity || defaultQuantity;
+  const removeProduct = () => {
+    orderProductActions.remove(localProduct['@id']);
   };
 
-  const [localProduct, setLocalProduct] = useState({
-    ...product,
-    quantity: getInitialQuantity(),
-  });
-
-  const removeProduct = (orderProduct, updatedProduct) => {
-    let op = [...orderProducts];
-
-    orderProductActions.remove(orderProduct['@id']);
-  };
-
-  const changeProduct = (orderProduct, updatedProduct) => {
-    const quantity = updatedProduct.quantity || 0;
-
+  const changeProduct = product => {
     const order_product = {
-      id: orderProduct?.['@id'] || null,
+      id: product ? product['@id'] : null,
       parentProduct: null,
-      product: updatedProduct['@id'],
+      product: product.product['@id'],
       product_group_id: null,
-      quantity: quantity,
+      quantity: product.quantity,
       order: order['@id'],
     };
 
     orderProductActions.save(order_product);
   };
 
-  const saveRef = useRef(
-    debounce(updatedProduct => {
-      const quantity = updatedProduct.quantity || 0;
-      const orderProduct = getorderProduct(updatedProduct);
-      if (quantity === 0 && orderProduct)
-        removeProduct(orderProduct, updatedProduct);
-      else changeProduct(orderProduct, updatedProduct);
+  useFocusEffect(
+    useCallback(() => {
+      changeQuantity.current.cancel();
+    }, []),
+  );
+
+  const changeQuantity = useRef(
+    debounce(product => {
+      if (product.quantity === 0) removeProduct();
+      else changeProduct(product);
     }, 1000),
   );
-  const getIndex = updatedProduct => {
-    return orderProducts.findIndex(
-      p => p.product['@id'] === updatedProduct['@id'],
-    );
-  };
   const increaseQuantity = () => {
-    if (isSaving || isLoading || cartIsLoading) return;
     const newProduct = {
       ...localProduct,
-      quantity: (localProduct.quantity || 0) + 1,
+      quantity: localProduct.quantity + 1,
     };
     setLocalProduct(newProduct);
-    changeQuantity(newProduct, true);
+    changeQuantity.current(newProduct);
   };
 
   const decreaseQuantity = () => {
-    if (!localProduct.quantity || isSaving || isLoading || cartIsLoading)
-      return;
-    if (localProduct.quantity && localProduct.quantity >= 1) {
-      const newProduct = {
-        ...localProduct,
-        quantity: localProduct.quantity - 1,
-      };
-      setLocalProduct(newProduct);
-      changeQuantity(newProduct, true);
-    }
+    const newProduct = {
+      ...localProduct,
+      quantity: localProduct.quantity > 0 ? localProduct.quantity - 1 : 0,
+    };
+    setLocalProduct(newProduct);
+    changeQuantity.current(newProduct);
   };
-
-  const changeQuantity = (changedProduct, emit = false) => {
-    if (emit) {
-      saveRef.current(changedProduct);
-    }
-  };
-
-  const getorderProduct = product => {
-    const index = orderProducts?.findIndex(
-      item => item.product['@id'] === product['@id'],
-    );
-
-    return orderProducts[index];
-  };
-
-  const syncQuantityWithOrder = () => {
-    if (localProduct.type !== 'product' || !orderProducts) return;
-
-    const orderProduct = orderProducts.find(
-      p =>
-        p.product['@id'] === localProduct['@id'] &&
-        p.product.type === 'product',
-    );
-
-    if (orderProduct && orderProduct.quantity !== localProduct.quantity) {
-      setLocalProduct(prev => ({
-        ...prev,
-        quantity: orderProduct.quantity,
-        order_products: orderProduct.id,
-      }));
-      changeQuantity({
-        ...localProduct,
-        quantity: orderProduct.quantity,
-        order_products: orderProduct.id,
-      });
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      syncQuantityWithOrder();
-    }, [order]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      saveRef.current.cancel();
-    }, []),
-  );
 
   const getDecreaseIcon = () => {
     if (localProduct.quantity === 1) return 'delete';
@@ -172,14 +96,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[
-          styles.button,
-          (!localProduct.quantity || isSaving || isLoading || cartIsLoading) &&
-            styles.disabledButton,
-        ]}
-        //disabled={!localProduct.quantity || isSaving || isLoading || cartIsLoading}
-        onPress={decreaseQuantity}>
+      <TouchableOpacity style={[styles.button]} onPress={decreaseQuantity}>
         {getDecreaseIcon() ? (
           <Icon name={getDecreaseIcon()} size={24} color="red" />
         ) : null}
@@ -189,13 +106,7 @@ const ProductQuantityControl = ({product, defaultQuantity = 0}) => {
         {localProduct.quantity || '0'}
       </Text>
 
-      <TouchableOpacity
-        style={[
-          styles.button,
-          (isSaving || isLoading || cartIsLoading) && styles.disabledButton,
-        ]}
-        //disabled={isSaving || isLoading || cartIsLoading}
-        onPress={increaseQuantity}>
+      <TouchableOpacity style={[styles.button]} onPress={increaseQuantity}>
         <Icon name="add" size={24} color="red" />
       </TouchableOpacity>
     </View>
