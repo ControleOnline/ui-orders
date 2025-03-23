@@ -45,24 +45,6 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!config) return;
-
-      if (Object.entries(config).length > 0)
-        setPdvType(config['pdv-type'] || 'full');
-      else if (
-        config != undefined &&
-        config !== false &&
-        authActions.isLogged()
-      )
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'SettingsPage'}],
-        });
-    }, [config]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
       if (config && config['pdv-type'] == 'simple' && items && items.length > 0)
         navigation.reset({
           index: 0,

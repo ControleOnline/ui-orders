@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   Text,
   View,
@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
@@ -15,21 +14,31 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const CloseCashRegister = ({navigation}) => {
-  const {getters, actions: ordersActions} = getStore('orders');
-  const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
-  const {getters: peopleGetters} = getStore('people');
-  const {currentCompany, defaultCompany} = peopleGetters;
-  const {getters: configsGetters} = getStore('configs');
-  const {item: config, items: companyConfigs} = configsGetters;
-  const status = defaultCompany?.configs['pdv-default-status'];
+  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: authGetters, actions: userActions} = getStore('auth');
+  const {getters: peopleGetters, actions: peopleActions} = getStore('people');
+  const {currentCompany} = peopleGetters;
+  const {user} = authGetters;
+  const storagedDevice = localStorage.getItem('device');
+  const [device, setDevice] = useState(() => {
+    return storagedDevice ? JSON.parse(storagedDevice) : {};
+  });
+  const {
+    item: config,
+    items: companyConfigs,
+    isLoading,
+    error,
+  } = configsGetters;
+
   useFocusEffect(
     useCallback(() => {
-     
-    }, [currentCompany]),
+      console.log(config['cash-wallet-open-id']);
+      //cash-wallet-open-id
+    }, [user]),
   );
 
-  const handleConfirm = () => {
+  const handleConfirmClose = () => {
     Alert.alert('Confirmação', 'Deseja realmente fechar o caixa?', [
       {
         text: 'Cancelar',
@@ -42,37 +51,109 @@ const CloseCashRegister = ({navigation}) => {
     ]);
   };
 
+  const handleConfirmOpen = () => {
+    Alert.alert('Confirmação', 'Deseja realmente abrir o caixa?', [
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+      {
+        text: 'Confirmar',
+        onPress: () => handleOpenCashRegister(),
+      },
+    ]);
+  };
+  const handleOpenCashRegister = () => {
+    configActions
+      .addConfigs({
+        configKey: 'pdv-' + device?.id,
+        configValue: JSON.stringify({
+          'cash-wallet-open-id': 50,
+          'cash-wallet-closed-id': 0,
+        }),
+        visibility: 'private',
+        people: '/people/' + currentCompany.id,
+        module: '/modules/' + 8,
+      })
+      .then(value => {
+        configActions.setItem(JSON.parse(value.configValue));
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'HomePage'}],
+        });
+      });
+  };
+
   const handleCloseCashRegister = () => {
-    console.log('Imprime',
-      config['cash-wallet-order']);
+    configActions
+      .addConfigs({
+        configKey: 'pdv-' + device?.id,
+        configValue: JSON.stringify({
+          'cash-wallet-closed-id': 50,
+        }),
+        visibility: 'private',
+        people: '/people/' + currentCompany.id,
+        module: '/modules/' + 8,
+      })
+      .then(value => {
+        configActions.setItem(JSON.parse(value.configValue));
+      });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={{height: 50}}>
-        <TouchableOpacity
-          onPress={handleConfirm}
-          style={[
-            globalStyles.button,
-            globalStyles.btnAdd,
-            {
-              flex: 1,
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center',
-            },
-          ]}>
-          <Icon name="add-circle" size={24} color="#fff" />
-          <Text style={{color: '#fff', marginLeft: 8}}>Fechar Caixa</Text>
-        </TouchableOpacity>
-      </View>
       <StateStore store="orders" />
-      {!isLoading && items.length > 0 && !error && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+      {!isLoading && !error && (
+        <>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View>
+              <Text>{userActions.getLoggedUser().realname}</Text>
+            </View>
+          </ScrollView>
           <View>
-            <Text>Aqui</Text>
+            <Text>Imprimir</Text>
           </View>
-        </ScrollView>
+          <View style={{height: 50}}>
+            {!config['cash-wallet-closed-id'] == undefined ||
+            config['cash-wallet-closed-id'] == 0 ? (
+              <TouchableOpacity
+                onPress={handleConfirmClose}
+                style={[
+                  globalStyles.button,
+                  globalStyles.btnAdd,
+                  {
+                    flex: 1,
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  },
+                ]}>
+                <Icon name="add-circle" size={24} color="#fff" />
+                <Text style={{color: '#fff', marginLeft: 8}}>Fechar Caixa</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  onPress={handleConfirmOpen}
+                  style={[
+                    globalStyles.button,
+                    globalStyles.btnAdd,
+                    {
+                      flex: 1,
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                  ]}>
+                  <Icon name="add-circle" size={24} color="#fff" />
+                  <Text style={{color: '#fff', marginLeft: 8}}>
+                    Abrir Caixa
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </>
       )}
     </SafeAreaView>
   );

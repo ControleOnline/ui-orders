@@ -9,6 +9,7 @@ import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/O
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
+import {getStore} from '@store';
 
 import React from 'react';
 
@@ -18,16 +19,32 @@ const WrappedOrdersPage = ({navigation, route}) => (
   </ShopLayout>
 );
 
-const WrappedCloseCachRegister = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
-    <CloseCachRegister navigation={navigation} route={route} />
-  </ShopLayout>
-);
+const WrappedCloseCachRegister = ({navigation, route}) => {
+  const {getters: configsGetters} = getStore('configs');
+  const {item: config} = configsGetters;
+
+  React.useEffect(() => {
+    navigation.setOptions({
+      title:
+        config['cash-wallet-closed-id'] == undefined || config['cash-wallet-closed-id'] > 0
+          ? 'Abrir Caixa'
+          : 'Fechar Caixa',
+    });
+  }, [navigation, config['cash-wallet-open-id']]);
+
+  return (
+    <ShopLayout navigation={navigation} route={route}>
+      <CloseCachRegister navigation={navigation} route={route} />
+    </ShopLayout>
+  );
+};
+
 const WrappedWithdrawal = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
     <Withdrawal navigation={navigation} route={route} />
   </ShopLayout>
 );
+
 const WrappedCashRegister = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
     <CashRegister navigation={navigation} route={route} />
@@ -70,6 +87,8 @@ const WrappedOrderTools = ({navigation, route}) => {
 
 const WrappedOrderDetails = ({navigation, route}) => {
   const order = route.params?.order;
+  const {getters: configsGetters} = getStore('configs');
+  const {item: config} = configsGetters;
 
   React.useEffect(() => {
     navigation.setOptions({
@@ -119,7 +138,7 @@ const ordersRoutes = [
     component: WrappedCloseCachRegister,
     options: {
       headerShown: true,
-      title: 'Fechar Caixa',
+      title: 'Caixa', // Título inicial padrão, será sobrescrito pelo useEffect
     },
   },
   {
