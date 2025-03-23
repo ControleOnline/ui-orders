@@ -9,12 +9,13 @@ import ProductItem from '@controleonline/ui-orders/src/react/components/cart/Pro
 export default function ProductsList({route}) {
   const {styles, globalStyles} = css();
   const navigation = useNavigation();
-  const {getters: ordersGetters} = getStore('orders');
-  const {getters, actions: orderProductsActions} = getStore('order_products');
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
+    getStore('order_products');
   const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {item: config} = configsGetters;
   const {item} = ordersGetters;
-  const {items, isLoading, isSaving, error, reload} = getters;
+  const {items, isLoading, isSaving, error, reload} = orderProductsGetters;
 
   useFocusEffect(
     useCallback(() => {

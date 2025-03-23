@@ -37,17 +37,24 @@ const ProductQuantityControl = ({orderProduct}) => {
   const currentPageName =
     navigation.getState().routes[navigation.getState().index].name;
   const {getters: orderGetters} = getStore('orders');
-  const {actions: orderProductActions} = getStore('order_products');
+  const {getters: orderProductsGetters, actions: orderProductActions} =
+    getStore('order_products');
   const {item: order} = orderGetters;
+  const {items: orderProducts} = orderProductsGetters;
   const [localProduct, setLocalProduct] = useState({...orderProduct});
 
-  const removeProduct = (product) => {
-    orderProductActions.remove(product['@id']);
+  const removeProduct = product => {
+    orderProductActions.remove(product['@id']).then(() => {
+      setLocalProduct({
+        product: product.product,
+        quantity: 0,
+      });
+    });
   };
 
   const changeProduct = product => {
     const order_product = {
-      id: product ? product['@id'] : null,
+      id: product && product['@id'] ? product['@id'] : null,
       parentProduct: null,
       product: product.product['@id'],
       product_group_id: null,

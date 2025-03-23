@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {Text, View, ScrollView, SafeAreaView} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -9,9 +9,11 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
   const {getters, actions} = getStore('products');
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {item: order} = ordersGetters;
   const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
-  const {items: orderProducts} = orderProductsGetters;
+  const {items: orderProducts, reload} = orderProductsGetters;
   const {isLoading, error} = getters;
 
   const {styles} = css();
@@ -24,11 +26,13 @@ const ProductsPage = ({navigation, route}) => {
     JSON.parse(localStorage.getItem('products') || '{}'),
   );
 
-  useEffect(() => {
-    localStorage.setItem('products', JSON.stringify(products));
-  }, [products]);
+  useFocusEffect(
+    useCallback(() => {
+      localStorage.setItem('products', JSON.stringify(products));
+    }, [products]),
+  );
 
-  useEffect(() => {
+  const getProductQuantities = () => {
     if (products) {
       ops = [];
       if (products[category['@id']])
@@ -44,10 +48,14 @@ const ProductsPage = ({navigation, route}) => {
               quantity: 0,
             });
         });
-
       setOProducts(ops);
     }
-  }, [products, orderProducts]);
+  };
+  useFocusEffect(
+    useCallback(() => {
+      getProductQuantities();
+    }, [products, orderProducts]),
+  );
 
   useEffect(() => {
     let p = {...products};

@@ -15,8 +15,8 @@ const ButtonCart = ({navigation}) => {
 
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
-  const {item: order, isLoading: ordersIsloading} = ordersGetters;
-  const {item, reload, isLoading, payable} = getters;
+  const {item: order, reload, isLoading: ordersIsloading} = ordersGetters;
+  const {item, isLoading, payable} = getters;
   const {styles, globalStyles} = css();
 
   useFocusEffect(
@@ -30,9 +30,10 @@ const ButtonCart = ({navigation}) => {
       let price = 0;
       let o = {...order};
       orderProducts.forEach(op => {
-        price += op.price * op.quantity;
+        price += (op.price || 0) * (op.quantity || 0);
       });
       o.price = price;
+      o.orderProducts = orderProducts;
       ordersActions.setItem(o);
     }, [orderProducts]),
   );
@@ -43,7 +44,7 @@ const ButtonCart = ({navigation}) => {
 
   return (
     <>
-      <PayableToolbar order={order}/>
+      <PayableToolbar order={order} />
       {payable != undefined && payable != 0 && (
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
           {isLoading || invoiceIsLoading || isLoading || ordersIsloading ? (
