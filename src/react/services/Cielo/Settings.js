@@ -16,7 +16,7 @@ export default Checkout = ({
   const {getters: walletGetters, actions: walletActions} = getStore('wallet');
   const {getters: peopleGetters, actions: peopleActions} = getStore('people');
   const {currentCompany} = peopleGetters;
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: configsGetters} = getStore('configs');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('paymentType');
   const {items: paymentTypes} = paymentTypeGetters;

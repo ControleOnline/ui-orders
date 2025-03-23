@@ -12,7 +12,7 @@ export default function ProductsList({route}) {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: configsGetters} = getStore('configs');
   const {item: config} = configsGetters;
   const {item} = ordersGetters;
   const {items, isLoading, isSaving, error, reload} = orderProductsGetters;

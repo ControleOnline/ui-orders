@@ -14,7 +14,7 @@ const CashRegister = ({navigation}) => {
     getStore('invoice');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: configsGetters} = getStore('configs');
   const {item: config, items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;

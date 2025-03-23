@@ -26,7 +26,7 @@ export default function BleedScreen() {
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
   const [bleedValue, setBleedValue] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: configsGetters} = getStore('configs');
   const {item: config, items: companyConfigs} = configsGetters;
   const [cashWallet, setCashWallet] = useState(null);
   const [withdrawlWallet, setWithdrawlWallet] = useState(null);
@@ -74,7 +74,6 @@ export default function BleedScreen() {
     }
 
     const numericValue = parseFloat(bleedValue.replace(/\D/g, '')) / 100;
-    console.log(withdrawlWallet);
 
     if (
       !withdrawlWallet ||

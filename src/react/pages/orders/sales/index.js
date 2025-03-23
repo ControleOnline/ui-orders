@@ -16,7 +16,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
   const {getters, actions: ordersActions} = getStore('orders');
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: configsGetters} = getStore('configs');
   const {actions: authActions} = getStore('auth');
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
@@ -29,7 +29,7 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (currentCompany && Object.entries(currentCompany).length > 0)
+      if (currentCompany && Object.entries(currentCompany).length > 0 && config)
         ordersActions
           .getItems({
             provider: '/people/' + currentCompany.id,
@@ -37,14 +37,17 @@ const Orders = ({navigation}) => {
             device: device?.id,
           })
           .then(data => {
-            if (!data || data.length == 0) handleAddOrder();
+            if (!data || (data.length == 0 && config['pdv-type'] == 'simple'))
+              handleAddOrder();
           });
     }, [currentCompany]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      if (config && Object.entries(config).length > 0)
+      if (!config) return;
+
+      if (Object.entries(config).length > 0)
         setPdvType(config['pdv-type'] || 'full');
       else if (
         config != undefined &&

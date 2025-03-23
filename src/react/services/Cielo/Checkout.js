@@ -31,7 +31,7 @@ export default Checkout = ({route}) => {
     error: invoiceError,
     items: invoices,
   } = invoiceGetters;
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: configsGetters} = getStore('configs');
   const {item: config, items: companyConfigs} = configsGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {currentCompany, defaultCompany} = peopleGetters;

@@ -14,52 +14,39 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const Orders = ({navigation}) => {
+const CloseCashRegister = ({navigation}) => {
   const {getters, actions: ordersActions} = getStore('orders');
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, defaultCompany} = peopleGetters;
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
+  const {getters: configsGetters} = getStore('configs');
   const {item: config, items: companyConfigs} = configsGetters;
   const status = defaultCompany?.configs['pdv-default-status'];
   useFocusEffect(
     useCallback(() => {
-      ordersActions.getItems({
-        provider: '/people/' + currentCompany.id,
-        status: status,
-      });
+     
     }, [currentCompany]),
   );
 
-  const handleEdit = order => {
-    navigation.navigate('OrderDetails', {order: order});
-  };
-
   const handleConfirm = () => {
-    Alert.alert('Confirmação', 'Deseja criar um novo pedido?', [
+    Alert.alert('Confirmação', 'Deseja realmente fechar o caixa?', [
       {
         text: 'Cancelar',
         style: 'cancel',
       },
       {
         text: 'Confirmar',
-        onPress: () => handleAddOrder(),
+        onPress: () => handleCloseCashRegister(),
       },
     ]);
   };
 
-  const handleAddOrder = () => {
-    ordersActions
-      .save({
-        app: 'PDV',
-        provider: '/people/' + currentCompany.id,
-        status: '/statuses/' + status,
-      })
-      .then(order => {
-        handleEdit(order);
-      });
+  const handleCloseCashRegister = () => {
+    console.log('Imprime',
+      config['cash-wallet-order']);
   };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={{height: 50}}>
@@ -76,25 +63,18 @@ const Orders = ({navigation}) => {
             },
           ]}>
           <Icon name="add-circle" size={24} color="#fff" />
-          <Text style={{color: '#fff', marginLeft: 8}}>Adicionar Pedido</Text>
+          <Text style={{color: '#fff', marginLeft: 8}}>Fechar Caixa</Text>
         </TouchableOpacity>
       </View>
       <StateStore store="orders" />
       {!isLoading && items.length > 0 && !error && (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View>
-            {items.map(order => (
-              <TouchableOpacity
-                key={order.id}
-                onPress={() => handleEdit(order)}
-                style={[styles.itemsSection]}>
-                <OrderHeader order={order} showId={true} />
-              </TouchableOpacity>
-            ))}
+            <Text>Aqui</Text>
           </View>
         </ScrollView>
       )}
     </SafeAreaView>
   );
 };
-export default Orders;
+export default CloseCashRegister;
