@@ -158,6 +158,7 @@ export default Checkout = ({route}) => {
     const valorNumerico = parseFloat(inputValue.replace(/\D/g, '')) / 100;
     if (isNaN(valorNumerico) || valorNumerico <= 0) {
       paymentTypeActions.setError('Por favor, insira um valor válido!');
+      setModalVisible(false);
       return;
     }
 
