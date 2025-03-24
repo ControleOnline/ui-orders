@@ -50,11 +50,13 @@ const ProductQuantityControl = ({orderProduct}) => {
 
   useFocusEffect(
     useCallback(() => {
-      changeQuantity.current.cancel();
+      changeQuantity.current.cancel(orderProduct.product['@id']);
     }, []),
   );
 
-  const changeQuantity = useRef(orderProductActions.queue(changeProduct));
+  const changeQuantity = useRef(
+    orderProductActions.addToQueue(changeProduct, orderProduct.product['@id']),
+  );
   const increaseQuantity = () => {
     const newProduct = {
       ...localProduct,
