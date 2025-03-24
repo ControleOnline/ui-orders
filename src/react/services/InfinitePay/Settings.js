@@ -1,6 +1,6 @@
 import React, {useCallback, useState} from 'react';
 import {View, ActivityIndicator, Text} from 'react-native';
-import Cielo from './InfinitePay';
+import InfinitePay from './InfinitePay';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
@@ -27,7 +27,7 @@ export default Checkout = ({
   useFocusEffect(
     useCallback(() => {
       if (wallets !== null && companyConfigs)
-        discoverWallet('pdv-cielo-wallet', 'Cielo');
+        discoverWallet('pdv-infinite-pay-wallet', 'InfinitePay');
     }, [companyConfigs, wallets]),
   );
 
@@ -37,35 +37,21 @@ export default Checkout = ({
       frequency: 'single',
       installments: 'single',
       people: '/people/' + currentCompany.id,
-      paymentCode: 'DEBITO_AVISTA',
+      paymentCode: 'debit',
     },
     {
       paymentType: 'Crédito à Vista',
       frequency: 'single',
       installments: 'single',
       people: '/people/' + currentCompany.id,
-      paymentCode: 'CREDITO_AVISTA',
+      paymentCode: 'credit',
     },
     {
-      paymentType: 'PIX',
+      paymentType: 'Crédito Parcelado',
       frequency: 'single',
-      installments: 'single',
+      installments: 'split',
       people: '/people/' + currentCompany.id,
-      paymentCode: 'PIX',
-    },
-    {
-      paymentType: 'Crédito Parcelado - Cliente',
-      frequency: 'single',
-      installments: 'single',
-      people: '/people/' + currentCompany.id,
-      paymentCode: 'CREDITO_PARCELADO_CLIENTE',
-    },
-    {
-      paymentType: 'Crédito Parcelado - Loja',
-      frequency: 'single',
-      installments: 'single',
-      people: '/people/' + currentCompany.id,
-      paymentCode: 'CREDITO_PARCELADO_LOJA',
+      paymentCode: 'credit',
     },
   ];
 
@@ -75,12 +61,12 @@ export default Checkout = ({
         paymentTypes === null ||
         wallets === null ||
         !companyConfigs ||
-        !companyConfigs['pdv-cielo-wallet']
+        !companyConfigs['pdv-infinite-pay-wallet']
       ) {
         return;
       }
       checkPaymentOptions(
-        companyConfigs['pdv-cielo-wallet'],
+        companyConfigs['pdv-infinite-pay-wallet'],
         paymentTypes,
         paymentsCheck,
       );
@@ -90,14 +76,14 @@ export default Checkout = ({
   return (
     <>
       <View style={styles.Settings.walletRow}>
-        <Text style={styles.Settings.label}>Carteira p/ Cielo: </Text>
+        <Text style={styles.Settings.label}>Carteira p/ InfinitePay: </Text>
         <View style={styles.Settings.walletValueContainer}>
           <Text style={styles.Settings.walletValue}>
-            {companyConfigs['pdv-cielo-wallet']}
+            {companyConfigs['pdv-infinite-pay-wallet']}
           </Text>
           {walletLoading || isSaving ? (
             <ActivityIndicator size={22} color={styles.Settings.label} />
-          ) : companyConfigs['pdv-cielo-wallet'] ? (
+          ) : companyConfigs['pdv-infinite-pay-wallet'] ? (
             <Icon name={'check'} size={22} color="green" />
           ) : (
             <Icon name={'close'} size={22} color="red" />

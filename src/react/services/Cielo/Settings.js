@@ -56,14 +56,14 @@ export default Checkout = ({
     {
       paymentType: 'Crédito Parcelado - Cliente',
       frequency: 'single',
-      installments: 'single',
+      installments: 'split',
       people: '/people/' + currentCompany.id,
       paymentCode: 'CREDITO_PARCELADO_CLIENTE',
     },
     {
       paymentType: 'Crédito Parcelado - Loja',
       frequency: 'single',
-      installments: 'single',
+      installments: 'split',
       people: '/people/' + currentCompany.id,
       paymentCode: 'CREDITO_PARCELADO_LOJA',
     },

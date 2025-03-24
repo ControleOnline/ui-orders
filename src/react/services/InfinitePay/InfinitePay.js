@@ -8,7 +8,7 @@ class InfinitePay {
       payment_method: paymentMethod,
       installments: installments,
       order_id: orderId,
-      app_client_referrer: "PDVControleOnline",
+      app_client_referrer: "pdv.controleonline.com",
       af_force_deeplink: "true",
     };
 
