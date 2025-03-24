@@ -35,9 +35,15 @@ export default function ProductsList({route}) {
       )}
       {items.length > 0 && !error && (
         <>
-          {items.map(orderProduct => (
-            <ProductItem key={orderProduct.id} orderProduct={orderProduct} />
-          ))}
+          {items.map(
+            orderProduct =>
+              orderProduct.quantity > 0 && (
+                <ProductItem
+                  key={orderProduct.id}
+                  orderProduct={orderProduct}
+                />
+              ),
+          )}
         </>
       )}
     </View>

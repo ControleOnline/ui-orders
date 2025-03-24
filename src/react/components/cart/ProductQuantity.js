@@ -5,16 +5,6 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 import {getStore} from '@store';
 
-const debounce = (func, wait) => {
-  let timeout;
-  const debounced = (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-  debounced.cancel = () => clearTimeout(timeout);
-  return debounced;
-};
-
 const styles = {
   container: {
     flexDirection: 'row',
@@ -43,26 +33,17 @@ const ProductQuantityControl = ({orderProduct}) => {
   const {items: orderProducts} = orderProductsGetters;
   const [localProduct, setLocalProduct] = useState({...orderProduct});
 
-  const removeProduct = product => {
-    orderProductActions.remove(product['@id']).then(() => {
-      setLocalProduct({
-        product: product.product,
-        quantity: 0,
-      });
-    });
-  };
-
-  const changeProduct = product => {
+  const changeProduct = orderProduct => {
     const order_product = {
-      id: product && product['@id'] ? product['@id'] : null,
+      id: orderProduct && orderProduct['@id'] ? orderProduct['@id'] : null,
       parentProduct: null,
-      product: product.product['@id'],
+      product: orderProduct.product['@id'],
       product_group_id: null,
-      quantity: product.quantity,
+      quantity: orderProduct.quantity,
       order: order['@id'],
     };
 
-    orderProductActions.save(order_product).then(data => {
+    return orderProductActions.save(order_product).then(data => {
       setLocalProduct(data);
     });
   };
@@ -73,12 +54,7 @@ const ProductQuantityControl = ({orderProduct}) => {
     }, []),
   );
 
-  const changeQuantity = useRef(
-    debounce(product => {
-      if (product.quantity === 0) removeProduct(product);
-      else changeProduct(product);
-    }, 1000),
-  );
+  const changeQuantity = useRef(orderProductActions.queue(changeProduct));
   const increaseQuantity = () => {
     const newProduct = {
       ...localProduct,
