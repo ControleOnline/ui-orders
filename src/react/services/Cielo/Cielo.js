@@ -13,7 +13,7 @@ class Cielo {
       value: orderPrice,
     };
 
-    const response = await NativeModules.Payment.payment(JSON.stringify(json));
+    const response = await NativeModules.Cielo.payment(JSON.stringify(json));
 
     return {
       success: response.success,
