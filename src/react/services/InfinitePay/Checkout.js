@@ -9,7 +9,6 @@ import {
   Button,
   ActivityIndicator,
 } from 'react-native';
-import PaymentMethods from './PaymentMethods';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';

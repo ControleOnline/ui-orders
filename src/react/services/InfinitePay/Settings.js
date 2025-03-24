@@ -1,13 +1,9 @@
 import React, {useCallback, useState} from 'react';
 import {View, ActivityIndicator, Text} from 'react-native';
-import InfinitePay from './InfinitePay';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
-import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 export default Checkout = ({
   checkWalletPaymentOptions,
   checkPaymentOptions,

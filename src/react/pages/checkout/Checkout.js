@@ -1,5 +1,7 @@
 import {View, Text} from 'react-native';
 import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Checkout';
+import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
+
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
 
@@ -11,7 +13,7 @@ export default Checkout = ({route}) => {
   return (
     <View style={{flex: 1}}>
       {config['pdv-gateway'] == 'cielo' && <CieloCheckout />}
-      {config['pdv-gateway'] == 'infinite-pay' && <CieloCheckout />}
+      {config['pdv-gateway'] == 'infinite-pay' && <InfinitePay />}
     </View>
   );
 };
