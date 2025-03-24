@@ -18,6 +18,8 @@ const CloseCashRegister = ({navigation}) => {
   const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {getters: authGetters, actions: userActions} = getStore('auth');
   const {getters: peopleGetters, actions: peopleActions} = getStore('people');
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {items: orders} = ordersGetters;
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
   const storagedDevice = localStorage.getItem('device');
@@ -46,7 +48,7 @@ const CloseCashRegister = ({navigation}) => {
       },
       {
         text: 'Confirmar',
-        onPress: () => handleCloseCashRegister(),
+        onPress: () => handleCashRegister(false),
       },
     ]);
   };
@@ -59,44 +61,44 @@ const CloseCashRegister = ({navigation}) => {
       },
       {
         text: 'Confirmar',
-        onPress: () => handleOpenCashRegister(),
+        onPress: () => handleCashRegister(true),
       },
     ]);
   };
-  const handleOpenCashRegister = () => {
-    configActions
-      .addConfigs({
-        configKey: 'pdv-' + device?.id,
-        configValue: JSON.stringify({
-          'cash-wallet-open-id': 50,
-          'cash-wallet-closed-id': 0,
-        }),
-        visibility: 'private',
-        people: '/people/' + currentCompany.id,
-        module: '/modules/' + 8,
+  const handleCashRegister = isOpening => {
+    ordersActions
+      .getItems({
+        'order.id': 'DESC',
+        itemsPerPage: 1,
       })
-      .then(value => {
-        configActions.setItem(JSON.parse(value.configValue));
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'HomePage'}],
-        });
-      });
-  };
+      .then(data => {
+        let openId = 0;
+        if (data && data.length > 0) openId = data[0]['@id'].replace(/\D/g, '');
 
-  const handleCloseCashRegister = () => {
-    configActions
-      .addConfigs({
-        configKey: 'pdv-' + device?.id,
-        configValue: JSON.stringify({
-          'cash-wallet-closed-id': 50,
-        }),
-        visibility: 'private',
-        people: '/people/' + currentCompany.id,
-        module: '/modules/' + 8,
-      })
-      .then(value => {
-        configActions.setItem(JSON.parse(value.configValue));
+        const configValue = isOpening
+          ? {
+              'cash-wallet-open-id': openId,
+              'cash-wallet-closed-id': 0,
+            }
+          : {
+              'cash-wallet-closed-id': openId,
+            };
+
+        configActions
+          .addConfigs({
+            configKey: 'pdv-' + device?.id,
+            configValue: JSON.stringify(configValue),
+            visibility: 'private',
+            people: '/people/' + currentCompany.id,
+            module: '/modules/' + 8,
+          })
+          .then(value => {
+            configActions.setItem(JSON.parse(value.configValue));
+            navigation.reset({
+              index: 0,
+              routes: [{name: 'HomePage'}],
+            });
+          });
       });
   };
 
