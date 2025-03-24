@@ -4,7 +4,7 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
-export default Checkout = ({
+export default InfinitePaySettings = ({
   checkWalletPaymentOptions,
   checkPaymentOptions,
   discoverWallet,
@@ -23,7 +23,7 @@ export default Checkout = ({
   useFocusEffect(
     useCallback(() => {
       if (wallets !== null && companyConfigs)
-        discoverWallet('pdv-infinite-pay-wallet', 'InfinitePay');
+        discoverWallet('pdv-infinite-pay-wallet', 'Infine Pay');
     }, [companyConfigs, wallets]),
   );
 
@@ -72,7 +72,7 @@ export default Checkout = ({
   return (
     <>
       <View style={styles.Settings.walletRow}>
-        <Text style={styles.Settings.label}>Carteira p/ InfinitePay: </Text>
+        <Text style={styles.Settings.label}>Carteira p/ Infine Pay: </Text>
         <View style={styles.Settings.walletValueContainer}>
           <Text style={styles.Settings.walletValue}>
             {companyConfigs['pdv-infinite-pay-wallet']}

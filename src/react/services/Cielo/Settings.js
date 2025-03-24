@@ -4,7 +4,7 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
-export default Checkout = ({
+export default CieloPaySettings = ({
   checkWalletPaymentOptions,
   checkPaymentOptions,
   discoverWallet,

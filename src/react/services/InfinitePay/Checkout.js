@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   ScrollView,
@@ -6,222 +6,240 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
+  TextInput,
   Button,
-  ActivityIndicator,
 } from 'react-native';
+import InfinitePay from './InfinitePay'; // Substituímos Cielo por InfinitePay
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {getStore} from '@store';
+import { getStore } from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 
-export default Checkout = ({
-  checkWalletPaymentOptions,
-  checkPaymentOptions,
-  discoverWallet,
-}) => {
+export default Checkout = ({ route }) => {
   const navigation = useNavigation();
-  const {getters: walletGetters, actions: walletActions} = getStore('wallet');
-  const {getters: peopleGetters, actions: peopleActions} = getStore('people');
-  const {currentCompany} = peopleGetters;
-  const {getters: configsGetters} = getStore('configs');
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('paymentType');
-  const {items: paymentTypes} = paymentTypeGetters;
-  const {item: config, items: companyConfigs, isSaving} = configsGetters;
-  const {isLoading: walletLoading, items: wallets} = walletGetters;
-  const {getters: cartGetters} = getStore('cart');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {
-    IsSaving: invoiceIsSaving,
-    error: invoiceError,
-    items: invoices,
-  } = invoiceGetters;
-  const {item: order, payable} = cartGetters;
-  const {styles, globalStyles} = css();
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [installmentsModalVisible, setInstallmentsModalVisible] =
-    useState(false);
-  const [selectedInstallments, setSelectedInstallments] = useState(2);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (wallets !== null && companyConfigs)
-        discoverWallet('pdv-infinite-pay-wallet', 'InfinitePay');
-    }, [companyConfigs, wallets]),
-  );
-
-  const paymentsCheck = [
-    {
-      paymentType: 'Débito',
-      frequency: 'single',
-      installments: 'single',
-      people: '/people/' + currentCompany.id,
-      paymentCode: 'debit',
-    },
-    {
-      paymentType: 'Crédito à Vista',
-      frequency: 'single',
-      installments: 'single',
-      people: '/people/' + currentCompany.id,
-      paymentCode: 'credit',
-    },
-    {
-      paymentType: 'Crédito Parcelado',
-      frequency: 'single',
-      installments: 'split',
-      people: '/people/' + currentCompany.id,
-      paymentCode: 'credit',
-    },
-  ];
+  const { styles, globalStyles } = css();
+  const { getters } = getStore('cart');
+  const { getters: paymentTypeGetters, actions: paymentTypeActions } = getStore('walletPaymentType');
+  const { getters: peopleGetters } = getStore('people');
+  const { getters: invoiceGetters, actions: invoiceActions } = getStore('invoice');
+  const { IsSaving: invoiceIsSaving, error: invoiceError, items: invoices } = invoiceGetters;
+  const { getters: configsGetters } = getStore('configs');
+  const { item: config, items: companyConfigs } = configsGetters;
+  const { isLoading, error, items: payments } = paymentTypeGetters;
+  const { currentCompany, defaultCompany } = peopleGetters;
+  const { item: order, payable } = getters;
+  const [selectedPayment, setSelectedPayment] = useState({});
+  const [modalVisible, setModalVisible] = useState(false);
+  const [installmentsModalVisible, setInstallmentsModalVisible] = useState(false); // Novo modal para parcelas
+  const [inputValue, setInputValue] = useState('');
+  const [selectedInstallments, setSelectedInstallments] = useState(null); // Estado para número de parcelas
 
   useFocusEffect(
     useCallback(() => {
       if (
-        paymentTypes === null ||
-        wallets === null ||
-        !companyConfigs ||
-        !companyConfigs['pdv-infinite-pay-wallet']
+        payments.length == 0 &&
+        companyConfigs &&
+        config &&
+        config['pdv-gateway']
       ) {
-        return;
+        let wallets = [];
+
+        if (companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet'])
+          wallets.push(companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet']);
+
+        if (companyConfigs['pdv-cash-wallet'])
+          wallets.push(companyConfigs['pdv-cash-wallet']);
+
+        paymentTypeActions.getItems({
+          people: '/people/' + currentCompany.id,
+          wallet: wallets,
+        });
       }
-      checkPaymentOptions(
-        companyConfigs['pdv-infinite-pay-wallet'],
-        paymentTypes,
-        paymentsCheck,
-      );
-    }, [companyConfigs, paymentTypes, wallets]),
+    }, [order, currentCompany, companyConfigs]),
   );
 
+  const selectPayment = payment => {
+    setSelectedPayment(payment);
+  };
+
+  const formatProducts = () => {
+    let items = [];
+    order.orderProducts.forEach(orderProduct => {
+      let item = {};
+      item.name = orderProduct.product.product;
+      item.quantity = orderProduct.quantity;
+      item.sku = orderProduct.product.sku;
+      item.unitOfMeasure = 'unidade';
+      item.unitPrice = Math.round(orderProduct.price * 100).toString();
+      items.push(item);
+    });
+    return items;
+  };
+
   const handlePay = async () => {
-    if (!selectedPayment) {
+    if (
+      !selectedPayment ||
+      !selectedPayment.wallet ||
+      !selectedPayment.paymentType
+    ) {
       paymentTypeActions.setError('Selecione uma forma de pagamento');
       return;
     }
 
+    let totalPrice = Math.round(order.price * 100).toString();
+
+    // Verifica se é 'split' para abrir o modal de parcelas
     if (selectedPayment.installments === 'split') {
       setInstallmentsModalVisible(true);
       return;
     }
 
-    await processPayment();
-  };
-
-  const processPayment = async () => {
-    let totalPrice = Math.round(order.price * 100).toString();
+    const service = new InfinitePay();
 
     try {
-      const response = await PaymentMethods.payWithInfinitePay(
-        selectedPayment.paymentType,
-        order['@id'],
-        totalPrice,
-        selectedPayment.installments === 'split' ? selectedInstallments : 1,
-      );
-
-      if (
-        !response.success ||
-        response.result.code === 2 ||
-        response.result.code === 1
-      ) {
-        throw response;
+      if (!selectedPayment.paymentCode) {
+        let value = 0;
+        if (payable > 0) value = 0;
+        else value = payable * -1;
+        setInputValue(Formatter.formatMoney(value));
+        setModalVisible(true);
+        return;
       }
 
-      createInvoice(response.paidAmount / 100);
+      const response = await service.payment(
+        selectedPayment.paymentCode,
+        selectedPayment.installments || 1, // Usa 1 como padrão se não houver parcelas
+        order['@id'],
+        totalPrice,
+      );
+
+      if (!response.success || response.code === 2 || response.code === 1)
+        throw response;
+
+      createInvoice(response.result.paidAmount / 100 || order.price); // Ajuste conforme retorno da InfinitePay
     } catch (error) {
       paymentTypeActions.setError(error);
     }
   };
 
   const createInvoice = total => {
+    if (
+      !selectedPayment ||
+      !selectedPayment.wallet ||
+      !selectedPayment.paymentType
+    ) {
+      paymentTypeActions.setError('Selecione uma forma de pagamento');
+      return;
+    }
     const payload = {
       dueDate: Formatter.getCurrentDate(),
       status: '/statuses/' + defaultCompany?.configs['pdv-paid-status'],
-      destinationWallet: companyConfigs['pdv-infinite-pay-wallet'],
-      paymentType: selectedPayment['@id'],
+      destinationWallet: selectedPayment.wallet['@id'],
+      paymentType: selectedPayment.paymentType['@id'],
       price: total,
       receiver: '/people/' + currentCompany.id,
       order: order['@id'],
     };
 
     invoiceActions.save(payload).finally(() => {
-      navigation.navigate('OrderTools', {order: order});
+      navigation.navigate('OrderTools', { order: order });
     });
   };
 
-  const handleInstallmentsCancel = () => {
-    setInstallmentsModalVisible(false);
-    setSelectedInstallments(2);
+  const handleConfirmValue = () => {
+    const valorNumerico = parseFloat(inputValue.replace(/\D/g, '')) / 100;
+    if (isNaN(valorNumerico) || valorNumerico <= 0) {
+      paymentTypeActions.setError('Por favor, insira um valor válido!');
+      setModalVisible(false);
+      return;
+    }
+
+    setModalVisible(false);
+    setInputValue('');
+    createInvoice(valorNumerico);
   };
 
-  const handleInstallmentsConfirm = async () => {
-    setInstallmentsModalVisible(false);
-    await processPayment();
+  const handleCancel = () => {
+    setModalVisible(false);
+    setInputValue('');
   };
 
-  const installmentsOptions = Array.from({length: 11}, (_, i) => i + 2); // 2 a 12 parcelas
+  const handleInputChange = text => {
+    const numericValue = text.replace(/\D/g, '');
+    if (!numericValue) {
+      setInputValue('');
+      return;
+    }
+    const number = parseFloat(numericValue) / 100;
+    setInputValue(Formatter.formatMoney(number));
+  };
+
+  const handleInstallmentsSelect = async (installments) => {
+    setSelectedInstallments(installments);
+    setInstallmentsModalVisible(false);
+
+    const service = new InfinitePay();
+    let totalPrice = Math.round(order.price * 100).toString();
+
+    try {
+      const response = await service.payment(
+        selectedPayment.paymentCode,
+        installments,
+        order['@id'],
+        totalPrice,
+      );
+
+      if (!response.success || response.code === 2 || response.code === 1)
+        throw response;
+
+      createInvoice(response.result.paidAmount / 100 || order.price);
+    } catch (error) {
+      paymentTypeActions.setError(error);
+    }
+  };
 
   return (
     <>
       <SafeAreaView style={[styles.container]}>
         <StateStore store="walletPaymentType" />
         <StateStore store="invoice" />
-        <View style={styles.Settings.walletRow}>
-          <Text style={styles.Settings.label}>Carteira p/ InfinitePay: </Text>
-          <View style={styles.Settings.walletValueContainer}>
-            <Text style={styles.Settings.walletValue}>
-              {companyConfigs['pdv-infinite-pay-wallet']}
-            </Text>
-            {walletLoading || isSaving ? (
-              <ActivityIndicator size={22} color={styles.Settings.label} />
-            ) : companyConfigs['pdv-infinite-pay-wallet'] ? (
-              <Icon name={'check'} size={22} color="green" />
-            ) : (
-              <Icon name={'close'} size={22} color="red" />
-            )}
-          </View>
-        </View>
-
         {!invoiceIsSaving &&
           !invoiceError &&
-          !walletLoading &&
-          paymentTypes &&
-          paymentTypes.length > 0 && (
+          !isLoading &&
+          payments &&
+          payments.length > 0 &&
+          !error && (
             <>
               <ScrollView
                 contentContainerStyle={[
                   styles.scrollContent,
-                  {paddingBottom: 100},
-                  {flexGrow: 1},
+                  { paddingBottom: 100 },
+                  { flexGrow: 1 },
                 ]}>
                 <View>
-                  {paymentsCheck.map(payment => (
+                  {payments.map(payment => (
                     <TouchableOpacity
-                      key={payment.paymentType}
-                      onPress={() => setSelectedPayment(payment)}>
+                      key={payment.paymentType.id}
+                      onPress={() => selectPayment(payment)}>
                       <View
                         style={[
                           styles.boxPayment,
-                          selectedPayment?.paymentType ===
-                            payment.paymentType && styles.selectedBoxPayment,
+                          selectedPayment.paymentType?.id === payment.paymentType.id &&
+                            styles.selectedBoxPayment,
                         ]}>
                         <View style={styles.paymentIcon}>
-                          {selectedPayment?.paymentType ===
-                          payment.paymentType ? (
+                          {selectedPayment.paymentType?.id === payment.paymentType.id ? (
                             <Icon name="check-box" size={24} color="black" />
                           ) : (
-                            <Icon
-                              name="check-box-outline-blank"
-                              size={22}
-                              color="black"
-                            />
+                            <Icon name="check-box-outline-blank" size={22} color="black" />
                           )}
                         </View>
                         <View>
-                          <Text style={{color: '#666'}}>
-                            {payment.paymentType}
+                          <Text style={{ color: '#666' }}>
+                            {payment.paymentType.paymentType}
                           </Text>
                         </View>
                       </View>
@@ -233,17 +251,13 @@ export default Checkout = ({
               <PayableToolbar />
 
               <View style={[styles.toolbar]}>
-                <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
+                <Text style={[styles.primary, { flex: 1, textAlign: 'center' }]}>
                   {Formatter.formatMoney(order.price)}
                 </Text>
                 <TouchableOpacity
                   onPress={() => handlePay()}
                   disabled={!selectedPayment}
-                  style={[
-                    globalStyles.button,
-                    globalStyles.primary,
-                    styles.btnPay,
-                  ]}>
+                  style={[globalStyles.button, globalStyles.primary, styles.btnPay]}>
                   <Text style={styles.btnText}>PAGAR</Text>
                 </TouchableOpacity>
               </View>
@@ -254,8 +268,8 @@ export default Checkout = ({
       <Modal
         animationType="slide"
         transparent={true}
-        visible={installmentsModalVisible}
-        onRequestClose={handleInstallmentsCancel}>
+        visible={modalVisible}
+        onRequestClose={handleCancel}>
         <View
           style={{
             flex: 1,
@@ -270,34 +284,67 @@ export default Checkout = ({
               borderRadius: 10,
               width: '80%',
             }}>
-            <Text style={{marginBottom: 10}}>
-              Selecione o número de parcelas:
-            </Text>
-            <ScrollView style={{maxHeight: 200}}>
-              {installmentsOptions.map(num => (
+            <Text style={{ marginBottom: 10 }}>Valor à pagar:</Text>
+            <TextInput
+              placeholderTextColor="#666"
+              style={{
+                borderWidth: 1,
+                borderColor: '#ccc',
+                padding: 8,
+                marginBottom: 10,
+                color: '#666',
+              }}
+              keyboardType="numeric"
+              value={inputValue}
+              onChangeText={handleInputChange}
+              placeholder="Digite o valor"
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Button title="Cancelar" onPress={handleCancel} />
+              <Button title="Confirmar" onPress={handleConfirmValue} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={installmentsModalVisible}
+        onRequestClose={() => setInstallmentsModalVisible(false)}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+          }}>
+          <View
+            style={{
+              backgroundColor: 'white',
+              padding: 20,
+              borderRadius: 10,
+              width: '80%',
+            }}>
+            <Text style={{ marginBottom: 10 }}>Escolha o número de parcelas:</Text>
+            <ScrollView>
+              {Array.from({ length: 9 }, (_, i) => i + 2).map((num) => (
                 <TouchableOpacity
                   key={num}
-                  onPress={() => setSelectedInstallments(num)}
+                  onPress={() => handleInstallmentsSelect(num)}
                   style={{
                     padding: 10,
                     borderBottomWidth: 1,
                     borderBottomColor: '#ccc',
-                    backgroundColor:
-                      selectedInstallments === num ? '#e0e0e0' : 'white',
                   }}>
-                  <Text style={{color: '#666'}}>{num} parcelas</Text>
+                  <Text>{num}x - {Formatter.formatMoney(order.price / num)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginTop: 10,
-              }}>
-              <Button title="Cancelar" onPress={handleInstallmentsCancel} />
-              <Button title="Confirmar" onPress={handleInstallmentsConfirm} />
-            </View>
+            <Button
+              title="Cancelar"
+              onPress={() => setInstallmentsModalVisible(false)}
+            />
           </View>
         </View>
       </Modal>
