@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   ScrollView,
@@ -12,28 +12,35 @@ import {
 import InfinitePay from './InfinitePay'; // Substituímos Cielo por InfinitePay
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import { getStore } from '@store';
+import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 
-export default Checkout = ({ route }) => {
+export default Checkout = ({route}) => {
   const navigation = useNavigation();
-  const { styles, globalStyles } = css();
-  const { getters } = getStore('cart');
-  const { getters: paymentTypeGetters, actions: paymentTypeActions } = getStore('walletPaymentType');
-  const { getters: peopleGetters } = getStore('people');
-  const { getters: invoiceGetters, actions: invoiceActions } = getStore('invoice');
-  const { IsSaving: invoiceIsSaving, error: invoiceError, items: invoices } = invoiceGetters;
-  const { getters: configsGetters } = getStore('configs');
-  const { item: config, items: companyConfigs } = configsGetters;
-  const { isLoading, error, items: payments } = paymentTypeGetters;
-  const { currentCompany, defaultCompany } = peopleGetters;
-  const { item: order, payable } = getters;
+  const {styles, globalStyles} = css();
+  const {getters} = getStore('cart');
+  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
+    getStore('walletPaymentType');
+  const {getters: peopleGetters} = getStore('people');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
+  const {
+    IsSaving: invoiceIsSaving,
+    error: invoiceError,
+    items: invoices,
+  } = invoiceGetters;
+  const {getters: configsGetters} = getStore('configs');
+  const {item: config, items: companyConfigs} = configsGetters;
+  const {isLoading, error, items: payments} = paymentTypeGetters;
+  const {currentCompany, defaultCompany} = peopleGetters;
+  const {item: order, payable} = getters;
   const [selectedPayment, setSelectedPayment] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
-  const [installmentsModalVisible, setInstallmentsModalVisible] = useState(false); // Novo modal para parcelas
+  const [installmentsModalVisible, setInstallmentsModalVisible] =
+    useState(false); // Novo modal para parcelas
   const [inputValue, setInputValue] = useState('');
   const [selectedInstallments, setSelectedInstallments] = useState(null); // Estado para número de parcelas
 
@@ -48,7 +55,9 @@ export default Checkout = ({ route }) => {
         let wallets = [];
 
         if (companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet'])
-          wallets.push(companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet']);
+          wallets.push(
+            companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet'],
+          );
 
         if (companyConfigs['pdv-cash-wallet'])
           wallets.push(companyConfigs['pdv-cash-wallet']);
@@ -145,7 +154,7 @@ export default Checkout = ({ route }) => {
     };
 
     invoiceActions.save(payload).finally(() => {
-      navigation.navigate('OrderTools', { order: order });
+      navigation.navigate('OrderTools', {order: order});
     });
   };
 
@@ -177,7 +186,7 @@ export default Checkout = ({ route }) => {
     setInputValue(Formatter.formatMoney(number));
   };
 
-  const handleInstallmentsSelect = async (installments) => {
+  const handleInstallmentsSelect = async installments => {
     setSelectedInstallments(installments);
     setInstallmentsModalVisible(false);
 
@@ -216,8 +225,8 @@ export default Checkout = ({ route }) => {
               <ScrollView
                 contentContainerStyle={[
                   styles.scrollContent,
-                  { paddingBottom: 100 },
-                  { flexGrow: 1 },
+                  {paddingBottom: 100},
+                  {flexGrow: 1},
                 ]}>
                 <View>
                   {payments.map(payment => (
@@ -227,18 +236,23 @@ export default Checkout = ({ route }) => {
                       <View
                         style={[
                           styles.boxPayment,
-                          selectedPayment.paymentType?.id === payment.paymentType.id &&
-                            styles.selectedBoxPayment,
+                          selectedPayment.paymentType?.id ===
+                            payment.paymentType.id && styles.selectedBoxPayment,
                         ]}>
                         <View style={styles.paymentIcon}>
-                          {selectedPayment.paymentType?.id === payment.paymentType.id ? (
+                          {selectedPayment.paymentType?.id ===
+                          payment.paymentType.id ? (
                             <Icon name="check-box" size={24} color="black" />
                           ) : (
-                            <Icon name="check-box-outline-blank" size={22} color="black" />
+                            <Icon
+                              name="check-box-outline-blank"
+                              size={22}
+                              color="black"
+                            />
                           )}
                         </View>
                         <View>
-                          <Text style={{ color: '#666' }}>
+                          <Text style={{color: '#666'}}>
                             {payment.paymentType.paymentType}
                           </Text>
                         </View>
@@ -251,13 +265,17 @@ export default Checkout = ({ route }) => {
               <PayableToolbar />
 
               <View style={[styles.toolbar]}>
-                <Text style={[styles.primary, { flex: 1, textAlign: 'center' }]}>
+                <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
                   {Formatter.formatMoney(order.price)}
                 </Text>
                 <TouchableOpacity
                   onPress={() => handlePay()}
                   disabled={!selectedPayment}
-                  style={[globalStyles.button, globalStyles.primary, styles.btnPay]}>
+                  style={[
+                    globalStyles.button,
+                    globalStyles.primary,
+                    styles.btnPay,
+                  ]}>
                   <Text style={styles.btnText}>PAGAR</Text>
                 </TouchableOpacity>
               </View>
@@ -284,7 +302,7 @@ export default Checkout = ({ route }) => {
               borderRadius: 10,
               width: '80%',
             }}>
-            <Text style={{ marginBottom: 10 }}>Valor à pagar:</Text>
+            <Text style={{marginBottom: 10}}>Valor à pagar:</Text>
             <TextInput
               placeholderTextColor="#666"
               style={{
@@ -299,7 +317,8 @@ export default Checkout = ({ route }) => {
               onChangeText={handleInputChange}
               placeholder="Digite o valor"
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View
+              style={{flexDirection: 'row', justifyContent: 'space-between'}}>
               <Button title="Cancelar" onPress={handleCancel} />
               <Button title="Confirmar" onPress={handleConfirmValue} />
             </View>
@@ -326,9 +345,11 @@ export default Checkout = ({ route }) => {
               borderRadius: 10,
               width: '80%',
             }}>
-            <Text style={{ marginBottom: 10 }}>Escolha o número de parcelas:</Text>
+            <Text style={{marginBottom: 10}}>
+              Escolha o número de parcelas:
+            </Text>
             <ScrollView>
-              {Array.from({ length: 9 }, (_, i) => i + 2).map((num) => (
+              {Array.from({length: 9}, (_, i) => i + 2).map(num => (
                 <TouchableOpacity
                   key={num}
                   onPress={() => handleInstallmentsSelect(num)}
@@ -337,7 +358,9 @@ export default Checkout = ({ route }) => {
                     borderBottomWidth: 1,
                     borderBottomColor: '#ccc',
                   }}>
-                  <Text>{num}x - {Formatter.formatMoney(order.price / num)}</Text>
+                  <Text>
+                    {num}x - {Formatter.formatMoney(order.price / num)}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>

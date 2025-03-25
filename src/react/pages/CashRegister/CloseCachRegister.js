@@ -18,8 +18,7 @@ const CloseCashRegister = ({navigation}) => {
   const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {getters: authGetters, actions: userActions} = getStore('auth');
   const {getters: peopleGetters, actions: peopleActions} = getStore('people');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {items: orders} = ordersGetters;
+  const {actions: invoiceActions} = getStore('invoice');
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
   const storagedDevice = localStorage.getItem('device');
@@ -66,9 +65,9 @@ const CloseCashRegister = ({navigation}) => {
     ]);
   };
   const handleCashRegister = isOpening => {
-    ordersActions
+    invoiceActions
       .getItems({
-        'order.id': 'DESC',
+        'order[id]': 'DESC',
         itemsPerPage: 1,
       })
       .then(data => {
