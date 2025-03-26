@@ -22,7 +22,7 @@ const OrderHeader = ({order, showId = false}) => {
         ) : null}
         <View style={oh.topInfo}>
           <Text style={[oh.boxTextColor, oh.boxStatusText, oh.statusText]}>
-            {order.status?.status}
+            {t.t('orders', 'status', order.status?.status)}
           </Text>
           <Text style={[oh.boxTextColor, oh.infoText]}>
             {Formatter.formatDateYmdTodmY(order.orderDate, true)}

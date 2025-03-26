@@ -30,7 +30,7 @@ const OrderDetails = ({route}) => {
                       componentStyles.cardText,
                       {color: invoice.status?.color},
                     ]}>
-                    {invoice.status.status}
+                    {t.t('invoice', 'status', invoice.status?.status)}
                   </Text>
                 </View>
                 <View style={componentStyles.row}>
