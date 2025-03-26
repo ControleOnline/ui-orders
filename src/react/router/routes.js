@@ -26,7 +26,8 @@ const WrappedCloseCachRegister = ({navigation, route}) => {
   React.useEffect(() => {
     navigation.setOptions({
       title:
-        config['cash-wallet-closed-id'] == undefined || config['cash-wallet-closed-id'] > 0
+        config['cash-wallet-closed-id'] == undefined ||
+        config['cash-wallet-closed-id'] > 0
           ? 'Abrir Caixa'
           : 'Fechar Caixa',
     });
@@ -53,17 +54,13 @@ const WrappedCashRegister = ({navigation, route}) => (
 
 const WrappedProductsPage = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
-    <CartLayout navigation={navigation} route={route}>
-      <Products navigation={navigation} route={route} />
-    </CartLayout>
+    <Products navigation={navigation} route={route} />
   </ShopLayout>
 );
 
 const WrappedCategoryPage = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
-    <CartLayout navigation={navigation} route={route}>
-      <Categories navigation={navigation} route={route} />
-    </CartLayout>
+    <Categories navigation={navigation} route={route} />
   </ShopLayout>
 );
 

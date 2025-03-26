@@ -1,5 +1,11 @@
 import React, {useEffect, useState, useCallback} from 'react';
-import {Text, View, ScrollView, SafeAreaView} from 'react-native';
+import {
+  Text,
+  View,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
@@ -41,12 +47,12 @@ const ProductsPage = ({navigation, route}) => {
             orderProduct => orderProduct.product['@id'] === product['@id'],
           );
 
-          if (op) ops.push(op);
-          else
-            ops.push({
-              product: product,
-              quantity: 0,
-            });
+          //if (op) ops.push(op);
+          //else
+          ops.push({
+            product: product,
+            quantity: 0,
+          });
         });
       setOProducts(ops);
     }
@@ -74,22 +80,43 @@ const ProductsPage = ({navigation, route}) => {
         });
   }, [category]);
 
+  const handleEdit = () => {
+    navigation.navigate('OrderDetails', {order: order});
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="products" />
       {!isLoading && oProducts && oProducts.length > 0 && !error && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.Product.productsContainer}>
-            <>
-              {oProducts.map(orderProduct => (
-                <ProductItem
-                  key={orderProduct.product.id}
-                  orderProduct={orderProduct}
-                />
-              ))}
-            </>
-          </View>
-        </ScrollView>
+        <>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.Product.productsContainer}>
+              <>
+                {oProducts.map(orderProduct => (
+                  <ProductItem
+                    key={orderProduct.product.id}
+                    orderProduct={orderProduct}
+                  />
+                ))}
+              </>
+            </View>
+          </ScrollView>
+          <TouchableOpacity
+            onPress={handleEdit}
+            style={[
+              styles.btnPay,
+              {
+                justifyContent: 'center',
+                alignItems: 'center',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+              },
+            ]}>
+            <Text style={styles.textWhite}>FINALIZAR</Text>
+          </TouchableOpacity>
+        </>
       )}
     </SafeAreaView>
   );

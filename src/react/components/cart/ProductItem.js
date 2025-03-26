@@ -1,16 +1,20 @@
-// ProductItem.js
 import React from 'react';
-import {TouchableOpacity, Text, View} from 'react-native';
+import { TouchableOpacity, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import css from '@controleonline/ui-products/src/react/css/products';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import ProductQuantity from '@controleonline/ui-orders/src/react/components/cart/ProductQuantity';
 
-const ProductItem = ({orderProduct}) => {
-  const {styles, globalStyles} = css();
+const ProductItem = ({ orderProduct }) => {
+  const navigation = useNavigation();
+  const { styles, globalStyles } = css();
+  const currentPageName = navigation.getState().routes[navigation.getState().index].name;
+
   const customize = product => {
     console.log(orderProduct);
   };
+
   return (
     <View
       style={[
@@ -22,51 +26,94 @@ const ProductItem = ({orderProduct}) => {
           backgroundColor: '#fff',
         },
       ]}>
-      <View style={{flexDirection: 'row', padding: 10}}>
-        <View style={{flex: 1, justifyContent: 'center'}}>
-          <Text
-            style={[
-              styles.boxTextColor,
-              styles.boxOrderText,
-              {fontSize: 16, fontWeight: 'bold'},
-            ]}>
-            {orderProduct.product.product}
-          </Text>
-          <Text
-            style={[
-              styles.boxDateText,
-              styles.boxTextColor,
-              {fontSize: 14, color: '#666'},
-            ]}>
-            {orderProduct.product.description}
-          </Text>
-        </View>
-
-        <View style={{width: 100, height: 100}}>
-          <Carousel images={orderProduct.product.productFiles} />
-        </View>
-      </View>
-      <View style={{flexDirection: 'row', padding: 10}}>
-        <View style={{flex: 1, justifyContent: 'center'}}>
-          <Text
-            style={[
-              styles.boxStatusText,
-              {fontSize: 16, color: '#000', fontWeight: 'bold'},
-            ]}>
-            {Formatter.formatMoney(orderProduct.product.price)}
-          </Text>
-        </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          padding: 10,
+          alignItems: 'flex-start',
+        }}>
         <View
           style={{
             flex: 1,
-            padding: 0,
-            justifyContent: 'space-between',
+            padding: 5,
+          }}>
+          <View
+            style={{
+              flexDirection: 'column',
+            }}>
+            <Text
+              style={[
+                styles.boxTextColor,
+                styles.boxOrderText,
+                { fontSize: 16, fontWeight: 'bold' },
+              ]}>
+              {orderProduct.product.product}
+            </Text>
+            <Text
+              style={[
+                styles.boxDateText,
+                styles.boxTextColor,
+                { fontSize: 14, color: '#666', marginTop: 2 },
+              ]}>
+              {orderProduct.product.description}
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={{
+            width: 100,
+            height: 100,
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+          }}>
+          <Carousel images={orderProduct.product.productFiles} />
+        </View>
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          padding: 10,
+        }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            padding: 5,
+          }}>
+          {currentPageName !== 'ProductsPage' && (
+            <Text style={{ color: '#666' }}>
+              {orderProduct.quantity} X{' '}
+              {Formatter.formatMoney(orderProduct.product.price)}
+            </Text>
+          )}
+        </View>
+
+        <View
+          style={{
+            width: 100,
+            justifyContent: 'center',
             alignItems: 'center',
           }}>
           {orderProduct.product.type === 'product' && (
-            <View style={{alignSelf: 'flex-end'}}>
-              <ProductQuantity orderProduct={orderProduct} />
-            </View>
+            <>
+              {currentPageName === 'ProductsPage' ? (
+                <ProductQuantity orderProduct={orderProduct} />
+              ) : (
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: '#000',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                  }}>
+                  {Formatter.formatMoney(
+                    orderProduct.quantity * orderProduct.product.price,
+                  )}
+                </Text>
+              )}
+            </>
           )}
           {orderProduct.product.type === 'custom' && (
             <TouchableOpacity

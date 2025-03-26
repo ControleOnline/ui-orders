@@ -92,7 +92,6 @@ const ProductQuantityControl = ({orderProduct}) => {
       <Text style={[styles.quantityText, {color: '#666'}]}>
         {localProduct.quantity || '0'}
       </Text>
-
       <TouchableOpacity style={[styles.button]} onPress={increaseQuantity}>
         <Icon name="add" size={24} color="red" />
       </TouchableOpacity>
