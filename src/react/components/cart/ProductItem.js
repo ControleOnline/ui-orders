@@ -1,15 +1,16 @@
 import React from 'react';
-import { TouchableOpacity, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import {TouchableOpacity, Text, View} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 import css from '@controleonline/ui-products/src/react/css/products';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import ProductQuantity from '@controleonline/ui-orders/src/react/components/cart/ProductQuantity';
 
-const ProductItem = ({ orderProduct }) => {
+const ProductItem = ({orderProduct}) => {
   const navigation = useNavigation();
-  const { styles, globalStyles } = css();
-  const currentPageName = navigation.getState().routes[navigation.getState().index].name;
+  const {styles, globalStyles} = css();
+  const currentPageName =
+    navigation.getState().routes[navigation.getState().index].name;
 
   const customize = product => {
     console.log(orderProduct);
@@ -45,7 +46,7 @@ const ProductItem = ({ orderProduct }) => {
               style={[
                 styles.boxTextColor,
                 styles.boxOrderText,
-                { fontSize: 16, fontWeight: 'bold' },
+                {fontSize: 16, fontWeight: 'bold'},
               ]}>
               {orderProduct.product.product}
             </Text>
@@ -53,7 +54,7 @@ const ProductItem = ({ orderProduct }) => {
               style={[
                 styles.boxDateText,
                 styles.boxTextColor,
-                { fontSize: 14, color: '#666', marginTop: 2 },
+                {fontSize: 14, color: '#666', marginTop: 2},
               ]}>
               {orderProduct.product.description}
             </Text>
@@ -83,7 +84,7 @@ const ProductItem = ({ orderProduct }) => {
             padding: 5,
           }}>
           {currentPageName !== 'ProductsPage' && (
-            <Text style={{ color: '#666' }}>
+            <Text style={{color: '#666'}}>
               {orderProduct.quantity} X{' '}
               {Formatter.formatMoney(orderProduct.product.price)}
             </Text>
@@ -97,23 +98,17 @@ const ProductItem = ({ orderProduct }) => {
             alignItems: 'center',
           }}>
           {orderProduct.product.type === 'product' && (
-            <>
-              {currentPageName === 'ProductsPage' ? (
-                <ProductQuantity orderProduct={orderProduct} />
-              ) : (
-                <Text
-                  style={{
-                    fontSize: 16,
-                    color: '#000',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                  }}>
-                  {Formatter.formatMoney(
-                    orderProduct.quantity * orderProduct.product.price,
-                  )}
-                </Text>
+            <Text
+              style={{
+                fontSize: 16,
+                color: '#000',
+                fontWeight: 'bold',
+                textAlign: 'center',
+              }}>
+              {Formatter.formatMoney(
+                orderProduct.quantity * orderProduct.product.price,
               )}
-            </>
+            </Text>
           )}
           {orderProduct.product.type === 'custom' && (
             <TouchableOpacity
