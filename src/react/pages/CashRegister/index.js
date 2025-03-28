@@ -31,12 +31,12 @@ const CashRegister = ({navigation}) => {
       if (
         companyConfigs &&
         config &&
-        config['pdv-gateway'] &&
-        companyConfigs['pdv-cash-wallet']
+        config['pos-gateway'] &&
+        companyConfigs['pos-cash-wallet']
       ) {
         let w = [];
-        w.push(companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet']);
-        w.push(companyConfigs['pdv-cash-wallet']);
+        w.push(companyConfigs['pos-' + config['pos-gateway'] + '-wallet']);
+        w.push(companyConfigs['pos-cash-wallet']);
         setDefaultWallets(w);
       }
     }, [companyConfigs, config]),

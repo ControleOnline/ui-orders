@@ -85,7 +85,7 @@ const CloseCashRegister = ({navigation}) => {
 
         configActions
           .addConfigs({
-            configKey: 'pdv-' + device?.id,
+            configKey: 'pos-' + device?.id,
             configValue: JSON.stringify(configValue),
             visibility: 'private',
             people: '/people/' + currentCompany.id,

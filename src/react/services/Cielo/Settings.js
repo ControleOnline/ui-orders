@@ -23,7 +23,7 @@ export default CieloPaySettings = ({
   useFocusEffect(
     useCallback(() => {
       if (wallets !== null && companyConfigs)
-        discoverWallet('pdv-cielo-wallet', 'Cielo');
+        discoverWallet('pos-cielo-wallet', 'Cielo');
     }, [companyConfigs, wallets]),
   );
 
@@ -71,12 +71,12 @@ export default CieloPaySettings = ({
         paymentTypes === null ||
         wallets === null ||
         !companyConfigs ||
-        !companyConfigs['pdv-cielo-wallet']
+        !companyConfigs['pos-cielo-wallet']
       ) {
         return;
       }
       checkPaymentOptions(
-        companyConfigs['pdv-cielo-wallet'],
+        companyConfigs['pos-cielo-wallet'],
         paymentTypes,
         paymentsCheck,
       );
@@ -89,11 +89,11 @@ export default CieloPaySettings = ({
         <Text style={styles.Settings.label}>Carteira p/ Cielo: </Text>
         <View style={styles.Settings.walletValueContainer}>
           <Text style={styles.Settings.walletValue}>
-            {companyConfigs['pdv-cielo-wallet']}
+            {companyConfigs['pos-cielo-wallet']}
           </Text>
           {walletLoading || isSaving ? (
             <ActivityIndicator size={22} color={styles.Settings.label} />
-          ) : companyConfigs['pdv-cielo-wallet'] ? (
+          ) : companyConfigs['pos-cielo-wallet'] ? (
             <Icon name={'check'} size={22} color="green" />
           ) : (
             <Icon name={'close'} size={22} color="red" />

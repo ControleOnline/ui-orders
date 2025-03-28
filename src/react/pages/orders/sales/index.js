@@ -22,10 +22,10 @@ const Orders = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const device = JSON.parse(localStorage.getItem('device') || '{}');
-  const [pdvType, setPdvType] = useState(null);
+  const [posType, setPosType] = useState(null);
   const {item: config, items: companyConfigs} = configsGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
-  const status = defaultCompany?.configs['pdv-default-status'];
+  const status = defaultCompany?.configs['pos-default-status'];
 
   useFocusEffect(
     useCallback(() => {
@@ -37,7 +37,7 @@ const Orders = ({navigation}) => {
             device: device?.id,
           })
           .then(data => {
-            if (!data || (data.length == 0 && config['pdv-type'] == 'simple'))
+            if (!data || (data.length == 0 && config['pos-type'] == 'simple'))
               handleAddOrder();
           });
     }, [currentCompany]),
@@ -45,7 +45,7 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (config && config['pdv-type'] == 'simple' && items && items.length > 0)
+      if (config && config['pos-type'] == 'simple' && items && items.length > 0)
         navigation.reset({
           index: 0,
           routes: [{name: 'OrderDetails', params: {order: items[0]}}],
@@ -74,7 +74,7 @@ const Orders = ({navigation}) => {
     if (status && currentCompany)
       ordersActions
         .save({
-          app: 'PDV',
+          app: 'POS',
           provider: '/people/' + currentCompany.id,
           status: '/statuses/' + status,
           device: device?.id,

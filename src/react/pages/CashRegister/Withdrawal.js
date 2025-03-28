@@ -33,10 +33,10 @@ export default function BleedScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (companyConfigs && companyConfigs['pdv-cash-wallet'])
-        setCashWallet(companyConfigs['pdv-cash-wallet']);
-      if (companyConfigs && companyConfigs['pdv-withdrawl-wallet'])
-        setWithdrawlWallet(companyConfigs['pdv-withdrawl-wallet']);
+      if (companyConfigs && companyConfigs['pos-cash-wallet'])
+        setCashWallet(companyConfigs['pos-cash-wallet']);
+      if (companyConfigs && companyConfigs['pos-withdrawl-wallet'])
+        setWithdrawlWallet(companyConfigs['pos-withdrawl-wallet']);
     }, [companyConfigs]),
   );
 
@@ -78,13 +78,13 @@ export default function BleedScreen() {
     if (
       !withdrawlWallet ||
       !cashWallet ||
-      !defaultCompany?.configs['pdv-paid-status'] ||
+      !defaultCompany?.configs['pos-paid-status'] ||
       !currentCompany?.id
     )
       return;
     const payload = {
       dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + defaultCompany?.configs['pdv-paid-status'],
+      status: '/statuses/' + defaultCompany?.configs['pos-paid-status'],
       destinationWallet: '/wallets/' + withdrawlWallet,
       sourceWallet: '/wallets/' + cashWallet,
       price: numericValue,

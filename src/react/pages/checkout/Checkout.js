@@ -22,8 +22,8 @@ export default Checkout = ({route}) => {
   );
   return (
     <View style={{flex: 1}}>
-      {config['pdv-gateway'] == 'cielo' && <CieloCheckout />}
-      {config['pdv-gateway'] == 'infinite-pay' && <InfinitePay />}
+      {config['pos-gateway'] == 'cielo' && <CieloCheckout />}
+      {config['pos-gateway'] == 'infinite-pay' && <InfinitePay />}
     </View>
   );
 };

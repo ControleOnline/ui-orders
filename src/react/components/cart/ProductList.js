@@ -19,7 +19,7 @@ export default function ProductsList({route}) {
 
   useFocusEffect(
     useCallback(() => {
-      if (config && config['pdv-type'] == 'simple')
+      if (config && config['pos-type'] == 'simple')
         if (items && items.length == 0) {
           navigation.reset({
             index: 0,

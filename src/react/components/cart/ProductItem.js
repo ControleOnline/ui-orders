@@ -83,12 +83,10 @@ const ProductItem = ({orderProduct}) => {
             justifyContent: 'center',
             padding: 5,
           }}>
-          {currentPageName !== 'ProductsPage' && (
-            <Text style={{color: '#666'}}>
-              {orderProduct.quantity} X{' '}
-              {Formatter.formatMoney(orderProduct.product.price)}
-            </Text>
-          )}
+          <Text style={{color: '#666'}}>
+            {orderProduct.quantity} X{' '}
+            {Formatter.formatMoney(orderProduct.product.price)}
+          </Text>
         </View>
 
         <View

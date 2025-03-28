@@ -23,7 +23,7 @@ export default InfinitePaySettings = ({
   useFocusEffect(
     useCallback(() => {
       if (wallets !== null && companyConfigs)
-        discoverWallet('pdv-infinite-pay-wallet', 'Infine Pay');
+        discoverWallet('pos-infinite-pay-wallet', 'Infine Pay');
     }, [companyConfigs, wallets]),
   );
 
@@ -57,12 +57,12 @@ export default InfinitePaySettings = ({
         paymentTypes === null ||
         wallets === null ||
         !companyConfigs ||
-        !companyConfigs['pdv-infinite-pay-wallet']
+        !companyConfigs['pos-infinite-pay-wallet']
       ) {
         return;
       }
       checkPaymentOptions(
-        companyConfigs['pdv-infinite-pay-wallet'],
+        companyConfigs['pos-infinite-pay-wallet'],
         paymentTypes,
         paymentsCheck,
       );
@@ -75,11 +75,11 @@ export default InfinitePaySettings = ({
         <Text style={styles.Settings.label}>Carteira p/ Infine Pay: </Text>
         <View style={styles.Settings.walletValueContainer}>
           <Text style={styles.Settings.walletValue}>
-            {companyConfigs['pdv-infinite-pay-wallet']}
+            {companyConfigs['pos-infinite-pay-wallet']}
           </Text>
           {walletLoading || isSaving ? (
             <ActivityIndicator size={22} color={styles.Settings.label} />
-          ) : companyConfigs['pdv-infinite-pay-wallet'] ? (
+          ) : companyConfigs['pos-infinite-pay-wallet'] ? (
             <Icon name={'check'} size={22} color="green" />
           ) : (
             <Icon name={'close'} size={22} color="red" />

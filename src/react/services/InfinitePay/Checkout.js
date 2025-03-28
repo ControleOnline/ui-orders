@@ -50,17 +50,17 @@ export default Checkout = ({route}) => {
         payments.length == 0 &&
         companyConfigs &&
         config &&
-        config['pdv-gateway']
+        config['pos-gateway']
       ) {
         let wallets = [];
 
-        if (companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet'])
+        if (companyConfigs['pos-' + config['pos-gateway'] + '-wallet'])
           wallets.push(
-            companyConfigs['pdv-' + config['pdv-gateway'] + '-wallet'],
+            companyConfigs['pos-' + config['pos-gateway'] + '-wallet'],
           );
 
-        if (companyConfigs['pdv-cash-wallet'])
-          wallets.push(companyConfigs['pdv-cash-wallet']);
+        if (companyConfigs['pos-cash-wallet'])
+          wallets.push(companyConfigs['pos-cash-wallet']);
 
         paymentTypeActions.getItems({
           people: '/people/' + currentCompany.id,
@@ -145,7 +145,7 @@ export default Checkout = ({route}) => {
     }
     const payload = {
       dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + defaultCompany?.configs['pdv-paid-status'],
+      status: '/statuses/' + defaultCompany?.configs['pos-paid-status'],
       destinationWallet: selectedPayment.wallet['@id'],
       paymentType: selectedPayment.paymentType['@id'],
       price: total,

@@ -19,8 +19,13 @@ const ProductsPage = ({navigation, route}) => {
   const {item: order} = ordersGetters;
   const {getters: orderProductsGetters, actions: orderProductActions} =
     getStore('order_products');
-  const {items: orderProducts, reload} = orderProductsGetters;
-  const {isLoading, error} = getters;
+  const {
+    items: orderProducts,
+    reload,
+    isLoading,
+    isSaving,
+    error,
+  } = orderProductsGetters;
 
   const {styles} = css();
 
@@ -93,42 +98,45 @@ const ProductsPage = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StateStore store="products" />
-      {!isLoading && currentCategoryProducts.length > 0 && !error && (
-        <>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.Product.productsContainer}>
-              {currentCategoryProducts.map(product => (
-                <ProductItem
-                  key={product.id}
-                  product={product}
-                  category={category}
-                  onQuantityChange={() =>
-                    setProducts(
-                      JSON.parse(localStorage.getItem('products') || '{}'),
-                    )
-                  }
-                />
-              ))}
-            </View>
-          </ScrollView>
-          <TouchableOpacity
-            onPress={handleSave}
-            style={[
-              styles.btnPay,
-              {
-                justifyContent: 'center',
-                alignItems: 'center',
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-              },
-            ]}>
-            <Text style={styles.textWhite}>FINALIZAR</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      <StateStore store="order_products" />
+      {!isLoading &&
+        !isSaving &&
+        currentCategoryProducts.length > 0 &&
+        !error && (
+          <>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <View style={styles.Product.productsContainer}>
+                {currentCategoryProducts.map(product => (
+                  <ProductItem
+                    key={product.id}
+                    product={product}
+                    category={category}
+                    onQuantityChange={() =>
+                      setProducts(
+                        JSON.parse(localStorage.getItem('products') || '{}'),
+                      )
+                    }
+                  />
+                ))}
+              </View>
+            </ScrollView>
+            <TouchableOpacity
+              onPress={handleSave}
+              style={[
+                styles.btnPay,
+                {
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                },
+              ]}>
+              <Text style={styles.textWhite}>FINALIZAR</Text>
+            </TouchableOpacity>
+          </>
+        )}
     </SafeAreaView>
   );
 };
