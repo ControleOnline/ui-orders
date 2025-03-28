@@ -108,7 +108,7 @@ const CloseCashRegister = ({navigation}) => {
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View>
-              <Text>{userActions.getLoggedUser().realname}</Text>
+              <Text>{user.realname}</Text>
             </View>
           </ScrollView>
           <View>
