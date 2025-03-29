@@ -131,15 +131,15 @@ export default Checkout = ({route}) => {
   };
 
   async function handleConfirmValue() {
-    const valorNumerico = parseFloat(inputValue.replace(/\D/g, '')) / 100;
-    if (isNaN(valorNumerico) || valorNumerico <= 0) {
+    const numericValue = parseFloat(inputValue.replace(/\D/g, '')) / 100;
+    if (isNaN(numericValue) || numericValue <= 0) {
       paymentTypeActions.setError('Por favor, insira um valor válido!');
       setModalVisible(false);
       return;
     }
 
     if (selectedPayment.paymentCode) {
-      let totalPrice = Math.round(valorNumerico * 100).toString();
+      let totalPrice = Math.round(numericValue * 100).toString();
       let items = formatProducts();
 
       const service = new Cielo();
@@ -158,7 +158,7 @@ export default Checkout = ({route}) => {
           return;
         }
 
-        createInvoice(valorNumerico);
+        createInvoice(numericValue);
       } catch (error) {
         paymentTypeActions.setError('Erro inesperado: ' + error.message);
         console.error('Erro na chamada ao serviço:', error);
@@ -166,7 +166,7 @@ export default Checkout = ({route}) => {
         setInputValue('');
       }
     } else {
-      createInvoice(valorNumerico);
+      createInvoice(numericValue);
     }
 
     setModalVisible(false);
