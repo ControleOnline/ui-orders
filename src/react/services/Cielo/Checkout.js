@@ -17,6 +17,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
+import {setError} from '../../../../../ui-default/src/store/default/actions';
 export default Checkout = ({route}) => {
   const navigation = useNavigation();
   const {styles, globalStyles} = css();
@@ -77,7 +78,9 @@ export default Checkout = ({route}) => {
       let item = {};
       item.name = orderProduct.product.product;
       item.quantity = orderProduct.quantity;
-      item.sku = orderProduct.product.sku;
+      item.sku =
+        orderProduct.product.sku ||
+        orderProduct.product['@id'].replace(/\D/g, '');
       item.unitOfMeasure = 'unidade';
       item.unitPrice = Math.round(orderProduct.price * 100).toString();
       items.push(item);
@@ -96,38 +99,11 @@ export default Checkout = ({route}) => {
       return;
     }
 
-    let totalPrice = Math.round(order.price * 100).toString();
-    let items = formatProducts();
-
-    const service = new Cielo();
-
-    try {
-      if (!selectedPayment.paymentCode) {
-        let value = 0;
-        if (payable > 0) value = 0;
-        else value = payable * -1;
-        setInputValue(Formatter.formatMoney(value));
-        setModalVisible(true);
-        return;
-      }
-
-      const response = await service.payment(
-        selectedPayment.paymentCode,
-        items,
-        totalPrice,
-      );
-
-      if (
-        !response.success ||
-        response.result.code === 2 ||
-        response.result.code === 1
-      )
-        throw response;
-
-      createInvoice(response.paidAmount / 100);
-    } catch (error) {
-      paymentTypeActions.setError(error);
-    }
+    let value = 0;
+    if (payable > 0) value = 0;
+    else value = payable * -1;
+    setInputValue(Formatter.formatMoney(value));
+    setModalVisible(true);
   };
 
   const createInvoice = total => {
@@ -154,7 +130,7 @@ export default Checkout = ({route}) => {
     });
   };
 
-  const handleConfirmValue = () => {
+  async function handleConfirmValue() {
     const valorNumerico = parseFloat(inputValue.replace(/\D/g, '')) / 100;
     if (isNaN(valorNumerico) || valorNumerico <= 0) {
       paymentTypeActions.setError('Por favor, insira um valor válido!');
@@ -162,10 +138,40 @@ export default Checkout = ({route}) => {
       return;
     }
 
+    if (selectedPayment.paymentCode) {
+      let totalPrice = Math.round(valorNumerico * 100).toString();
+      let items = formatProducts();
+
+      const service = new Cielo();
+
+      try {
+        const response = await service.payment(
+          selectedPayment.paymentCode,
+          items,
+          totalPrice,
+        );
+
+        if (!response.success) {
+          paymentTypeActions.setError(response.result);
+          setModalVisible(false);
+          setInputValue('');
+          return;
+        }
+
+        createInvoice(valorNumerico);
+      } catch (error) {
+        paymentTypeActions.setError('Erro inesperado: ' + error.message);
+        console.error('Erro na chamada ao serviço:', error);
+        setModalVisible(false);
+        setInputValue('');
+      }
+    } else {
+      createInvoice(valorNumerico);
+    }
+
     setModalVisible(false);
     setInputValue('');
-    createInvoice(valorNumerico);
-  };
+  }
 
   const handleCancel = () => {
     setModalVisible(false);
