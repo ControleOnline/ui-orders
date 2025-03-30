@@ -9,6 +9,7 @@ import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/O
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
+import CustomizeScreen from '@controleonline/ui-products/src/react/pages/CustomizeScreen';
 import {getStore} from '@store';
 
 import React from 'react';
@@ -39,6 +40,12 @@ const WrappedCloseCachRegister = ({navigation, route}) => {
     </ShopLayout>
   );
 };
+
+const WrappedCustomizeScreen = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
+    <CustomizeScreen navigation={navigation} route={route} />
+  </ShopLayout>
+);
 
 const WrappedWithdrawal = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
@@ -103,6 +110,17 @@ const WrappedOrderDetails = ({navigation, route}) => {
 };
 
 const ordersRoutes = [
+  {
+    name: 'CustomizeScreen',
+    component: WrappedCustomizeScreen,
+    options: {
+      headerShown: true,
+      title: 'Customizar Produto',
+      headerBackButtonMenuEnabled: false,
+    },
+    initialParams: {store: 'product'},
+  },
+
   {
     name: 'SalesOrderIndex',
     component: WrappedOrdersPage,

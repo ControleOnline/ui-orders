@@ -10,10 +10,7 @@ const print = async (order, actions) => {
     'print-type': 'pos',
     'device-type': 'cielo',
   });
-  console.log(printData);
-
   const printRequest = JSON.stringify(printData);
-
   const result = await Cielo.print(printRequest);
 
   if (result.success) {

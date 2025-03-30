@@ -4,17 +4,12 @@ import {useNavigation} from '@react-navigation/native';
 import css from '@controleonline/ui-products/src/react/css/products';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import ProductQuantity from '@controleonline/ui-orders/src/react/components/cart/ProductQuantity';
 
 const ProductItem = ({orderProduct}) => {
   const navigation = useNavigation();
   const {styles, globalStyles} = css();
   const currentPageName =
     navigation.getState().routes[navigation.getState().index].name;
-
-  const customize = product => {
-    console.log(orderProduct);
-  };
 
   return (
     <View
@@ -107,20 +102,6 @@ const ProductItem = ({orderProduct}) => {
                 orderProduct.quantity * orderProduct.product.price,
               )}
             </Text>
-          )}
-          {orderProduct.product.type === 'custom' && (
-            <TouchableOpacity
-              onPress={() => customize(orderProduct)}
-              style={[
-                globalStyles.button,
-                styles.btnPay,
-                {
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                },
-              ]}>
-              <Text style={styles.textWhite}>CUSTOMIZAR</Text>
-            </TouchableOpacity>
           )}
         </View>
       </View>
