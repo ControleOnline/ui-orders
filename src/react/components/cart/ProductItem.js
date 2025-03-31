@@ -11,6 +11,23 @@ const ProductItem = ({orderProduct}) => {
   const currentPageName =
     navigation.getState().routes[navigation.getState().index].name;
 
+  const groupComponentsByGroup = components => {
+    return components.reduce((acc, component) => {
+      const groupName = component.productGroup?.productGroup;
+      if (!acc[groupName]) {
+        acc[groupName] = [];
+      }
+      acc[groupName].push(component);
+      return acc;
+    }, {});
+  };
+
+  const groupedComponents =
+    orderProduct.orderProductComponents &&
+    orderProduct.orderProductComponents.length > 0
+      ? groupComponentsByGroup(orderProduct.orderProductComponents)
+      : {};
+
   return (
     <View
       style={[
@@ -53,21 +70,52 @@ const ProductItem = ({orderProduct}) => {
               ]}>
               {orderProduct.product.description}
             </Text>
-            {orderProduct.orderProductComponents && orderProduct.orderProductComponents.length > 0 && (
-              <View style={{marginTop: 5}}>
-                {orderProduct.orderProductComponents.map((orderProductComponent, index) => (
-                  <Text
-                    key={index}
-                    style={{
-                      fontSize: 12,
-                      color: '#888',
-                      marginTop: 2,
-                    }}>
-                    - {orderProductComponent.product.product}
-                  </Text>
-                ))}
-              </View>
-            )}
+            {orderProduct.orderProductComponents &&
+              orderProduct.orderProductComponents.length > 0 && (
+                <View style={{marginTop: 5}}>
+                  {Object.entries(groupedComponents).map(
+                    ([groupName, components], groupIndex) => (
+                      <View key={groupIndex} style={{marginBottom: 8}}>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 'bold',
+                            color: '#444',
+                            marginBottom: 4,
+                          }}>
+                          {groupName}
+                        </Text>
+                        {components.map((orderProductComponent, index) => (
+                          <>
+                            <Text
+                              key={index}
+                              style={{
+                                fontSize: 12,
+                                color: '#888',
+                                marginTop: 2,
+                              }}>
+                              - {orderProductComponent.product.product}
+                            </Text>
+                            {orderProductComponent.orderProductComponents.map(
+                              (ingredient, i) => (
+                                <Text
+                                  key={i}
+                                  style={{
+                                    fontSize: 12,
+                                    color: '#888',
+                                    marginTop: 2,
+                                  }}>
+                                  -- Remover {ingredient.product.product}
+                                </Text>
+                              ),
+                            )}
+                          </>
+                        ))}
+                      </View>
+                    ),
+                  )}
+                </View>
+              )}
           </View>
         </View>
 
