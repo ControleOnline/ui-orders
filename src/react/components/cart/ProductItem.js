@@ -53,9 +53,9 @@ const ProductItem = ({orderProduct}) => {
               ]}>
               {orderProduct.product.description}
             </Text>
-            {orderProduct.sub_products && orderProduct.sub_products.length > 0 && (
+            {orderProduct.orderProductComponents && orderProduct.orderProductComponents.length > 0 && (
               <View style={{marginTop: 5}}>
-                {orderProduct.sub_products.map((subProduct, index) => (
+                {orderProduct.orderProductComponents.map((orderProductComponent, index) => (
                   <Text
                     key={index}
                     style={{
@@ -63,7 +63,7 @@ const ProductItem = ({orderProduct}) => {
                       color: '#888',
                       marginTop: 2,
                     }}>
-                    - {subProduct.product} (x{subProduct.quantity})
+                    - {orderProductComponent.product.product}
                   </Text>
                 ))}
               </View>
