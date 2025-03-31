@@ -53,6 +53,21 @@ const ProductItem = ({orderProduct}) => {
               ]}>
               {orderProduct.product.description}
             </Text>
+            {orderProduct.sub_products && orderProduct.sub_products.length > 0 && (
+              <View style={{marginTop: 5}}>
+                {orderProduct.sub_products.map((subProduct, index) => (
+                  <Text
+                    key={index}
+                    style={{
+                      fontSize: 12,
+                      color: '#888',
+                      marginTop: 2,
+                    }}>
+                    - {subProduct.product} (x{subProduct.quantity})
+                  </Text>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -80,7 +95,7 @@ const ProductItem = ({orderProduct}) => {
           }}>
           <Text style={{color: '#666'}}>
             {orderProduct.quantity} X{' '}
-            {Formatter.formatMoney(orderProduct.product.price)}
+            {Formatter.formatMoney(orderProduct.price)}
           </Text>
         </View>
 
@@ -90,19 +105,15 @@ const ProductItem = ({orderProduct}) => {
             justifyContent: 'center',
             alignItems: 'center',
           }}>
-          {orderProduct.product.type === 'product' && (
-            <Text
-              style={{
-                fontSize: 16,
-                color: '#000',
-                fontWeight: 'bold',
-                textAlign: 'center',
-              }}>
-              {Formatter.formatMoney(
-                orderProduct.quantity * orderProduct.product.price,
-              )}
-            </Text>
-          )}
+          <Text
+            style={{
+              fontSize: 16,
+              color: '#000',
+              fontWeight: 'bold',
+              textAlign: 'center',
+            }}>
+            {Formatter.formatMoney(orderProduct.quantity * orderProduct.price)}
+          </Text>
         </View>
       </View>
     </View>
