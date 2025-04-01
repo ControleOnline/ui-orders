@@ -99,7 +99,7 @@ const ProductItem = ({orderProduct}) => {
                             {orderProductComponent.orderProductComponents.map(
                               (ingredient, i) => (
                                 <Text
-                                  key={i}
+                                  key={index + '-' + i}
                                   style={{
                                     fontSize: 12,
                                     color: '#888',
