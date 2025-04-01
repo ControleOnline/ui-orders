@@ -9,14 +9,13 @@ export default InfinitePaySettings = ({
   checkPaymentOptions,
   discoverWallet,
 }) => {
-  const {getters: walletGetters, actions: walletActions} = getStore('wallet');
-  const {getters: peopleGetters, actions: peopleActions} = getStore('people');
+  const {getters: walletGetters} = getStore('wallet');
+  const {getters: peopleGetters} = getStore('people');
   const {currentCompany} = peopleGetters;
   const {getters: configsGetters} = getStore('configs');
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('paymentType');
+  const {getters: paymentTypeGetters} = getStore('paymentType');
   const {items: paymentTypes} = paymentTypeGetters;
-  const {item: config, items: companyConfigs, isSaving} = configsGetters;
+  const {items: companyConfigs, isSaving} = configsGetters;
   const {isLoading: walletLoading, items: wallets} = walletGetters;
   const {styles, globalStyles} = css();
 

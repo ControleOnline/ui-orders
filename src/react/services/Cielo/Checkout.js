@@ -33,7 +33,9 @@ export default Checkout = ({route}) => {
     items: invoices,
   } = invoiceGetters;
   const {getters: configsGetters} = getStore('configs');
-  const {item: config, items: companyConfigs} = configsGetters;
+  const {items: companyConfigs} = configsGetters;
+  const {getters: deviceGetters} = getStore('device');
+  const {item: device} = deviceGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const {item: order, payable} = getters;
@@ -46,14 +48,14 @@ export default Checkout = ({route}) => {
       if (
         payments.length == 0 &&
         companyConfigs &&
-        config &&
-        config['pos-gateway']
+        device.configs &&
+        device.configs['pos-gateway']
       ) {
         let wallets = [];
 
-        if (companyConfigs['pos-' + config['pos-gateway'] + '-wallet'])
+        if (companyConfigs['pos-' + device.configs['pos-gateway'] + '-wallet'])
           wallets.push(
-            companyConfigs['pos-' + config['pos-gateway'] + '-wallet'],
+            companyConfigs['pos-' + device.configs['pos-gateway'] + '-wallet'],
           );
 
         if (companyConfigs['pos-cash-wallet'])

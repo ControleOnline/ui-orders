@@ -9,24 +9,21 @@ import ProductItem from '@controleonline/ui-orders/src/react/components/cart/Pro
 export default function ProductsList({route}) {
   const {styles, globalStyles} = css();
   const navigation = useNavigation();
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
-  const {getters: configsGetters} = getStore('configs');
-  const {item: config} = configsGetters;
-  const {item} = ordersGetters;
+  const {getters: orderProductsGetters} = getStore('order_products');
+  const {getters: deviceGetters} = getStore('device');
+  const {item: device} = deviceGetters;
   const {items, isLoading, isSaving, error, reload} = orderProductsGetters;
 
   useFocusEffect(
     useCallback(() => {
-      if (config && config['pos-type'] == 'simple')
+      if (device.configs && device.configs['pos-type'] == 'simple')
         if (items && items.length == 0) {
           navigation.reset({
             index: 0,
             routes: [{name: 'AddProductScreen'}],
           });
         }
-    }, [items, config]),
+    }, [items, device]),
   );
   return (
     <View>

@@ -16,28 +16,33 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
   const {getters, actions: ordersActions} = getStore('orders');
-  const {getters: configsGetters} = getStore('configs');
-  const {actions: authActions} = getStore('auth');
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
-  const device = JSON.parse(localStorage.getItem('device') || '{}');
-  const [posType, setPosType] = useState(null);
-  const {item: config, items: companyConfigs} = configsGetters;
+  const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
+  const {getters: deviceGetters} = getStore('device');
+  const {item: device} = deviceGetters;
 
   useFocusEffect(
     useCallback(() => {
-      if (currentCompany && Object.entries(currentCompany).length > 0 && config)
+      if (
+        currentCompany &&
+        Object.entries(currentCompany).length > 0 &&
+        device.configs
+      )
         ordersActions
           .getItems({
             provider: '/people/' + currentCompany.id,
             status: status,
-            device: device?.id,
+            device: localDevice?.id,
           })
           .then(data => {
-            if (!data || (data.length == 0 && config['pos-type'] == 'simple'))
+            if (
+              !data ||
+              (data.length == 0 && device.configs['pos-type'] == 'simple')
+            )
               handleAddOrder();
           });
     }, [currentCompany]),
@@ -45,12 +50,17 @@ const Orders = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (config && config['pos-type'] == 'simple' && items && items.length > 0)
+      if (
+        device.configs &&
+        device.configs['pos-type'] == 'simple' &&
+        items &&
+        items.length > 0
+      )
         navigation.reset({
           index: 0,
           routes: [{name: 'OrderDetails', params: {order: items[0]}}],
         });
-    }, [items, config]),
+    }, [items, device]),
   );
 
   const handleEdit = order => {
@@ -77,7 +87,7 @@ const Orders = ({navigation}) => {
           app: 'POS',
           provider: '/people/' + currentCompany.id,
           status: '/statuses/' + status,
-          device: device?.id,
+          device: localDevice?.id,
         })
         .then(order => {
           handleEdit(order);

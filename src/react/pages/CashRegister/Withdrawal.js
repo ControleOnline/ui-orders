@@ -27,7 +27,7 @@ export default function BleedScreen() {
   const [bleedValue, setBleedValue] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const {getters: configsGetters} = getStore('configs');
-  const {item: config, items: companyConfigs} = configsGetters;
+  const {items: companyConfigs} = configsGetters;
   const [cashWallet, setCashWallet] = useState(null);
   const [withdrawlWallet, setWithdrawlWallet] = useState(null);
 

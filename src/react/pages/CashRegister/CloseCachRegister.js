@@ -16,25 +16,22 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {getters: configsGetters, actions: configActions} = getStore('configs');
-  const {getters: authGetters, actions: userActions} = getStore('auth');
-  const {getters: peopleGetters, actions: peopleActions} = getStore('people');
+  const {getters: authGetters} = getStore('auth');
+  const {getters: peopleGetters} = getStore('people');
   const {actions: invoiceActions} = getStore('invoice');
+  const {getters: deviceGetters, actions: deviceActions} = getStore('device');
+  const {item: device} = deviceGetters;
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
   const storagedDevice = localStorage.getItem('device');
-  const [device, setDevice] = useState(() => {
+  const [localDevice] = useState(() => {
     return storagedDevice ? JSON.parse(storagedDevice) : {};
   });
-  const {
-    item: config,
-    items: companyConfigs,
-    isLoading,
-    error,
-  } = configsGetters;
+  const {isLoading, error} = configsGetters;
 
   useFocusEffect(
     useCallback(() => {
-      console.log(config['cash-wallet-open-id']);
+      console.log(device.configs['cash-wallet-open-id']);
       //cash-wallet-open-id
     }, [user]),
   );
@@ -83,16 +80,18 @@ const CloseCashRegister = ({navigation}) => {
               'cash-wallet-closed-id': openId,
             };
 
-        configActions
-          .addConfigs({
-            configKey: 'pos-' + device?.id,
-            configValue: JSON.stringify(configValue),
-            visibility: 'private',
+        deviceActions
+          .addDeviceConfigs({
+            device: localDevice?.id,
+            configs: JSON.stringify(configValue),
             people: '/people/' + currentCompany.id,
-            module: '/modules/' + 8,
           })
-          .then(value => {
-            configActions.setItem(JSON.parse(value.configValue));
+          .then(data => {
+            if (data && Object.keys(data).length > 0) {
+              let d = {...data};
+              d.configs = JSON.parse(d.configs);
+              deviceActions.setItem(d);
+            }
             navigation.reset({
               index: 0,
               routes: [{name: 'HomePage'}],
@@ -115,8 +114,8 @@ const CloseCashRegister = ({navigation}) => {
             <Text>Imprimir</Text>
           </View>
           <View style={{height: 50}}>
-            {!config['cash-wallet-closed-id'] == undefined ||
-            config['cash-wallet-closed-id'] == 0 ? (
+            {!device.configs['cash-wallet-closed-id'] == undefined ||
+            device.configs['cash-wallet-closed-id'] == 0 ? (
               <TouchableOpacity
                 onPress={handleConfirmClose}
                 style={[

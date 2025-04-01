@@ -8,13 +8,13 @@ import {getStore} from '@store';
 const PrintButton = ({}) => {
   const {styles, globalStyles} = css();
   const {getters, actions} = getStore('orders');
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
-  const {item: config, items: companyConfigs, isSaving} = configsGetters;
+  const {getters: deviceGetters} = getStore('device');
+  const {item: device} = deviceGetters;
   const {item: order} = getters;
 
   const handlePrint = async () => {
     try {
-      if (config['pos-gateway'] == 'cielo') {
+      if (device.configs['pos-gateway'] == 'cielo') {
         await cielo.print(order, actions);
       }
     } catch (error) {
@@ -24,7 +24,7 @@ const PrintButton = ({}) => {
 
   return (
     <>
-      {config['pos-gateway'] == 'cielo' && (
+      {device.configs['pos-gateway'] == 'cielo' && (
         <TouchableOpacity
           style={[globalStyles.button, globalStyles.btnAdd, {marginLeft: 5}]}
           onPress={handlePrint}>

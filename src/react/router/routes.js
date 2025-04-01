@@ -21,18 +21,18 @@ const WrappedOrdersPage = ({navigation, route}) => (
 );
 
 const WrappedCloseCachRegister = ({navigation, route}) => {
-  const {getters: configsGetters} = getStore('configs');
-  const {item: config} = configsGetters;
+  const {getters: deviceGetters} = getStore('device');
+  const {item: device} = deviceGetters;
 
   React.useEffect(() => {
     navigation.setOptions({
       title:
-        config['cash-wallet-closed-id'] == undefined ||
-        config['cash-wallet-closed-id'] > 0
+        device.configs['cash-wallet-closed-id'] == undefined ||
+        device.configs['cash-wallet-closed-id'] > 0
           ? 'Abrir Caixa'
           : 'Fechar Caixa',
     });
-  }, [navigation, config['cash-wallet-open-id']]);
+  }, [navigation, device.configs['cash-wallet-open-id']]);
 
   return (
     <ShopLayout navigation={navigation} route={route}>
@@ -91,8 +91,6 @@ const WrappedOrderTools = ({navigation, route}) => {
 
 const WrappedOrderDetails = ({navigation, route}) => {
   const order = route.params?.order;
-  const {getters: configsGetters} = getStore('configs');
-  const {item: config} = configsGetters;
 
   React.useEffect(() => {
     navigation.setOptions({

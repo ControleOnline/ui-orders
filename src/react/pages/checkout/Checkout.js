@@ -10,8 +10,8 @@ import {getStore} from '@store';
 
 export default Checkout = ({route}) => {
   const {styles, globalStyles} = css();
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
-  const {item: config, items: companyConfigs, isSaving} = configsGetters;
+  const {getters: deviceGetters} = getStore('device');
+  const {item: device} = deviceGetters;
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order} = ordersGetters;
 
@@ -22,8 +22,8 @@ export default Checkout = ({route}) => {
   );
   return (
     <View style={{flex: 1}}>
-      {config['pos-gateway'] == 'cielo' && <CieloCheckout />}
-      {config['pos-gateway'] == 'infinite-pay' && <InfinitePay />}
+      {device.configs['pos-gateway'] == 'cielo' && <CieloCheckout />}
+      {device.configs['pos-gateway'] == 'infinite-pay' && <InfinitePay />}
     </View>
   );
 };

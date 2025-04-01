@@ -12,14 +12,15 @@ const CashRegister = ({navigation}) => {
   const {getters: peopleGetters} = getStore('people');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
+  const {actions: paymentTypeActions} = getStore('walletPaymentType');
   const {getters: configsGetters} = getStore('configs');
-  const {item: config, items: companyConfigs} = configsGetters;
+  const {getters: deviceGetters} = getStore('device');
+  const {item: device} = deviceGetters;
+  const {items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;
 
-  const device = JSON.parse(localStorage.getItem('device') || '{}');
+  const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
   const [processedData, setProcessedData] = useState({
     walletGroups: [],
     total: 0,
@@ -30,16 +31,18 @@ const CashRegister = ({navigation}) => {
     useCallback(() => {
       if (
         companyConfigs &&
-        config &&
-        config['pos-gateway'] &&
+        device &&
+        device.configs['pos-gateway'] &&
         companyConfigs['pos-cash-wallet']
       ) {
         let w = [];
-        w.push(companyConfigs['pos-' + config['pos-gateway'] + '-wallet']);
+        w.push(
+          companyConfigs['pos-' + device.configs['pos-gateway'] + '-wallet'],
+        );
         w.push(companyConfigs['pos-cash-wallet']);
         setDefaultWallets(w);
       }
-    }, [companyConfigs, config]),
+    }, [companyConfigs, device]),
   );
 
   const handleWithdrawal = () => {
@@ -61,10 +64,14 @@ const CashRegister = ({navigation}) => {
   );
   useFocusEffect(
     useCallback(() => {
-      if (config && device && config['config-version'] == device.buildNumber)
+      if (
+        device.configs &&
+        localDevice &&
+        device.configs['config-version'] == localDevice.buildNumber
+      )
         invoiceActions.getInflow({
           receiver: currentCompany.id,
-          device: device?.id,
+          device: localDevice?.id,
         });
     }, []),
   );
