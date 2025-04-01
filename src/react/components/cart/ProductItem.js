@@ -29,36 +29,15 @@ const ProductItem = ({orderProduct}) => {
       : {};
 
   return (
-    <View
-      style={[
-        styles.boxWrap,
-        {
-          borderRadius: 10,
-          marginBottom: 10,
-          overflow: 'hidden',
-          backgroundColor: '#fff',
-        },
-      ]}>
-      <View
-        style={{
-          flexDirection: 'row',
-          padding: 10,
-          alignItems: 'flex-start',
-        }}>
-        <View
-          style={{
-            flex: 1,
-            padding: 5,
-          }}>
-          <View
-            style={{
-              flexDirection: 'column',
-            }}>
+    <View style={[styles.boxWrap, styles.productItem.cardContainer]}>
+      <View style={styles.productItem.rowContainer}>
+        <View style={styles.productItem.infoContainer}>
+          <View style={styles.productItem.columnContainer}>
             <Text
               style={[
                 styles.boxTextColor,
                 styles.boxOrderText,
-                {fontSize: 16, fontWeight: 'bold'},
+                styles.productItem.productName,
               ]}>
               {orderProduct.product.product}
             </Text>
@@ -66,45 +45,31 @@ const ProductItem = ({orderProduct}) => {
               style={[
                 styles.boxDateText,
                 styles.boxTextColor,
-                {fontSize: 14, color: '#666', marginTop: 2},
+                styles.productItem.productDescription,
               ]}>
               {orderProduct.product.description}
             </Text>
             {orderProduct.orderProductComponents &&
               orderProduct.orderProductComponents.length > 0 && (
-                <View style={{marginTop: 5}}>
+                <View style={styles.productItem.groupContainer}>
                   {Object.entries(groupedComponents).map(
                     ([groupName, components], groupIndex) => (
                       <View key={groupIndex} style={{marginBottom: 8}}>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 'bold',
-                            color: '#444',
-                            marginBottom: 4,
-                          }}>
+                        <Text style={styles.productItem.groupName}>
                           {groupName}
                         </Text>
                         {components.map((orderProductComponent, index) => (
                           <>
                             <Text
                               key={index}
-                              style={{
-                                fontSize: 12,
-                                color: '#888',
-                                marginTop: 2,
-                              }}>
+                              style={styles.productItem.componentText}>
                               - {orderProductComponent.product.product}
                             </Text>
                             {orderProductComponent.orderProductComponents.map(
                               (ingredient, i) => (
                                 <Text
                                   key={index + '-' + i}
-                                  style={{
-                                    fontSize: 12,
-                                    color: '#888',
-                                    marginTop: 2,
-                                  }}>
+                                  style={styles.productItem.componentText}>
                                   -- Remover {ingredient.product.product}
                                 </Text>
                               ),
@@ -119,47 +84,21 @@ const ProductItem = ({orderProduct}) => {
           </View>
         </View>
 
-        <View
-          style={{
-            width: 100,
-            height: 100,
-            justifyContent: 'flex-start',
-            alignItems: 'center',
-          }}>
+        <View style={styles.productItem.imageContainer}>
           <Carousel images={orderProduct.product.productFiles} />
         </View>
       </View>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          padding: 10,
-        }}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            padding: 5,
-          }}>
-          <Text style={{color: '#666'}}>
+      <View style={styles.productItem.priceRow}>
+        <View style={styles.productItem.priceContainer}>
+          <Text style={styles.productItem.priceText}>
             {orderProduct.quantity} X{' '}
             {Formatter.formatMoney(orderProduct.price)}
           </Text>
         </View>
 
-        <View
-          style={{
-            width: 100,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-          <Text
-            style={{
-              fontSize: 16,
-              color: '#000',
-              fontWeight: 'bold',
-              textAlign: 'center',
-            }}>
+        <View style={styles.productItem.totalContainer}>
+          <Text style={styles.productItem.totalText}>
             {Formatter.formatMoney(orderProduct.quantity * orderProduct.price)}
           </Text>
         </View>

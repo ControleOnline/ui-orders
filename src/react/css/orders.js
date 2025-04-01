@@ -1,10 +1,10 @@
-import {StyleSheet} from 'react-native';
+import { StyleSheet } from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
-import {getStore} from '@store';
+import { getStore } from '@store';
 
 const css = () => {
-  const {getters} = getStore('theme');
-  const {colors} = getters;
+  const { getters } = getStore('theme');
+  const { colors } = getters;
 
   const styles = StyleSheet.create({
     container: {
@@ -339,9 +339,10 @@ const css = () => {
         borderRadius: 4,
       },
     },
+    
   });
 
-  return {styles, globalStyles: globalStyles()};
+  return { styles, globalStyles: globalStyles() };
 };
 
 export default css;
