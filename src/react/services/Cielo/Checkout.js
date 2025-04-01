@@ -48,7 +48,8 @@ export default Checkout = ({route}) => {
       if (
         payments.length == 0 &&
         companyConfigs &&
-        device.configs &&
+        device?.configs &&
+        Object.entries(device.configs).length > 0 &&
         device.configs['pos-gateway']
       ) {
         let wallets = [];

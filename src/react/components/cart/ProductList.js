@@ -16,7 +16,11 @@ export default function ProductsList({route}) {
 
   useFocusEffect(
     useCallback(() => {
-      if (device.configs && device.configs['pos-type'] == 'simple')
+      if (
+        device?.configs &&
+        Object.entries(device.configs).length > 0 &&
+        device.configs['pos-type'] == 'simple'
+      )
         if (items && items.length == 0) {
           navigation.reset({
             index: 0,

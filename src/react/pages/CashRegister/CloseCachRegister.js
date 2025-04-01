@@ -114,8 +114,9 @@ const CloseCashRegister = ({navigation}) => {
             <Text>Imprimir</Text>
           </View>
           <View style={{height: 50}}>
-            {!device.configs['cash-wallet-closed-id'] == undefined ||
-            device.configs['cash-wallet-closed-id'] == 0 ? (
+            {!device?.configs ||
+            !device?.configs['cash-wallet-closed-id'] == undefined ||
+            device?.configs['cash-wallet-closed-id'] == 0 ? (
               <TouchableOpacity
                 onPress={handleConfirmClose}
                 style={[

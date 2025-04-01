@@ -65,7 +65,7 @@ const CashRegister = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       if (
-        device.configs &&
+        device?.configs &&
         localDevice &&
         device.configs['config-version'] == localDevice.buildNumber
       )

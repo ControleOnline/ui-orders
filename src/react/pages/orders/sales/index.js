@@ -51,7 +51,7 @@ const Orders = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       if (
-        device.configs &&
+        device?.configs &&
         device.configs['pos-type'] == 'simple' &&
         items &&
         items.length > 0
