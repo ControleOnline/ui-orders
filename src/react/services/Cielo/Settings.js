@@ -34,6 +34,21 @@ export default CieloPaySettings = ({
       people: '/people/' + currentCompany.id,
       paymentCode: 'DEBITO_AVISTA',
     },
+
+    {
+      paymentType: 'Refeição',
+      frequency: 'single',
+      installments: 'single',
+      people: '/people/' + currentCompany.id,
+      paymentCode: 'VOUCHER_REFEICAO',
+    },
+    {
+      paymentType: 'Alimentação',
+      frequency: 'single',
+      installments: 'single',
+      people: '/people/' + currentCompany.id,
+      paymentCode: 'VOUCHER_ALIMENTACAO',
+    },
     {
       paymentType: 'Crédito à Vista',
       frequency: 'single',

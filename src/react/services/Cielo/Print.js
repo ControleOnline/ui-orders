@@ -1,23 +1,24 @@
-import { NativeModules } from 'react-native';
+import {NativeModules} from 'react-native';
 
-const { Cielo } = NativeModules;
+const {Cielo} = NativeModules;
 
 const print = async (order, actions) => {
   const orderId = order['@id'].split('/').pop();
 
-  const printData = await actions.print({
-    id: orderId,
-    'print-type': 'pos',
-    'device-type': 'cielo',
-  });
-  const printRequest = JSON.stringify(printData);
-  const result = await Cielo.print(printRequest);
+  try {
+    const printData = await actions.print({
+      id: orderId,
+      'print-type': 'pos',
+      'device-type': 'cielo',
+    });
 
-  if (result.success) {
-    console.log('Impressão realizada com sucesso:', result.result);
-  } else {
-    console.error('Erro na impressão:', result.result);
+    const printRequest = JSON.stringify(printData);
+    const result = await Cielo.print(printRequest);
+
+    return result;
+  } catch (error) {
+    throw error;
   }
 };
 
-export default { print };
+export default {print};
