@@ -44,9 +44,8 @@ const OrderDetails = ({route, navigation}) => {
         orderProductsActions.getItems({
           company: '/people/' + currentCompany.id,
           order: order['@id'],
-          'exists[parentProduct]': 'false',
-          'order.product.product': 'ASC',
-        })
+          'exists[parentProduct]': 'false',          
+        });
       }
     }, [order]),
   );

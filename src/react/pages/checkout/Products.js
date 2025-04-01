@@ -64,7 +64,8 @@ const ProductsPage = ({navigation, route}) => {
         .getItems({
           'productCategory.category': category['@id'],
           active: 1,
-          'order.name': 'ASC',
+          'order[product]': 'ASC',
+          'order[description]': 'ASC',
           type: ['custom', 'product'],
         })
         .then(data => {

@@ -23,7 +23,7 @@ const CategoriesPage = ({navigation}) => {
     if (!items || items.length == 0)
       categoryActions.getItems({
         context: 'products',
-        'order.name': 'ASC',
+        'order[name]': 'ASC',
         company: currentCompany.id,
       });
   }, [currentCompany]);
