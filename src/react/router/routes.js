@@ -152,7 +152,7 @@ const ordersRoutes = [
     component: WrappedCloseCachRegister,
     options: {
       headerShown: true,
-      title: 'Caixa', // Título inicial padrão, será sobrescrito pelo useEffect
+      title: 'Caixa', 
     },
   },
   {

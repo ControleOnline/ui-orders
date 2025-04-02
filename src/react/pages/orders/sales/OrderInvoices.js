@@ -38,7 +38,7 @@ const OrderDetails = ({route}) => {
                     {invoice.destinationWallet?.wallet}
                   </Text>
                   <Text style={componentStyles.cardText}>
-                    {invoice.paymentType.paymentType}
+                    {invoice.paymentType?.paymentType}
                   </Text>
                 </View>
               </View>
