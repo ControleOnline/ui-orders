@@ -88,6 +88,7 @@ const Orders = ({navigation}) => {
           provider: '/people/' + currentCompany.id,
           status: '/statuses/' + status,
           device: localDevice?.id,
+          orderType: 'sale',
         })
         .then(order => {
           handleEdit(order);
