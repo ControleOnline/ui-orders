@@ -37,6 +37,7 @@ const Orders = ({navigation}) => {
             provider: '/people/' + currentCompany.id,
             status: status,
             device: localDevice?.id,
+            orderType: 'sale',
           })
           .then(data => {
             if (
