@@ -13,6 +13,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
+import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
 
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
@@ -133,13 +134,16 @@ const CloseCashRegister = ({navigation}) => {
                     {item.quantity}
                   </Text>
                   <Text style={{color: '#333', flex: 2}}>
-                    {item.product_name} - {item.product_description}
+                    {item.product_name}{' '}
+                    {item.product_description
+                      ? ' - ' + item.product_description
+                      : ''}
                   </Text>
                   <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
-                    R$ {item.order_product_price.toFixed(2)}
+                    {Formatter.formatMoney(item.order_product_price)}
                   </Text>
                   <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
-                    R$ {item.order_product_total.toFixed(2)}
+                    {Formatter.formatMoney(item.order_product_total)}
                   </Text>
                 </View>
               ))}
