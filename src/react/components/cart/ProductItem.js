@@ -61,14 +61,14 @@ const ProductItem = ({orderProduct}) => {
                         {components.map((orderProductComponent, index) => (
                           <>
                             <Text
-                              key={index}
+                              key={groupIndex + '-' + index}
                               style={styles.productItem.componentText}>
                               - {orderProductComponent.product.product}
                             </Text>
                             {orderProductComponent.orderProductComponents.map(
                               (ingredient, i) => (
                                 <Text
-                                  key={index + '-' + i}
+                                  key={groupIndex + '-' + index + '-' + i}
                                   style={styles.productItem.componentText}>
                                   -- Remover {ingredient.product.product}
                                 </Text>

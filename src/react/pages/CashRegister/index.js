@@ -277,7 +277,7 @@ const CashRegister = ({navigation}) => {
               ]}
               onPress={handleCloseCachRegister}>
               <Text style={{color: 'white', fontWeight: 'bold'}}>
-                Fechar Caixa
+                Detalhar
               </Text>
             </TouchableOpacity>
           </View>
