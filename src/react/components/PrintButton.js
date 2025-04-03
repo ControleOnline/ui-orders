@@ -2,24 +2,27 @@ import React, {useState} from 'react';
 import {TouchableOpacity, Text} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import cielo from '@controleonline/ui-orders/src/react/services/Cielo/Print';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import {CieloPrint} from '@controleonline/ui-orders/src/react/services/Cielo/Print';
 import {getStore} from '@store';
 
-const PrintButton = ({}) => {
+const PrintButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
-  const {getters, actions} = getStore('orders');
+  const {getters, actions} = getStore(store);
   const {getters: deviceGetters} = getStore('device');
   const {item: device} = deviceGetters;
-  const {item: order, error} = getters;
+  const {error} = getters;
   const [isPrinting, setIsPrinting] = useState(false);
-
+  const storagedDevice = localStorage.getItem('device');
+  const [localDevice] = useState(() => {
+    return storagedDevice ? JSON.parse(storagedDevice) : {};
+  });
   const handlePrint = async () => {
     if (device.configs['pos-gateway'] !== 'cielo') return;
 
     try {
       setIsPrinting(true);
-      await cielo.print(order, actions);
+      print = new CieloPrint(localDevice, getters, actions);
+      await print.print(printType);
     } catch (err) {
       actions.setError(err.message || 'Erro ao processar impressão');
     } finally {
@@ -29,8 +32,7 @@ const PrintButton = ({}) => {
 
   return (
     <>
-      <StateStore store="orders" />
-      {!error && device.configs['pos-gateway'] === 'cielo' && (
+      {device.configs['pos-gateway'] === 'cielo' && (
         <TouchableOpacity
           style={[globalStyles.button, globalStyles.btnAdd, {marginLeft: 5}]}
           onPress={handlePrint}

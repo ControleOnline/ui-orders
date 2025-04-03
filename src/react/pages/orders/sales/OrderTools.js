@@ -11,7 +11,7 @@ import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHea
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import OrderInvoices from './OrderInvoices';
-import PrintButton from './PrintButton';
+import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
@@ -46,7 +46,7 @@ const OrderDetails = ({route}) => {
               <Icon name="add-circle" size={24} color="#fff" />
               <Text style={{color: '#fff', marginLeft: 8}}>Emitir NF</Text>
             </TouchableOpacity>
-            <PrintButton />
+            <PrintButton printType={'order'} store={'order'} />
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={[styles.orderContainer, {paddingBottom: 100}]}>

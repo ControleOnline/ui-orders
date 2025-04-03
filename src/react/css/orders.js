@@ -339,7 +339,26 @@ const css = () => {
         borderRadius: 4,
       },
     },
-    
+    CloseCashRegister: {
+      buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        height: 50,
+        paddingHorizontal: 0,
+      },
+      button: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginHorizontal: 5,
+      },
+      buttonText: {
+        color: '#fff',
+        marginLeft: 8,
+      },
+    },
   });
 
   return { styles, globalStyles: globalStyles() };
