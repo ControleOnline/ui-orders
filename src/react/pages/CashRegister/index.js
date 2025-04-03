@@ -205,7 +205,7 @@ const CashRegister = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="invoice" />
-      {!isLoading && payments.length > 0 && !error && (
+      {!isLoading && payments && payments.length > 0 && !error && (
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.CashRegister.mainContainer}>
@@ -276,9 +276,7 @@ const CashRegister = ({navigation}) => {
                 },
               ]}
               onPress={handleCloseCachRegister}>
-              <Text style={{color: 'white', fontWeight: 'bold'}}>
-                Detalhar
-              </Text>
+              <Text style={{color: 'white', fontWeight: 'bold'}}>Detalhar</Text>
             </TouchableOpacity>
           </View>
         </>

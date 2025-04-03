@@ -46,7 +46,7 @@ const OrderDetails = ({route}) => {
               <Icon name="add-circle" size={24} color="#fff" />
               <Text style={{color: '#fff', marginLeft: 8}}>Emitir NF</Text>
             </TouchableOpacity>
-            <PrintButton printType={'order'} store={'order'} />
+            <PrintButton printType={'order'} store={'orders'} />
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={[styles.orderContainer, {paddingBottom: 100}]}>

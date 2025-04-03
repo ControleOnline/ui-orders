@@ -30,12 +30,7 @@ const CloseCashRegister = ({navigation}) => {
     return storagedDevice ? JSON.parse(storagedDevice) : {};
   });
   const {isLoading, error} = invoiceGetters;
-
-  useFocusEffect(
-    useCallback(() => {
-      console.log(device.configs['cash-wallet-open-id']);
-    }, [user]),
-  );
+  const [orderItems, setOrderItems] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,9 +38,10 @@ const CloseCashRegister = ({navigation}) => {
         invoiceActions
           .getCashRegister({
             device: localDevice.id,
+            provider: currentCompany.id,
           })
           .then(data => {
-            console.log(data);
+            setOrderItems(data);
           });
     }, [localDevice]),
   );
@@ -123,6 +119,30 @@ const CloseCashRegister = ({navigation}) => {
               <Text style={{color: '#666', marginLeft: 8}}>
                 {user.realname}
               </Text>
+              {orderItems.map((item, index) => (
+                <View
+                  key={index}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    paddingVertical: 4,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#eee',
+                  }}>
+                  <Text style={{color: '#333', flex: 0.2}}>
+                    {item.quantity}
+                  </Text>
+                  <Text style={{color: '#333', flex: 2}}>
+                    {item.product_name} - {item.product_description}
+                  </Text>
+                  <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                    R$ {item.order_product_price.toFixed(2)}
+                  </Text>
+                  <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                    R$ {item.order_product_total.toFixed(2)}
+                  </Text>
+                </View>
+              ))}
             </View>
           </ScrollView>
           <View>
