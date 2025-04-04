@@ -22,8 +22,8 @@ const Orders = ({navigation}) => {
   const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
-  const {getters: deviceGetters} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {item: device} = deviceConfigGetters;
 
   useFocusEffect(
     useCallback(() => {
@@ -36,7 +36,7 @@ const Orders = ({navigation}) => {
           .getItems({
             provider: '/people/' + currentCompany.id,
             status: status,
-            device: localDevice?.id,
+            'device.device': localDevice?.id,
             orderType: 'sale',
           })
           .then(data => {
@@ -88,7 +88,7 @@ const Orders = ({navigation}) => {
           app: 'POS',
           provider: '/people/' + currentCompany.id,
           status: '/statuses/' + status,
-          device: localDevice?.id,
+          'device.device': localDevice?.id,
           orderType: 'sale',
         })
         .then(order => {

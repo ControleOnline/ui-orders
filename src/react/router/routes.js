@@ -21,8 +21,8 @@ const WrappedOrdersPage = ({navigation, route}) => (
 );
 
 const WrappedCloseCachRegister = ({navigation, route}) => {
-  const {getters: deviceGetters} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {item: device} = deviceConfigGetters;
 
   React.useEffect(() => {
     navigation.setOptions({

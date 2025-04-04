@@ -10,8 +10,8 @@ export default function ProductsList({route}) {
   const {styles, globalStyles} = css();
   const navigation = useNavigation();
   const {getters: orderProductsGetters} = getStore('order_products');
-  const {getters: deviceGetters} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {item: device} = deviceConfigGetters;
   const {items, isLoading, isSaving, error, reload} = orderProductsGetters;
 
   useFocusEffect(

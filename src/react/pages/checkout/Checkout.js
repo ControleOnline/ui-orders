@@ -10,8 +10,8 @@ import {getStore} from '@store';
 
 export default Checkout = ({route}) => {
   const {styles, globalStyles} = css();
-  const {getters: deviceGetters} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {item: device} = deviceConfigGetters;
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order} = ordersGetters;
 

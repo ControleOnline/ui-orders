@@ -34,8 +34,8 @@ export default Checkout = ({route}) => {
   } = invoiceGetters;
   const {getters: configsGetters} = getStore('configs');
   const {items: companyConfigs} = configsGetters;
-  const {getters: deviceGetters} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {item: device} = deviceConfigGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const {item: order, payable} = getters;

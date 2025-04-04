@@ -14,8 +14,8 @@ const CashRegister = ({navigation}) => {
     getStore('invoice');
   const {actions: paymentTypeActions} = getStore('walletPaymentType');
   const {getters: configsGetters} = getStore('configs');
-  const {getters: deviceGetters} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {item: device} = deviceConfigGetters;
   const {items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;
@@ -32,6 +32,8 @@ const CashRegister = ({navigation}) => {
       if (
         companyConfigs &&
         device &&
+        device.configs &&
+        Object.entries(device.configs).length > 0 &&
         device.configs['pos-gateway'] &&
         companyConfigs['pos-cash-wallet']
       ) {

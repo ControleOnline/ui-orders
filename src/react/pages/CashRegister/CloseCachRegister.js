@@ -22,8 +22,9 @@ const CloseCashRegister = ({navigation}) => {
   const {getters: peopleGetters} = getStore('people');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
-  const {getters: deviceGetters, actions: deviceActions} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters, actions: deviceConfigsActions} =
+    getStore('device_config');
+  const {item: device} = deviceConfigGetters;
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
   const storagedDevice = localStorage.getItem('device');
@@ -38,7 +39,7 @@ const CloseCashRegister = ({navigation}) => {
       if (localDevice)
         invoiceActions
           .getCashRegister({
-            device: localDevice.id,
+            device: localDevice?.id,
             provider: currentCompany.id,
           })
           .then(data => {
@@ -90,18 +91,13 @@ const CloseCashRegister = ({navigation}) => {
               'cash-wallet-closed-id': openId,
             };
 
-        deviceActions
+        deviceConfigsActions
           .addDeviceConfigs({
-            device: localDevice?.id,
+            'device.device': localDevice?.id,
             configs: JSON.stringify(configValue),
             people: '/people/' + currentCompany.id,
           })
           .then(data => {
-            if (data && Object.keys(data).length > 0) {
-              let d = {...data};
-              d.configs = JSON.parse(d.configs);
-              deviceActions.setItem(d);
-            }
             navigation.reset({
               index: 0,
               routes: [{name: 'HomePage'}],

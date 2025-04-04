@@ -8,8 +8,8 @@ import {getStore} from '@store';
 const PrintButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
   const {getters, actions} = getStore(store);
-  const {getters: deviceGetters} = getStore('device');
-  const {item: device} = deviceGetters;
+  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {item: device} = deviceConfigGetters;
   const {error} = getters;
   const [isPrinting, setIsPrinting] = useState(false);
   const storagedDevice = localStorage.getItem('device');
