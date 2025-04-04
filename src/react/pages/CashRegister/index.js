@@ -73,7 +73,7 @@ const CashRegister = ({navigation}) => {
       )
         invoiceActions.getInflow({
           receiver: currentCompany.id,
-          device: localDevice?.id,
+          'device.device': localDevice?.id,
         });
     }, []),
   );
