@@ -93,7 +93,6 @@ const CloseCashRegister = ({navigation}) => {
 
         deviceConfigsActions
           .addDeviceConfigs({
-            'device.device': localDevice?.id,
             configs: JSON.stringify(configValue),
             people: '/people/' + currentCompany.id,
           })
