@@ -102,7 +102,7 @@ const Orders = ({navigation}) => {
           onPress={handleConfirm}
           style={[
             globalStyles.button,
-            globalStyles.btnAdd,
+            
             {
               flex: 1,
               flexDirection: 'row',

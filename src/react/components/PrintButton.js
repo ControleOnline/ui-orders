@@ -36,7 +36,7 @@ const PrintButton = ({printType, store}) => {
     <>
       {device.configs['pos-gateway'] === 'cielo' && (
         <TouchableOpacity
-          style={[globalStyles.button, globalStyles.btnAdd, {marginLeft: 5}]}
+          style={[globalStyles.button,  {marginLeft: 5}]}
           onPress={handlePrint}
           disabled={isPrinting}>
           <Icon name="print" size={24} color="#fff" />

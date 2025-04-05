@@ -40,7 +40,7 @@ const OrderDetails = ({route}) => {
             <TouchableOpacity
               style={[
                 globalStyles.button,
-                globalStyles.btnAdd,
+                
                 {marginRight: 5},
               ]}>
               <Icon name="add-circle" size={24} color="#fff" />

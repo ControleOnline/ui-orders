@@ -6,6 +6,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const CashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
@@ -212,74 +213,29 @@ const CashRegister = ({navigation}) => {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.CashRegister.mainContainer}>
               {renderGroup(processedData.walletGroups)}
-              <View
-                style={[
-                  styles.boxContent,
-                  {
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    marginTop: 10,
-                  },
-                ]}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                  }}>
-                  <Text
-                    style={[styles.CashRegister.grandTotal, styles.primary]}>
-                    Total
-                  </Text>
-                  <Text
-                    style={[
-                      styles.CashRegister.grandTotal,
-                      styles.primary,
-                      styles.boxPrice,
-                    ]}>
-                    {Formatter.formatMoney(processedData.total)}
-                  </Text>
-                </View>
-              </View>
             </View>
           </ScrollView>
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              padding: 10,
-              backgroundColor: 'white',
-            }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#ff4444',
-                padding: 15,
-                borderRadius: 5,
-                flex: 1,
-                marginRight: 5,
-                alignItems: 'center',
-              }}
-              onPress={handleWithdrawal}>
-              <Text style={{color: 'white', fontWeight: 'bold'}}>Sangria</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                globalStyles.primary,
-                {
-                  padding: 15,
-                  borderRadius: 5,
-                  flex: 1,
-                  marginLeft: 5,
-                  alignItems: 'center',
-                },
-              ]}
-              onPress={handleCloseCachRegister}>
-              <Text style={{color: 'white', fontWeight: 'bold'}}>Detalhar</Text>
-            </TouchableOpacity>
+          <View style={styles.CloseCashRegister.footerContainer}>
+            <View style={styles.CloseCashRegister.totalContainer}>
+              <Text style={styles.CloseCashRegister.total}>TOTAL</Text>
+              <Text style={styles.CloseCashRegister.total}>
+                {Formatter.formatMoney(processedData.total)}
+              </Text>
+            </View>
+            <View style={styles.CloseCashRegister.buttonContainer}>
+              <TouchableOpacity
+                style={[globalStyles.button]}
+                onPress={handleWithdrawal}>
+                <Icon name="print" size={24} color="#fff" />
+                <Text style={{color: '#fff', marginLeft: 8}}>Sangria</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[globalStyles.button]}
+                onPress={handleCloseCachRegister}>
+                <Icon name="print" size={24} color="#fff" />
+                <Text style={{color: '#fff', marginLeft: 8}}>Detalhar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </>
       )}

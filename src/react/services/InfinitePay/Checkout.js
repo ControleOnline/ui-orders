@@ -274,12 +274,8 @@ export default Checkout = ({route}) => {
                 <TouchableOpacity
                   onPress={() => handlePay()}
                   disabled={!selectedPayment}
-                  style={[
-                    globalStyles.button,
-                    globalStyles.primary,
-                    styles.btnPay,
-                  ]}>
-                  <Text style={styles.btnText}>PAGAR</Text>
+                  style={[globalStyles.button]}>
+                  <Text style={globalStyles.btnText}>PAGAR</Text>
                 </TouchableOpacity>
               </View>
             </>

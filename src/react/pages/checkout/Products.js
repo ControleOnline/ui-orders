@@ -27,7 +27,7 @@ const ProductsPage = ({navigation, route}) => {
     error,
   } = orderProductsGetters;
 
-  const {styles} = css();
+  const {styles,globalStyles} = css();
 
   const [products, setProducts] = useState(
     JSON.parse(localStorage.getItem('products') || '{}'),
@@ -124,7 +124,7 @@ const ProductsPage = ({navigation, route}) => {
             <TouchableOpacity
               onPress={handleSave}
               style={[
-                styles.btnPay,
+                globalStyles.button,
                 {
                   justifyContent: 'center',
                   alignItems: 'center',

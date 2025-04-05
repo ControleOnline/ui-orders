@@ -105,6 +105,11 @@ const CloseCashRegister = ({navigation}) => {
       });
   };
 
+  const total = orderItems.reduce(
+    (sum, item) => sum + item.order_product_total,
+    0,
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="invoice" />
@@ -144,41 +149,41 @@ const CloseCashRegister = ({navigation}) => {
               ))}
             </View>
           </ScrollView>
-          <View>
-            <Text style={{color: '#666', marginLeft: 8}}></Text>
-          </View>
-          <View style={styles.CloseCashRegister.buttonContainer}>
-            <PrintButton printType={'cash-register'} store={'invoice'} />
-
-            {!device?.configs ||
-            device?.configs['cash-wallet-closed-id'] === undefined ||
-            device?.configs['cash-wallet-closed-id'] === 0 ? (
-              <TouchableOpacity
-                onPress={handleConfirmClose}
-                style={[
-                  globalStyles.button,
-                  globalStyles.btnAdd,
-                  styles.CloseCashRegister.button,
-                ]}>
-                <Icon name="add-circle" size={24} color="#fff" />
-                <Text style={styles.CloseCashRegister.buttonText}>
-                  Fechar Caixa
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={handleConfirmOpen}
-                style={[
-                  globalStyles.button,
-                  globalStyles.btnAdd,
-                  styles.CloseCashRegister.button,
-                ]}>
-                <Icon name="add-circle" size={24} color="#fff" />
-                <Text style={styles.CloseCashRegister.buttonText}>
-                  Abrir Caixa
-                </Text>
-              </TouchableOpacity>
-            )}
+          <View style={styles.CloseCashRegister.footerContainer}>
+            <View style={styles.CloseCashRegister.totalContainer}>
+              <Text style={styles.CloseCashRegister.total}>TOTAL</Text>
+              <Text style={styles.CloseCashRegister.total}>
+                {Formatter.formatMoney(total)}
+              </Text>
+            </View>
+            <View style={styles.CloseCashRegister.buttonContainer}>
+              <PrintButton
+                printType={'cash-register'}
+                store={'invoice'}
+                style={[globalStyles.button, ]}
+              />
+              {!device?.configs ||
+              device?.configs['cash-wallet-closed-id'] === undefined ||
+              device?.configs['cash-wallet-closed-id'] === 0 ? (
+                <TouchableOpacity
+                  onPress={handleConfirmClose}
+                  style={[globalStyles.button, ]}>
+                  <Icon name="print" size={24} color="#fff" />
+                  <Text style={{color: '#fff', marginLeft: 8}}>
+                    Fechar Caixa
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleConfirmOpen}
+                  style={[globalStyles.button, ]}>
+                  <Icon name="print" size={24} color="#fff" />
+                  <Text style={{color: '#fff', marginLeft: 8}}>
+                    Abrir Caixa
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </>
       )}

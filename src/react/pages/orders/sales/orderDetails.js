@@ -61,7 +61,7 @@ const OrderDetails = ({route, navigation}) => {
               onPress={handleAddProduct}
               style={[
                 globalStyles.button,
-                globalStyles.btnAdd,
+                
                 {marginRight: 5},
               ]}>
               <Icon name="add-circle" size={24} color="#fff" />
@@ -71,7 +71,7 @@ const OrderDetails = ({route, navigation}) => {
               onPress={handleOrderTools}
               style={[
                 globalStyles.button,
-                globalStyles.btnAdd,
+                
                 {marginLeft: 5},
               ]}>
               <Icon name="settings" size={24} color="#fff" />

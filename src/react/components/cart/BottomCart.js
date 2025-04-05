@@ -63,7 +63,6 @@ const ButtonCart = ({navigation}) => {
             onPress={() => handlePay(item)}
             style={[
               globalStyles.button,
-              styles.btnPay,
               {flex: 1, justifyContent: 'center', alignItems: 'center'},
             ]}>
             <Text style={styles.textWhite}>PAGAR</Text>

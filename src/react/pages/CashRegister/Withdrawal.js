@@ -187,8 +187,6 @@ export default function BleedScreen() {
             disabled={!selectedPaymentType || !bleedValue}
             style={[
               globalStyles.button,
-              globalStyles.primary,
-              styles.btnPay,
               (!selectedPaymentType || !bleedValue) && globalStyles.disabled,
               {
                 width: '100%',
@@ -197,7 +195,7 @@ export default function BleedScreen() {
                 alignItems: 'center',
               }, // Tamanho normal ajustado
             ]}>
-            <Text style={styles.btnText}>SALVAR</Text>
+            <Text style={globalStyles.btnText}>SALVAR</Text>
           </TouchableOpacity>
         </View>
       </View>

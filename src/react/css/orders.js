@@ -1,10 +1,10 @@
-import { StyleSheet } from 'react-native';
+import {StyleSheet} from 'react-native';
 import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
-import { getStore } from '@store';
+import {getStore} from '@store';
 
 const css = () => {
-  const { getters } = getStore('theme');
-  const { colors } = getters;
+  const {getters} = getStore('theme');
+  const {colors} = getters;
 
   const styles = StyleSheet.create({
     container: {
@@ -199,13 +199,7 @@ const css = () => {
       borderTopColor: '#ddd',
       paddingHorizontal: 10,
     },
-    btnPay: {
-      flex: 1,
-      height: 40,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: colors['primary'],
-    },
+
     boxPayment: {
       flexDirection: 'row',
       backgroundColor: '#fff',
@@ -238,11 +232,7 @@ const css = () => {
       fontSize: 16,
       fontWeight: 'bold',
     },
-    btnText: {
-      color: '#fff',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
+
     scrollV: {
       maxHeight: 310,
     },
@@ -340,28 +330,37 @@ const css = () => {
       },
     },
     CloseCashRegister: {
+      footerContainer: {
+        backgroundColor: '#f8f8f8',
+        borderTopWidth: 1,
+        borderTopColor: '#ddd',
+        paddingHorizontal: 0,
+        paddingVertical: 5,
+      },
+      totalContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        marginBottom: 5,
+      },
+      total: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
+      },
       buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         height: 50,
-        paddingHorizontal: 0,
-      },
-      button: {
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginHorizontal: 5,
-      },
-      buttonText: {
-        color: '#fff',
-        marginLeft: 8,
+        paddingHorizontal: 5,
       },
     },
   });
 
-  return { styles, globalStyles: globalStyles() };
+  return {styles, globalStyles: globalStyles()};
 };
 
 export default css;
