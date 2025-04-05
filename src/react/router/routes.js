@@ -6,6 +6,7 @@ import Products from '@controleonline/ui-orders/src/react/pages/checkout/Product
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
+import PurchasingSuggestion from '@controleonline/ui-orders/src/react/pages/orders/purchasing/Suggestion';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
@@ -45,6 +46,12 @@ const WrappedCloseCachRegister = ({navigation, route}) => {
 const WrappedCustomizeScreen = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
     <CustomizeScreen navigation={navigation} route={route} />
+  </ShopLayout>
+);
+
+const WrappedPurchasingSuggestion = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
+    <PurchasingSuggestion navigation={navigation} route={route} />
   </ShopLayout>
 );
 
@@ -119,7 +126,16 @@ const ordersRoutes = [
     },
     initialParams: {store: 'product'},
   },
-
+  {
+    name: 'PurchasingSuggestion',
+    component: WrappedPurchasingSuggestion,
+    options: {
+      headerShown: true,
+      title: 'Sugestão de Compras',
+      headerBackButtonMenuEnabled: false,
+    },
+    initialParams: {store: 'products'},
+  },
   {
     name: 'SalesOrderIndex',
     component: WrappedOrdersPage,
@@ -152,7 +168,7 @@ const ordersRoutes = [
     component: WrappedCloseCachRegister,
     options: {
       headerShown: true,
-      title: 'Caixa', 
+      title: 'Caixa',
     },
   },
   {
