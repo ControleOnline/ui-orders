@@ -3,10 +3,11 @@ import {NativeModules} from 'react-native';
 const {Cielo} = NativeModules;
 
 export class CieloPrint {
-  constructor(device, getters, actions) {
+  constructor(device, currentCompany, getters, actions) {
     this.actions = actions;
     this.getters = getters;
     this.device = device;
+    this.currentCompany = currentCompany;
   }
 
   print = async printType => {
@@ -20,6 +21,7 @@ export class CieloPrint {
   printCashRegister = async () => {
     const printData = await this.actions.getCashRegisterPrint({
       device: this.device.id,
+      people: this.currentCompany.id,
       'print-type': 'pos',
       'device-type': 'cielo',
     });

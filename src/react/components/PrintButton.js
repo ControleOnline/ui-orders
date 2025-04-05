@@ -9,6 +9,8 @@ const PrintButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
   const {getters, actions} = getStore(store);
   const {getters: deviceConfigGetters} = getStore('device_config');
+  const {getters: peopleGetters} = getStore('people');
+  const {defaultCompany} = peopleGetters;
   const {item: device} = deviceConfigGetters;
   const {error} = getters;
   const [isPrinting, setIsPrinting] = useState(false);
@@ -21,7 +23,7 @@ const PrintButton = ({printType, store}) => {
 
     try {
       setIsPrinting(true);
-      print = new CieloPrint(localDevice, getters, actions);
+      print = new CieloPrint(localDevice, defaultCompany, getters, actions);
       await print.print(printType);
     } catch (err) {
       actions.setError(err.message || 'Erro ao processar impressão');
