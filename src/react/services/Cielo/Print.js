@@ -14,17 +14,28 @@ export class CieloPrint {
     try {
       if (printType == 'order') return await this.printOrder();
       if (printType == 'cash-register') return await this.printCashRegister();
-      if (printType == 'purchasing-suggestion') return await this.printPurchasingSuggestion();
-
-      
+      if (printType == 'purchasing-suggestion')
+        return await this.printPurchasingSuggestion();
+      if (printType == 'inventory') return await this.printInventory();
     } catch (error) {
       throw error;
     }
   };
 
-  printPurchasingSuggestion= async () => {
+  printInventory = async () => {
+    const printData = await this.actions.printInventory({
+      people: this.currentCompany.id,
+      'print-type': 'pos',
+      'device-type': 'cielo',
+    });
+
+    const printRequest = JSON.stringify(printData);
+    const result = await Cielo.print(printRequest);
+
+    return result;
+  };
+  printPurchasingSuggestion = async () => {
     const printData = await this.actions.printPurchasingSuggestion({
-      device: this.device.id,
       people: this.currentCompany.id,
       'print-type': 'pos',
       'device-type': 'cielo',

@@ -7,6 +7,7 @@ import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
 import PurchasingSuggestion from '@controleonline/ui-orders/src/react/pages/orders/purchasing/Suggestion';
+import Inventory from '@controleonline/ui-orders/src/react/pages/inventory';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
@@ -54,6 +55,13 @@ const WrappedPurchasingSuggestion = ({navigation, route}) => (
     <PurchasingSuggestion navigation={navigation} route={route} />
   </ShopLayout>
 );
+
+const WrappedInventory = ({navigation, route}) => (
+  <ShopLayout navigation={navigation} route={route}>
+    <Inventory navigation={navigation} route={route} />
+  </ShopLayout>
+);
+
 
 const WrappedWithdrawal = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
@@ -132,6 +140,16 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       title: 'Sugestão de Compras',
+      headerBackButtonMenuEnabled: false,
+    },
+    initialParams: {store: 'products'},
+  },
+  {
+    name: 'Inventory',
+    component: WrappedInventory,
+    options: {
+      headerShown: true,
+      title: 'Estoque',
       headerBackButtonMenuEnabled: false,
     },
     initialParams: {store: 'products'},

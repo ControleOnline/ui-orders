@@ -11,7 +11,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 
-const PurchasingSuggestion = ({ navigation }) => {
+const Inventory = ({ navigation }) => {
   const { styles, globalStyles } = css();
   const { getters: peopleGetters } = getStore('people');
   const { getters: authGetters } = getStore('auth');
@@ -25,7 +25,7 @@ const PurchasingSuggestion = ({ navigation }) => {
     useCallback(() => {
       if (currentCompany) {
         productsActions
-          .getPurchasingSuggestion({
+          .getInventory({
             company: currentCompany.id,
           })
           .then(data => {
@@ -35,12 +35,15 @@ const PurchasingSuggestion = ({ navigation }) => {
     }, [currentCompany])
   );
 
-  const groupedByCompany = orderItems.reduce((acc, item) => {
-    const companyName = item.company_name ;
-    if (!acc[companyName]) {
-      acc[companyName] = [];
+  const groupedByInventory = orderItems.reduce((acc, item) => {
+    const inventoryName = item.inventory_name;
+    if (!acc[inventoryName]) {
+      acc[inventoryName] = {
+        companyName: item.company_name,
+        items: []
+      };
     }
-    acc[companyName].push(item);
+    acc[inventoryName].items.push(item);
     return acc;
   }, {});
 
@@ -50,10 +53,13 @@ const PurchasingSuggestion = ({ navigation }) => {
       {!isLoading && !error && (
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {Object.keys(groupedByCompany).map((companyName, index) => (
-              <View key={`company-${index}`} style={{ marginBottom: 20 }}>
+            {Object.keys(groupedByInventory).map((inventoryName, index) => (
+              <View key={`inventory-${index}`} style={{ marginBottom: 20 }}>
                 <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 }}>
-                  {companyName}
+                  {groupedByInventory[inventoryName].companyName}
+                </Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10 }}>
+                  Inventário: {inventoryName}
                 </Text>
                 <View
                   style={{
@@ -69,16 +75,10 @@ const PurchasingSuggestion = ({ navigation }) => {
                     Produto
                   </Text>
                   <Text style={{ color: '#333', flex: 1, textAlign: 'right', fontWeight: 'bold' }}>
-                    Estoque
-                  </Text>
-                  <Text style={{ color: '#333', flex: 1, textAlign: 'right', fontWeight: 'bold' }}>
-                    Mínimo
-                  </Text>
-                  <Text style={{ color: '#333', flex: 1, textAlign: 'right', fontWeight: 'bold' }}>
-                    Comprar
+                    Disponível
                   </Text>
                 </View>
-                {groupedByCompany[companyName].map((item, itemIndex) => (
+                {groupedByInventory[inventoryName].items.map((item, itemIndex) => (
                   <View
                     key={`item-${item.product_id}-${itemIndex}`}
                     style={{
@@ -90,16 +90,10 @@ const PurchasingSuggestion = ({ navigation }) => {
                     }}
                   >
                     <Text style={{ color: '#333', flex: 2 }}>
-                      {item.product_name} {item.description ? ` - ${item.description}` : ''}
+                      {item.product_name} {item.description ? ` - ${item.description}` : ''} {item.productUnit ? `(${item.productUnit})` : ''}
                     </Text>
                     <Text style={{ color: '#333', flex: 1, textAlign: 'right' }}>
-                      {item.stock} {item.unity}
-                    </Text>
-                    <Text style={{ color: '#333', flex: 1, textAlign: 'right' }}>
-                      {item.minimum} {item.unity}
-                    </Text>
-                    <Text style={{ color: '#333', flex: 1, textAlign: 'right' }}>
-                      {item.needed} {item.unity}
+                      {item.available} {item.productUnit}
                     </Text>
                   </View>
                 ))}
@@ -109,7 +103,7 @@ const PurchasingSuggestion = ({ navigation }) => {
           <View style={styles.CloseCashRegister.footerContainer}>
             <View style={styles.CloseCashRegister.buttonContainer}>
               <PrintButton
-                printType={'purchasing-suggestion'}
+                printType={'inventory'}
                 store={'products'}
                 style={[globalStyles.button]}
               />
@@ -121,4 +115,4 @@ const PurchasingSuggestion = ({ navigation }) => {
   );
 };
 
-export default PurchasingSuggestion;
+export default Inventory;
