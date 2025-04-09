@@ -57,10 +57,7 @@ const Orders = ({navigation}) => {
         items &&
         items.length > 0
       )
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'OrderDetails', params: {order: items[0]}}],
-        });
+        navigation.navigate('OrderDetails', {order: items[0]});
     }, [items, device]),
   );
 
@@ -102,7 +99,7 @@ const Orders = ({navigation}) => {
           onPress={handleConfirm}
           style={[
             globalStyles.button,
-            
+
             {
               flex: 1,
               flexDirection: 'row',

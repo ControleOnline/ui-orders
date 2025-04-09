@@ -27,7 +27,7 @@ const ProductsPage = ({navigation, route}) => {
     error,
   } = orderProductsGetters;
 
-  const {styles,globalStyles} = css();
+  const {styles, globalStyles} = css();
 
   const [products, setProducts] = useState(
     JSON.parse(localStorage.getItem('products') || '{}'),
@@ -76,6 +76,28 @@ const ProductsPage = ({navigation, route}) => {
     }
   }, [category]);
 
+  const onQuantityChange = () => {
+    setProducts(JSON.parse(localStorage.getItem('products') || '{}'));
+  };
+
+  useEffect(() => {
+    const hasProducts = Object.values(products)
+      .flat()
+      .some(p => p.quantity > 0);
+
+    if (hasProducts)
+      navigation.setOptions({
+        headerLeft: () => null,
+        headerBackVisible: false,
+        gestureEnabled: false,
+      });
+    else
+      navigation.setOptions({
+        headerBackVisible: true,
+        gestureEnabled: true,
+      });
+  }, [products]);
+
   const handleSave = () => {
     const storedProducts = JSON.parse(localStorage.getItem('products') || '{}');
 
@@ -90,6 +112,7 @@ const ProductsPage = ({navigation, route}) => {
     const checkQueueStatus = setInterval(() => {
       if (queueInstance.queue.length === 0 && !queueInstance.isProcessing) {
         clearInterval(checkQueueStatus);
+        setProducts({});
         navigation.navigate('OrderDetails', {order});
       }
     }, 100);
@@ -112,11 +135,7 @@ const ProductsPage = ({navigation, route}) => {
                     key={product.id}
                     product={product}
                     category={category}
-                    onQuantityChange={() =>
-                      setProducts(
-                        JSON.parse(localStorage.getItem('products') || '{}'),
-                      )
-                    }
+                    onQuantityChange={onQuantityChange}
                   />
                 ))}
               </View>
