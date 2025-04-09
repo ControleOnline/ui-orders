@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect} from 'react';
+import React, {useCallback} from 'react';
 import {
   Text,
   View,
@@ -19,14 +19,16 @@ const CategoriesPage = ({navigation}) => {
   const {items} = getters;
   const {styles, globalStyles} = css();
 
-  useEffect(() => {
-    if (!items || items.length == 0)
-      categoryActions.getItems({
-        context: 'products',
-        'order[name]': 'ASC',
-        company: currentCompany.id,
-      });
-  }, [currentCompany]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!items || items.length == 0)
+        categoryActions.getItems({
+          context: 'products',
+          'order[name]': 'ASC',
+          company: currentCompany.id,
+        });
+    }, [currentCompany]),
+  );
 
   const changeCategory = category => {
     navigation.navigate('ProductsPage', {category: category});

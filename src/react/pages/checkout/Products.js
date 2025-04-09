@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   Text,
   View,
@@ -10,7 +10,7 @@ import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
@@ -56,47 +56,51 @@ const ProductsPage = ({navigation, route}) => {
     });
   };
 
-  useEffect(() => {
-    let p = {...products};
+  useFocusEffect(
+    useCallback(() => {
+      let p = {...products};
 
-    if (!p[category['@id']]) {
-      actions
-        .getItems({
-          'productCategory.category': category['@id'],
-          active: 1,
-          'order[product]': 'ASC',
-          'order[description]': 'ASC',
-          type: ['custom', 'product', 'manufactured'],
-        })
-        .then(data => {
-          p[category['@id']] = data;
-          setProducts(p);
-          localStorage.setItem('products', JSON.stringify(p));
-        });
-    }
-  }, [category]);
+      if (!p[category['@id']]) {
+        actions
+          .getItems({
+            'productCategory.category': category['@id'],
+            active: 1,
+            'order[product]': 'ASC',
+            'order[description]': 'ASC',
+            type: ['custom', 'product', 'manufactured'],
+          })
+          .then(data => {
+            p[category['@id']] = data;
+            setProducts(p);
+            localStorage.setItem('products', JSON.stringify(p));
+          });
+      }
+    }, [category]),
+  );
 
   const onQuantityChange = () => {
     setProducts(JSON.parse(localStorage.getItem('products') || '{}'));
   };
 
-  useEffect(() => {
-    const hasProducts = Object.values(products)
-      .flat()
-      .some(p => p.quantity > 0);
+  useFocusEffect(
+    useCallback(() => {
+      const hasProducts = Object.values(products)
+        .flat()
+        .some(p => p.quantity > 0);
 
-    if (hasProducts)
-      navigation.setOptions({
-        headerLeft: () => null,
-        headerBackVisible: false,
-        gestureEnabled: false,
-      });
-    else
-      navigation.setOptions({
-        headerBackVisible: true,
-        gestureEnabled: true,
-      });
-  }, [products]);
+      if (hasProducts)
+        navigation.setOptions({
+          headerLeft: () => null,
+          headerBackVisible: false,
+          gestureEnabled: false,
+        });
+      else
+        navigation.setOptions({
+          headerBackVisible: true,
+          gestureEnabled: true,
+        });
+    }, [products]),
+  );
 
   const handleSave = () => {
     const storedProducts = JSON.parse(localStorage.getItem('products') || '{}');
