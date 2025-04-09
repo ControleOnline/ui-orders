@@ -66,7 +66,7 @@ const ProductsPage = ({navigation, route}) => {
           active: 1,
           'order[product]': 'ASC',
           'order[description]': 'ASC',
-          type: ['custom', 'product'],
+          type: ['custom', 'product', 'manufactured'],
         })
         .then(data => {
           p[category['@id']] = data;
