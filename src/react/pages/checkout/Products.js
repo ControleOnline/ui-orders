@@ -112,7 +112,6 @@ const ProductsPage = ({navigation, route}) => {
     const checkQueueStatus = setInterval(() => {
       if (queueInstance.queue.length === 0 && !queueInstance.isProcessing) {
         clearInterval(checkQueueStatus);
-        setProducts({});
         navigation.navigate('OrderDetails', {order});
       }
     }, 100);
@@ -153,7 +152,7 @@ const ProductsPage = ({navigation, route}) => {
                   right: 0,
                 },
               ]}>
-              <Text style={styles.textWhite}>FINALIZAR</Text>
+              <Text style={styles.textWhite}>ADICIONAR</Text>
             </TouchableOpacity>
           </>
         )}
