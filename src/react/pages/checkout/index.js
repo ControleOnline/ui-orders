@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import globalStyles from '@controleonline/ui-shop/src/react/styles/global';
+import globalStyles from '@controleonline/ui-layout/src/react/styles/global';
 import ErrorPopup from '@controleonline/ui-common/src/react/components/default/error';
 import Cielo from '../../services/Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';

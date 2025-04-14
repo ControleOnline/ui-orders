@@ -19,7 +19,8 @@ const PrintButton = ({printType, store}) => {
     return storagedDevice ? JSON.parse(storagedDevice) : {};
   });
   const handlePrint = async () => {
-    if (device.configs['pos-gateway'] !== 'cielo') return;
+    if (!device || !device.configs || device.configs['pos-gateway'] !== 'cielo')
+      return;
 
     try {
       setIsPrinting(true);
@@ -34,17 +35,19 @@ const PrintButton = ({printType, store}) => {
 
   return (
     <>
-      {device.configs['pos-gateway'] === 'cielo' && (
-        <TouchableOpacity
-          style={[globalStyles.button,  {marginLeft: 5}]}
-          onPress={handlePrint}
-          disabled={isPrinting}>
-          <Icon name="print" size={24} color="#fff" />
-          <Text style={{color: '#fff', marginLeft: 8}}>
-            {isPrinting ? 'Imprimindo...' : 'Imprimir'}
-          </Text>
-        </TouchableOpacity>
-      )}
+      {device &&
+        device.configs &&
+        device.configs['pos-gateway'] === 'cielo' && (
+          <TouchableOpacity
+            style={[globalStyles.button, {marginLeft: 5}]}
+            onPress={handlePrint}
+            disabled={isPrinting}>
+            <Icon name="print" size={24} color="#fff" />
+            <Text style={{color: '#fff', marginLeft: 8}}>
+              {isPrinting ? 'Imprimindo...' : 'Imprimir'}
+            </Text>
+          </TouchableOpacity>
+        )}
     </>
   );
 };
