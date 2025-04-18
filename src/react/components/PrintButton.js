@@ -2,34 +2,25 @@ import React, {useState} from 'react';
 import {TouchableOpacity, Text} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {CieloPrint} from '@controleonline/ui-orders/src/react/services/Cielo/Print';
 import {getStore} from '@store';
 
 const PrintButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
   const {getters, actions} = getStore(store);
   const {getters: deviceConfigGetters} = getStore('device_config');
-  const {getters: peopleGetters} = getStore('people');
-  const {currentCompany} = peopleGetters;
+  const {getters: printGetters, actions: printActions} = getStore('print');
+  const {isLoading} = printGetters;
   const {item: device} = deviceConfigGetters;
-  const {error} = getters;
-  const [isPrinting, setIsPrinting] = useState(false);
-  const storagedDevice = localStorage.getItem('device');
-  const [localDevice] = useState(() => {
-    return storagedDevice ? JSON.parse(storagedDevice) : {};
-  });
-  const handlePrint = async () => {
-    if (!device || !device.configs || device.configs['pos-gateway'] !== 'cielo')
-      return;
 
+  const handlePrint = async () => {
     try {
-      setIsPrinting(true);
-      print = new CieloPrint(localDevice, currentCompany, getters, actions);
-      await print.print(printType);
+      printActions.addToPrint({
+        printId: Math.random().toString(36).substr(2, 9),
+        printType: printType,
+        id: getters.item ? getters.item['@id'].split('/').pop() : null,
+      });
     } catch (err) {
       actions.setError(err.message || 'Erro ao processar impressão');
-    } finally {
-      setIsPrinting(false);
     }
   };
 
@@ -41,10 +32,10 @@ const PrintButton = ({printType, store}) => {
           <TouchableOpacity
             style={[globalStyles.button, {marginLeft: 5}]}
             onPress={handlePrint}
-            disabled={isPrinting}>
+            disabled={isLoading}>
             <Icon name="print" size={24} color="#fff" />
             <Text style={{color: '#fff', marginLeft: 8}}>
-              {isPrinting ? 'Imprimindo...' : 'Imprimir'}
+              {isLoading ? 'Imprimindo...' : 'Imprimir'}
             </Text>
           </TouchableOpacity>
         )}
