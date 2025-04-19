@@ -112,8 +112,7 @@ const ProductsPage = ({navigation, route}) => {
           orderProductActions.addToQueue(() => changeProduct(product));
       });
     }
-    orderProductActions.initQueue(function (navigation, order) {
-      console.log(order);
+    orderProductActions.initQueue(() => {
       navigation.navigate('OrderDetails', {order});
     });
   };
