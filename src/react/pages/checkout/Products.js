@@ -112,13 +112,10 @@ const ProductsPage = ({navigation, route}) => {
           orderProductActions.addToQueue(() => changeProduct(product));
       });
     }
-    let queueInstance = orderProductActions.initQueue();
-    const checkQueueStatus = setInterval(() => {
-      if (queueInstance.queue.length === 0 && !queueInstance.isProcessing) {
-        clearInterval(checkQueueStatus);
-        navigation.navigate('OrderDetails', {order});
-      }
-    }, 100);
+    orderProductActions.initQueue(function (navigation, order) {
+      console.log(order);
+      navigation.navigate('OrderDetails', {order});
+    });
   };
 
   const currentCategoryProducts = products[category['@id']] || [];
