@@ -15,9 +15,8 @@ const PrintButton = ({printType, store}) => {
   const handlePrint = async () => {
     try {
       printActions.addToPrint({
-        printId: Math.random().toString(36).substr(2, 9),
         printType: printType,
-        id: getters.item ? getters.item['@id'].split('/').pop() : null,
+        id: getters.item && getters.item['@id'] ? getters.item['@id'].split('/').pop() : null,
       });
     } catch (err) {
       actions.setError(err.message || 'Erro ao processar impressão');
