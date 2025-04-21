@@ -25,8 +25,7 @@ export default Checkout = ({route}) => {
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
   const {getters: peopleGetters} = getStore('people');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
   const {
     IsSaving: invoiceIsSaving,
     error: invoiceError,
