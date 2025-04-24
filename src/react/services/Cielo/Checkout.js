@@ -17,7 +17,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
-import {setError} from '../../../../../ui-default/src/store/default/actions';
+import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
+
 export default Checkout = ({route}) => {
   const navigation = useNavigation();
   const {styles, globalStyles} = css();
@@ -25,7 +26,8 @@ export default Checkout = ({route}) => {
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
   const {getters: peopleGetters} = getStore('people');
-  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
   const {
     IsSaving: invoiceIsSaving,
     error: invoiceError,
@@ -245,9 +247,7 @@ export default Checkout = ({route}) => {
               <PayableToolbar />
 
               <View style={[styles.toolbar]}>
-                <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
-                  {Formatter.formatMoney(order.price)}
-                </Text>
+                <OrderTotalToolbar />
                 <TouchableOpacity
                   onPress={() => handlePay()}
                   disabled={!selectedPayment}

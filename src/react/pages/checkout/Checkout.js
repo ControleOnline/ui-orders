@@ -15,11 +15,6 @@ export default Checkout = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order} = ordersGetters;
 
-  useFocusEffect(
-    useCallback(() => {
-      if (order) ordersActions.get(order['@id'].replace(/\D/g, ''));
-    }, []),
-  );
   return (
     <View style={{flex: 1}}>
       {device.configs['pos-gateway'] == 'cielo' && <CieloCheckout />}

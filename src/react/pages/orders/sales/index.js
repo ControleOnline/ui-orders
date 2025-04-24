@@ -20,6 +20,8 @@ const Orders = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
+  const {getters: orderProductGetters, actions: orderProductsActions} =
+    getStore('order_products');
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
   const {getters: deviceConfigGetters} = getStore('device_config');
@@ -89,6 +91,7 @@ const Orders = ({navigation}) => {
           orderType: 'sale',
         })
         .then(order => {
+          orderProductsActions.setItems([]);
           navigation.navigate('AddProductScreen', {order: order});
         });
   };

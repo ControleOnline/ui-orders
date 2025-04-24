@@ -1,10 +1,10 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {Text, View, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {getStore} from '@store';
-import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
+import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 
 const BottomCart = ({navigation}) => {
   const {getters, actions: cartActions} = getStore('cart');
@@ -19,24 +19,20 @@ const BottomCart = ({navigation}) => {
   const {item, isLoading, payable} = getters;
   const {styles, globalStyles} = css();
 
-  useFocusEffect(
-    useCallback(() => {
-      cartActions.setItem(order);
-    }, [order]),
-  );
+  useEffect(() => {
+    cartActions.setItem(order);
+  }, [order]);
 
-  useFocusEffect(
-    useCallback(() => {
-      let price = 0;
-      let o = {...order};
-      orderProducts.forEach(op => {
-        price += (op.price || 0) * (op.quantity || 0);
-      });
-      o.price = price;
-      o.orderProducts = orderProducts;
-      ordersActions.setItem(o);
-    }, [orderProducts]),
-  );
+  useEffect(() => {
+    let price = 0;
+    let o = {...order};
+    orderProducts.forEach(op => {
+      price += (op.price || 0) * (op.quantity || 0);
+    });
+    o.price = price;
+    o.orderProducts = {...orderProducts};
+    ordersActions.setItem(o);
+  }, [orderProducts]);
 
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});
@@ -47,18 +43,7 @@ const BottomCart = ({navigation}) => {
       <PayableToolbar order={order} />
       {payable != undefined && payable != 0 && (
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
-          {isLoading || invoiceIsLoading || isLoading || ordersIsloading ? (
-            <ActivityIndicator
-              size="small"
-              color={styles.primary?.color || '#000'}
-              style={{flex: 1}}
-            />
-          ) : (
-            <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
-              {Formatter.formatMoney(item.price)}
-            </Text>
-          )}
-
+          <OrderTotalToolbar />
           <TouchableOpacity
             onPress={() => handlePay(item)}
             style={[

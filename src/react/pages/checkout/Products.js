@@ -84,29 +84,6 @@ const ProductsPage = ({navigation, route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      const hasProducts = Object.values(products)
-        .flat()
-        .some(p => p.quantity > 0);
-      /*
-      if (hasProducts)
-        navigation.setOptions({
-          headerLeft: () => null,
-          headerBackVisible: false,
-          gestureEnabled: false,
-        });
-      else
-        navigation.setOptions({
-          headerBackVisible: true,
-          gestureEnabled: true,
-        });
-        */
-    }, [products]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      console.log('e');
-
       return () => {
         handleSave();
       };

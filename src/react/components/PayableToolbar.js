@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
@@ -15,35 +15,26 @@ export default PayableToolbar = ({route, order}) => {
   const {item, reload, payable} = getters;
   const {items: orders} = ordersGetters;
 
-  useFocusEffect(
-    useCallback(() => {
-      if (order && item && order['@id'] != item['@id'])
-        invoiceActions.getItems({'order.order': order['@id']});
-    }, [order, item]),
-  );
+  useEffect(() => {
+    if (order && item && order['@id'] != item['@id'])
+      invoiceActions.getItems({'order.order': order['@id']});
+  }, [order, item]);
+  useEffect(() => {
+    if (item?.price == undefined) return;
+    const paid = invoices.reduce(
+      (sum, invoice) => sum + parseFloat(invoice.price),
+      0,
+    );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (item?.price == undefined) return;
-      const paid = invoices.reduce(
-        (sum, invoice) => sum + parseFloat(invoice.price),
-        0,
-      );
+    cartActions.setPayable(parseFloat(paid) - parseFloat(item.price));
+  }, [invoices, item]);
 
-      cartActions.setPayable(parseFloat(paid) - parseFloat(item.price));
-    }, [invoices, item]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (payable >= 0 && item['@id'] && item.price > 0) {
-        const updatedOrders = orders.filter(
-          item => item['@id'] !== item['@id'],
-        );
-        ordersActions.setItems(updatedOrders);
-      }
-    }, [payable]),
-  );
+  useEffect(() => {
+    if (payable >= 0 && item['@id'] && item.price > 0) {
+      const updatedOrders = orders.filter(item => item['@id'] !== item['@id']);
+      ordersActions.setItems(updatedOrders);
+    }
+  }, [payable]);
 
   return (
     <View
