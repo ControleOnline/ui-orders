@@ -62,7 +62,6 @@ const WrappedInventory = ({navigation, route}) => (
   </ShopLayout>
 );
 
-
 const WrappedWithdrawal = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
     <Withdrawal navigation={navigation} route={route} />
@@ -77,15 +76,29 @@ const WrappedCashRegister = ({navigation, route}) => (
 
 const WrappedProductsPage = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
-    <Products navigation={navigation} route={route} />
+    <CartLayout navigation={navigation} route={route}>
+      <Products navigation={navigation} route={route} />
+    </CartLayout>
   </ShopLayout>
 );
 
-const WrappedCategoryPage = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
-    <Categories navigation={navigation} route={route} />
-  </ShopLayout>
-);
+const WrappedCategoryPage = ({navigation, route}) => {
+  const order = route.params?.order;
+
+  React.useEffect(() => {
+    navigation.setOptions({
+      title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+    });
+  }, [navigation, order]);
+
+  return (
+    <ShopLayout navigation={navigation} route={route}>
+      <CartLayout navigation={navigation} route={route}>
+        <Categories navigation={navigation} route={route} />
+      </CartLayout>
+    </ShopLayout>
+  );
+};
 
 const WrappedOrderTools = ({navigation, route}) => {
   const order = route.params?.order;

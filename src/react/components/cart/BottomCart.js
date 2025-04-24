@@ -6,7 +6,7 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 
-const ButtonCart = ({navigation}) => {
+const BottomCart = ({navigation}) => {
   const {getters, actions: cartActions} = getStore('cart');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: orderProductGetters, actions: orderProductsActions} =
@@ -73,4 +73,4 @@ const ButtonCart = ({navigation}) => {
   );
 };
 
-export default ButtonCart;
+export default BottomCart;

@@ -89,7 +89,7 @@ const Orders = ({navigation}) => {
           orderType: 'sale',
         })
         .then(order => {
-          handleEdit(order);
+          navigation.navigate('AddProductScreen', {order: order});
         });
   };
   return (

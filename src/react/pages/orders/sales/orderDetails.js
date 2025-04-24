@@ -32,7 +32,7 @@ const OrderDetails = ({route, navigation}) => {
   );
 
   const handleAddProduct = () => {
-    navigation.navigate('AddProductScreen');
+    navigation.navigate('AddProductScreen', {order: order});
   };
   const handleOrderTools = () => {
     navigation.navigate('OrderTools', {order: order});
@@ -44,7 +44,7 @@ const OrderDetails = ({route, navigation}) => {
         orderProductsActions.getItems({
           company: '/people/' + currentCompany.id,
           order: order['@id'],
-          'exists[parentProduct]': 'false',          
+          'exists[parentProduct]': 'false',
         });
       }
     }, [order]),
@@ -59,21 +59,13 @@ const OrderDetails = ({route, navigation}) => {
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity
               onPress={handleAddProduct}
-              style={[
-                globalStyles.button,
-                
-                {marginRight: 5},
-              ]}>
+              style={[globalStyles.button, {marginRight: 5}]}>
               <Icon name="add-circle" size={24} color="#fff" />
               <Text style={{color: '#fff', marginLeft: 8}}>Adicionar Item</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleOrderTools}
-              style={[
-                globalStyles.button,
-                
-                {marginLeft: 5},
-              ]}>
+              style={[globalStyles.button, {marginLeft: 5}]}>
               <Icon name="settings" size={24} color="#fff" />
               <Text style={{color: '#fff', marginLeft: 8}}>Detalhes</Text>
             </TouchableOpacity>

@@ -14,10 +14,16 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const CategoriesPage = ({navigation}) => {
   const {getters, actions: categoryActions} = getStore('categories');
+  const {getters: orderProductsGetters, actions: orderProductActions} =
+    getStore('order_products');
   const {getters: peopleGetters} = getStore('people');
+  const {getters: ordersGetters} = getStore('orders');
+
   const {currentCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
+  const {item: order} = ordersGetters;
   const {styles, globalStyles} = css();
+  const {queue} = orderProductsGetters;
 
   useFocusEffect(
     useCallback(() => {

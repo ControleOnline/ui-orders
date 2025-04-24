@@ -14,12 +14,6 @@ export default function ProductsList({route}) {
   const {item: device} = deviceConfigGetters;
   const {items, isLoading, isSaving, error, reload} = orderProductsGetters;
 
-  useFocusEffect(
-    useCallback(() => {
-      if (device?.configs && Object.entries(device.configs).length > 0)
-        if (items && items.length == 0) navigation.navigate('AddProductScreen');
-    }, [items, device]),
-  );
   return (
     <View>
       {(error || ((isLoading || isSaving) && items.length == 0)) && (

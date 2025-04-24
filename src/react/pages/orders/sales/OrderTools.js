@@ -37,15 +37,6 @@ const OrderDetails = ({route}) => {
         <View>
           <OrderHeader key={item.id} order={item} />
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <TouchableOpacity
-              style={[
-                globalStyles.button,
-                
-                {marginRight: 5},
-              ]}>
-              <Icon name="add-circle" size={24} color="#fff" />
-              <Text style={{color: '#fff', marginLeft: 8}}>Emitir NF</Text>
-            </TouchableOpacity>
             <PrintButton printType={'order'} store={'orders'} />
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>

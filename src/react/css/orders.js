@@ -199,7 +199,6 @@ const css = () => {
       borderTopColor: '#ddd',
       paddingHorizontal: 10,
     },
-
     boxPayment: {
       flexDirection: 'row',
       backgroundColor: '#fff',
@@ -232,7 +231,6 @@ const css = () => {
       fontSize: 16,
       fontWeight: 'bold',
     },
-
     scrollV: {
       maxHeight: 310,
     },
@@ -356,6 +354,61 @@ const css = () => {
         alignItems: 'center',
         height: 50,
         paddingHorizontal: 5,
+      },
+    },
+    printButton: {
+      modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      },
+      modalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        padding: 16,
+        width: '80%',
+        maxHeight: '60%',
+        elevation: 4,
+      },
+      modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: colors['primary'],
+        marginBottom: 16,
+        textAlign: 'center',
+      },
+      printerItem: {
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+      },
+      printerText: {
+        fontSize: 16,
+        color: '#333',
+      },
+      printButton: {
+        padding: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      selectButton: {
+        marginLeft: 8,
+        padding: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      closeButton: {
+        marginTop: 16,
+        padding: 12,
+        backgroundColor: colors['primary'],
+        borderRadius: 8,
+        alignItems: 'center',
+      },
+      closeButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
       },
     },
   });

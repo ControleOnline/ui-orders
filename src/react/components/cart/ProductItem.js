@@ -83,12 +83,10 @@ const ProductItem = ({orderProduct}) => {
               )}
           </View>
         </View>
-
         <View style={styles.productItem.imageContainer}>
           <Carousel images={orderProduct.product.productFiles} />
         </View>
       </View>
-
       <View style={styles.productItem.priceRow}>
         <View style={styles.productItem.priceContainer}>
           <Text style={styles.productItem.priceText}>

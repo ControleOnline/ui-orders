@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {
   Text,
   View,
@@ -15,7 +15,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
   const {getters, actions} = getStore('products');
-  const {getters: ordersGetters} = getStore('orders');
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order} = ordersGetters;
   const {getters: orderProductsGetters, actions: orderProductActions} =
     getStore('order_products');
@@ -87,7 +87,7 @@ const ProductsPage = ({navigation, route}) => {
       const hasProducts = Object.values(products)
         .flat()
         .some(p => p.quantity > 0);
-
+      /*
       if (hasProducts)
         navigation.setOptions({
           headerLeft: () => null,
@@ -99,7 +99,18 @@ const ProductsPage = ({navigation, route}) => {
           headerBackVisible: true,
           gestureEnabled: true,
         });
+        */
     }, [products]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('e');
+
+      return () => {
+        handleSave();
+      };
+    }, []),
   );
 
   const handleSave = () => {
@@ -112,9 +123,7 @@ const ProductsPage = ({navigation, route}) => {
           orderProductActions.addToQueue(() => changeProduct(product));
       });
     }
-    orderProductActions.initQueue(() => {
-      navigation.navigate('OrderDetails', {order});
-    });
+    orderProductActions.initQueue(() => {});
   };
 
   const currentCategoryProducts = products[category['@id']] || [];
@@ -126,35 +135,20 @@ const ProductsPage = ({navigation, route}) => {
         !isSaving &&
         currentCategoryProducts.length > 0 &&
         !error && (
-          <>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-              <View style={styles.Product.productsContainer}>
-                {currentCategoryProducts.map(product => (
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.gridContainer}>
+              {currentCategoryProducts.map(product => (
+                <View key={product.id} style={styles.cardWrapper}>
                   <ProductItem
                     key={product.id}
                     product={product}
                     category={category}
                     onQuantityChange={onQuantityChange}
                   />
-                ))}
-              </View>
-            </ScrollView>
-            <TouchableOpacity
-              onPress={handleSave}
-              style={[
-                globalStyles.button,
-                {
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                },
-              ]}>
-              <Text style={styles.textWhite}>ADICIONAR</Text>
-            </TouchableOpacity>
-          </>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
         )}
     </SafeAreaView>
   );
