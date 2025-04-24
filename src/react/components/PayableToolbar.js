@@ -37,30 +37,32 @@ export default PayableToolbar = ({route, order}) => {
   }, [payable]);
 
   return (
-    <View
-      style={[
-        styles.payable.toolbar,
-        payable != undefined && payable == 0 ? {bottom: 0} : null,
-      ]}>
-      {isLoading ? (
-        <ActivityIndicator
-          size="small"
-          color={styles.primary?.color || '#000'}
-          style={{flex: 1}}
-        />
-      ) : (
-        <>
-          {payable < 0 ? (
-            <Text style={{color: 'red', fontSize: 18, textAlign: 'center'}}>
-              Saldo Devedor: {Formatter.formatMoney(payable)}
-            </Text>
-          ) : (
-            <Text style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
-              Pago: {Formatter.formatMoney(payable + parseFloat(item.price))}
-            </Text>
-          )}
-        </>
-      )}
-    </View>
+    order?.price > 0 && (
+      <View
+        style={[
+          styles.payable.toolbar,
+          payable != undefined && payable == 0 ? {bottom: 0} : null,
+        ]}>
+        {isLoading ? (
+          <ActivityIndicator
+            size="small"
+            color={styles.primary?.color || '#000'}
+            style={{flex: 1}}
+          />
+        ) : (
+          <>
+            {payable < 0 ? (
+              <Text style={{color: 'red', fontSize: 18, textAlign: 'center'}}>
+                Saldo Devedor: {Formatter.formatMoney(payable)}
+              </Text>
+            ) : (
+              <Text style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
+                Pago: {Formatter.formatMoney(payable + parseFloat(item.price))}
+              </Text>
+            )}
+          </>
+        )}
+      </View>
+    )
   );
 };

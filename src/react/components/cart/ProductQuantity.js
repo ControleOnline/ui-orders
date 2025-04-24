@@ -1,6 +1,7 @@
-import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, {useCallback} from 'react';
+import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {getStore} from '@store';
 
 const styles = {
   container: {
@@ -16,13 +17,18 @@ const styles = {
   },
 };
 
-const ProductQuantity = ({ product, category, onQuantityChange }) => {
+const ProductQuantity = ({product, category, onQuantityChange}) => {
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {item: order} = ordersGetters;
+
   const updateQuantityInStorage = useCallback(
-    (newQuantity) => {
-      const storedProducts = JSON.parse(localStorage.getItem('products') || '{}');
+    newQuantity => {
+      const storedProducts = JSON.parse(
+        localStorage.getItem('products') || '{}',
+      );
       const categoryProducts = storedProducts[category['@id']] || [];
       const productIndex = categoryProducts.findIndex(
-        (p) => p['@id'] === product['@id']
+        p => p['@id'] === product['@id'],
       );
       if (productIndex >= 0) {
         categoryProducts[productIndex] = {
@@ -43,15 +49,28 @@ const ProductQuantity = ({ product, category, onQuantityChange }) => {
       localStorage.setItem('products', JSON.stringify(updatedProducts));
       if (onQuantityChange) onQuantityChange();
     },
-    [product, category, onQuantityChange]
+    [product, category, onQuantityChange],
   );
 
+  const addPrice = async price => {
+    let o = {...order};
+    o.price = o.price + price;
+    ordersActions.setItem(o);
+  };
+
+  const changeOrderPrice = price => {
+    ordersActions.addToQueue(() => addPrice(price));
+    ordersActions.initQueue(() => {});
+  };
+
   const increaseQuantity = () => {
+    changeOrderPrice(product.price);
     const newQuantity = (product.quantity || 0) + 1;
     updateQuantityInStorage(newQuantity);
   };
 
   const decreaseQuantity = () => {
+    changeOrderPrice(product.price * -1);
     const currentQuantity = product.quantity || 0;
     const newQuantity = currentQuantity > 0 ? currentQuantity - 1 : 0;
     updateQuantityInStorage(newQuantity);
@@ -66,13 +85,16 @@ const ProductQuantity = ({ product, category, onQuantityChange }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={decreaseQuantity}>
+      <TouchableOpacity
+        style={styles.button}
+        disabled={product.quantity == 0}
+        onPress={decreaseQuantity}>
         {getDecreaseIcon() ? (
           <Icon name={getDecreaseIcon()} size={24} color="red" />
         ) : null}
       </TouchableOpacity>
 
-      <Text style={[styles.quantityText, { color: '#666' }]}>
+      <Text style={[styles.quantityText, {color: '#666'}]}>
         {product.quantity || '0'}
       </Text>
 
