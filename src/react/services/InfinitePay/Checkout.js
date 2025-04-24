@@ -9,7 +9,7 @@ import {
   TextInput,
   Button,
 } from 'react-native';
-import InfinitePay from './InfinitePay'; // Substituímos Cielo por InfinitePay
+import InfinitePay from './InfinitePay'; 
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
