@@ -18,8 +18,9 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
+import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
 
-export default Checkout = ({route}) => {
+export default Checkout = ({route, createInvoice}) => {
   const navigation = useNavigation();
   const {styles, globalStyles} = css();
   const {getters} = getStore('cart');
@@ -42,12 +43,10 @@ export default Checkout = ({route}) => {
   const {item: order, payable} = getters;
   const [selectedPayment, setSelectedPayment] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
-  const [inputValue, setInputValue] = useState('');
 
   useFocusEffect(
     useCallback(() => {
       if (
-        payments.length == 0 &&
         companyConfigs &&
         device?.configs &&
         Object.entries(device.configs).length > 0 &&
@@ -103,47 +102,14 @@ export default Checkout = ({route}) => {
       return;
     }
 
-    let value = 0;
-    if (payable > 0) value = 0;
-    else value = payable * -1;
-    setInputValue(Formatter.formatMoney(value));
     setModalVisible(true);
   };
 
-  const createInvoice = total => {
-    if (
-      !selectedPayment ||
-      !selectedPayment.wallet ||
-      !selectedPayment.paymentType
-    ) {
-      paymentTypeActions.setError('Selecione uma forma de pagamento');
-      return;
-    }
-    const payload = {
-      dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + defaultCompany?.configs['pos-paid-status'],
-      destinationWallet: selectedPayment.wallet['@id'],
-      paymentType: selectedPayment.paymentType['@id'],
-      price: total,
-      receiver: '/people/' + currentCompany.id,
-      order: order['@id'],
-    };
-
-    invoiceActions.save(payload).finally(() => {
-      navigation.navigate('OrderTools', {order: order});
-    });
-  };
-
-  async function handleConfirmValue() {
-    const numericValue = parseFloat(inputValue.replace(/\D/g, '')) / 100;
-    if (isNaN(numericValue) || numericValue <= 0) {
-      paymentTypeActions.setError('Por favor, insira um valor válido!');
-      setModalVisible(false);
-      return;
-    }
+  async function handleConfirmValue(inputValue) {
+   
 
     if (selectedPayment.paymentCode) {
-      let totalPrice = Math.round(numericValue * 100).toString();
+      let totalPrice = Math.round(parseFloat(inputValue) * 100).toString();
       let items = formatProducts();
 
       const service = new Cielo();
@@ -158,38 +124,24 @@ export default Checkout = ({route}) => {
         if (!response.success) {
           paymentTypeActions.setError(response.result);
           setModalVisible(false);
-          setInputValue('');
           return;
         }
 
-        createInvoice(numericValue);
+        createInvoice(selectedPayment, inputValue);
       } catch (error) {
         paymentTypeActions.setError('Erro inesperado: ' + error.message);
         console.error('Erro na chamada ao serviço:', error);
         setModalVisible(false);
-        setInputValue('');
       }
     } else {
-      createInvoice(numericValue);
+      createInvoice(selectedPayment, inputValue);
     }
 
     setModalVisible(false);
-    setInputValue('');
   }
 
   const handleCancel = () => {
     setModalVisible(false);
-    setInputValue('');
-  };
-
-  const handleInputChange = text => {
-    const numericValue = text.replace(/\D/g, '');
-    if (!numericValue) {
-      setInputValue('');
-      return;
-    }
-    const number = parseFloat(numericValue) / 100;
-    setInputValue(Formatter.formatMoney(number));
   };
 
   return (
@@ -264,42 +216,10 @@ export default Checkout = ({route}) => {
         transparent={true}
         visible={modalVisible}
         onRequestClose={handleCancel}>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-          }}>
-          <View
-            style={{
-              backgroundColor: 'white',
-              padding: 20,
-              borderRadius: 10,
-              width: '80%',
-            }}>
-            <Text style={{marginBottom: 10}}>Valor à pagar:</Text>
-            <TextInput
-              placeholderTextColor="#666"
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                padding: 8,
-                marginBottom: 10,
-                color: '#666',
-              }}
-              keyboardType="numeric"
-              value={inputValue}
-              onChangeText={handleInputChange}
-              placeholder="Digite o valor"
-            />
-            <View
-              style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-              <Button title="Cancelar" onPress={handleCancel} />
-              <Button title="Confirmar" onPress={handleConfirmValue} />
-            </View>
-          </View>
-        </View>
+        <Calculate
+          handleCancel={handleCancel}
+          handleConfirmValue={handleConfirmValue}
+        />
       </Modal>
     </>
   );

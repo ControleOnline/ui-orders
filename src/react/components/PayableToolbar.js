@@ -5,7 +5,7 @@ import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
-export default PayableToolbar = ({route, order}) => {
+export default PayableToolbar = ({route}) => {
   const {styles, globalStyles} = css();
   const {getters, actions: cartActions} = getStore('cart');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
@@ -13,7 +13,7 @@ export default PayableToolbar = ({route, order}) => {
     getStore('invoice');
   const {items: invoices, isLoading} = invoiceGetters;
   const {item, reload, payable} = getters;
-  const {items: orders} = ordersGetters;
+  const {items: orders, item: order} = ordersGetters;
 
   useEffect(() => {
     if (order && item && order['@id'] != item['@id'])
