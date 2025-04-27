@@ -41,7 +41,7 @@ export default PayableToolbar = ({route}) => {
   useEffect(() => {
     if (payable >= 0 && item && item['@id'] && item.price > 0) {
       const updatedOrders = orders.filter(item => item['@id'] !== item['@id']);
-      ordersActions.setItems(updatedOrders);
+      //ordersActions.setItems(updatedOrders);
     }
   }, [payable]);
 

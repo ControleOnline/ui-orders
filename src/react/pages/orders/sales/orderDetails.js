@@ -42,7 +42,7 @@ const OrderDetails = ({route, navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (order && (!item || item['@id'] != order['@id'])) {
+      if (order && (!item || item['@id'] != order['@id'] || !orderProducts)) {
         orderProductsActions
           .getItems({
             company: '/people/' + currentCompany.id,

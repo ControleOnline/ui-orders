@@ -16,7 +16,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
   const {getters, actions: ordersActions} = getStore('orders');
-  const {items, isLoading, error, columns} = getters;
+  const {items, item, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const {actions: cartActions} = getStore('cart');
@@ -45,26 +45,10 @@ const Orders = ({navigation}) => {
             orderType: 'sale',
           })
           .then(data => {
-            if (device.configs['pos-type'] == 'simple') {
-              if (data.length == 0) handleAddOrder();
-              else {
-                handleAddOrder(data[0])
-              }
-            }
+            if (device.configs['pos-type'] == 'simple')
+              if (data.length === 0) handleAddOrder();
           });
     }, [currentCompany]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (
-        device?.configs &&
-        device.configs['pos-type'] == 'simple' &&
-        items &&
-        items.length > 0
-      )
-        navigation.navigate('OrderDetails', {order: items[0]});
-    }, [items, device]),
   );
 
   const handleEdit = order => {
@@ -84,8 +68,8 @@ const Orders = ({navigation}) => {
     ]);
   };
 
-  const handleAddOrder = (o = null) => {
-    ordersActions.setItem(o);
+  const handleAddOrder = () => {
+    ordersActions.setItem(null);
     invoiceActions.setItems(null);
     orderProductsActions.setItems(null);
     cartActions.setItem(null);
@@ -112,7 +96,7 @@ const Orders = ({navigation}) => {
         </TouchableOpacity>
       </View>
       <StateStore store="orders" />
-      {!isLoading && items.length > 0 && !error && (
+      {!isLoading && items && items.length > 0 && !error && (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View>
             {items.map(order => (

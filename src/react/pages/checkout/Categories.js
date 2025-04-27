@@ -19,7 +19,7 @@ const CategoriesPage = ({navigation}) => {
   const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
-  const {item: order} = ordersGetters;
+  const {item: order, items: orders} = ordersGetters;
   const {styles, globalStyles} = css();
   const status = defaultCompany?.configs['pos-default-status'];
 
@@ -36,15 +36,13 @@ const CategoriesPage = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      //console.log(order === null,order === undefined);
       if (
-        order === null ||
-        (status &&
-          currentCompany &&
-          (!order ||
-            Object.entries(order).length === 0 ||
-            (order && !order['@id'])))
-      )
+        order === null &&
+        status &&
+        currentCompany &&
+        order &&
+        Object.entries(order).length === 0
+      ) {
         ordersActions
           .save({
             app: 'POS',
@@ -56,7 +54,8 @@ const CategoriesPage = ({navigation}) => {
           .then(data => {
             ordersActions.setItem(data);
           });
-    }, [currentCompany,order]),
+      }
+    }, [currentCompany, order]),
   );
 
   const changeCategory = category => {

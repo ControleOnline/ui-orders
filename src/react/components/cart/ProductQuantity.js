@@ -53,6 +53,8 @@ const ProductQuantity = ({product, category, onQuantityChange}) => {
   );
 
   const addPrice = async price => {
+    if (!order || Object.entries(order).length === 0) return;
+
     let o = {...order};
     o.price = o.price + price;
     ordersActions.setItem(o);

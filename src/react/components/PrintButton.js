@@ -22,8 +22,6 @@ const PrinterButton = ({printType, store}) => {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
- 
-
   useEffect(() => {
     if (
       printers &&
@@ -88,7 +86,11 @@ const PrinterButton = ({printType, store}) => {
           disabled={isLoading || !printer}>
           <Icon name="print" size={24} color="#fff" />
           <Text style={{color: '#fff', marginLeft: 8}}>
-            {isLoading ? 'Imprimindo...' : `Imprimir (${printer?.alias})`}
+            {isLoading
+              ? 'Imprimindo...'
+              : printer && printer.alias
+              ? `Imprimir (${printer?.alias})`
+              : 'Selecionar Impressora'}
           </Text>
         </TouchableOpacity>
 

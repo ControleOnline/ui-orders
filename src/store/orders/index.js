@@ -7,8 +7,8 @@ import * as customActions from './customActions';
 export default {
   namespaced: true,
   state: {
-    item: {},
-    items: [],
+    item: null,
+    items: null,
     resourceEndpoint: 'orders',
     isLoading: false,
     isSaving: false,

@@ -64,25 +64,29 @@ export default Checkout = ({route, createInvoice}) => {
   };
 
   async function handleConfirmValue(inputValue) {
-    let totalPrice = Math.round(parseFloat(inputValue) * 100).toString();
-    const service = new InfinitePay();
-    try {
-      const response = await service.payment(
-        selectedPayment.paymentCode,
-        selectedPayment.installments || 1,
-        order['@id'],
-        totalPrice,
-      );
+    if (selectedPayment.paymentCode) {
+      let totalPrice = Math.round(parseFloat(inputValue) * 100).toString();
+      const service = new InfinitePay();
+      try {
+        const response = await service.payment(
+          selectedPayment.paymentCode,
+          selectedPayment.installments || 1,
+          order['@id'],
+          totalPrice,
+        );
 
-      if (!response.success || response.code === 2 || response.code === 1)
-        throw response;
+        if (!response.success || response.code === 2 || response.code === 1)
+          throw response;
 
-      createInvoice(
-        selectedPayment,
-        response.result.paidAmount / 100 || order.price,
-      );
-    } catch (error) {
-      paymentTypeActions.setError(error);
+        createInvoice(
+          selectedPayment,
+          response.result.paidAmount / 100 || order.price,
+        );
+      } catch (error) {
+        paymentTypeActions.setError(error);
+      }
+    } else {
+      createInvoice(selectedPayment, inputValue);
     }
     setModalVisible(false);
   }
@@ -226,7 +230,7 @@ export default Checkout = ({route, createInvoice}) => {
                     borderBottomColor: '#ccc',
                   }}>
                   <Text>
-                    {num}x - {Formatter.formatMoney(order.price / num)}
+                    {num}x - {Formatter.formatMoney((order?.price || 0) / num)}
                   </Text>
                 </TouchableOpacity>
               ))}
