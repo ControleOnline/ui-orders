@@ -20,15 +20,11 @@ const OrderDetails = ({route}) => {
   const {getters, actions} = getStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
+  const {items: invoices} = invoiceGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (order && order['@id'])
-        invoiceActions.getItems({'order.order': order['@id']});
-    }, [order]),
-  );
+
 
   return (
     <SafeAreaView style={[{paddingBottom: 0}, styles.container]}>

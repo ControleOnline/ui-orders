@@ -15,22 +15,33 @@ export default PayableToolbar = ({route}) => {
   const {item, reload, payable} = getters;
   const {items: orders, item: order} = ordersGetters;
 
-  useEffect(() => {
-    if (order && item && order['@id'] != item['@id'])
-      invoiceActions.getItems({'order.order': order['@id']});
-  }, [order, item]);
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        order &&
+        item &&
+        item['@id'] &&
+        order['@id'] &&
+        order['@id'] != item['@id']
+      )
+        setTimeout(() => {
+          if (!isLoading)
+            invoiceActions.getItems({'order.order': order['@id']});
+        }, 100);
+    }, [order, item]),
+  );
+
   useEffect(() => {
     if (item?.price == undefined) return;
-    const paid = invoices.reduce(
-      (sum, invoice) => sum + parseFloat(invoice.price),
-      0,
-    );
+    const paid = invoices
+      ? invoices.reduce((sum, invoice) => sum + parseFloat(invoice.price), 0)
+      : 0;
 
     cartActions.setPayable(parseFloat(paid) - parseFloat(item.price));
   }, [invoices, item]);
 
   useEffect(() => {
-    if (payable >= 0 && item['@id'] && item.price > 0) {
+    if (payable >= 0 && item && item['@id'] && item.price > 0) {
       const updatedOrders = orders.filter(item => item['@id'] !== item['@id']);
       ordersActions.setItems(updatedOrders);
     }
@@ -57,7 +68,8 @@ export default PayableToolbar = ({route}) => {
               </Text>
             ) : (
               <Text style={{color: 'green', fontSize: 18, textAlign: 'center'}}>
-                Pago: {Formatter.formatMoney(payable + parseFloat(item.price))}
+                Pago:{' '}
+                {Formatter.formatMoney(payable + parseFloat(item?.price || 0))}
               </Text>
             )}
           </>

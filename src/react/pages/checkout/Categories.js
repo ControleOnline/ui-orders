@@ -14,16 +14,18 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const CategoriesPage = ({navigation}) => {
   const {getters, actions: categoryActions} = getStore('categories');
-  const {getters: orderProductsGetters, actions: orderProductActions} =
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
   const {getters: peopleGetters} = getStore('people');
-  const {getters: ordersGetters} = getStore('orders');
-
-  const {currentCompany, isLoading, error} = peopleGetters;
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
+  const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
   const {item: order} = ordersGetters;
   const {styles, globalStyles} = css();
-  const {queue} = orderProductsGetters;
+  const status = defaultCompany?.configs['pos-default-status'];
 
   useFocusEffect(
     useCallback(() => {
@@ -33,6 +35,29 @@ const CategoriesPage = ({navigation}) => {
           'order[name]': 'ASC',
           company: currentCompany.id,
         });
+    }, [currentCompany]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        status &&
+        currentCompany &&
+        (!order ||
+          Object.entries(order).length === 0 ||
+          (order && !order['@id']))
+      )
+        ordersActions
+          .save({
+            app: 'POS',
+            provider: '/people/' + currentCompany.id,
+            status: '/statuses/' + status,
+            'device.device': localDevice?.id,
+            orderType: 'sale',
+          })
+          .then(data => {
+            ordersActions.setItem(data);
+          });
     }, [currentCompany]),
   );
 

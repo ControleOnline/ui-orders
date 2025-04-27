@@ -9,9 +9,9 @@ import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/Or
 const BottomCart = ({navigation}) => {
   const {getters, actions: cartActions} = getStore('cart');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: orderProductGetters, actions: orderProductsActions} =
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
-  const {items: orderProducts, isSaving} = orderProductGetters;
+  const {items: orderProducts, isSaving} = orderProductsGetters;
 
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
@@ -24,6 +24,7 @@ const BottomCart = ({navigation}) => {
   }, [order]);
 
   useEffect(() => {
+    if (!order || Object.entries(order).length === 0 || !orderProducts) return;
     let price = 0;
     let o = {...order};
     orderProducts.forEach(op => {

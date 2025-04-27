@@ -25,7 +25,6 @@ export default Checkout = ({route, createInvoice}) => {
   const {getters} = getStore('cart');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
-  const {getters: peopleGetters} = getStore('people');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
   const {
@@ -33,44 +32,13 @@ export default Checkout = ({route, createInvoice}) => {
     error: invoiceError,
     items: invoices,
   } = invoiceGetters;
-  const {getters: configsGetters} = getStore('configs');
-  const {items: companyConfigs} = configsGetters;
-  const {getters: deviceConfigGetters} = getStore('device_config');
-  const {item: device} = deviceConfigGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
-  const {currentCompany, defaultCompany} = peopleGetters;
   const {item: order, payable} = getters;
   const [selectedPayment, setSelectedPayment] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [installmentsModalVisible, setInstallmentsModalVisible] =
-    useState(false); // Novo modal para parcelas
-  const [selectedInstallments, setSelectedInstallments] = useState(null); // Estado para número de parcelas
-
-  useFocusEffect(
-    useCallback(() => {
-      if (
-        companyConfigs &&
-        device?.configs &&
-        Object.entries(device.configs).length > 0 &&
-        device.configs['pos-gateway']
-      ) {
-        let wallets = [];
-
-        if (companyConfigs['pos-' + device.configs['pos-gateway'] + '-wallet'])
-          wallets.push(
-            companyConfigs['pos-' + device.configs['pos-gateway'] + '-wallet'],
-          );
-
-        if (companyConfigs['pos-cash-wallet'])
-          wallets.push(companyConfigs['pos-cash-wallet']);
-
-        paymentTypeActions.getItems({
-          people: '/people/' + currentCompany.id,
-          wallet: wallets,
-        });
-      }
-    }, [order, currentCompany, companyConfigs]),
-  );
+    useState(false);
+  const [selectedInstallments, setSelectedInstallments] = useState(null);
 
   const selectPayment = payment => {
     setSelectedPayment(payment);
@@ -96,7 +64,6 @@ export default Checkout = ({route, createInvoice}) => {
   };
 
   async function handleConfirmValue(inputValue) {
-    
     let totalPrice = Math.round(parseFloat(inputValue) * 100).toString();
     const service = new InfinitePay();
     try {

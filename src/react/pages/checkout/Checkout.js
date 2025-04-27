@@ -12,17 +12,21 @@ import {getStore} from '@store';
 export default Checkout = ({route}) => {
   const {styles, globalStyles} = css();
   const {getters: deviceConfigGetters} = getStore('device_config');
+  const {getters, actions: cartActions} = getStore('cart');
   const {item: device} = deviceConfigGetters;
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
+    getStore('order_products');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, defaultCompany} = peopleGetters;
   const {item: order} = ordersGetters;
+  const {items: invoices} = invoiceGetters;
+
   const navigation = useNavigation();
 
   const createInvoice = (selectedPayment, total) => {
-  
     const payload = {
       dueDate: Formatter.getCurrentDate(),
       status: '/statuses/' + defaultCompany?.configs['pos-paid-status'],
@@ -33,8 +37,20 @@ export default Checkout = ({route}) => {
       order: order['@id'],
     };
 
-    invoiceActions.save(payload).finally(() => {
-      navigation.navigate('OrderTools', {order: order});
+    invoiceActions.save(payload).then(data => {
+      if (device.configs['pos-type'] == 'simple') {
+        ordersActions.setItem(null);
+        invoiceActions.setItems(null);
+        orderProductsActions.setItems(null);
+        cartActions.setItem(null);
+        navigation.navigate('SalesOrderIndex');
+        cartActions.setPayable(0);
+      } else {
+        let i = [...invoices];
+        i.push(data);
+        invoiceActions.setItems(i);
+        navigation.navigate('OrderTools', {order: order});
+      }
     });
   };
 

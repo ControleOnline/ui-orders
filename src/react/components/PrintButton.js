@@ -22,13 +22,7 @@ const PrinterButton = ({printType, store}) => {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (currentCompany) {
-        printerActions.getPrinters({people: currentCompany.id});
-      }
-    }, [currentCompany]),
-  );
+ 
 
   useEffect(() => {
     if (

@@ -18,10 +18,12 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions} = getStore('orders');
-  const {actions: orderProductsActions} = getStore('order_products');
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
+    getStore('order_products');
   const {getters: peopleGetters} = getStore('people');
   const {actions: invoiceActions} = getStore('invoice');
   const {currentCompany} = peopleGetters;
+  const {items: orderProducts} = orderProductsGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
@@ -32,7 +34,7 @@ const OrderDetails = ({route, navigation}) => {
   );
 
   const handleAddProduct = () => {
-    navigation.navigate('AddProductScreen', {order: order});
+    navigation.navigate('AddProductScreen');
   };
   const handleOrderTools = () => {
     navigation.navigate('OrderTools', {order: order});
@@ -41,11 +43,15 @@ const OrderDetails = ({route, navigation}) => {
   useFocusEffect(
     useCallback(() => {
       if (order && (!item || item['@id'] != order['@id'])) {
-        orderProductsActions.getItems({
-          company: '/people/' + currentCompany.id,
-          order: order['@id'],
-          'exists[parentProduct]': 'false',
-        });
+        orderProductsActions
+          .getItems({
+            company: '/people/' + currentCompany.id,
+            order: order['@id'],
+            'exists[parentProduct]': 'false',
+          })
+          .then(data => {
+            if (data && data.length == 0) handleAddProduct();
+          });
       }
     }, [order]),
   );

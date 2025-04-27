@@ -17,7 +17,7 @@ const ProductsPage = ({navigation, route}) => {
   const {getters, actions} = getStore('products');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order} = ordersGetters;
-  const {getters: orderProductsGetters, actions: orderProductActions} =
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
   const {
     items: orderProducts,
@@ -42,7 +42,7 @@ const ProductsPage = ({navigation, route}) => {
       order: order['@id'],
     };
 
-    return orderProductActions.save(order_product).then(() => {
+    return orderProductsActions.save(order_product).then(() => {
       const storedProducts = JSON.parse(
         localStorage.getItem('products') || '{}',
       );
@@ -97,10 +97,10 @@ const ProductsPage = ({navigation, route}) => {
       const categoryProducts = storedProducts[categoryId];
       categoryProducts.forEach(product => {
         if (product.quantity > 0)
-          orderProductActions.addToQueue(() => changeProduct(product));
+          orderProductsActions.addToQueue(() => changeProduct(product));
       });
     }
-    orderProductActions.initQueue(() => {});
+    orderProductsActions.initQueue(() => {});
   };
 
   const currentCategoryProducts = products[category['@id']] || [];

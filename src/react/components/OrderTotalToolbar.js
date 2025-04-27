@@ -14,8 +14,11 @@ export default OrderTotalToolbar = ({route}) => {
   const {item, isLoading, payable} = getters;
   const {styles, globalStyles} = css();
 
-
-  return isLoading || invoiceIsLoading || isLoading || ordersIsloading ? (
+  return !item ||
+    isLoading ||
+    invoiceIsLoading ||
+    isLoading ||
+    ordersIsloading ? (
     <ActivityIndicator
       size="small"
       color={styles.primary?.color || '#000'}

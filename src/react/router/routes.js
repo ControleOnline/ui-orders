@@ -83,7 +83,8 @@ const WrappedProductsPage = ({navigation, route}) => (
 );
 
 const WrappedCategoryPage = ({navigation, route}) => {
-  const order = route.params?.order;
+  const {getters: ordersGetters} = getStore('orders');
+  const {item: order} = ordersGetters;
 
   React.useEffect(() => {
     navigation.setOptions({

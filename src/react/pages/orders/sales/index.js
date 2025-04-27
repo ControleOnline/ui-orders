@@ -19,9 +19,12 @@ const Orders = ({navigation}) => {
   const {items, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
+  const {actions: cartActions} = getStore('cart');
   const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
-  const {getters: orderProductGetters, actions: orderProductsActions} =
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
   const {getters: deviceConfigGetters} = getStore('device_config');
@@ -81,19 +84,12 @@ const Orders = ({navigation}) => {
   };
 
   const handleAddOrder = () => {
-    if (status && currentCompany)
-      ordersActions
-        .save({
-          app: 'POS',
-          provider: '/people/' + currentCompany.id,
-          status: '/statuses/' + status,
-          'device.device': localDevice?.id,
-          orderType: 'sale',
-        })
-        .then(order => {
-          orderProductsActions.setItems([]);
-          navigation.navigate('AddProductScreen', {order: order});
-        });
+    ordersActions.setItem(null);
+    invoiceActions.setItems(null);
+    orderProductsActions.setItems(null);
+    cartActions.setItem(null);
+    cartActions.setPayable(0);
+    navigation.navigate('AddProductScreen');
   };
   return (
     <SafeAreaView style={styles.container}>
