@@ -22,12 +22,10 @@ export default PayableToolbar = ({route}) => {
         item &&
         item['@id'] &&
         order['@id'] &&
-        order['@id'] != item['@id']
+        order['@id'] != item['@id'] &&
+        !isLoading
       )
-        setTimeout(() => {
-          if (!isLoading)
-            invoiceActions.getItems({'order.order': order['@id']});
-        }, 100);
+        invoiceActions.getItems({'order.order': order['@id']});
     }, [order, item]),
   );
 

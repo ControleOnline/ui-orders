@@ -13,7 +13,7 @@ const OrderDetails = ({route}) => {
   return (
     <>
       <StateStore store="invoice" />
-      {!isLoading && items.length > 0 && !error && (
+      {!isLoading && items && items.length > 0 && !error && (
         <>
           <View style={componentStyles.orderContainer}>
             {items.map(invoice => (

@@ -45,11 +45,12 @@ const Orders = ({navigation}) => {
             orderType: 'sale',
           })
           .then(data => {
-            if (
-              !data ||
-              (data.length == 0 && device.configs['pos-type'] == 'simple')
-            )
-              handleAddOrder();
+            if (device.configs['pos-type'] == 'simple') {
+              if (data.length == 0) handleAddOrder();
+              else {
+                handleAddOrder(data[0])
+              }
+            }
           });
     }, [currentCompany]),
   );
@@ -83,8 +84,8 @@ const Orders = ({navigation}) => {
     ]);
   };
 
-  const handleAddOrder = () => {
-    ordersActions.setItem(null);
+  const handleAddOrder = (o = null) => {
+    ordersActions.setItem(o);
     invoiceActions.setItems(null);
     orderProductsActions.setItems(null);
     cartActions.setItem(null);

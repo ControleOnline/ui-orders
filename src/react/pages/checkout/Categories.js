@@ -14,13 +14,9 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const CategoriesPage = ({navigation}) => {
   const {getters, actions: categoryActions} = getStore('categories');
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
   const {getters: peopleGetters} = getStore('people');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
   const {item: order} = ordersGetters;
@@ -40,12 +36,14 @@ const CategoriesPage = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
+      //console.log(order === null,order === undefined);
       if (
-        status &&
-        currentCompany &&
-        (!order ||
-          Object.entries(order).length === 0 ||
-          (order && !order['@id']))
+        order === null ||
+        (status &&
+          currentCompany &&
+          (!order ||
+            Object.entries(order).length === 0 ||
+            (order && !order['@id'])))
       )
         ordersActions
           .save({
@@ -58,7 +56,7 @@ const CategoriesPage = ({navigation}) => {
           .then(data => {
             ordersActions.setItem(data);
           });
-    }, [currentCompany]),
+    }, [currentCompany,order]),
   );
 
   const changeCategory = category => {
