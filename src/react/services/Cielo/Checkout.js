@@ -26,6 +26,9 @@ export default Checkout = ({route, createInvoice}) => {
   const {getters} = getStore('cart');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
+    getStore('order_products');
+  const {items: orderProducts, isSaving} = orderProductsGetters;
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
   const {
@@ -46,7 +49,7 @@ export default Checkout = ({route, createInvoice}) => {
   const formatProducts = () => {
     let items = [];
 
-    order.orderProducts.forEach(orderProduct => {
+    orderProducts.forEach(orderProduct => {
       let item = {};
       item.name = orderProduct.product.product;
       item.quantity = orderProduct.quantity;

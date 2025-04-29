@@ -57,7 +57,7 @@ export default Checkout = ({route}) => {
         let i = [...invoices];
         i.push(data);
         invoiceActions.setItems(i);
-        navigation.navigate('OrderTools', {order: order});
+        navigation.navigate('OrderTools');
       }
     });
   };

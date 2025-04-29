@@ -29,7 +29,8 @@ const OrderDetails = ({route, navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!item || item['@id'] != order['@id']) actions.get(order['@id']);
+      if (!item || (item && order && item['@id'] != order['@id']))
+        actions.get(order['@id']);
     }, [order]),
   );
 
@@ -37,12 +38,12 @@ const OrderDetails = ({route, navigation}) => {
     navigation.navigate('AddProductScreen');
   };
   const handleOrderTools = () => {
-    navigation.navigate('OrderTools', {order: order});
+    navigation.navigate('OrderTools');
   };
 
   useFocusEffect(
     useCallback(() => {
-      if (order && (!item || item['@id'] != order['@id'] || !orderProducts)) {
+      if (!item || (item && order && item['@id'] != order['@id']))
         orderProductsActions
           .getItems({
             company: '/people/' + currentCompany.id,
@@ -52,7 +53,6 @@ const OrderDetails = ({route, navigation}) => {
           .then(data => {
             if (data && data.length == 0) handleAddProduct();
           });
-      }
     }, [order]),
   );
 

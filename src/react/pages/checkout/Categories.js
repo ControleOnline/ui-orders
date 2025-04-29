@@ -36,13 +36,7 @@ const CategoriesPage = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (
-        order === null &&
-        status &&
-        currentCompany &&
-        order &&
-        Object.entries(order).length === 0
-      ) {
+      if (status && currentCompany && order === null)
         ordersActions
           .save({
             app: 'POS',
@@ -54,7 +48,6 @@ const CategoriesPage = ({navigation}) => {
           .then(data => {
             ordersActions.setItem(data);
           });
-      }
     }, [currentCompany, order]),
   );
 

@@ -16,7 +16,6 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const OrderDetails = ({route}) => {
-  const order = route.params.order;
   const {getters, actions} = getStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
