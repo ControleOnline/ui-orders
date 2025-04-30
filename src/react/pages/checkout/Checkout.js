@@ -45,6 +45,7 @@ export default Checkout = ({route}) => {
           i.push(data);
           invoiceActions.setItems(i);
           cartActions.setPayable(p);
+          navigation.reset('OrderTools');
         } else {
           ordersActions.setItem(null);
           orderProductsActions.setItems([]);
