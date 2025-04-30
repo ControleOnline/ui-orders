@@ -63,18 +63,18 @@ const Orders = ({navigation}) => {
       },
       {
         text: 'Confirmar',
-        onPress: () => handleAddOrder(),
+        onPress: () => handleAddOrder(true),
       },
     ]);
   };
 
-  const handleAddOrder = () => {
+  const handleAddOrder = force => {
     ordersActions.setItem(null);
     invoiceActions.setItems(null);
     orderProductsActions.setItems(null);
     cartActions.setItem(null);
     cartActions.setPayable(0);
-    navigation.navigate('AddProductScreen');
+    navigation.navigate('AddProductScreen', {force: force});
   };
   return (
     <SafeAreaView style={styles.container}>

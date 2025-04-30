@@ -12,7 +12,7 @@ import Carousel from '@controleonline/ui-products/src/react/components/products/
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
-const CategoriesPage = ({navigation}) => {
+const CategoriesPage = ({navigation, forceCreate}) => {
   const {getters, actions: categoryActions} = getStore('categories');
   const {getters: peopleGetters} = getStore('people');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
@@ -37,11 +37,12 @@ const CategoriesPage = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       if (
-        status &&
-        currentCompany &&
-        orders &&
-        orders.length === 0 &&
-        order === null
+        forceCreate ||
+        (status &&
+          currentCompany &&
+          orders &&
+          orders.length === 0 &&
+          order === null)
       )
         ordersActions
           .save({
