@@ -22,7 +22,8 @@ export default Checkout = ({route}) => {
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, defaultCompany} = peopleGetters;
   const {item: order} = ordersGetters;
-  const {items: invoices, payable} = invoiceGetters;
+  const {items: invoices} = invoiceGetters;
+  const {payable} = getters;
 
   const navigation = useNavigation();
 
@@ -39,13 +40,13 @@ export default Checkout = ({route}) => {
 
     invoiceActions.save(payload).then(data => {
       if (device.configs['pos-type'] == 'simple') {
-        if (payable < data.price) {
+        let p = payable + data.price;
+        if (p < 0) {
           let i = [...invoices];
-          let p = payable - data.price;
           i.push(data);
           invoiceActions.setItems(i);
           cartActions.setPayable(p);
-          navigation.reset('OrderTools');
+          navigation.navigate('OrderTools');
         } else {
           ordersActions.setItem(null);
           orderProductsActions.setItems([]);

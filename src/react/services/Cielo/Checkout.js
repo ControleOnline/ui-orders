@@ -104,6 +104,7 @@ export default Checkout = ({route, createInvoice}) => {
         setModalVisible(false);
       }
     } else {
+      setModalVisible(false);
       createInvoice(selectedPayment, inputValue);
     }
 
