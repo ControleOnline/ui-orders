@@ -74,7 +74,7 @@ const Orders = ({navigation}) => {
     orderProductsActions.setItems(null);
     cartActions.setItem(null);
     cartActions.setPayable(0);
-    navigation.navigate('AddProductScreen', {force: force});
+    navigation.navigate('AddProductScreen', {forceCreate: force});
   };
   return (
     <SafeAreaView style={styles.container}>

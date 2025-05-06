@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   Text,
   View,
@@ -10,9 +10,13 @@ import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
-
-const CategoriesPage = ({navigation, forceCreate}) => {
+import {
+  useNavigation,
+  useFocusEffect,
+  useRoute,
+} from '@react-navigation/native';
+const CategoriesPage = ({navigation}) => {
+  const route = useRoute();
   const {getters, actions: categoryActions} = getStore('categories');
   const {getters: peopleGetters} = getStore('people');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
@@ -22,6 +26,9 @@ const CategoriesPage = ({navigation, forceCreate}) => {
   const {item: order, items: orders} = ordersGetters;
   const {styles, globalStyles} = css();
   const status = defaultCompany?.configs['pos-default-status'];
+  const [forceCreate, setForceCreate] = useState(
+    route.params?.forceCreate || false,
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -33,17 +40,10 @@ const CategoriesPage = ({navigation, forceCreate}) => {
         });
     }, [currentCompany]),
   );
-
   useFocusEffect(
     useCallback(() => {
-      if (
-        forceCreate ||
-        (status &&
-          currentCompany &&
-          orders &&
-          orders.length === 0 &&
-          order === null)
-      )
+      if (forceCreate) {
+        setForceCreate(false);
         ordersActions
           .save({
             app: 'POS',
@@ -55,6 +55,19 @@ const CategoriesPage = ({navigation, forceCreate}) => {
           .then(data => {
             ordersActions.setItem(data);
           });
+      }
+    }, [forceCreate]),
+  );
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        status &&
+        currentCompany &&
+        orders &&
+        orders.length === 0 &&
+        order === null
+      )
+        setForceCreate(true);
     }, [currentCompany, order, orders]),
   );
 
