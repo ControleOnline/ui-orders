@@ -20,7 +20,8 @@ const CategoriesPage = ({navigation}) => {
   const {getters, actions: categoryActions} = getStore('categories');
   const {getters: peopleGetters} = getStore('people');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
+  const {getters: deviceGetters} = getStore('device');
+  const {item: storagedDevice} = deviceGetters;  
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
   const {item: order, items: orders} = ordersGetters;
@@ -49,7 +50,7 @@ const CategoriesPage = ({navigation}) => {
             app: 'POS',
             provider: '/people/' + currentCompany.id,
             status: '/statuses/' + status,
-            'device.device': localDevice?.id,
+            'device.device': storagedDevice.id,
             orderType: 'sale',
           })
           .then(data => {

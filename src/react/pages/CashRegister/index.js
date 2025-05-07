@@ -20,8 +20,9 @@ const CashRegister = ({navigation}) => {
   const {items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;
+  const {getters: deviceGetters} = getStore('device');
+  const {item: storagedDevice} = deviceGetters;  
 
-  const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
   const [processedData, setProcessedData] = useState({
     walletGroups: [],
     total: 0,
@@ -69,12 +70,12 @@ const CashRegister = ({navigation}) => {
     useCallback(() => {
       if (
         device?.configs &&
-        localDevice &&
-        device.configs['config-version'] == localDevice.buildNumber
+        storagedDevice &&
+        device.configs['config-version'] == storagedDevice.buildNumber
       )
         invoiceActions.getInflow({
           receiver: currentCompany.id,
-          'device.device': localDevice?.id,
+          'device.device': storagedDevice.id,
         });
     }, []),
   );

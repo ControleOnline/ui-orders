@@ -27,25 +27,23 @@ const CloseCashRegister = ({navigation}) => {
   const {item: device} = deviceConfigGetters;
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
-  const storagedDevice = localStorage.getItem('device');
-  const [localDevice] = useState(() => {
-    return storagedDevice ? JSON.parse(storagedDevice) : {};
-  });
+  const {getters: deviceGetters} = getStore('device');
+  const {item: storagedDevice} = deviceGetters;  
   const {isLoading, error} = invoiceGetters;
   const [orderItems, setOrderItems] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
-      if (localDevice)
+      if (storagedDevice)
         invoiceActions
           .getCashRegister({
-            device: localDevice?.id,
+            device: storagedDevice.id,
             provider: currentCompany.id,
           })
           .then(data => {
             setOrderItems(data);
           });
-    }, [localDevice]),
+    }, [storagedDevice]),
   );
 
   const handleConfirmClose = () => {

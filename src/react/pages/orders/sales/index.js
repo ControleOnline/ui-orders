@@ -20,7 +20,8 @@ const Orders = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const {actions: cartActions} = getStore('cart');
-  const localDevice = JSON.parse(localStorage.getItem('device') || '{}');
+  const {getters: deviceGetters} = getStore('device');
+  const {item: storagedDevice} = deviceGetters;  
   const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
   const {getters: invoiceGetters, actions: invoiceActions} =
@@ -41,7 +42,7 @@ const Orders = ({navigation}) => {
           .getItems({
             provider: '/people/' + currentCompany.id,
             status: status,
-            'device.device': localDevice?.id,
+            'device.device': storagedDevice.id,
             orderType: 'sale',
           })
           .then(data => {
