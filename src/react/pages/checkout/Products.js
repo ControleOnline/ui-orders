@@ -37,9 +37,10 @@ const ProductsPage = ({navigation, route}) => {
     };
 
     return orderProductsActions.save(order_product).then(() => {
-      let cp = categoryProducts.map(p =>
-        p['@id'] === product['@id'] ? {...p, quantity: 0} : p,
-      );
+      let cp = categoryProducts.map(p => {
+        p['@id'] === product['@id'] ? {...p, quantity: 0} : p;
+        console.log('Q:', p.quantity);
+      });
       changeCategoryProduct(cp);
     });
   };

@@ -1,7 +1,8 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useState, useRef} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {getStore} from '@store';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const styles = {
   container: {
@@ -23,6 +24,9 @@ const ProductQuantity = ({product, category}) => {
     getStore('categories');
   const {items: categories} = categoriesGetters;
   const {item: order} = ordersGetters;
+  const [decreaseIcon, setDecreaseIcon] = useState(null);
+  const [qtd, setQtd] = useState(0);
+  const debounceRef = useRef(null);
 
   const updateQuantityInStorage = useCallback(
     newQuantity => {
@@ -47,50 +51,66 @@ const ProductQuantity = ({product, category}) => {
 
       updatedProducts[index]['products'] = categoryProducts;
       categoryActions.setItems(updatedProducts);
+
+      ordersActions.initQueue(() => {});
     },
     [product, category],
   );
+  const debouncedUpdate = useCallback(
+    (newQuantity, priceChange) => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        updateQuantityInStorage(newQuantity);
+        ordersActions.addToQueue(() => addPrice(priceChange));
+      }, 300);
+    },
+    [updateQuantityInStorage, addPrice, ordersActions],
+  );
 
-  const changeOrderPrice = price => {
-    let o = {...order};
-    o.price = (o.price || 0) + price;
-    ordersActions.setItem(o);
-  };
-
-  const increaseQuantity = () => {
+  const increaseQuantity = useCallback(() => {
     const newQuantity = (product.quantity || 0) + 1;
-    updateQuantityInStorage(newQuantity);
-    changeOrderPrice(product.price);
-  };
+    setQtd(newQuantity);
+    debouncedUpdate(newQuantity, product.price);
+  }, [qtd, product.price, debouncedUpdate]);
 
-  const decreaseQuantity = () => {
+  const decreaseQuantity = useCallback(() => {
     const currentQuantity = product.quantity || 0;
     const newQuantity = currentQuantity > 0 ? currentQuantity - 1 : 0;
-    updateQuantityInStorage(newQuantity);
-    changeOrderPrice(product.price * -1);
-  };
+    setQtd(newQuantity);
+    debouncedUpdate(newQuantity, product.price * -1);
+  }, [qtd, product.price, debouncedUpdate]);
 
-  const getDecreaseIcon = () => {
-    const quantity = product.quantity || 0;
-    if (quantity === 1) return 'delete';
-    if (quantity === 0) return '';
-    return 'remove';
-  };
+  const addPrice = useCallback(
+    price => {
+      let o = {...order};
+      o.price = (o.price || 0) + price;
+      ordersActions.setItem(o);
+    },
+    [order, ordersActions],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const quantity = product.quantity;
+
+      if (quantity === 1) setDecreaseIcon('delete');
+      if (!quantity || quantity === 0) setDecreaseIcon(null);
+      if (quantity > 1) setDecreaseIcon('remove');
+    }, [product]),
+  );
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.button}
-        disabled={product.quantity == 0}
+        disabled={qtd == 0}
         onPress={decreaseQuantity}>
-        {getDecreaseIcon() ? (
-          <Icon name={getDecreaseIcon()} size={24} color="red" />
-        ) : null}
+        {decreaseIcon && <Icon name={decreaseIcon} size={24} color="red" />}
       </TouchableOpacity>
 
-      <Text style={[styles.quantityText, {color: '#666'}]}>
-        {product.quantity || '0'}
-      </Text>
+      <Text style={[styles.quantityText, {color: '#666'}]}>{qtd || '0'}</Text>
 
       <TouchableOpacity style={styles.button} onPress={increaseQuantity}>
         <Icon name="add" size={24} color="red" />

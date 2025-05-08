@@ -40,9 +40,16 @@ export default Checkout = ({route, createInvoice}) => {
     useState(false);
   const [selectedInstallments, setSelectedInstallments] = useState(null);
 
-  const selectPayment = payment => {
+  const selectPayment = async payment => {
     setSelectedPayment(payment);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedPayment && Object.keys(selectedPayment).length > 0)
+        handlePay();
+    }, [selectedPayment]),
+  );
 
   const handlePay = async () => {
     if (
