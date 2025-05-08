@@ -1,8 +1,8 @@
 import React, {useCallback, useState, useRef} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
+import {View, Text, TouchableOpacity, InteractionManager} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {getStore} from '@store';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 
 const styles = {
   container: {
@@ -28,84 +28,67 @@ const ProductQuantity = ({product, category}) => {
   const [qtd, setQtd] = useState(0);
   const debounceRef = useRef(null);
 
-  const updateQuantityInStorage = useCallback(
-    newQuantity => {
-      const index = categories.findIndex(c => c['@id'] === category['@id']);
-      const updatedProducts = [...categories];
-      const categoryProducts = categories[index]['products'];
-      const productIndex = categoryProducts.findIndex(
-        p => p['@id'] === product['@id'],
-      );
-      if (productIndex >= 0) {
-        categoryProducts[productIndex] = {
-          ...categoryProducts[productIndex],
-          ...product,
-          quantity: newQuantity,
-        };
-      } else {
-        categoryProducts.push({
-          ...product,
-          quantity: newQuantity,
-        });
-      }
+  const addPrice = async price => {
+    let o = {...order};
+    o.price = (o.price || 0) + price;
+    ordersActions.setItem(o);
+  };
 
-      updatedProducts[index]['products'] = categoryProducts;
-      categoryActions.setItems(updatedProducts);
-
-      ordersActions.initQueue(() => {});
-    },
-    [product, category],
-  );
   const debouncedUpdate = useCallback(
     (newQuantity, priceChange) => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-      debounceRef.current = setTimeout(() => {
-        updateQuantityInStorage(newQuantity);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      InteractionManager.runAfterInteractions(() => {
         ordersActions.addToQueue(() => addPrice(priceChange));
+        ordersActions.initQueue(() => {});
+      });
+
+      debounceRef.current = setTimeout(() => {
+        InteractionManager.runAfterInteractions(() => {
+          const index = categories.findIndex(c => c['@id'] === category['@id']);
+          let c = [...categories];
+
+          let q = newQuantity - (product.quantity || 0);
+          const productIndex = c[index].products.findIndex(
+            p => p['@id'] === product['@id'],
+          );
+
+          c[index].products[productIndex] = {
+            ...product,
+            quantity: newQuantity,
+          };
+          categoryActions.setItems(c);
+        });
       }, 300);
     },
-    [updateQuantityInStorage, addPrice, ordersActions],
+    [categories, category, product, ordersActions, categoryActions],
   );
 
   const increaseQuantity = useCallback(() => {
-    const newQuantity = (product.quantity || 0) + 1;
+    const newQuantity = qtd + 1;
     setQtd(newQuantity);
     debouncedUpdate(newQuantity, product.price);
-  }, [qtd, product.price, debouncedUpdate]);
+  }, [qtd, product, debouncedUpdate]);
 
   const decreaseQuantity = useCallback(() => {
-    const currentQuantity = product.quantity || 0;
-    const newQuantity = currentQuantity > 0 ? currentQuantity - 1 : 0;
+    const newQuantity = qtd > 0 ? qtd - 1 : 0;
     setQtd(newQuantity);
     debouncedUpdate(newQuantity, product.price * -1);
-  }, [qtd, product.price, debouncedUpdate]);
-
-  const addPrice = useCallback(
-    price => {
-      let o = {...order};
-      o.price = (o.price || 0) + price;
-      ordersActions.setItem(o);
-    },
-    [order, ordersActions],
-  );
+  }, [qtd, product, debouncedUpdate]);
 
   useFocusEffect(
     useCallback(() => {
-      const quantity = product.quantity;
-
-      if (quantity === 1) setDecreaseIcon('delete');
-      if (!quantity || quantity === 0) setDecreaseIcon(null);
-      if (quantity > 1) setDecreaseIcon('remove');
-    }, [product]),
+      if (qtd === 1) setDecreaseIcon('delete');
+      if (!qtd || qtd === 0) setDecreaseIcon(null);
+      if (qtd > 1) setDecreaseIcon('remove');
+    }, [qtd]),
   );
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.button}
-        disabled={qtd == 0}
+        disabled={qtd === 0}
         onPress={decreaseQuantity}>
         {decreaseIcon && <Icon name={decreaseIcon} size={24} color="red" />}
       </TouchableOpacity>
