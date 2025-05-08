@@ -21,7 +21,7 @@ const CategoriesPage = ({navigation}) => {
   const {getters: peopleGetters} = getStore('people');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: deviceGetters} = getStore('device');
-  const {item: storagedDevice} = deviceGetters;  
+  const {item: storagedDevice} = deviceGetters;
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
   const {item: order, items: orders} = ordersGetters;
@@ -33,12 +33,22 @@ const CategoriesPage = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!items || items.length == 0)
-        categoryActions.getItems({
-          context: 'products',
-          'order[name]': 'ASC',
-          company: currentCompany.id,
-        });
+      if (!items || items.length == 0) {
+        const categories = JSON.parse(
+          localStorage.getItem('categories') || '[]',
+        );
+        if (categories.length > 0) categoryActions.setItems(categories);
+        else
+          categoryActions
+            .getItems({
+              context: 'products',
+              'order[name]': 'ASC',
+              company: currentCompany.id,
+            })
+            .then(data => {
+              localStorage.setItem('categories', JSON.stringify(data));
+            });
+      }
     }, [currentCompany]),
   );
   useFocusEffect(

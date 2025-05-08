@@ -17,16 +17,18 @@ const styles = {
   },
 };
 
-const ProductQuantity = ({product, category, onQuantityChange}) => {
+const ProductQuantity = ({product, category}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {getters: categoriesGetters, actions: categoryActions} =
+    getStore('categories');
+  const {items: categories} = categoriesGetters;
   const {item: order} = ordersGetters;
 
   const updateQuantityInStorage = useCallback(
     newQuantity => {
-      const storedProducts = JSON.parse(
-        localStorage.getItem('products') || '{}',
-      );
-      const categoryProducts = storedProducts[category['@id']] || [];
+      const index = categories.findIndex(c => c['@id'] === category['@id']);
+      const updatedProducts = [...categories];
+      const categoryProducts = categories[index]['products'];
       const productIndex = categoryProducts.findIndex(
         p => p['@id'] === product['@id'],
       );
@@ -42,38 +44,30 @@ const ProductQuantity = ({product, category, onQuantityChange}) => {
           quantity: newQuantity,
         });
       }
-      const updatedProducts = {
-        ...storedProducts,
-        [category['@id']]: categoryProducts,
-      };
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
-      if (onQuantityChange) onQuantityChange();
+
+      updatedProducts[index]['products'] = categoryProducts;
+      categoryActions.setItems(updatedProducts);
     },
-    [product, category, onQuantityChange],
+    [product, category],
   );
 
-  const addPrice = async price => {
+  const changeOrderPrice = price => {
     let o = {...order};
     o.price = (o.price || 0) + price;
     ordersActions.setItem(o);
   };
 
-  const changeOrderPrice = price => {
-    ordersActions.addToQueue(() => addPrice(price));
-    ordersActions.initQueue(() => {});
-  };
-
   const increaseQuantity = () => {
-    changeOrderPrice(product.price);
     const newQuantity = (product.quantity || 0) + 1;
     updateQuantityInStorage(newQuantity);
+    changeOrderPrice(product.price);
   };
 
   const decreaseQuantity = () => {
-    changeOrderPrice(product.price * -1);
     const currentQuantity = product.quantity || 0;
     const newQuantity = currentQuantity > 0 ? currentQuantity - 1 : 0;
     updateQuantityInStorage(newQuantity);
+    changeOrderPrice(product.price * -1);
   };
 
   const getDecreaseIcon = () => {

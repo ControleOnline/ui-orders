@@ -14,24 +14,18 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
-  const {getters, actions} = getStore('products');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {actions} = getStore('products');
+  const {getters: ordersGetters} = getStore('orders');
+  const {getters: categoriesGetters, actions: categoryActions} =
+    getStore('categories');
+  const {items: categories} = categoriesGetters;
   const {item: order} = ordersGetters;
   const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
-  const {
-    items: orderProducts,
-    reload,
-    isLoading,
-    isSaving,
-    error,
-  } = orderProductsGetters;
+  const {isLoading, error} = orderProductsGetters;
 
   const {styles, globalStyles} = css();
-
-  const [products, setProducts] = useState(
-    JSON.parse(localStorage.getItem('products') || '{}'),
-  );
+  const [categoryProducts, setCategoryProducts] = useState([]);
 
   const changeProduct = product => {
     const order_product = {
@@ -43,84 +37,87 @@ const ProductsPage = ({navigation, route}) => {
     };
 
     return orderProductsActions.save(order_product).then(() => {
-      const storedProducts = JSON.parse(
-        localStorage.getItem('products') || '{}',
+      let cp = categoryProducts.map(p =>
+        p['@id'] === product['@id'] ? {...p, quantity: 0} : p,
       );
-      if (storedProducts[category['@id']]) {
-        storedProducts[category['@id']] = storedProducts[category['@id']].map(
-          p => (p['@id'] === product['@id'] ? {...p, quantity: 0} : p),
-        );
-        localStorage.setItem('products', JSON.stringify(storedProducts));
-        setProducts(storedProducts);
-      }
+      changeCategoryProduct(cp);
     });
+  };
+  const changeCategoryProduct = (p, changeStorage = false) => {
+    const index = categories.findIndex(c => c['@id'] === category['@id']);
+    let c = [...categories];
+    c[index]['products'] = p;
+    setCategoryProducts(p);
+    categoryActions.setItems(c);
+    if (changeStorage)
+      localStorage.setItem('categories', JSON.stringify(categories));
   };
 
   useFocusEffect(
     useCallback(() => {
-      let p = {...products};
-
-      if (!p[category['@id']]) {
-        actions
-          .getItems({
-            'productCategory.category': category['@id'],
-            active: 1,
-            'order[product]': 'ASC',
-            'order[description]': 'ASC',
-            type: ['custom', 'product', 'manufactured'],
-          })
-          .then(data => {
-            p[category['@id']] = data;
-            setProducts(p);
-            localStorage.setItem('products', JSON.stringify(p));
-          });
+      if (
+        categories &&
+        categories.length > 0 &&
+        category &&
+        category['@id'] &&
+        (!categoryProducts || categoryProducts.length == 0)
+      ) {
+        const index = categories.findIndex(c => c['@id'] === category['@id']);
+        if (
+          index >= 0 &&
+          categories[index] &&
+          categories[index]['products'] &&
+          categories[index]['products'].length > 0
+        )
+          setCategoryProducts(categories[index]['products']);
+        else
+          actions
+            .getItems({
+              'productCategory.category': category['@id'],
+              active: 1,
+              'order[product]': 'ASC',
+              'order[description]': 'ASC',
+              type: ['custom', 'product', 'manufactured'],
+            })
+            .then(data => {
+              if (data && Object.keys(data).length > 0)
+                changeCategoryProduct(data, true);
+            });
       }
-    }, [category]),
+    }, [category, categories, categoryProducts]),
   );
-
-  const onQuantityChange = () => {
-    setProducts(JSON.parse(localStorage.getItem('products') || '{}'));
-  };
 
   useFocusEffect(
     useCallback(() => {
       return () => {
         handleSave();
       };
-    }, []),
+    }, [categoryProducts]),
   );
 
   const handleSave = () => {
-    const storedProducts = JSON.parse(localStorage.getItem('products') || '{}');
-
-    for (const categoryId in storedProducts) {
-      const categoryProducts = storedProducts[categoryId];
-      categoryProducts.forEach(product => {
-        if (product.quantity > 0)
-          orderProductsActions.addToQueue(() => changeProduct(product));
-      });
-    }
+    categoryProducts.forEach(product => {
+      if (product?.quantity > 0)
+        orderProductsActions.addToQueue(() => changeProduct(product));
+    });
     orderProductsActions.initQueue(() => {});
   };
 
-  const currentCategoryProducts = products[category['@id']] || [];
-
   return (
     <SafeAreaView style={styles.container}>
-      <StateStore store="order_products" />
-      {!isLoading &&
-        !isSaving &&
-        currentCategoryProducts.length > 0 &&
-        !error && (
+      <StateStore store="products" />
+      {categoryProducts &&
+        categoryProducts.length > 0 &&
+        !error &&
+        !isLoading && (
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.gridContainer}>
-              {currentCategoryProducts.map(product => (
+              {categoryProducts.map(product => (
                 <View key={product.id} style={styles.cardWrapper}>
                   <ProductItem
                     key={product.id}
                     product={product}
                     category={category}
-                    onQuantityChange={onQuantityChange}
                   />
                 </View>
               ))}
