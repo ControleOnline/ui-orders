@@ -29,17 +29,7 @@ const ProductsPage = ({navigation, route}) => {
   const {styles, globalStyles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
 
-  const changeProduct = product => {
-    const order_product = {
-      parentProduct: null,
-      product: product['@id'],
-      product_group_id: null,
-      quantity: product.quantity || 0,
-      order: order['@id'],
-    };
-
-    return orderProductsActions.save(order_product);
-  };
+  useFocusEffect(useCallback(() => {}, []));
 
   useFocusEffect(
     useCallback(() => {
@@ -113,12 +103,28 @@ const ProductsPage = ({navigation, route}) => {
     }, [categoryProducts]),
   );
 
+  const clear = useCallback(() => {
+    const c = JSON.parse(localStorage.getItem('categories'));
+    setCategoryProducts(c);
+  }, [setCategoryProducts]);
+
+  const changeProduct = product => {
+    const order_product = {
+      parentProduct: null,
+      product: product['@id'],
+      product_group_id: null,
+      quantity: product.quantity || 0,
+      order: order['@id'],
+    };
+
+    return orderProductsActions.save(order_product);
+  };
   const handleSave = () => {
     categoryProducts.forEach(product => {
       if (product?.quantity > 0)
         orderProductsActions.addToQueue(() => changeProduct(product));
     });
-    orderProductsActions.initQueue(() => {});
+    orderProductsActions.initQueue(clear);
   };
 
   return (
