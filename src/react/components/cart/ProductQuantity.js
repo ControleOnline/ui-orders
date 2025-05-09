@@ -18,7 +18,7 @@ const styles = {
   },
 };
 
-const ProductQuantity = ({product, category}) => {
+const ProductQuantity = ({product, category, changePrice}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: categoriesGetters, actions: categoryActions} =
     getStore('categories');
@@ -28,21 +28,9 @@ const ProductQuantity = ({product, category}) => {
   const [qtd, setQtd] = useState(0);
   const debounceRef = useRef(null);
 
-  const addPrice = async price => {
-    let o = {...order};
-    o.price = (o.price || 0) + price;
-    ordersActions.setItem(o);
-  };
-
   const debouncedUpdate = useCallback(
-    (newQuantity, priceChange) => {
+    newQuantity => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-
-      InteractionManager.runAfterInteractions(() => {
-        ordersActions.addToQueue(() => addPrice(priceChange));
-        ordersActions.initQueue(() => {});
-      });
-
       debounceRef.current = setTimeout(() => {
         InteractionManager.runAfterInteractions(() => {
           const index = categories.findIndex(c => c['@id'] === category['@id']);
@@ -67,13 +55,15 @@ const ProductQuantity = ({product, category}) => {
   const increaseQuantity = useCallback(() => {
     const newQuantity = qtd + 1;
     setQtd(newQuantity);
-    debouncedUpdate(newQuantity, product.price);
+    changePrice(product.price);
+    debouncedUpdate(newQuantity);
   }, [qtd, product, debouncedUpdate]);
 
   const decreaseQuantity = useCallback(() => {
     const newQuantity = qtd > 0 ? qtd - 1 : 0;
     setQtd(newQuantity);
-    debouncedUpdate(newQuantity, product.price * -1);
+    changePrice(product.price * -1);
+    debouncedUpdate(newQuantity);
   }, [qtd, product, debouncedUpdate]);
 
   useFocusEffect(
@@ -82,6 +72,14 @@ const ProductQuantity = ({product, category}) => {
       if (!qtd || qtd === 0) setDecreaseIcon(null);
       if (qtd > 1) setDecreaseIcon('remove');
     }, [qtd]),
+  );
+  
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setQtd(0);
+      };
+    }, []),
   );
 
   return (

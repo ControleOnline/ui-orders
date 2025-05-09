@@ -1,10 +1,11 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {
   Text,
   View,
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  InteractionManager,
 } from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -15,7 +16,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
   const {actions} = getStore('products');
-  const {getters: ordersGetters} = getStore('orders');
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: categoriesGetters, actions: categoryActions} =
     getStore('categories');
   const {items: categories} = categoriesGetters;
@@ -23,7 +24,8 @@ const ProductsPage = ({navigation, route}) => {
   const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
   const {isLoading, error} = orderProductsGetters;
-
+  const [price, setPrice] = useState(order?.price);
+  const debounceRef = useRef(null);
   const {styles, globalStyles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
 
@@ -38,6 +40,27 @@ const ProductsPage = ({navigation, route}) => {
 
     return orderProductsActions.save(order_product);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        InteractionManager.runAfterInteractions(() => {
+          let o = {...order};
+          o.price = price;
+          ordersActions.setItem(o);
+        });
+      }, 300);
+    }, [price]),
+  );
+
+  const changePrice = useCallback(
+    p => {
+      setPrice(price + p);
+    },
+    [price],
+  );
+
   const changeCategoryProduct = (p, changeStorage = false) => {
     const index = categories.findIndex(c => c['@id'] === category['@id']);
     let c = [...categories];
@@ -113,6 +136,7 @@ const ProductsPage = ({navigation, route}) => {
                     key={product.id}
                     product={product}
                     category={category}
+                    changePrice={changePrice}
                   />
                 </View>
               ))}
