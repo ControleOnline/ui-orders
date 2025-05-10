@@ -24,15 +24,18 @@ const BottomCart = ({navigation}) => {
   }, [order]);
 
   useEffect(() => {
-    if (!order || Object.entries(order).length === 0 || !orderProducts) return;
-    let price = 0;
-    let o = {...order};
-    orderProducts.forEach(op => {
-      price += (op.price || 0) * (op.quantity || 0);
-    });
-    o.price = price;
-    o.orderProducts = {...orderProducts};
-    ordersActions.setItem(o);
+    console.log('Testar bem, mas acredito que não precise mais....');
+    /*
+      if (!order || Object.entries(order).length === 0 || !orderProducts) return;
+      let price = 0;
+      let o = {...order};
+      orderProducts.forEach(op => {
+        price += (op.price || 0) * (op.quantity || 0);
+      });
+      o.price = price;
+      o.orderProducts = {...orderProducts};
+      //ordersActions.setItem(o);
+    */
   }, [orderProducts]);
 
   const handlePay = item => {

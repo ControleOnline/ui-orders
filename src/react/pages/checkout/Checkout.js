@@ -12,6 +12,7 @@ import {getStore} from '@store';
 export default Checkout = ({route}) => {
   const {styles, globalStyles} = css();
   const {getters: deviceConfigGetters} = getStore('device_config');
+  const {actions: categoryActions} = getStore('categories');
   const {getters, actions: cartActions} = getStore('cart');
   const {item: device} = deviceConfigGetters;
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
@@ -39,6 +40,9 @@ export default Checkout = ({route}) => {
     };
 
     invoiceActions.save(payload).then(data => {
+      console.log('Zerando de novo, porque ele insiste em não zerar no lugar correto.')
+      categoryActions.setItems(null);
+
       if (device.configs['pos-type'] == 'simple') {
         let p = payable + data.price;
         if (p < 0) {

@@ -104,8 +104,11 @@ const ProductsPage = ({navigation, route}) => {
   );
 
   const clear = useCallback(() => {
-    const c = JSON.parse(localStorage.getItem('categories'));
-    setCategoryProducts(c);
+    setTimeout(() => {
+      const c = JSON.parse(localStorage.getItem('categories'));
+      categoryActions.setItems(c);
+      console.log('Deveria estar limpo!');
+    }, 300);
   }, [setCategoryProducts]);
 
   const changeProduct = product => {
