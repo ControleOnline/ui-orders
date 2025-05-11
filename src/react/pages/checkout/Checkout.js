@@ -39,8 +39,12 @@ export default Checkout = ({route}) => {
       order: order['@id'],
     };
 
+    const cancelOperation = () => {};
+
     invoiceActions.save(payload).then(data => {
-      console.log('Zerando de novo, porque ele insiste em não zerar no lugar correto.')
+      console.log(
+        'Zerando de novo, porque ele insiste em não zerar no lugar correto.',
+      );
       categoryActions.setItems(null);
 
       if (device.configs['pos-type'] == 'simple') {
@@ -71,10 +75,18 @@ export default Checkout = ({route}) => {
   return (
     <View style={{flex: 1}}>
       {device.configs['pos-gateway'] == 'cielo' && (
-        <CieloCheckout createInvoice={createInvoice} />
+        <CieloCheckout
+          cancelOperation={cancelOperation}
+          createInvoice={createInvoice}
+          remoteCheckoutMode={false}
+        />
       )}
       {device.configs['pos-gateway'] == 'infinite-pay' && (
-        <InfinitePay createInvoice={createInvoice} />
+        <InfinitePay
+          cancelOperation={cancelOperation}
+          createInvoice={createInvoice}
+          remoteCheckoutMode={false}
+        />
       )}
     </View>
   );

@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useState, useEffect} from 'react';
 import {
   View,
   ScrollView,
@@ -20,26 +20,24 @@ import PayableToolbar from '@controleonline/ui-orders/src/react/components/Payab
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
 
-export default Checkout = ({route, createInvoice}) => {
-  const navigation = useNavigation();
+export default Checkout = ({
+  route,
+  createInvoice,
+  cancelOperation,
+  remoteCheckoutMode = false,
+  paymentType = {},
+  paymentValue = 0,
+}) => {
   const {styles, globalStyles} = css();
-  const {getters} = getStore('cart');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
-  const {items: orderProducts, isSaving} = orderProductsGetters;
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {
-    IsSaving: invoiceIsSaving,
-    error: invoiceError,
-    items: invoices,
-  } = invoiceGetters;
+  const {getters: orderProductsGetters} = getStore('order_products');
+  const {items: orderProducts} = orderProductsGetters;
+  const {getters: invoiceGetters} = getStore('invoice');
+  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
 
   const {isLoading, error, items: payments} = paymentTypeGetters;
-  const {item: order, payable} = getters;
-  const [selectedPayment, setSelectedPayment] = useState({});
+  const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
 
   const selectPayment = async payment => {
@@ -47,9 +45,23 @@ export default Checkout = ({route, createInvoice}) => {
   };
   useFocusEffect(
     useCallback(() => {
-      if (selectedPayment && Object.keys(selectedPayment).length > 0) handlePay();
+      if (
+        !remoteCheckoutMode &&
+        selectedPayment &&
+        Object.keys(selectedPayment).length > 0
+      )
+        handlePay();
     }, [selectedPayment]),
   );
+
+  useEffect(() => {
+    if (remoteCheckoutMode) {
+      console.log(paymentType, paymentValue);
+      setSelectedPayment(paymentType);
+      handleConfirmValue(paymentValue);
+    }
+  }, [remoteCheckoutMode]);
+
   const formatProducts = () => {
     let items = [];
 
@@ -97,6 +109,8 @@ export default Checkout = ({route, createInvoice}) => {
 
         if (!response.success) {
           paymentTypeActions.setError(response.result);
+          cancelOperation();
+
           setModalVisible(false);
           return;
         }
@@ -105,6 +119,7 @@ export default Checkout = ({route, createInvoice}) => {
       } catch (error) {
         paymentTypeActions.setError('Erro inesperado: ' + error.message);
         console.error('Erro na chamada ao serviço:', error);
+        cancelOperation();
         setModalVisible(false);
       }
     } else {
@@ -116,10 +131,11 @@ export default Checkout = ({route, createInvoice}) => {
   }
 
   const handleCancel = () => {
+    cancelOperation();
     setModalVisible(false);
   };
 
-  return (
+  return remoteCheckoutMode ? null : (
     <>
       <SafeAreaView style={[styles.container]}>
         <StateStore store="walletPaymentType" />

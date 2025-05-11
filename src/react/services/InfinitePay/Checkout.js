@@ -20,7 +20,14 @@ import PayableToolbar from '@controleonline/ui-orders/src/react/components/Payab
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
 
-export default Checkout = ({route, createInvoice}) => {
+export default Checkout = ({
+  route,
+  createInvoice,
+  cancelOperation,
+  remoteCheckoutMode = false,
+  paymentType = {},
+  paymentValue = 0
+}) => {
   const {styles, globalStyles} = css();
   const {getters} = getStore('cart');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
@@ -34,7 +41,7 @@ export default Checkout = ({route, createInvoice}) => {
   } = invoiceGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {item: order, payable} = getters;
-  const [selectedPayment, setSelectedPayment] = useState({});
+  const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
   const [installmentsModalVisible, setInstallmentsModalVisible] =
     useState(false);
@@ -46,7 +53,7 @@ export default Checkout = ({route, createInvoice}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (selectedPayment && Object.keys(selectedPayment).length > 0)
+      if (!remoteCheckoutMode && selectedPayment && Object.keys(selectedPayment).length > 0)
         handlePay();
     }, [selectedPayment]),
   );
@@ -99,6 +106,7 @@ export default Checkout = ({route, createInvoice}) => {
   }
 
   const handleCancel = () => {
+    cancelOperation();
     setModalVisible(false);
   };
 
@@ -126,7 +134,7 @@ export default Checkout = ({route, createInvoice}) => {
     }
   };
 
-  return (
+  return remoteCheckoutMode ? null : (
     <>
       <SafeAreaView style={[styles.container]}>
         <StateStore store="walletPaymentType" />

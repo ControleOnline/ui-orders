@@ -13,7 +13,7 @@ export default {
     isLoading: false,
     isSaving: false,
     error: '',
-    totalItems: 0,
+    totalItems: 0,messages:[], message:{},
     filters: {},
     reload: false,
     columns: [
