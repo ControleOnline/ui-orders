@@ -27,7 +27,7 @@ export default Checkout = ({route}) => {
   const {payable} = getters;
 
   const navigation = useNavigation();
-
+  const cancelOperation = () => {};
   const createInvoice = (selectedPayment, total) => {
     const payload = {
       dueDate: Formatter.getCurrentDate(),
@@ -38,8 +38,6 @@ export default Checkout = ({route}) => {
       receiver: '/people/' + currentCompany.id,
       order: order['@id'],
     };
-
-    const cancelOperation = () => {};
 
     invoiceActions.save(payload).then(data => {
       console.log(
