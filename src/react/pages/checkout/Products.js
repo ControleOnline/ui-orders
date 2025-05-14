@@ -111,7 +111,7 @@ const ProductsPage = ({navigation, route}) => {
     }, 300);
   }, [setCategoryProducts]);
 
-  const changeProduct = product => {
+  const changeProduct = (product, order) => {
     const order_product = {
       parentProduct: null,
       product: product['@id'],
@@ -125,7 +125,7 @@ const ProductsPage = ({navigation, route}) => {
   const handleSave = () => {
     categoryProducts.forEach(product => {
       if (product?.quantity > 0)
-        orderProductsActions.addToQueue(() => changeProduct(product));
+        orderProductsActions.addToQueue(() => changeProduct(product, order));
     });
     orderProductsActions.initQueue(clear);
   };

@@ -45,7 +45,7 @@ export default Checkout = ({route}) => {
       console.log(
         'Zerando de novo, porque ele insiste em não zerar no lugar correto.',
       );
-      categoryActions.setItems(null);
+      //categoryActions.setItems(null);
 
       if (device.configs['pos-type'] == 'simple') {
         let p = payable + data.price;
