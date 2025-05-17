@@ -1,7 +1,7 @@
 import React, {useCallback, useState, useRef} from 'react';
 import {View, Text, TouchableOpacity, InteractionManager} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
 
 const styles = {
@@ -19,9 +19,9 @@ const styles = {
 };
 
 const ProductQuantity = ({product, category, changePrice}) => {
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {getters: ordersGetters, actions: ordersActions} = useGetStore('orders');
   const {getters: categoriesGetters, actions: categoryActions} =
-    getStore('categories');
+    useGetStore('categories');
   const {items: categories} = categoriesGetters;
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);

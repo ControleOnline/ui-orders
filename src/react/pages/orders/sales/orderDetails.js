@@ -10,18 +10,18 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 import ProductsList from '@controleonline/ui-orders/src/react/components/cart/ProductList';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
-  const {getters, actions} = getStore('orders');
+  const {getters, actions} = useGetStore('orders');
   const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
-  const {getters: peopleGetters} = getStore('people');
-  const {actions: invoiceActions} = getStore('invoice');
+    useGetStore('order_products');
+  const {getters: peopleGetters} = useGetStore('people');
+  const {actions: invoiceActions} = useGetStore('invoice');
   const {currentCompany} = peopleGetters;
   const {items: orderProducts} = orderProductsGetters;
   const {item, isLoading, error} = getters;

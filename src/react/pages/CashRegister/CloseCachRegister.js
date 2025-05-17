@@ -7,7 +7,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -17,17 +17,17 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
 
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
-  const {getters: authGetters} = getStore('auth');
-  const {getters: peopleGetters} = getStore('people');
+  const {getters: configsGetters, actions: configActions} = useGetStore('configs');
+  const {getters: authGetters} = useGetStore('auth');
+  const {getters: peopleGetters} = useGetStore('people');
   const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+    useGetStore('invoice');
   const {getters: deviceConfigGetters, actions: deviceConfigsActions} =
-    getStore('device_config');
+    useGetStore('device_config');
   const {item: device} = deviceConfigGetters;
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
-  const {getters: deviceGetters} = getStore('device');
+  const {getters: deviceGetters} = useGetStore('device');
   const {item: storagedDevice} = deviceGetters;  
   const {isLoading, error} = invoiceGetters;
   const [orderItems, setOrderItems] = useState([]);

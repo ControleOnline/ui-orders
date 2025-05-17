@@ -12,7 +12,7 @@ import {
 import Cielo from './Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
@@ -30,10 +30,10 @@ export default Checkout = ({
 }) => {
   const {styles, globalStyles} = css();
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
-  const {getters: orderProductsGetters} = getStore('order_products');
+    useGetStore('walletPaymentType');
+  const {getters: orderProductsGetters} = useGetStore('order_products');
   const {items: orderProducts} = orderProductsGetters;
-  const {getters: invoiceGetters} = getStore('invoice');
+  const {getters: invoiceGetters} = useGetStore('invoice');
   const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
 
   const {isLoading, error, items: payments} = paymentTypeGetters;

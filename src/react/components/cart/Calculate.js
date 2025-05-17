@@ -2,12 +2,12 @@ import React, {useState, useCallback} from 'react';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {View, Text, TextInput, Button} from 'react-native';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 
 export default Calculate = ({handleConfirmValue, handleCancel}) => {
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
-  const {getters} = getStore('cart');
+    useGetStore('walletPaymentType');
+  const {getters} = useGetStore('cart');
   const {item: order, payable} = getters;
   const [inputValue, setInputValue] = useState('');
 

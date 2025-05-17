@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   InteractionManager,
 } from 'react-native';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
@@ -15,14 +15,14 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
-  const {actions} = getStore('products');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {actions} = useGetStore('products');
+  const {getters: ordersGetters, actions: ordersActions} = useGetStore('orders');
   const {getters: categoriesGetters, actions: categoryActions} =
-    getStore('categories');
+    useGetStore('categories');
   const {items: categories} = categoriesGetters;
   const {item: order} = ordersGetters;
   const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
+    useGetStore('order_products');
   const {isLoading, error} = orderProductsGetters;
   const [price, setPrice] = useState(order?.price);
   const debounceRef = useRef(null);

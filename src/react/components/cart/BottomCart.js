@@ -1,19 +1,19 @@
 import React, {useCallback, useEffect} from 'react';
 import {Text, View, TouchableOpacity, ActivityIndicator} from 'react-native';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 
 const BottomCart = ({navigation}) => {
-  const {getters, actions: cartActions} = getStore('cart');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {getters, actions: cartActions} = useGetStore('cart');
+  const {getters: ordersGetters, actions: ordersActions} = useGetStore('orders');
   const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
+    useGetStore('order_products');
   const {items: orderProducts, isSaving} = orderProductsGetters;
 
-  const {getters: invoiceGetters} = getStore('invoice');
+  const {getters: invoiceGetters} = useGetStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
   const {item: order, reload, isLoading: ordersIsloading} = ordersGetters;
   const {item, isLoading, payable} = getters;

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import OrderInvoices from './OrderInvoices';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
@@ -16,9 +16,9 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const OrderDetails = ({route}) => {
-  const {getters, actions} = getStore('orders');
+  const {getters, actions} = useGetStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+    useGetStore('invoice');
   const {items: invoices} = invoiceGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();

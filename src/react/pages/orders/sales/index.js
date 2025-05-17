@@ -8,27 +8,27 @@ import {
   Alert,
 } from 'react-native';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
-  const {getters, actions: ordersActions} = getStore('orders');
+  const {getters, actions: ordersActions} = useGetStore('orders');
   const {items, item, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
-  const {getters: peopleGetters} = getStore('people');
-  const {actions: cartActions} = getStore('cart');
-  const {getters: deviceGetters} = getStore('device');
+  const {getters: peopleGetters} = useGetStore('people');
+  const {actions: cartActions} = useGetStore('cart');
+  const {getters: deviceGetters} = useGetStore('device');
   const {item: storagedDevice} = deviceGetters;  
   const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
+    useGetStore('order_products');
   const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+    useGetStore('invoice');
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
-  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {getters: deviceConfigGetters} = useGetStore('device_config');
   const {item: device} = deviceConfigGetters;
 
   useFocusEffect(

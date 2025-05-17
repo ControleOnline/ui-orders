@@ -1,14 +1,14 @@
 import React, {useCallback} from 'react';
 import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 export default OrderTotalToolbar = ({route}) => {
-  const {getters, actions: cartActions} = getStore('cart');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: invoiceGetters} = getStore('invoice');
+  const {getters, actions: cartActions} = useGetStore('cart');
+  const {getters: ordersGetters, actions: ordersActions} = useGetStore('orders');
+  const {getters: invoiceGetters} = useGetStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
   const {item: order, reload, isLoading: ordersIsloading} = ordersGetters;
   const {item, isLoading, payable} = getters;

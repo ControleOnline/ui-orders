@@ -4,17 +4,17 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 
 const PrinterButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
-  const {getters, actions} = getStore(store);
+  const {getters, actions} = useGetStore(store);
   const {getters: deviceConfigGetters, actions: deviceConfigsActions} =
-    getStore('device_config');
+    useGetStore('device_config');
   const {getters: printerGetters, actions: printerActions} =
-    getStore('printer');
-  const {getters: printGetters, actions: printActions} = getStore('print');
-  const {getters: peopleGetters, actions: peopleActions} = getStore('people');
+    useGetStore('printer');
+  const {getters: printGetters, actions: printActions} = useGetStore('print');
+  const {getters: peopleGetters, actions: peopleActions} = useGetStore('people');
 
   const {currentCompany, defaultCompany, companies} = peopleGetters;
   const {isLoading, items: printers, item: printer} = printerGetters;

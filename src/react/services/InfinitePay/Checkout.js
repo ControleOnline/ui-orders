@@ -12,7 +12,7 @@ import {
 import InfinitePay from './InfinitePay';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
@@ -29,11 +29,11 @@ export default Checkout = ({
   paymentValue = 0
 }) => {
   const {styles, globalStyles} = css();
-  const {getters} = getStore('cart');
+  const {getters} = useGetStore('cart');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
+    useGetStore('walletPaymentType');
   const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+    useGetStore('invoice');
   const {
     IsSaving: invoiceIsSaving,
     error: invoiceError,

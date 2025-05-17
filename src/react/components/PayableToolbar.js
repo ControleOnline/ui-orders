@@ -1,16 +1,16 @@
 import React, {useCallback, useEffect} from 'react';
 import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 export default PayableToolbar = ({route}) => {
   const {styles, globalStyles} = css();
-  const {getters, actions: cartActions} = getStore('cart');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {getters, actions: cartActions} = useGetStore('cart');
+  const {getters: ordersGetters, actions: ordersActions} = useGetStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+    useGetStore('invoice');
   const {items: invoices, isLoading} = invoiceGetters;
   const {item, reload, payable} = getters;
   const {items: orders, item: order} = ordersGetters;

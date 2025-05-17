@@ -12,7 +12,7 @@ import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
 import CustomizeScreen from '@controleonline/ui-products/src/react/pages/CustomizeScreen';
-import {getStore} from '@store';
+import {useGetStore} from '@store';
 
 import React from 'react';
 
@@ -23,7 +23,7 @@ const WrappedOrdersPage = ({navigation, route}) => (
 );
 
 const WrappedCloseCachRegister = ({navigation, route}) => {
-  const {getters: deviceConfigGetters} = getStore('device_config');
+  const {getters: deviceConfigGetters} = useGetStore('device_config');
   const {item: device} = deviceConfigGetters;
 
   React.useEffect(() => {
@@ -83,7 +83,7 @@ const WrappedProductsPage = ({navigation, route}) => (
 );
 
 const WrappedCategoryPage = ({navigation, route}) => {
-  const {getters: ordersGetters} = getStore('orders');
+  const {getters: ordersGetters} = useGetStore('orders');
   const {item: order} = ordersGetters;
 
   React.useEffect(() => {
