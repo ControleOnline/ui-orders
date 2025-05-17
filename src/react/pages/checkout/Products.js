@@ -103,13 +103,7 @@ const ProductsPage = ({navigation, route}) => {
     }, [categoryProducts]),
   );
 
-  const clear = useCallback(() => {
-    setTimeout(() => {
-      const c = JSON.parse(localStorage.getItem('categories'));
-      categoryActions.setItems(c);
-      console.log('Deveria estar limpo!');
-    }, 300);
-  }, [setCategoryProducts]);
+
 
   const changeProduct = (product, order) => {
     const order_product = {
@@ -127,7 +121,7 @@ const ProductsPage = ({navigation, route}) => {
       if (product?.quantity > 0)
         orderProductsActions.addToQueue(() => changeProduct(product, order));
     });
-    orderProductsActions.initQueue(clear);
+    orderProductsActions.initQueue();
   };
 
   return (

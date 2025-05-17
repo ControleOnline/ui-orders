@@ -40,11 +40,6 @@ export default Checkout = ({route}) => {
     };
 
     invoiceActions.save(payload).then(data => {
-      console.log(
-        'Zerando de novo, porque ele insiste em não zerar no lugar correto.',
-      );
-      //categoryActions.setItems(null);
-
       if (device.configs['pos-type'] == 'simple') {
         let p = payable + data.price;
         if (p < 0) {

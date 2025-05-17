@@ -33,7 +33,7 @@ const CategoriesPage = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!items || items.length == 0) {
+      //if (!items || items.length == 0) {
         const categories = JSON.parse(
           localStorage.getItem('categories') || '[]',
         );
@@ -48,7 +48,7 @@ const CategoriesPage = ({navigation}) => {
             .then(data => {
               localStorage.setItem('categories', JSON.stringify(data));
             });
-      }
+      //}
     }, [currentCompany]),
   );
   useFocusEffect(
