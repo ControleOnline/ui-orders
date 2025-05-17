@@ -5,7 +5,7 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { getStore } from '@store';
+import { useGetStore } from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -13,9 +13,9 @@ import PrintButton from '@controleonline/ui-orders/src/react/components/PrintBut
 
 const PurchasingSuggestion = ({ navigation }) => {
   const { styles, globalStyles } = css();
-  const { getters: peopleGetters } = getStore('people');
-  const { getters: authGetters } = getStore('auth');
-  const { getters: productsGetters, actions: productsActions } = getStore('products');
+  const { getters: peopleGetters } = useGetStore('people');
+  const { getters: authGetters } = useGetStore('auth');
+  const { getters: productsGetters, actions: productsActions } = useGetStore('products');
   const { currentCompany } = peopleGetters;
   const { user } = authGetters;
   const { isLoading, error } = productsGetters;
