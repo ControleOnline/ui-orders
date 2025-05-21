@@ -103,8 +103,6 @@ const ProductsPage = ({navigation, route}) => {
     }, [categoryProducts]),
   );
 
-
-
   const changeProduct = (product, order) => {
     const order_product = {
       parentProduct: null,
@@ -117,9 +115,14 @@ const ProductsPage = ({navigation, route}) => {
     return orderProductsActions.save(order_product);
   };
   const handleSave = () => {
-    categoryProducts.forEach(product => {
+    const currentOrder = {...order};
+    const currentCategoryProducts = [...categoryProducts];
+
+    currentCategoryProducts.forEach(product => {
       if (product?.quantity > 0)
-        orderProductsActions.addToQueue(() => changeProduct(product, order));
+        orderProductsActions.addToQueue(() =>
+          changeProduct(product, currentOrder),
+        );
     });
     orderProductsActions.initQueue();
   };
