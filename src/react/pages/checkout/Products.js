@@ -25,16 +25,11 @@ const ProductsPage = ({navigation, route}) => {
   const [categoryProducts, setCategoryProducts] = useState([]);
   const [price, setPrice] = useState(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      ordersActions.setItem({...order, price: order.price + price});
-      setPrice(0);
-    }, [price]),
-  );
-
-  const changePrice = useCallback(p => {
-    setPrice(p);
-  });
+  const changePrice = p => {
+    let o = {...order};
+    o.price = p;
+    ordersActions.setItem(o);
+  };
 
   const changeCategoryProduct = (p, changeStorage = false) => {
     const index = categories.findIndex(c => c['@id'] === category['@id']);
@@ -47,8 +42,10 @@ const ProductsPage = ({navigation, route}) => {
   };
 
   useEffect(() => {
+    if (order?.price) setPrice(order.price);
+  }, [order]);
 
-    console.log('Aqui');
+  useEffect(() => {
     if (
       categories &&
       categories.length > 0 &&
@@ -79,11 +76,10 @@ const ProductsPage = ({navigation, route}) => {
           });
     }
   }, [category, categories, categoryProducts]);
- 
+
   useFocusEffect(
     useCallback(() => {
       return () => {
-        console.log('Executando');
         ordersActions.initQueue();
         const categories = JSON.parse(
           localStorage.getItem('categories') || '[]',
