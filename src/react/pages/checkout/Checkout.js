@@ -13,21 +13,26 @@ export default Checkout = ({route}) => {
   const {styles, globalStyles} = css();
   const {getters: deviceConfigGetters} = getStore('device_config');
   const {actions: categoryActions} = getStore('categories');
-  const {getters, actions: cartActions} = getStore('cart');
   const {item: device} = deviceConfigGetters;
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, defaultCompany} = peopleGetters;
-  const {item: order} = ordersGetters;
+  const {item: order, payable} = ordersGetters;
   const {items: invoices} = invoiceGetters;
-  const {payable} = getters;
 
   const navigation = useNavigation();
   const cancelOperation = () => {};
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Deveria Gravar');
+      ordersActions.initQueue();
+      categoryActions.setItems(null);
+    }, []),
+  );
+
   const createInvoice = (selectedPayment, total) => {
     const payload = {
       dueDate: Formatter.getCurrentDate(),
@@ -46,14 +51,12 @@ export default Checkout = ({route}) => {
           let i = [...invoices];
           i.push(data);
           invoiceActions.setItems(i);
-          cartActions.setPayable(p);
+          ordersActions.setPayable(p);
           navigation.navigate('OrderTools');
         } else {
           ordersActions.setItem(null);
-          orderProductsActions.setItems([]);
-          cartActions.setItem(null);
           invoiceActions.setItems([]);
-          cartActions.setPayable(0);
+          ordersActions.setPayable(0);
           navigation.navigate('SalesOrderIndex');
         }
       } else {

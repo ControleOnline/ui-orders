@@ -26,19 +26,14 @@ export default Checkout = ({
   cancelOperation,
   remoteCheckoutMode = false,
   paymentType = {},
-  paymentValue = 0
+  paymentValue = 0,
 }) => {
   const {styles, globalStyles} = css();
-  const {getters} = getStore('cart');
+  const {getters} = getStore('orders');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {
-    IsSaving: invoiceIsSaving,
-    error: invoiceError,
-    items: invoices,
-  } = invoiceGetters;
+  const {getters: invoiceGetters} = getStore('invoice');
+  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const {item: order, payable} = getters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
@@ -53,7 +48,11 @@ export default Checkout = ({
 
   useFocusEffect(
     useCallback(() => {
-      if (!remoteCheckoutMode && selectedPayment && Object.keys(selectedPayment).length > 0)
+      if (
+        !remoteCheckoutMode &&
+        selectedPayment &&
+        Object.keys(selectedPayment).length > 0
+      )
         handlePay();
     }, [selectedPayment]),
   );

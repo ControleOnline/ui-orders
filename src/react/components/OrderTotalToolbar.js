@@ -6,15 +6,13 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 export default OrderTotalToolbar = ({route}) => {
-  const {getters, actions: cartActions} = getStore('cart');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
-  const {item: order, reload, isLoading: ordersIsloading} = ordersGetters;
-  const {item, isLoading, payable} = getters;
+  const {item: order, isLoading, reload, isLoading: ordersIsloading} = ordersGetters;
   const {styles, globalStyles} = css();
 
-  return !item ||
+  return !order ||
     isLoading ||
     invoiceIsLoading ||
     isLoading ||
@@ -26,7 +24,7 @@ export default OrderTotalToolbar = ({route}) => {
     />
   ) : (
     <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
-      {Formatter.formatMoney(item.price)}
+      {Formatter.formatMoney(order.price)}
     </Text>
   );
 };

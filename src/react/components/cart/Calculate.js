@@ -7,7 +7,7 @@ import {getStore} from '@store';
 export default Calculate = ({handleConfirmValue, handleCancel}) => {
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
-  const {getters} = getStore('cart');
+  const {getters} = getStore('orders');
   const {item: order, payable} = getters;
   const [inputValue, setInputValue] = useState('');
 

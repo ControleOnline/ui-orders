@@ -34,23 +34,31 @@ const CategoriesPage = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       //if (!items || items.length == 0) {
-        const categories = JSON.parse(
-          localStorage.getItem('categories') || '[]',
-        );
-        if (categories.length > 0) categoryActions.setItems(categories);
-        else
-          categoryActions
-            .getItems({
-              context: 'products',
-              'order[name]': 'ASC',
-              company: currentCompany.id,
-            })
-            .then(data => {
-              localStorage.setItem('categories', JSON.stringify(data));
-            });
+      const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+
+      if (categories.length > 0) categoryActions.setItems(categories);
+      else
+        categoryActions
+          .getItems({
+            context: 'products',
+            'order[name]': 'ASC',
+            company: currentCompany.id,
+          })
+          .then(data => {
+            localStorage.setItem('categories', JSON.stringify(data));
+          });
       //}
     }, [currentCompany]),
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        ordersActions.initQueue();
+      };
+    }, []),
+  );
+
   useFocusEffect(
     useCallback(() => {
       if (forceCreate) {

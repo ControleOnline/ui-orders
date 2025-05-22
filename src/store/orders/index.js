@@ -12,8 +12,11 @@ export default {
     resourceEndpoint: 'orders',
     isLoading: false,
     isSaving: false,
+    payable: 0,
     error: '',
-    totalItems: 0,messages:[], message:{},
+    totalItems: 0,
+    messages: [],
+    message: {},
     filters: {},
     reload: false,
     columns: [

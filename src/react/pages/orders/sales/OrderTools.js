@@ -17,13 +17,8 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const OrderDetails = ({route}) => {
   const {getters, actions} = getStore('orders');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {items: invoices} = invoiceGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
-
-
 
   return (
     <SafeAreaView style={[{paddingBottom: 0}, styles.container]}>

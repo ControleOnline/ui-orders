@@ -31,11 +31,10 @@ export default Checkout = ({
   const {styles, globalStyles} = css();
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
-  const {getters: orderProductsGetters} = getStore('order_products');
-  const {items: orderProducts} = orderProductsGetters;
+  const {getters: orderGetters} = getStore('orders');
   const {getters: invoiceGetters} = getStore('invoice');
   const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
-
+  const {item: order} = orderGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
@@ -65,7 +64,7 @@ export default Checkout = ({
   const formatProducts = () => {
     let items = [];
 
-    orderProducts.forEach(orderProduct => {
+    order.orderProducts.forEach(orderProduct => {
       let item = {};
       item.name = orderProduct.product.product;
       item.quantity = orderProduct.quantity;

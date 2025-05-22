@@ -19,13 +19,8 @@ const Orders = ({navigation}) => {
   const {items, item, isLoading, error, columns} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
-  const {actions: cartActions} = getStore('cart');
   const {getters: deviceGetters} = getStore('device');
-  const {item: storagedDevice} = deviceGetters;  
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {item: storagedDevice} = deviceGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
   const {getters: deviceConfigGetters} = getStore('device_config');
@@ -71,10 +66,7 @@ const Orders = ({navigation}) => {
 
   const handleAddOrder = force => {
     ordersActions.setItem(null);
-    invoiceActions.setItems(null);
-    orderProductsActions.setItems(null);
-    cartActions.setItem(null);
-    cartActions.setPayable(0);
+    ordersActions.setPayable(0);
     navigation.navigate('AddProductScreen', {forceCreate: force});
   };
   return (

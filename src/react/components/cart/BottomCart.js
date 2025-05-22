@@ -7,36 +7,9 @@ import PayableToolbar from '@controleonline/ui-orders/src/react/components/Payab
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 
 const BottomCart = ({navigation}) => {
-  const {getters, actions: cartActions} = getStore('cart');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
-  const {items: orderProducts, isSaving} = orderProductsGetters;
-
-  const {getters: invoiceGetters} = getStore('invoice');
-  const {isLoading: invoiceIsLoading} = invoiceGetters;
-  const {item: order, reload, isLoading: ordersIsloading} = ordersGetters;
-  const {item, isLoading, payable} = getters;
+  const {getters: ordersGetters, actions: ordersAction} = getStore('orders');
+  const {item: order, payable} = ordersGetters;
   const {styles, globalStyles} = css();
-
-  useEffect(() => {
-    cartActions.setItem(order);
-  }, [order]);
-
-  useEffect(() => {
-    console.log('Testar bem, mas acredito que não precise mais....');
-    /*
-      if (!order || Object.entries(order).length === 0 || !orderProducts) return;
-      let price = 0;
-      let o = {...order};
-      orderProducts.forEach(op => {
-        price += (op.price || 0) * (op.quantity || 0);
-      });
-      o.price = price;
-      o.orderProducts = {...orderProducts};
-      //ordersActions.setItem(o);
-    */
-  }, [orderProducts]);
 
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});
@@ -49,7 +22,7 @@ const BottomCart = ({navigation}) => {
         <View style={[styles.toolbar, {flexDirection: 'row'}]}>
           <OrderTotalToolbar />
           <TouchableOpacity
-            onPress={() => handlePay(item)}
+            onPress={() => handlePay(order)}
             style={[
               globalStyles.button,
               {flex: 1, justifyContent: 'center', alignItems: 'center'},

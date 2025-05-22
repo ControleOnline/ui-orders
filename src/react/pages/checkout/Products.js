@@ -15,41 +15,26 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
-  const {actions} = getStore('products');
+  const {actions, isLoading, error} = getStore('products');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: categoriesGetters, actions: categoryActions} =
     getStore('categories');
   const {items: categories} = categoriesGetters;
   const {item: order} = ordersGetters;
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
-  const {isLoading, error} = orderProductsGetters;
-  const [price, setPrice] = useState(order?.price);
-  const debounceRef = useRef(null);
   const {styles, globalStyles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
-
-  useFocusEffect(useCallback(() => {}, []));
+  const [price, setPrice] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        InteractionManager.runAfterInteractions(() => {
-          let o = {...order};
-          o.price = price;
-          ordersActions.setItem(o);
-        });
-      }, 300);
+      ordersActions.setItem({...order, price: order.price + price});
+      setPrice(0);
     }, [price]),
   );
 
-  const changePrice = useCallback(
-    p => {
-      setPrice(price + p);
-    },
-    [price],
-  );
+  const changePrice = useCallback(p => {
+    setPrice(p);
+  });
 
   const changeCategoryProduct = (p, changeStorage = false) => {
     const index = categories.findIndex(c => c['@id'] === category['@id']);
@@ -94,38 +79,6 @@ const ProductsPage = ({navigation, route}) => {
       }
     }, [category, categories, categoryProducts]),
   );
-
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        handleSave();
-      };
-    }, [categoryProducts]),
-  );
-
-  const changeProduct = (product, order) => {
-    const order_product = {
-      parentProduct: null,
-      product: product['@id'],
-      product_group_id: null,
-      quantity: product.quantity || 0,
-      order: order['@id'],
-    };
-
-    return orderProductsActions.save(order_product);
-  };
-  const handleSave = () => {
-    const currentOrder = {...order};
-    const currentCategoryProducts = [...categoryProducts];
-
-    currentCategoryProducts.forEach(product => {
-      if (product?.quantity > 0)
-        orderProductsActions.addToQueue(() =>
-          changeProduct(product, currentOrder),
-        );
-    });
-    orderProductsActions.initQueue();
-  };
 
   return (
     <SafeAreaView style={styles.container}>

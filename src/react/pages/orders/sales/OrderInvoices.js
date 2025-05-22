@@ -6,46 +6,50 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
 const OrderDetails = ({route}) => {
-  const {getters} = getStore('invoice');
-  const {items, isLoading, error} = getters;
+  const {getters} = getStore('orders');
+  const {item: order, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
   return (
     <>
-      <StateStore store="invoice" />
-      {!isLoading && items && items.length > 0 && !error && (
-        <>
-          <View style={componentStyles.orderContainer}>
-            {items.map(invoice => (
-              <View key={invoice.id} style={componentStyles.card}>
-                <Text style={componentStyles.headerText}>
-                  Fatura #{invoice.id}
-                </Text>
-                <View style={componentStyles.row}>
-                  <Text style={componentStyles.cardText}>
-                    {Formatter.formatMoney(invoice.price)}
+      <StateStore store="orders" />
+      {!isLoading &&
+        order &&
+        order.invoices &&
+        order.invoices.length > 0 &&
+        !error && (
+          <>
+            <View style={componentStyles.orderContainer}>
+              {order.invoices.map(invoice => (
+                <View key={invoice.id} style={componentStyles.card}>
+                  <Text style={componentStyles.headerText}>
+                    Fatura #{invoice.id}
                   </Text>
-                  <Text
-                    style={[
-                      componentStyles.cardText,
-                      {color: invoice.status?.color},
-                    ]}>
-                    {t.t('invoice', 'status', invoice.status?.status)}
-                  </Text>
+                  <View style={componentStyles.row}>
+                    <Text style={componentStyles.cardText}>
+                      {Formatter.formatMoney(invoice.price)}
+                    </Text>
+                    <Text
+                      style={[
+                        componentStyles.cardText,
+                        {color: invoice.status?.color},
+                      ]}>
+                      {t.t('invoice', 'status', invoice.status?.status)}
+                    </Text>
+                  </View>
+                  <View style={componentStyles.row}>
+                    <Text style={componentStyles.cardText}>
+                      {invoice.destinationWallet?.wallet}
+                    </Text>
+                    <Text style={componentStyles.cardText}>
+                      {invoice.paymentType?.paymentType}
+                    </Text>
+                  </View>
                 </View>
-                <View style={componentStyles.row}>
-                  <Text style={componentStyles.cardText}>
-                    {invoice.destinationWallet?.wallet}
-                  </Text>
-                  <Text style={componentStyles.cardText}>
-                    {invoice.paymentType?.paymentType}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </>
-      )}
+              ))}
+            </View>
+          </>
+        )}
     </>
   );
 };

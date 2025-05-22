@@ -19,6 +19,7 @@ const styles = {
 };
 
 const ProductQuantity = ({product, category, changePrice}) => {
+  const {actions: orderProductsActions} = getStore('order_products');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: categoriesGetters, actions: categoryActions} =
     getStore('categories');
@@ -28,43 +29,19 @@ const ProductQuantity = ({product, category, changePrice}) => {
   const [qtd, setQtd] = useState(0);
   const debounceRef = useRef(null);
 
-  const debouncedUpdate = useCallback(
-    newQuantity => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        InteractionManager.runAfterInteractions(() => {
-          const index = categories.findIndex(c => c['@id'] === category['@id']);
-          let c = [...categories];
-
-          let q = newQuantity - (product.quantity || 0);
-          const productIndex = c[index].products.findIndex(
-            p => p['@id'] === product['@id'],
-          );
-
-          c[index].products[productIndex] = {
-            ...product,
-            quantity: newQuantity,
-          };
-          categoryActions.setItems(c);
-        });
-      }, 300);
-    },
-    [categories, category, product, ordersActions, categoryActions],
-  );
-
   const increaseQuantity = useCallback(() => {
     const newQuantity = qtd + 1;
     setQtd(newQuantity);
     changePrice(product.price);
-    debouncedUpdate(newQuantity);
-  }, [qtd, product, debouncedUpdate]);
+    product.quantity = newQuantity;
+  }, [qtd, product]);
 
   const decreaseQuantity = useCallback(() => {
     const newQuantity = qtd > 0 ? qtd - 1 : 0;
     setQtd(newQuantity);
     changePrice(product.price * -1);
-    debouncedUpdate(newQuantity);
-  }, [qtd, product, debouncedUpdate]);
+    product.quantity = newQuantity;
+  }, [qtd, product]);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,14 +50,49 @@ const ProductQuantity = ({product, category, changePrice}) => {
       if (qtd > 1) setDecreaseIcon('remove');
     }, [qtd]),
   );
-  
+
+
+  //Isso aqui é quando o módulo é destruído
   useFocusEffect(
     useCallback(() => {
       return () => {
-        setQtd(0);
+        handleSave();
       };
     }, []),
   );
+
+  const changeProduct = (currentProduct, currentOrder) => {
+    const order_product = {
+      parentProduct: null,
+      product: currentProduct['@id'],
+      product_group_id: null,
+      quantity: currentProduct.quantity,
+      order: currentOrder['@id'],
+    };
+
+    return orderProductsActions.save(order_product);
+  };
+
+  const handleSave = useCallback(() => {
+    const currentOrder = {...order};
+    const currentProduct = {...product};
+
+
+    if (currentProduct.quantity > 0)
+      ordersActions.addToQueue(() => {
+    //Ele deveria colocar na fila, todos os produtos com quantidade maior que zero.
+    //Nesse caso ele adicionou, não deveria passar tantas vewzes, mas foi 
+   // Vou zerar pra começar do zero
+   //Deveria passar duas vezes aqui se eu sair
+//Não fez nada dessa vez... QUando volta...
+//Se eu vou no pagar, ele destroi... 
+//Mas se for direto no pagar, sem o voltar, às vezes não destroi
+
+    console.log('Add to Queue');
+
+        return changeProduct(currentProduct, currentOrder);
+      });
+  }, [qtd, product, order, ordersActions]);
 
   return (
     <View style={styles.container}>
