@@ -1,4 +1,4 @@
-import React, {useCallback, useState, useRef} from 'react';
+import React, {useCallback, useState, useRef, useEffect} from 'react';
 import {View, Text, TouchableOpacity, InteractionManager} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {getStore} from '@store';
@@ -51,7 +51,6 @@ const ProductQuantity = ({product, category, changePrice}) => {
     }, [qtd]),
   );
 
-
   //Isso aqui é quando o módulo é destruído
   useFocusEffect(
     useCallback(() => {
@@ -77,19 +76,8 @@ const ProductQuantity = ({product, category, changePrice}) => {
     const currentOrder = {...order};
     const currentProduct = {...product};
 
-
     if (currentProduct.quantity > 0)
-      ordersActions.addToQueue(() => {
-    //Ele deveria colocar na fila, todos os produtos com quantidade maior que zero.
-    //Nesse caso ele adicionou, não deveria passar tantas vewzes, mas foi 
-   // Vou zerar pra começar do zero
-   //Deveria passar duas vezes aqui se eu sair
-//Não fez nada dessa vez... QUando volta...
-//Se eu vou no pagar, ele destroi... 
-//Mas se for direto no pagar, sem o voltar, às vezes não destroi
-
-    console.log('Add to Queue');
-
+      ordersActions.executeQueue(() => {
         return changeProduct(currentProduct, currentOrder);
       });
   }, [qtd, product, order, ordersActions]);

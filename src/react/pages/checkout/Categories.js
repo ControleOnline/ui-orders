@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useState, useEffect} from 'react';
 import {
   Text,
   View,
@@ -53,9 +53,7 @@ const CategoriesPage = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      return () => {
-        ordersActions.initQueue();
-      };
+      ordersActions.initQueue();
     }, []),
   );
 

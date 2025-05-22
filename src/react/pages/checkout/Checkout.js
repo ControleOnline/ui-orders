@@ -1,5 +1,5 @@
 import {View} from 'react-native';
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Checkout';
@@ -27,7 +27,7 @@ export default Checkout = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('Deveria Gravar');
+      console.log('Iniciar Fila');
       ordersActions.initQueue();
       categoryActions.setItems(null);
     }, []),

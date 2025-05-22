@@ -28,7 +28,7 @@ export default PayableToolbar = ({route}) => {
   );
 
   useEffect(() => {
-    console.log('Order Price', order?.price);
+    //console.log('Order Price', order?.price);
 
     if (order?.price == undefined) return;
     const paid =
@@ -38,7 +38,7 @@ export default PayableToolbar = ({route}) => {
             0,
           )
         : 0;
-    console.log('payable', paid, parseFloat(paid) - parseFloat(order.price));
+    //console.log('payable', paid, parseFloat(paid) - parseFloat(order.price));
     ordersActions.setPayable(parseFloat(paid) - parseFloat(order.price));
   }, [order]);
 
