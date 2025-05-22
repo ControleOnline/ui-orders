@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect, useRef} from 'react';
+import React, {useState, useCallback, useEffect, useRef, useMemo} from 'react';
 import {
   Text,
   View,
@@ -12,6 +12,7 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import debounce from 'lodash.debounce';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
@@ -23,13 +24,12 @@ const ProductsPage = ({navigation, route}) => {
   const {item: order} = ordersGetters;
   const {styles, globalStyles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
-  const [price, setPrice] = useState(0);
 
-  const changePrice = p => {
+  function changePrice(p) {
     let o = {...order};
     o.price = p;
     ordersActions.setItem(o);
-  };
+  }
 
   const changeCategoryProduct = (p, changeStorage = false) => {
     const index = categories.findIndex(c => c['@id'] === category['@id']);
@@ -40,10 +40,6 @@ const ProductsPage = ({navigation, route}) => {
     if (changeStorage)
       localStorage.setItem('categories', JSON.stringify(categories));
   };
-
-  useEffect(() => {
-    if (order?.price) setPrice(order.price);
-  }, [order]);
 
   useEffect(() => {
     if (

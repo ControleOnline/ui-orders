@@ -34,9 +34,9 @@ const ProductQuantity = ({product, category, changePrice}) => {
 
   const modifyPrice = useMemo(() => {
     return debounce(() => {
-      changePrice(priceRef.current);
+      ordersActions.executeQueue(changePrice(priceRef.current));
     }, 300);
-  }, []);
+  }, [changePrice, priceRef]);
 
   const increaseQuantity = useCallback(() => {
     const newQuantity = qtd + 1;
