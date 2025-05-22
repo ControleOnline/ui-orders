@@ -34,6 +34,7 @@ const CategoriesPage = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       //if (!items || items.length == 0) {
+
       const categories = JSON.parse(localStorage.getItem('categories') || '[]');
 
       if (categories.length > 0) categoryActions.setItems(categories);
@@ -53,7 +54,9 @@ const CategoriesPage = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      ordersActions.initQueue();
+      return () => {
+        ordersActions.initQueue();
+      };
     }, []),
   );
 

@@ -27,9 +27,7 @@ export default Checkout = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('Iniciar Fila');
       ordersActions.initQueue();
-      categoryActions.setItems(null);
     }, []),
   );
 

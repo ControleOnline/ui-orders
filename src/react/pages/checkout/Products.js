@@ -46,38 +46,52 @@ const ProductsPage = ({navigation, route}) => {
       localStorage.setItem('categories', JSON.stringify(categories));
   };
 
+  useEffect(() => {
+
+    console.log('Aqui');
+    if (
+      categories &&
+      categories.length > 0 &&
+      category &&
+      category['@id'] &&
+      (!categoryProducts || categoryProducts.length == 0)
+    ) {
+      const index = categories.findIndex(c => c['@id'] === category['@id']);
+      if (
+        index >= 0 &&
+        categories[index] &&
+        categories[index]['products'] &&
+        categories[index]['products'].length > 0
+      )
+        setCategoryProducts(categories[index]['products']);
+      else
+        actions
+          .getItems({
+            'productCategory.category': category['@id'],
+            active: 1,
+            'order[product]': 'ASC',
+            'order[description]': 'ASC',
+            type: ['custom', 'product', 'manufactured'],
+          })
+          .then(data => {
+            if (data && Object.keys(data).length > 0)
+              changeCategoryProduct(data, true);
+          });
+    }
+  }, [category, categories, categoryProducts]);
+ 
   useFocusEffect(
     useCallback(() => {
-      if (
-        categories &&
-        categories.length > 0 &&
-        category &&
-        category['@id'] &&
-        (!categoryProducts || categoryProducts.length == 0)
-      ) {
-        const index = categories.findIndex(c => c['@id'] === category['@id']);
-        if (
-          index >= 0 &&
-          categories[index] &&
-          categories[index]['products'] &&
-          categories[index]['products'].length > 0
-        )
-          setCategoryProducts(categories[index]['products']);
-        else
-          actions
-            .getItems({
-              'productCategory.category': category['@id'],
-              active: 1,
-              'order[product]': 'ASC',
-              'order[description]': 'ASC',
-              type: ['custom', 'product', 'manufactured'],
-            })
-            .then(data => {
-              if (data && Object.keys(data).length > 0)
-                changeCategoryProduct(data, true);
-            });
-      }
-    }, [category, categories, categoryProducts]),
+      return () => {
+        console.log('Executando');
+        ordersActions.initQueue();
+        const categories = JSON.parse(
+          localStorage.getItem('categories') || '[]',
+        );
+        setCategoryProducts([]);
+        if (categories.length > 0) categoryActions.setItems(categories);
+      };
+    }, []),
   );
 
   return (
