@@ -9,8 +9,22 @@ export default OrderTotalToolbar = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
-  const {item: order, isLoading, reload, isLoading: ordersIsloading} = ordersGetters;
+  const {
+    item: order,
+    isLoading,
+    reload,
+    isLoading: ordersIsloading,
+  } = ordersGetters;
   const {styles, globalStyles} = css();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (reload && order)
+        ordersActions
+          .get(order['@id'])
+          .finally(() => ordersActions.setReload(false));
+    }, [reload]),
+  );
 
   return !order ||
     isLoading ||

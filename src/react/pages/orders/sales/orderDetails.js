@@ -17,15 +17,26 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
-  const {getters, actions} = getStore('orders');
+  const {getters, actions: ordersActions} = getStore('orders');
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
+  /**
+   * @todo Se arrumar o bug do valor, descomentar esse e comentar o bloco abaixo
+   *
+   *useFocusEffect(
+   *  useCallback(() => {
+   *    if (!item || (item && order && item['@id'] != order['@id']))
+   *     ordersActions.get(order['@id']);
+   *  }, [order]),
+   *);
+   */
+
   useFocusEffect(
     useCallback(() => {
-      if (!item || (item && order && item['@id'] != order['@id']))
-        actions.get(order['@id']);
-    }, [order]),
+      console.log('Executando pois ainda tem bug no valor')
+      if (order) ordersActions.get(order['@id']);
+    }, []),
   );
 
   const handleAddProduct = () => {
