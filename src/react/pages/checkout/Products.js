@@ -28,7 +28,7 @@ const ProductsPage = ({navigation, route}) => {
   const changePrice = p => {
     return new Promise(resolve => {
       let o = {...order};
-      o.price = p;
+      o.price = p >= 0 ? p : 0;
       ordersActions.setItem(o);
       resolve();
     });
