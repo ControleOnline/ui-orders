@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {getStore} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
 import debounce from 'lodash.debounce';
-
+import { eventBus } from '@controleonline/ui-common/src/react/components/EventBus';
 const styles = {
   container: {
     flexDirection: 'row',
@@ -34,9 +34,9 @@ const ProductQuantity = ({product, category, changePrice}) => {
 
   const modifyPrice = useMemo(() => {
     return debounce(() => {
-      ordersActions.executeQueue(changePrice(priceRef.current));
-    }, 300);
-  }, [changePrice, priceRef]);
+      eventBus.emit('price', priceRef.current);
+    }, 500);
+  }, [priceRef]);
 
   const increaseQuantity = useCallback(() => {
     const newQuantity = qtd + 1;
