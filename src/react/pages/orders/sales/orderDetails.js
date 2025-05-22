@@ -35,12 +35,6 @@ const OrderDetails = ({route, navigation}) => {
     navigation.navigate('OrderTools');
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (item && item.orderProducts?.length == 0) handleAddProduct();
-    }, [item]),
-  );
-
   return (
     <SafeAreaView style={[styles.container, {paddingBottom: 120}]}>
       <StateStore store="orders" />
