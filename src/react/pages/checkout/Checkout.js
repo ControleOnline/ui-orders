@@ -30,7 +30,7 @@ export default Checkout = ({route}) => {
       console.log('Executando pois ainda tem bug no valor');
       ordersActions.executeQueue(
         () => Promise.resolve(),
-        () => ordersActions.setReload(true), //Executando pois ainda tem bug no valor
+        //() => ordersActions.setReload(true), //Executando pois ainda tem bug no valor
       );
     }, []),
   );
