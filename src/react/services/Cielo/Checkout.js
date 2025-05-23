@@ -32,9 +32,12 @@ export default Checkout = ({
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
   const {getters: orderGetters} = getStore('orders');
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
+    getStore('order_products');
   const {getters: invoiceGetters} = getStore('invoice');
   const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
   const {item: order} = orderGetters;
+  const {items: orderProducts} = orderProductsGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
@@ -64,7 +67,7 @@ export default Checkout = ({
   const formatProducts = () => {
     let items = [];
 
-    order.orderProducts.forEach(orderProduct => {
+    orderProducts.forEach(orderProduct => {
       let item = {};
       item.name = orderProduct.product.product;
       item.quantity = orderProduct.quantity;
@@ -75,7 +78,7 @@ export default Checkout = ({
       item.unitPrice = Math.round(orderProduct.price * 100).toString();
       items.push(item);
     });
-
+    console.log(items);
     return items;
   };
 

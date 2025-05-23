@@ -1,10 +1,9 @@
-import React, {useCallback, useState, useRef, useEffect, useMemo} from 'react';
+import React, {useCallback, useState, useRef, useEffect} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {getStore} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
-import debounce from 'lodash.debounce';
-import { eventBus } from '@controleonline/ui-common/src/react/components/EventBus';
+import {eventBus} from '@controleonline/ui-common/src/react/components/EventBus';
 const styles = {
   container: {
     flexDirection: 'row',
@@ -25,40 +24,20 @@ const ProductQuantity = ({product, category, changePrice}) => {
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(0);
-  const [price, setPrice] = useState(0);
-  const priceRef = useRef(price);
-
-  useEffect(() => {
-    priceRef.current = price;
-  }, [price]);
-
-  const modifyPrice = useMemo(() => {
-    return debounce(() => {
-      eventBus.emit('price', priceRef.current);
-    }, 500);
-  }, [priceRef]);
 
   const increaseQuantity = useCallback(() => {
     const newQuantity = qtd + 1;
-    setQtd(newQuantity);
-    setPrice(price + product.price);
     product.quantity = newQuantity;
-    modifyPrice();
-  }, [qtd, product, price]);
+    setQtd(newQuantity);
+    eventBus.emit('price', order.price + product.price);
+  }, [qtd, product, order]);
 
   const decreaseQuantity = useCallback(() => {
     const newQuantity = qtd > 0 ? qtd - 1 : 0;
     setQtd(newQuantity);
-    setPrice(price + product.price * -1);
     product.quantity = newQuantity;
-    modifyPrice();
-  }, [qtd, product, price]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (order) setPrice(order.price);
-    }, [order]),
-  );
+    eventBus.emit('price', order.price - product.price);
+  }, [qtd, product, order]);
 
   useFocusEffect(
     useCallback(() => {

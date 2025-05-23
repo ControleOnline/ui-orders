@@ -18,6 +18,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions: ordersActions} = getStore('orders');
+  const {actions: orderProductsActions} = getStore('order_products');
+
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
@@ -34,8 +36,11 @@ const OrderDetails = ({route, navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('Executando pois ainda tem bug no valor')
-      if (order) ordersActions.get(order['@id']);
+      console.log('Executando pois ainda tem bug no valor');
+      if (order)
+        ordersActions.get(order['@id']).then(data => {
+          orderProductsActions.setItems(data.orderProducts);
+        });
     }, []),
   );
 

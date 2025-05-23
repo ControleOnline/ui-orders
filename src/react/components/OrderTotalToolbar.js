@@ -7,6 +7,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 export default OrderTotalToolbar = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {actions: orderProductsActions} = getStore('order_products');
   const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading: invoiceIsLoading} = invoiceGetters;
   const {
@@ -22,6 +23,9 @@ export default OrderTotalToolbar = ({route}) => {
       if (reload && order)
         ordersActions
           .get(order['@id'])
+          .then(data => {
+            orderProductsActions.setItems(data.orderProducts);
+          })
           .finally(() => ordersActions.setReload(false));
     }, [reload]),
   );
