@@ -5,6 +5,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Checkout';
 import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
@@ -28,7 +29,10 @@ export default Checkout = ({route}) => {
   useFocusEffect(
     useCallback(() => {
       setTimeout(() => {
-          ordersActions.executeQueue(() => Promise.resolve(),() => ordersActions.setReload(true));      
+        ordersActions.executeQueue(
+          () => Promise.resolve(),
+          () => ordersActions.setReload(true),
+        );
       }, 500);
     }, []),
   );
@@ -70,6 +74,7 @@ export default Checkout = ({route}) => {
 
   return (
     <View style={{flex: 1}}>
+      <StateStore store="invoice" />
       {device.configs['pos-gateway'] == 'cielo' && (
         <CieloCheckout
           cancelOperation={cancelOperation}

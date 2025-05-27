@@ -34,7 +34,9 @@ export default Checkout = ({
     getStore('walletPaymentType');
   const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
-  const {getters: invoiceGetters} = getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
+
   const {isLoading, error, items: payments} = paymentTypeGetters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
@@ -72,7 +74,7 @@ export default Checkout = ({
       !selectedPayment.wallet ||
       !selectedPayment.paymentType
     ) {
-      paymentTypeActions.setError('Selecione uma forma de pagamento');
+      invoiceActions.setError('Selecione uma forma de pagamento');
       return;
     }
 
@@ -105,7 +107,7 @@ export default Checkout = ({
           response.result.paidAmount / 100 || order.price,
         );
       } catch (error) {
-        paymentTypeActions.setError(error);
+        invoiceActions.setError(error);
       }
     } else {
       createInvoice(selectedPayment, inputValue);
@@ -138,7 +140,7 @@ export default Checkout = ({
 
       createInvoice(response.result.paidAmount / 100 || order.price);
     } catch (error) {
-      paymentTypeActions.setError(error);
+      invoiceActions.setError(error);
     }
   };
 

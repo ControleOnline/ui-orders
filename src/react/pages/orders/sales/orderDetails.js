@@ -19,7 +19,9 @@ const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions: ordersActions} = getStore('orders');
   const {actions: orderProductsActions} = getStore('order_products');
-
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
+  const {items: invoices} = invoiceGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
@@ -33,6 +35,20 @@ const OrderDetails = ({route, navigation}) => {
    *  }, [order]),
    *);
    */
+
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        invoices &&
+        invoices.length === 0 &&
+        order &&
+        order['@id'] &&
+        !isLoading
+      ) {
+        invoiceActions.getItems({'order.order': order['@id']});
+      }
+    }, []),
+  );
 
   useFocusEffect(
     useCallback(() => {

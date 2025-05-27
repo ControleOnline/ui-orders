@@ -3,7 +3,7 @@ import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {getStore} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
-import {eventBus} from '@controleonline/ui-common/src/react/components/EventBus';
+import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 const styles = {
   container: {
     flexDirection: 'row',
@@ -18,25 +18,31 @@ const styles = {
   },
 };
 
-const ProductQuantity = ({product, category, changePrice}) => {
+const ProductQuantity = ({product, category}) => {
   const {actions: orderProductsActions} = getStore('order_products');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(0);
 
+  const changePrice = p => {
+    setTimeout(() => {
+      eventBus.emit('price', p);
+    }, 1);
+  };
+
   const increaseQuantity = useCallback(() => {
     const newQuantity = qtd + 1;
     product.quantity = newQuantity;
     setQtd(newQuantity);
-    eventBus.emit('price', order.price + product.price);
+    changePrice(product.price);
   }, [qtd, product, order]);
 
   const decreaseQuantity = useCallback(() => {
     const newQuantity = qtd > 0 ? qtd - 1 : 0;
-    setQtd(newQuantity);
     product.quantity = newQuantity;
-    eventBus.emit('price', order.price - product.price);
+    setQtd(newQuantity);
+    changePrice(product.price * -1);
   }, [qtd, product, order]);
 
   useFocusEffect(
@@ -72,9 +78,10 @@ const ProductQuantity = ({product, category, changePrice}) => {
     const currentProduct = {...product};
 
     if (currentProduct.quantity > 0)
-      ordersActions.executeQueue(() => {
-        return changeProduct(currentProduct, currentOrder);
-      });
+      ordersActions.addToQueue(() =>
+        changeProduct(currentProduct, currentOrder)
+      );
+    ordersActions.initQueue(() => ordersActions.setReload(true));
   }, [qtd, product, order, ordersActions]);
 
   return (

@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import Cielo from './Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
@@ -34,7 +33,8 @@ export default Checkout = ({
   const {getters: orderGetters} = getStore('orders');
   const {getters: orderProductsGetters, actions: orderProductsActions} =
     getStore('order_products');
-  const {getters: invoiceGetters} = getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} =
+    getStore('invoice');
   const {
     IsSaving: invoiceIsSaving,
     error: invoiceError,
@@ -83,7 +83,6 @@ export default Checkout = ({
       item.unitPrice = Math.round(orderProduct.price * 100).toString();
       items.push(item);
     });
-    console.log(items);
     return items;
   };
 
@@ -93,7 +92,7 @@ export default Checkout = ({
       !selectedPayment.wallet ||
       !selectedPayment.paymentType
     ) {
-      paymentTypeActions.setError('Selecione uma forma de pagamento');
+      invoiceActions.setError('Selecione uma forma de pagamento');
       return;
     }
 
@@ -115,7 +114,7 @@ export default Checkout = ({
         );
 
         if (!response.success) {
-          paymentTypeActions.setError(response.result);
+          invoiceActions.setError(response.result);
           cancelOperation();
 
           setModalVisible(false);
@@ -124,7 +123,7 @@ export default Checkout = ({
 
         createInvoice(selectedPayment, inputValue);
       } catch (error) {
-        paymentTypeActions.setError('Erro inesperado: ' + error.message);
+        invoiceActions.setError('Erro inesperado: ' + error.message);
         console.error('Erro na chamada ao serviço:', error);
         cancelOperation();
         setModalVisible(false);

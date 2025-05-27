@@ -18,19 +18,17 @@ const BottomCart = ({navigation}) => {
   return (
     <>
       <PayableToolbar />
-      {payable < 0 && (
-        <View style={[styles.toolbar, {flexDirection: 'row'}]}>
-          <OrderTotalToolbar />
-          <TouchableOpacity
-            onPress={() => handlePay(order)}
-            style={[
-              globalStyles.button,
-              {flex: 1, justifyContent: 'center', alignItems: 'center'},
-            ]}>
-            <Text style={styles.textWhite}>FECHAR</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={[styles.toolbar, {flexDirection: 'row'}]}>
+        <OrderTotalToolbar />
+        <TouchableOpacity
+          onPress={() => handlePay(order)}
+          style={[
+            globalStyles.button,
+            {flex: 1, justifyContent: 'center', alignItems: 'center'},
+          ]}>
+          <Text style={styles.textWhite}>FECHAR</Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 };

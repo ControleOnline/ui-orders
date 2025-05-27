@@ -12,7 +12,6 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
-import {eventBus} from '@controleonline/ui-common/src/react/components/EventBus';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
@@ -25,25 +24,7 @@ const ProductsPage = ({navigation, route}) => {
   const {styles, globalStyles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
 
-  const changePrice = p => {
-    return new Promise(resolve => {
-      let o = {...order};
-      o.price = p >= 0 ? p : 0;
-      ordersActions.setItem(o);
-      resolve();
-    });
-  };
 
-  useEffect(() => {
-    const listener = p => {
-      let o = {...order};
-      o.price = p;
-      ordersActions.setItem(o);
-    };
-
-    eventBus.on('price', listener);
-    return () => eventBus.off('price', listener);
-  }, []);
 
   const changeCategoryProduct = (p, changeStorage = false) => {
     const index = categories.findIndex(c => c['@id'] === category['@id']);
@@ -115,7 +96,6 @@ const ProductsPage = ({navigation, route}) => {
                     key={product.id}
                     product={product}
                     category={category}
-                    changePrice={changePrice}
                   />
                 </View>
               ))}
