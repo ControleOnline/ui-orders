@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect} from 'react';
-import {Text, View, TouchableOpacity, ActivityIndicator} from 'react-native';
+import {Text, View, TouchableOpacity} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
