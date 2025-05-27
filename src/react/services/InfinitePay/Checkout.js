@@ -145,17 +145,8 @@ export default Checkout = ({
   return remoteCheckoutMode ? null : (
     <>
       <SafeAreaView style={[styles.container]}>
-        <StateStore store="walletPaymentType" />
-        <StateStore store="orders" />
-        <StateStore store="invoice" />
-        <StateStore store="order_products" />
-
         {!invoiceIsSaving &&
           !invoiceError &&
-          !isLoading &&
-          !invoiceLoading &&
-          !orderLoading &&
-          !orderProductisLoading &&
           payments &&
           payments.length > 0 &&
           !error && (
@@ -205,14 +196,12 @@ export default Checkout = ({
 
         <View style={[styles.toolbar]}>
           <OrderTotalToolbar />
-          {!invoiceLoading && !orderLoading && !orderProductisLoading && (
-            <TouchableOpacity
-              onPress={() => handlePay()}
-              disabled={!selectedPayment}
-              style={[globalStyles.button]}>
-              <Text style={globalStyles.btnText}>PAGAR</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            onPress={() => handlePay()}
+            disabled={!selectedPayment}
+            style={[globalStyles.button]}>
+            <Text style={globalStyles.btnText}>PAGAR</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
 

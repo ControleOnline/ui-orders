@@ -31,11 +31,7 @@ export default OrderTotalToolbar = ({route}) => {
     }, [reload]),
   );
 
-  return !order ||
-    isLoading ||
-    invoiceIsLoading ||
-    isLoading ||
-    ordersIsloading ? (
+  return !order ? (
     <ActivityIndicator
       size="small"
       color={styles.primary?.color || '#000'}

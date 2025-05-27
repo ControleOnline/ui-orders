@@ -29,7 +29,7 @@ export default Checkout = ({route}) => {
     useCallback(() => {
       setTimeout(() => {
           ordersActions.executeQueue(() => Promise.resolve(),() => ordersActions.setReload(true));      
-      }, 100);
+      }, 500);
     }, []),
   );
 
