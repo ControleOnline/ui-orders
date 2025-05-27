@@ -20,11 +20,12 @@ export default OrderTotalToolbar = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (reload && order)
+      if (reload && order && order['@id'])
         ordersActions
           .get(order['@id'])
           .then(data => {
-            orderProductsActions.setItems(data.orderProducts);
+            //console.log('Atualizando');
+            //orderProductsActions.setItems(data.orderProducts);
           })
           .finally(() => ordersActions.setReload(false));
     }, [reload]),

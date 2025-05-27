@@ -29,15 +29,24 @@ export default Checkout = ({
   paymentValue = 0,
 }) => {
   const {styles, globalStyles} = css();
-  const {getters} = getStore('orders');
+  const {getters: orderGetters} = getStore('orders');
   const {getters: paymentTypeGetters, actions: paymentTypeActions} =
     getStore('walletPaymentType');
+  const {getters: orderProductsGetters, actions: orderProductsActions} =
+    getStore('order_products');
   const {getters: invoiceGetters} = getStore('invoice');
-  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
   const {isLoading, error, items: payments} = paymentTypeGetters;
-  const {item: order, payable} = getters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
+  const {
+    IsSaving: invoiceIsSaving,
+    error: invoiceError,
+    isLoading: invoiceLoading,
+  } = invoiceGetters;
+  const {item: order, isLoading: orderLoading} = orderGetters;
+  const {items: orderProducts, isLoading: orderProductisLoading} =
+    orderProductsGetters;
+
   const [installmentsModalVisible, setInstallmentsModalVisible] =
     useState(false);
   const [selectedInstallments, setSelectedInstallments] = useState(null);
@@ -137,10 +146,16 @@ export default Checkout = ({
     <>
       <SafeAreaView style={[styles.container]}>
         <StateStore store="walletPaymentType" />
+        <StateStore store="orders" />
         <StateStore store="invoice" />
+        <StateStore store="order_products" />
+
         {!invoiceIsSaving &&
           !invoiceError &&
           !isLoading &&
+          !invoiceLoading &&
+          !orderLoading &&
+          !orderProductisLoading &&
           payments &&
           payments.length > 0 &&
           !error && (
@@ -184,20 +199,21 @@ export default Checkout = ({
                   ))}
                 </View>
               </ScrollView>
-
-              <PayableToolbar />
-
-              <View style={[styles.toolbar]}>
-                <OrderTotalToolbar />
-                <TouchableOpacity
-                  onPress={() => handlePay()}
-                  disabled={!selectedPayment}
-                  style={[globalStyles.button]}>
-                  <Text style={globalStyles.btnText}>PAGAR</Text>
-                </TouchableOpacity>
-              </View>
             </>
           )}
+        <PayableToolbar />
+
+        <View style={[styles.toolbar]}>
+          <OrderTotalToolbar />
+          {!invoiceLoading && !orderLoading && !orderProductisLoading && (
+            <TouchableOpacity
+              onPress={() => handlePay()}
+              disabled={!selectedPayment}
+              style={[globalStyles.button]}>
+              <Text style={globalStyles.btnText}>PAGAR</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </SafeAreaView>
 
       <Modal

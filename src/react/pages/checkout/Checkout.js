@@ -27,11 +27,9 @@ export default Checkout = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('Executando pois ainda tem bug no valor');
-      ordersActions.executeQueue(
-        () => Promise.resolve(),
-        //() => ordersActions.setReload(true), //Executando pois ainda tem bug no valor
-      );
+      setTimeout(() => {
+          ordersActions.executeQueue(() => Promise.resolve(),() => ordersActions.setReload(true));      
+      }, 100);
     }, []),
   );
 

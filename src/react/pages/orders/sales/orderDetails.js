@@ -36,8 +36,7 @@ const OrderDetails = ({route, navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('Executando pois ainda tem bug no valor');
-      if (order)
+      if (order && order['@id'])
         ordersActions.get(order['@id']).then(data => {
           orderProductsActions.setItems(data.orderProducts);
         });

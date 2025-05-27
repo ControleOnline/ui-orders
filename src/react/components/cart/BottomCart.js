@@ -7,7 +7,7 @@ import PayableToolbar from '@controleonline/ui-orders/src/react/components/Payab
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 
 const BottomCart = ({navigation}) => {
-  const {getters: ordersGetters, actions: ordersAction} = getStore('orders');
+  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order, payable} = ordersGetters;
   const {styles, globalStyles} = css();
 
@@ -27,7 +27,7 @@ const BottomCart = ({navigation}) => {
               globalStyles.button,
               {flex: 1, justifyContent: 'center', alignItems: 'center'},
             ]}>
-            <Text style={styles.textWhite}>PAGAR</Text>
+            <Text style={styles.textWhite}>FECHAR</Text>
           </TouchableOpacity>
         </View>
       )}
