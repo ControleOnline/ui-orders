@@ -14,6 +14,7 @@ export default OrderTotalToolbar = ({route}) => {
   const {
     item: order,
     isLoading,
+    payable,
     reload,
     isLoading: ordersIsloading,
   } = ordersGetters;
@@ -35,6 +36,7 @@ export default OrderTotalToolbar = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
+      console.log('P', payable);
       if (
         order &&
         order['@id'] &&
@@ -45,7 +47,6 @@ export default OrderTotalToolbar = ({route}) => {
         setPrice(order.price);
     }, [order]),
   );
-
 
   useEffect(() => {
     const listener = p => {

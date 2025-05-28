@@ -51,7 +51,8 @@ export default PayableToolbar = ({route}) => {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      ordersActions.setPayable(parseFloat(paid) - parseFloat(price));
+      let p = parseFloat(paid) - parseFloat(price);
+      ordersActions.setPayable(p);
     }, 300);
 
     return () => clearTimeout(timeout);

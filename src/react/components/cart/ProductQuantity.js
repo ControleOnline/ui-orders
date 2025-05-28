@@ -74,12 +74,18 @@ const ProductQuantity = ({product, category}) => {
   };
 
   const handleSave = useCallback(() => {
+    if (!order || !order['@id']) {
+      setTimeout(() => {
+        handleSave();
+      }, 300);
+      return;
+    }
     const currentOrder = {...order};
     const currentProduct = {...product};
 
     if (currentProduct.quantity > 0)
       ordersActions.addToQueue(() =>
-        changeProduct(currentProduct, currentOrder)
+        changeProduct(currentProduct, currentOrder),
       );
     ordersActions.initQueue(() => ordersActions.setReload(true));
   }, [qtd, product, order, ordersActions]);
