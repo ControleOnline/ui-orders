@@ -1,4 +1,4 @@
-import React, {useCallback, useState, useEffect} from 'react';
+import React, {useCallback, useState, useEffect, useRef} from 'react';
 import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
@@ -8,9 +8,7 @@ import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
 export default OrderTotalToolbar = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {actions: orderProductsActions} = getStore('order_products');
-  const {getters: invoiceGetters} = getStore('invoice');
-  const {isLoading: invoiceIsLoading} = invoiceGetters;
+
   const {
     item: order,
     isLoading,
@@ -36,21 +34,16 @@ export default OrderTotalToolbar = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('P', payable);
-      if (
-        order &&
-        order['@id'] &&
-        price == 0 &&
-        order.price > 0 &&
-        price != order.price
-      )
+      if (order && order.price > 0 && price != order.price) {
+        console.log('Adicionando preço local, usando o pedido');
         setPrice(order.price);
+      }
     }, [order]),
   );
 
   useEffect(() => {
     const listener = p => {
-      console.log(price, p, price + p);
+      console.log('Preço vindo do buffer', p, price, price + p);
       let value = price + p;
       setPrice(value > 0 ? value : 0);
     };

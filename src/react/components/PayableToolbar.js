@@ -18,14 +18,7 @@ export default PayableToolbar = ({route}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log(order?.price);
-      if (
-        order &&
-        order['@id'] &&
-        price == 0 &&
-        order.price > 0 &&
-        price != order.price
-      )
+      if (order && price == 0 && order.price > 0 && price != order.price)
         setPrice(order.price);
     }, [order]),
   );

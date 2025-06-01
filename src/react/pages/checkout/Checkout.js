@@ -6,7 +6,6 @@ import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Ch
 import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
 
@@ -18,11 +17,17 @@ export default Checkout = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
+  const {getters: orderProductsGetters} = getStore('order_products');
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, defaultCompany} = peopleGetters;
-  const {item: order, payable} = ordersGetters;
-  const {items: invoices} = invoiceGetters;
-
+  const {item: order, payable, isLoading: orderIsloading} = ordersGetters;
+  const {
+    items: invoices,
+    isLoading: invoiceIsloading,
+    isSaving: invoiceIsSaving,
+  } = invoiceGetters;
+  const {isLoading: orderProductsIsloading, isSaving: orderProductsIsSaving} =
+    orderProductsGetters;
   const navigation = useNavigation();
   const cancelOperation = () => {};
 
@@ -75,20 +80,31 @@ export default Checkout = ({route}) => {
   return (
     <View style={{flex: 1}}>
       <StateStore store="invoice" />
-      {device.configs['pos-gateway'] == 'cielo' && (
-        <CieloCheckout
-          cancelOperation={cancelOperation}
-          createInvoice={createInvoice}
-          remoteCheckoutMode={false}
-        />
-      )}
-      {device.configs['pos-gateway'] == 'infinite-pay' && (
-        <InfinitePay
-          cancelOperation={cancelOperation}
-          createInvoice={createInvoice}
-          remoteCheckoutMode={false}
-        />
-      )}
+      <StateStore store="orders" />
+      <StateStore store="order_products" />
+
+      {!orderIsloading &&
+      !invoiceIsloading &&
+      !orderProductsIsloading &&
+      !invoiceIsSaving &&
+      !orderProductsIsSaving ? (
+        <>
+          {device.configs['pos-gateway'] == 'cielo' && (
+            <CieloCheckout
+              cancelOperation={cancelOperation}
+              createInvoice={createInvoice}
+              remoteCheckoutMode={false}
+            />
+          )}
+          {device.configs['pos-gateway'] == 'infinite-pay' && (
+            <InfinitePay
+              cancelOperation={cancelOperation}
+              createInvoice={createInvoice}
+              remoteCheckoutMode={false}
+            />
+          )}
+        </>
+      ) : null}
     </View>
   );
 };
