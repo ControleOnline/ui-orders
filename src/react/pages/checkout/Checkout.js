@@ -1,6 +1,7 @@
-import {View} from 'react-native';
+import {View, TouchableOpacity, Text} from 'react-native';
 import React, {useState, useCallback, useEffect} from 'react';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Checkout';
 import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
@@ -74,8 +75,34 @@ export default Checkout = ({route}) => {
     });
   };
 
+  const handleEdit = order => {
+    navigation.navigate('OrderDetails', {order: order});
+  };
+
   return (
     <View style={{flex: 1}}>
+      <View
+        style={{
+          height: 60,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          backgroundColor: '#fff',
+          color: '#000',
+          elevation: 4,
+          padding: 20,
+          alignItems: 'center',
+          marginBottom: 15,
+        }}>
+        {
+          <TouchableOpacity
+            onPress={() => handleEdit(order)}
+            style={{marginRight: 16}}>
+            <Icon name="arrow-back" size={24} color="black" />
+          </TouchableOpacity>
+        }
+        <Text style={{fontSize: 18, color: '#000'}}>Order #{order?.id}</Text>
+      </View>
       <StateStore store="invoice" />
       <StateStore store="orders" />
       <StateStore store="order_products" />

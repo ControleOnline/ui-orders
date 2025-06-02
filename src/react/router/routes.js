@@ -243,7 +243,7 @@ const ordersRoutes = [
   {
     name: 'Checkout',
     component: Checkout,
-    options: {headerShown: true, title: 'Forma de Pagamento'},
+    options: {headerShown: false},
     initialParams: {store: 'cart'},
   },
 ];

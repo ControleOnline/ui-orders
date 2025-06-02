@@ -61,11 +61,10 @@ const ProductQuantity = ({product, category}) => {
   );
 
   const handleSave = useCallback(() => {
-    const currentProduct = {...product};
-    if (currentProduct.quantity > 0)
+    if (product.quantity > 0)
       eventBus.emit('add-product', {
-        product: currentProduct['@id'].replace(/\D/g, ''),
-        quantity: currentProduct.quantity,
+        product: product['@id'].replace(/\D/g, ''),
+        quantity: product.quantity,
       });
   }, [product]);
 
