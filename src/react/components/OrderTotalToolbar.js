@@ -31,15 +31,15 @@ export default OrderTotalToolbar = ({route}) => {
       currentRoute?.name != 'ProductsPage'
     ) {
       if (timeoutId.current) clearTimeout(timeoutId.current);
+      const currentOrder = {...order};
+      const currentProducts = [...productBuffer];
 
       timeoutId.current = setTimeout(() => {
-        const currentOrder = {...order};
-        const currentProducts = [...productBuffer];
         console.log(currentProducts);
         addProducts(currentOrder, currentProducts);
         setProductBuffer([]); //Aqui deveria zerar (E zera, mas depois volta)
         timeoutId.current = null;
-      }, 300);
+      }, 100);
     }
   }, [currentRoute, productBuffer, order, setProductBuffer]);
 
@@ -58,7 +58,9 @@ export default OrderTotalToolbar = ({route}) => {
     const handleAddProduct = data => {
       console.log('Adicionando no Buffer (Não adiciona novamente)');
       setProductBuffer(prev => [...prev, data]);
-      persistProducts();
+      setTimeout(() => {
+        persistProducts();
+      }, 300);
     };
     eventBus.on('add-product', handleAddProduct);
     return () => eventBus.off('add-product', handleAddProduct);
