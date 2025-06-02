@@ -39,7 +39,7 @@ export default OrderTotalToolbar = ({route}) => {
         addProducts(currentOrder, currentProducts);
         setProductBuffer([]); //Aqui deveria zerar (E zera, mas depois volta)
         timeoutId.current = null;
-      }, 100);
+      }, 300);
     }
   }, [currentRoute, productBuffer, order, setProductBuffer]);
 
@@ -58,9 +58,7 @@ export default OrderTotalToolbar = ({route}) => {
     const handleAddProduct = data => {
       console.log('Adicionando no Buffer (Não adiciona novamente)');
       setProductBuffer(prev => [...prev, data]);
-      setTimeout(() => {
-        persistProducts();
-      }, 500); // 100 ms não dá, mas 300 dá? GAMBIARRAAAAAAAAAAAAA
+      persistProducts();
     };
     eventBus.on('add-product', handleAddProduct);
     return () => eventBus.off('add-product', handleAddProduct);
