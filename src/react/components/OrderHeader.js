@@ -13,24 +13,24 @@ const OrderHeader = ({order, showId = false}) => {
         {showId ? (
           <View style={oh.topInfo}>
             <Text style={[oh.boxTextColor, oh.infoText]}>
-              Pedido: #{order.id}
+              Pedido: #{order?.id}
             </Text>
             <Text style={[oh.boxTextColor, oh.price]}>
-              {Formatter.formatMoney(order.price)}
+              {Formatter.formatMoney(order?.price)}
             </Text>
           </View>
         ) : null}
         <View style={oh.topInfo}>
           <Text style={[oh.boxTextColor, oh.boxStatusText, oh.statusText]}>
-            {t.t('orders', 'status', order.status?.status)}
+            {t.t('orders', 'status', order?.status?.status)}
           </Text>
           <Text style={[oh.boxTextColor, oh.infoText]}>
-            {Formatter.formatDateYmdTodmY(order.orderDate, true)}
+            {Formatter.formatDateYmdTodmY(order?.orderDate, true)}
           </Text>
         </View>
-        {order.client?.name ? (
+        {order?.client?.name ? (
           <Text style={[oh.boxTextColor, oh.customerName]}>
-            {order.client.name}
+            {order?.client.name}
           </Text>
         ) : null}
         {/*
@@ -53,7 +53,7 @@ const OrderHeader = ({order, showId = false}) => {
               oh.tableNumber,
               {backgroundColor: 'transparent', borderWidth: 0},
             ]}
-            value={order.tableNumber}
+            value={order?.tableNumber}
             editable={true}
           />
         </View>*/}

@@ -25,17 +25,6 @@ const OrderDetails = ({route, navigation}) => {
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();
 
-  /**
-   * @todo Se arrumar o bug do valor, descomentar esse e comentar o bloco abaixo
-   *
-   *useFocusEffect(
-   *  useCallback(() => {
-   *    if (!item || (item && order && item['@id'] != order['@id']))
-   *     ordersActions.get(order['@id']);
-   *  }, [order]),
-   *);
-   */
-
   useFocusEffect(
     useCallback(() => {
       if (

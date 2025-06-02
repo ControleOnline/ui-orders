@@ -19,7 +19,6 @@ const styles = {
 };
 
 const ProductQuantity = ({product, category}) => {
-  const {actions: orderProductsActions} = getStore('order_products');
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);
@@ -61,34 +60,14 @@ const ProductQuantity = ({product, category}) => {
     }, []),
   );
 
-  const changeProduct = (currentProduct, currentOrder) => {
-    const order_product = {
-      parentProduct: null,
-      product: currentProduct['@id'],
-      product_group_id: null,
-      quantity: currentProduct.quantity,
-      order: currentOrder['@id'],
-    };
-
-    return orderProductsActions.save(order_product);
-  };
-
   const handleSave = useCallback(() => {
-    if (!order || !order['@id']) {
-      setTimeout(() => {
-        handleSave();
-      }, 300);
-      return;
-    }
-    const currentOrder = {...order};
     const currentProduct = {...product};
-
     if (currentProduct.quantity > 0)
-      ordersActions.addToQueue(() =>
-        changeProduct(currentProduct, currentOrder),
-      );
-    ordersActions.initQueue(() => ordersActions.setReload(true));
-  }, [qtd, product, order, ordersActions]);
+      eventBus.emit('add-product', {
+        product: currentProduct['@id'].replace(/\D/g, ''),
+        quantity: currentProduct.quantity,
+      });
+  }, [product]);
 
   return (
     <View style={styles.container}>

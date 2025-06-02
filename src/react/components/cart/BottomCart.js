@@ -6,10 +6,11 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 
-const BottomCart = ({navigation}) => {
+const BottomCart = ({}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
   const {item: order, payable} = ordersGetters;
   const {styles, globalStyles} = css();
+  const navigation = useNavigation();
 
   const handlePay = item => {
     navigation.navigate('Checkout', {orderId: item.id});

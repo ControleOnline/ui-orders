@@ -3,54 +3,88 @@ import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {
+  useNavigation,
+  useFocusEffect,
+  useNavigationState,
+} from '@react-navigation/native';
+
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
 export default OrderTotalToolbar = ({route}) => {
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-
-  const {
-    item: order,
-    isLoading,
-    payable,
-    reload,
-    isLoading: ordersIsloading,
-  } = ordersGetters;
+  const routes = useNavigationState(state => state.routes);
+  const currentRoute = routes[routes.length - 1];
+  const {item: order} = ordersGetters;
   const {styles, globalStyles} = css();
   const [price, setPrice] = useState(0);
+  const [productBuffer, setProductBuffer] = useState([]);
+  const timeoutId = useRef(null);
 
   useFocusEffect(
     useCallback(() => {
-      if (reload && order && order['@id'])
-        ordersActions
-          .get(order['@id'])
-          .then(data => {
-            //console.log('Atualizando');
-            //orderProductsActions.setItems(data.orderProducts);
-          })
-          .finally(() => ordersActions.setReload(false));
-    }, [reload]),
+      console.log(currentRoute?.name,  productBuffer.length);
+      if (
+        order &&
+        order['@id'] &&
+        productBuffer.length > 0 &&
+        currentRoute?.name &&
+        currentRoute?.name != 'ProductsPage'
+      ) {
+        if (timeoutId.current) clearTimeout(timeoutId.current);
+
+        timeoutId.current = setTimeout(() => {
+          const currentOrder = {...order};
+          const currentProducts = [...productBuffer];
+          console.log(currentProducts);
+          addProducts(currentOrder, currentProducts);
+          setProductBuffer([]);
+          timeoutId.current = null;
+        }, 200);
+      }
+    }, [currentRoute, productBuffer, order]),
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (order && order.price > 0 && price != order.price) {
-        console.log('Adicionando preço local, usando o pedido');
-        setPrice(order.price);
-      }
-    }, [order]),
+  const addProducts = useCallback(
+    (currentOrder, currentProducts) => {
+      if (currentProducts.length > 0 && currentOrder && currentOrder['@id'])
+        ordersActions.addProducts(
+          currentOrder['@id'].replace(/\D/g, ''),
+          currentProducts,
+        );
+    },
+    [productBuffer, setProductBuffer],
   );
 
   useEffect(() => {
-    const listener = p => {
-      console.log('Preço vindo do buffer', p, price, price + p);
-      let value = price + p;
-      setPrice(value > 0 ? value : 0);
+    console.log(
+      'Com useEffect executa sempre, nunca zera, com FoccuseFFect não executa quando aperta voltar, pois está sempre zerado',
+    );
+    const handleAddProduct = data => {
+      setProductBuffer(prev => [...prev, data]);
     };
+    eventBus.on('add-product', handleAddProduct);
+    return () => eventBus.off('add-product', handleAddProduct);
+  }, [setProductBuffer]);
 
-    eventBus.on('price', listener);
-    return () => eventBus.off('price', listener);
-  }, [price, setPrice]);
+  useFocusEffect(
+    useCallback(() => {
+      if (order && order.price > 0 && price != order.price)
+        setPrice(order.price);
+    }, [order]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const listener = p => {
+        let value = price + p;
+        setPrice(value > 0 ? value : 0);
+      };
+
+      eventBus.on('price', listener);
+      return () => eventBus.off('price', listener);
+    }, [price, setPrice]),
+  );
 
   return !order ? (
     <ActivityIndicator

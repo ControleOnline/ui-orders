@@ -10,7 +10,7 @@ export default function ProductsList({route}) {
   const {styles, globalStyles} = css();
   const navigation = useNavigation();
   const {getters: ordersGetters} = getStore('orders');
-  const {item:order, isLoading, isSaving, error, reload} = ordersGetters;
+  const {item: order, isLoading, isSaving, error, reload} = ordersGetters;
 
   return (
     <View>

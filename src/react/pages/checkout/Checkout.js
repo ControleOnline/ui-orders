@@ -18,9 +18,16 @@ export default Checkout = ({route}) => {
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
   const {getters: orderProductsGetters} = getStore('order_products');
+  const {getters: printGetters, actions: printActions} = getStore('print');
+
   const {getters: peopleGetters} = getStore('people');
   const {currentCompany, defaultCompany} = peopleGetters;
-  const {item: order, payable, isLoading: orderIsloading} = ordersGetters;
+  const {
+    item: order,
+    payable,
+    isLoading: orderIsloading,
+    isSaving: orderIsSaving,
+  } = ordersGetters;
   const {
     items: invoices,
     isLoading: invoiceIsloading,
@@ -30,17 +37,6 @@ export default Checkout = ({route}) => {
     orderProductsGetters;
   const navigation = useNavigation();
   const cancelOperation = () => {};
-
-  useFocusEffect(
-    useCallback(() => {
-      setTimeout(() => {
-        ordersActions.executeQueue(
-          () => Promise.resolve(),
-          () => ordersActions.setReload(true),
-        );
-      }, 500);
-    }, []),
-  );
 
   const createInvoice = (selectedPayment, total) => {
     const payload = {
@@ -66,6 +62,7 @@ export default Checkout = ({route}) => {
           ordersActions.setItem(null);
           invoiceActions.setItems([]);
           ordersActions.setPayable(0);
+          printActions.setReload(true); // Impressão local
           navigation.navigate('SalesOrderIndex');
         }
       } else {
@@ -84,6 +81,7 @@ export default Checkout = ({route}) => {
       <StateStore store="order_products" />
 
       {!orderIsloading &&
+      !orderIsSaving &&
       !invoiceIsloading &&
       !orderProductsIsloading &&
       !invoiceIsSaving &&
