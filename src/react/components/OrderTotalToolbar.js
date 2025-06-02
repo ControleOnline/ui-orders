@@ -21,29 +21,27 @@ export default OrderTotalToolbar = ({route}) => {
   const [productBuffer, setProductBuffer] = useState([]);
   const timeoutId = useRef(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      console.log(currentRoute?.name,  productBuffer.length);
-      if (
-        order &&
-        order['@id'] &&
-        productBuffer.length > 0 &&
-        currentRoute?.name &&
-        currentRoute?.name != 'ProductsPage'
-      ) {
-        if (timeoutId.current) clearTimeout(timeoutId.current);
+  const persistProducts = useCallback(() => {
+    console.log(currentRoute?.name, productBuffer.length);
+    if (
+      order &&
+      order['@id'] &&
+      productBuffer.length > 0 &&
+      currentRoute?.name &&
+      currentRoute?.name != 'ProductsPage'
+    ) {
+      if (timeoutId.current) clearTimeout(timeoutId.current);
 
-        timeoutId.current = setTimeout(() => {
-          const currentOrder = {...order};
-          const currentProducts = [...productBuffer];
-          console.log(currentProducts);
-          addProducts(currentOrder, currentProducts);
-          setProductBuffer([]);
-          timeoutId.current = null;
-        }, 200);
-      }
-    }, [currentRoute, productBuffer, order]),
-  );
+      timeoutId.current = setTimeout(() => {
+        const currentOrder = {...order};
+        const currentProducts = [...productBuffer];
+        console.log(currentProducts);
+        addProducts(currentOrder, currentProducts);
+        setProductBuffer([]); //Aqui deveria zerar (E zera, mas depois volta)
+        timeoutId.current = null;
+      }, 100);
+    }
+  }, [currentRoute, productBuffer, order, setProductBuffer]);
 
   const addProducts = useCallback(
     (currentOrder, currentProducts) => {
@@ -57,11 +55,12 @@ export default OrderTotalToolbar = ({route}) => {
   );
 
   useEffect(() => {
-    console.log(
-      'Com useEffect executa sempre, nunca zera, com FoccuseFFect não executa quando aperta voltar, pois está sempre zerado',
-    );
     const handleAddProduct = data => {
+      console.log('Adicionando no Buffer (Não adiciona novamente)');
       setProductBuffer(prev => [...prev, data]);
+      setTimeout(() => {
+        persistProducts();
+      }, 500); // 100 ms não dá, mas 300 dá? GAMBIARRAAAAAAAAAAAAA
     };
     eventBus.on('add-product', handleAddProduct);
     return () => eventBus.off('add-product', handleAddProduct);
