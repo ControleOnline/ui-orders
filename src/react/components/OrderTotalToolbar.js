@@ -30,13 +30,16 @@ export default OrderTotalToolbar = ({route}) => {
         productBuffer.length > 0 &&
         currentRoute?.name &&
         currentRoute?.name != 'ProductsPage'
-      )
+      ) {
         persistProducts();
+      }
     }, [currentRoute, productBuffer, order]),
   );
 
   const persistProducts = () => {
-    if (timeoutId.current) clearTimeout(timeoutId.current);
+    if (timeoutId.current) {
+      clearTimeout(timeoutId.current);
+    }
 
     timeoutId.current = setTimeout(() => {
       const currentOrder = {...order};
@@ -48,51 +51,56 @@ export default OrderTotalToolbar = ({route}) => {
   };
 
   const addProducts = useCallback((currentOrder, currentProducts) => {
-    if (currentProducts.length > 0 && currentOrder && currentOrder['@id'])
+    if (currentProducts.length > 0 && currentOrder && currentOrder['@id']) {
       ordersActions.addProducts(
         currentOrder['@id'].replace(/\D/g, ''),
         currentProducts,
       );
+    }
     setProductBuffer([]);
   }, []);
 
+  const handleAddProduct = data => {
+    setTimeout(() => {
+      console.log('Adicionando ao buffer:', {
+        atual: productBuffer,
+        novo: data,
+      });
+
+      try {
+        console.log('setProductBuffer Antes');
+        setProductBuffer(prev => {
+          console.log('prev: ', prev);
+          const updatedBuffer = [...prev, data];
+          console.log('Buffer atualizado dentro do set:', updatedBuffer);
+          return updatedBuffer;
+        });
+        console.log('setProductBuffer Depois');
+      } catch (error) {
+        console.log('Error', error);
+      }
+
+      console.log(
+        'Estado após 100ms:',
+        productBuffer,
+        'Dados adicionados:',
+        data,
+      );
+    }, 100);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      const handleAddProduct = data => {
-        console.log('Adicionando ao buffer:', {
-          atual: productBuffer,
-          novo: data,
-        });
-
-        try {
-          console.log(typeof setProductBuffer);
-          setProductBuffer(prev => {
-            console.log(prev);
-            const updatedBuffer = [...prev, data];
-            console.log('Buffer atualizado dentro do set:', updatedBuffer);
-            return updatedBuffer;
-          });
-        } catch (error) {
-          console.log('Error', error);
-        }
-        setTimeout(() => {
-          console.log(
-            'Estado após 100ms:',
-            productBuffer,
-            'Dados adicionados:',
-            data,
-          );
-        }, 100);
-      };
       eventBus.on('add-product', handleAddProduct);
       return () => eventBus.off('add-product', handleAddProduct);
-    }, []),
+    }, [setProductBuffer]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      if (order && order.price > 0 && price != order.price)
+      if (order && order.price > 0 && price != order.price) {
         setPrice(order.price);
+      }
     }, [order]),
   );
 
