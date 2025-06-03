@@ -18,32 +18,16 @@ export default OrderTotalToolbar = ({route}) => {
   const {item: order} = ordersGetters;
   const {styles, globalStyles} = css();
   const [price, setPrice] = useState(0);
-  const [productBuffer, setProductBuffer] = useState([]);
   const timeoutId = useRef(null);
+  let products = [];
 
-  useFocusEffect(
-    useCallback(() => {
-      console.log(currentRoute?.name, productBuffer.length);
-      if (
-        order &&
-        order['@id'] &&
-        productBuffer.length > 0 &&
-        currentRoute?.name &&
-        currentRoute?.name != 'ProductsPage'
-      ) {
-        persistProducts();
-      }
-    }, [currentRoute, productBuffer, order]),
-  );
-
-  const persistProducts = () => {
+  const persistProducts = currentProducts => {
     if (timeoutId.current) {
       clearTimeout(timeoutId.current);
     }
 
     timeoutId.current = setTimeout(() => {
       const currentOrder = {...order};
-      const currentProducts = [...productBuffer];
       console.log(currentProducts);
       addProducts(currentOrder, currentProducts);
       timeoutId.current = null;
@@ -57,43 +41,19 @@ export default OrderTotalToolbar = ({route}) => {
         currentProducts,
       );
     }
-    setProductBuffer([]);
+    products = [];
   }, []);
 
   const handleAddProduct = data => {
-    setTimeout(() => {
-      console.log('Adicionando ao buffer:', {
-        atual: productBuffer,
-        novo: data,
-      });
-
-      try {
-        console.log('setProductBuffer Antes');
-        setProductBuffer(prev => {
-          console.log('prev: ', prev);
-          const updatedBuffer = [...prev, data];
-          console.log('Buffer atualizado dentro do set:', updatedBuffer);
-          return updatedBuffer;
-        });
-        console.log('setProductBuffer Depois');
-      } catch (error) {
-        console.log('Error', error);
-      }
-
-      console.log(
-        'Estado após 100ms:',
-        productBuffer,
-        'Dados adicionados:',
-        data,
-      );
-    }, 100);
+    products.push(data);
+    persistProducts(products);
   };
 
   useFocusEffect(
     useCallback(() => {
       eventBus.on('add-product', handleAddProduct);
       return () => eventBus.off('add-product', handleAddProduct);
-    }, [setProductBuffer]),
+    }, []),
   );
 
   useFocusEffect(
