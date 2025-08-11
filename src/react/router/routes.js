@@ -12,7 +12,6 @@ import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
 import CustomizeScreen from '@controleonline/ui-products/src/react/pages/CustomizeScreen';
-import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput';
 import {getStore} from '@store';
 
 import React from 'react';
@@ -95,7 +94,6 @@ const WrappedCategoryPage = ({navigation, route}) => {
 
   return (
     <ShopLayout navigation={navigation} route={route}>
-      <BarcodeInput />
       <CartLayout navigation={navigation} route={route}>
         <Categories navigation={navigation} route={route} />
       </CartLayout>

@@ -69,7 +69,6 @@ export default OrderTotalToolbar = ({route}) => {
       const listener = p => {
         let value = price + p;
         setPrice(value > 0 ? value : 0);
-        eventBus.emit('total', value);
       };
 
       eventBus.on('price', listener);
