@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
@@ -17,41 +17,50 @@ export default function BleedScreen() {
   const navigation = useNavigation();
 
   const {styles, globalStyles} = css();
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
-  const {getters: peopleGetters} = getStore('people');
+  const walletPaymentTypeStore = useStores(state => state.walletPaymentType);
+  const paymentTypeGetters = walletPaymentTypeStore.getters;
+  const paymentTypeActions = walletPaymentTypeStore.actions;
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
   const {items: paymentTypes} = paymentTypeGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
-  const {actions: invoiceActions} = getStore('invoice');
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceActions = invoiceStore.actions;
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
   const [bleedValue, setBleedValue] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const {getters: configsGetters} = getStore('configs');
+  const configsStore = useStores(state => state.configs);
+  const configsGetters = configsStore.getters;
   const {items: companyConfigs} = configsGetters;
   const [cashWallet, setCashWallet] = useState(null);
   const [withdrawlWallet, setWithdrawlWallet] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
-      if (companyConfigs && companyConfigs['pos-cash-wallet'])
+      if (companyConfigs && companyConfigs['pos-cash-wallet']) {
         setCashWallet(companyConfigs['pos-cash-wallet']);
-      if (companyConfigs && companyConfigs['pos-withdrawl-wallet'])
+      }
+      if (companyConfigs && companyConfigs['pos-withdrawl-wallet']) {
         setWithdrawlWallet(companyConfigs['pos-withdrawl-wallet']);
+      }
     }, [companyConfigs]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      if (cashWallet)
+      if (cashWallet) {
         paymentTypeActions.getItems({
           wallet: cashWallet,
         });
+      }
     }, [cashWallet]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      if (paymentTypes.length > 0) setSelectedPaymentType(paymentTypes[0]);
+      if (paymentTypes.length > 0) {
+        setSelectedPaymentType(paymentTypes[0]);
+      }
     }, [paymentTypes]),
   );
 
@@ -80,8 +89,9 @@ export default function BleedScreen() {
       !cashWallet ||
       !defaultCompany?.configs['pos-paid-status'] ||
       !currentCompany?.id
-    )
+    ) {
       return;
+    }
     const payload = {
       dueDate: Formatter.getCurrentDate(),
       status: '/statuses/' + defaultCompany?.configs['pos-paid-status'],

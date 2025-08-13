@@ -16,7 +16,7 @@ const css = () => {
       paddingBottom: 100,
     },
     primary: {
-      color: colors['primary'],
+      color: colors.primary,
     },
     boxHeader: {
       flexDirection: 'row',
@@ -177,12 +177,11 @@ const css = () => {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        height: 60,
+        height: 50,
         backgroundColor: '#f8f8f8',
         borderTopWidth: 1,
         borderTopColor: '#ddd',
         padding: 10,
-        height: 50,
       },
     },
     toolbar: {
@@ -281,13 +280,13 @@ const css = () => {
         marginTop: 8,
         textAlign: 'center',
         fontSize: 16,
-        color: colors['primary'],
+        color: colors.primary,
       },
     },
     OrderHeader: {
       boxWrap: {
         backgroundColor: '#fff',
-        color: colors['primary'],
+        color: colors.primary,
         fontSize: 18,
         marginHorizontal: 2,
         marginVertical: 8,
@@ -298,7 +297,7 @@ const css = () => {
         padding: 10,
       },
       price: {
-        color: colors['primary'],
+        color: colors.primary,
         fontSize: 14,
       },
       topInfo: {
@@ -374,7 +373,7 @@ const css = () => {
       modalTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: colors['primary'],
+        color: colors.primary,
         marginBottom: 16,
         textAlign: 'center',
       },
@@ -401,7 +400,7 @@ const css = () => {
       closeButton: {
         marginTop: 16,
         padding: 12,
-        backgroundColor: colors['primary'],
+        backgroundColor: colors.primary,
         borderRadius: 8,
         alignItems: 'center',
       },
@@ -409,6 +408,10 @@ const css = () => {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+      },
+      cardWrapper: {
+        flex: 1 / 3,
+        padding: 5,
       },
     },
   });

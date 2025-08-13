@@ -6,26 +6,29 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {
-  useNavigation,
-  useFocusEffect,
-  useRoute,
-} from '@react-navigation/native';
+import {useFocusEffect, useRoute} from '@react-navigation/native';
+
 const CategoriesPage = ({navigation}) => {
   const route = useRoute();
-  const {getters, actions: categoryActions} = getStore('categories');
-  const {getters: peopleGetters} = getStore('people');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: deviceGetters} = getStore('device');
+  const categoryStore = useStores(state => state.categories);
+  const getters = categoryStore.getters;
+  const categoryActions = categoryStore.actions;
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const deviceStore = useStores(state => state.device);
+  const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
   const {item: order, items: orders} = ordersGetters;
-  const {styles, globalStyles} = css();
+  const {styles} = css();
   const status = defaultCompany?.configs['pos-default-status'];
   const [forceCreate, setForceCreate] = useState(
     route.params?.forceCreate || false,
@@ -37,8 +40,9 @@ const CategoriesPage = ({navigation}) => {
 
       const categories = JSON.parse(localStorage.getItem('categories') || '[]');
 
-      if (categories.length > 0) categoryActions.setItems(categories);
-      else
+      if (categories.length > 0) {
+        categoryActions.setItems(categories);
+      } else {
         categoryActions
           .getItems({
             context: 'products',
@@ -48,6 +52,7 @@ const CategoriesPage = ({navigation}) => {
           .then(data => {
             localStorage.setItem('categories', JSON.stringify(data));
           });
+      }
       //}
     }, [currentCompany]),
   );
@@ -86,8 +91,9 @@ const CategoriesPage = ({navigation}) => {
         orders &&
         orders.length === 0 &&
         order === null
-      )
+      ) {
         setForceCreate(true);
+      }
     }, [currentCompany, order, orders]),
   );
 

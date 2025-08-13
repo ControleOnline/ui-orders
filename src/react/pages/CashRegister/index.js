@@ -4,24 +4,30 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {getStore} from '@store';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useStores} from '@store';
+import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const CashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
-  const {getters: peopleGetters} = getStore('people');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {actions: paymentTypeActions} = getStore('walletPaymentType');
-  const {getters: configsGetters} = getStore('configs');
-  const {getters: deviceConfigGetters} = getStore('device_config');
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const invoiceActions = invoiceStore.actions;
+  const walletPaymentTypeStore = useStores(state => state.walletPaymentType);
+  const paymentTypeActions = walletPaymentTypeStore.actions;
+  const configsStore = useStores(state => state.configs);
+  const configsGetters = configsStore.getters;
+  const device_configStore = useStores(state => state.device_config);
+  const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
   const {items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;
-  const {getters: deviceGetters} = getStore('device');
-  const {item: storagedDevice} = deviceGetters;  
+  const deviceStore = useStores(state => state.device);
+  const deviceGetters = deviceStore.getters;
+  const {item: storagedDevice} = deviceGetters;
 
   const [processedData, setProcessedData] = useState({
     walletGroups: [],
@@ -59,11 +65,12 @@ const CashRegister = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (defaultWallets)
+      if (defaultWallets) {
         paymentTypeActions.getItems({
           people: '/people/' + currentCompany.id,
           wallet: defaultWallets,
         });
+      }
     }, [currentCompany, defaultWallets]),
   );
   useFocusEffect(
@@ -72,18 +79,21 @@ const CashRegister = ({navigation}) => {
         device?.configs &&
         storagedDevice &&
         device.configs['config-version'] == storagedDevice.buildNumber
-      )
+      ) {
         invoiceActions.getInflow({
           receiver: currentCompany.id,
           'device.device': storagedDevice.id,
         });
+      }
     }, []),
   );
 
   useFocusEffect(
     useCallback(() => {
       const processData = () => {
-        if (!payments || !payments[0] || !payments[0].payments) return;
+        if (!payments || !payments[0] || !payments[0].payments) {
+          return;
+        }
         const data = payments[0].payments;
 
         const formatData = data => {

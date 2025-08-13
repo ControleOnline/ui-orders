@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useCallback} from 'react';
 import {
   Text,
   View,
@@ -8,22 +8,27 @@ import {
   Alert,
 } from 'react-native';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
-  const {getters, actions: ordersActions} = getStore('orders');
-  const {items, item, isLoading, error, columns} = getters;
+  const ordersStore = useStores(state => state.orders);
+  const getters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const {items, isLoading, error} = getters;
   const {styles, globalStyles} = css();
-  const {getters: peopleGetters} = getStore('people');
-  const {getters: deviceGetters} = getStore('device');
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
+  const deviceStore = useStores(state => state.device);
+  const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
-  const {getters: deviceConfigGetters} = getStore('device_config');
+  const device_configStore = useStores(state => state.device_config);
+  const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
 
   useFocusEffect(
@@ -32,7 +37,7 @@ const Orders = ({navigation}) => {
         currentCompany &&
         Object.entries(currentCompany).length > 0 &&
         device.configs
-      )
+      ) {
         ordersActions
           .getItems({
             provider: '/people/' + currentCompany.id,
@@ -41,9 +46,13 @@ const Orders = ({navigation}) => {
             orderType: 'sale',
           })
           .then(data => {
-            if (device.configs['pos-type'] == 'simple')
-              if (data.length === 0) handleAddOrder();
+            if (device.configs['pos-type'] == 'simple') {
+              if (data.length === 0) {
+                handleAddOrder();
+              }
+            }
           });
+      }
     }, [currentCompany]),
   );
 

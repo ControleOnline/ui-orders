@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 
 import {api} from '@controleonline/ui-common/src/api';
-import {getStore} from '@controleonline/ui-common/src/react/stores';
+import {useStores} from '@controleonline/ui-common/src/react/stores';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 import {useMessage} from '../../../../../../../src/services/MessageService';
 
 const BarcodeInput = () => {
-  const {getters: peopleGetters} = getStore('people');
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
   const {currentCompany} = peopleGetters;
 
   const [value, setValue] = useState('');

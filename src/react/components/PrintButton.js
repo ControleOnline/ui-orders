@@ -1,22 +1,27 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import {TouchableOpacity, Text, View, Modal, FlatList} from 'react-native';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 
 const PrinterButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
-  const {getters, actions} = getStore(store);
-  const {getters: deviceConfigGetters, actions: deviceConfigsActions} =
-    getStore('device_config');
-  const {getters: printerGetters, actions: printerActions} =
-    getStore('printer');
-  const {getters: printGetters, actions: printActions} = getStore('print');
-  const {getters: peopleGetters, actions: peopleActions} = getStore('people');
+  const storeGeneric = useStores(state => state[store]);
+  const getters = storeGeneric.getters;
+  const actions = storeGeneric.actions;
+  const device_configStore = useStores(state => state.device_config);
+  const deviceConfigGetters = device_configStore.getters;
+  const deviceConfigsActions = device_configStore.actions;
+  const printerStore = useStores(state => state.printer);
+  const printerGetters = printerStore.getters;
+  const printerActions = printerStore.actions;
+  const printStore = useStores(state => state.print);
+  const printActions = printStore.actions;
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
 
-  const {currentCompany, defaultCompany, companies} = peopleGetters;
+  const {currentCompany} = peopleGetters;
   const {isLoading, items: printers, item: printer} = printerGetters;
   const {item: device_config} = deviceConfigGetters;
 
@@ -28,10 +33,11 @@ const PrinterButton = ({printType, store}) => {
       printers.length > 0 &&
       device_config &&
       device_config.configs
-    )
+    ) {
       printerActions.setItem(
         printers.find(p => p.device === device_config.configs.printer),
       );
+    }
   }, [device_config, printers]);
 
   const handleOpenPrinters = () => {

@@ -1,27 +1,31 @@
 import {View, TouchableOpacity, Text} from 'react-native';
-import React, {useState, useCallback, useEffect} from 'react';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import React from 'react';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Checkout';
 import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 
-export default Checkout = ({route}) => {
-  const {styles, globalStyles} = css();
-  const {getters: deviceConfigGetters} = getStore('device_config');
-  const {actions: categoryActions} = getStore('categories');
+const Checkout = ({route}) => {
+  const device_configStore = useStores(state => state.device_config);
+  const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {getters: orderProductsGetters} = getStore('order_products');
-  const {getters: printGetters, actions: printActions} = getStore('print');
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const invoiceActions = invoiceStore.actions;
+  const order_productsStore = useStores(state => state.order_products);
+  const orderProductsGetters = order_productsStore.getters;
+  const printStore = useStores(state => state.print);
+  const printActions = printStore.actions;
 
-  const {getters: peopleGetters} = getStore('people');
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const {
     item: order,
@@ -91,7 +95,6 @@ export default Checkout = ({route}) => {
           color: '#000',
           elevation: 4,
           padding: 20,
-          alignItems: 'center',
           marginBottom: 15,
         }}>
         {
@@ -133,3 +136,5 @@ export default Checkout = ({route}) => {
     </View>
   );
 };
+
+export default Checkout;

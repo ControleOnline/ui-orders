@@ -6,20 +6,17 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
-  TextInput,
-  Button,
 } from 'react-native';
 import Cielo from './Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
 
-export default Checkout = ({
+const Checkout = ({
   route,
   createInvoice,
   cancelOperation,
@@ -28,22 +25,16 @@ export default Checkout = ({
   paymentValue = 0,
 }) => {
   const {styles, globalStyles} = css();
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
-  const {getters: orderGetters} = getStore('orders');
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {
-    IsSaving: invoiceIsSaving,
-    error: invoiceError,
-    isLoading: invoiceLoading,
-  } = invoiceGetters;
-  const {item: order, isLoading: orderLoading} = orderGetters;
-  const {items: orderProducts, isLoading: orderProductisLoading} =
-    orderProductsGetters;
-  const {isLoading, error, items: payments} = paymentTypeGetters;
+  const walletPaymentTypeStore = useStores(state => state.walletPaymentType);
+  const paymentTypeGetters = walletPaymentTypeStore.getters;
+  const order_productsStore = useStores(state => state.order_products);
+  const orderProductsGetters = order_productsStore.getters;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const invoiceActions = invoiceStore.actions;
+  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
+  const {items: orderProducts} = orderProductsGetters;
+  const {error, items: payments} = paymentTypeGetters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -56,8 +47,9 @@ export default Checkout = ({
         !remoteCheckoutMode &&
         selectedPayment &&
         Object.keys(selectedPayment).length > 0
-      )
+      ) {
         handlePay();
+      }
     }, [selectedPayment]),
   );
 
@@ -217,3 +209,5 @@ export default Checkout = ({
     </>
   );
 };
+
+export default Checkout;

@@ -1,24 +1,21 @@
-import React, { useCallback, useState } from 'react';
-import {
-  Text,
-  View,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
-import { getStore } from '@store';
+import React, {useCallback, useState} from 'react';
+import {Text, View, ScrollView, SafeAreaView} from 'react-native';
+import {useStores} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 
-const Inventory = ({ navigation }) => {
-  const { styles, globalStyles } = css();
-  const { getters: peopleGetters } = getStore('people');
-  const { getters: authGetters } = getStore('auth');
-  const { getters: productsGetters, actions: productsActions } = getStore('products');
-  const { currentCompany } = peopleGetters;
-  const { user } = authGetters;
-  const { isLoading, error } = productsGetters;
+const Inventory = ({navigation}) => {
+  const {styles, globalStyles} = css();
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
+  const productsStore = useStores(state => state.products);
+  const productsGetters = productsStore.getters;
+  const productsActions = productsStore.actions;
+  const {currentCompany} = peopleGetters;
+
+  const {isLoading, error} = productsGetters;
   const [orderItems, setOrderItems] = useState([]);
 
   useFocusEffect(
@@ -32,7 +29,7 @@ const Inventory = ({ navigation }) => {
             setOrderItems(data);
           });
       }
-    }, [currentCompany])
+    }, [currentCompany]),
   );
 
   const groupedByInventory = orderItems.reduce((acc, item) => {
@@ -40,7 +37,7 @@ const Inventory = ({ navigation }) => {
     if (!acc[inventoryName]) {
       acc[inventoryName] = {
         companyName: item.company_name,
-        items: []
+        items: [],
       };
     }
     acc[inventoryName].items.push(item);
@@ -54,11 +51,23 @@ const Inventory = ({ navigation }) => {
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             {Object.keys(groupedByInventory).map((inventoryName, index) => (
-              <View key={`inventory-${index}`} style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 }}>
+              <View key={`inventory-${index}`} style={{marginBottom: 20}}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    marginBottom: 10,
+                  }}>
                   {groupedByInventory[inventoryName].companyName}
                 </Text>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    marginBottom: 10,
+                  }}>
                   Inventário: {inventoryName}
                 </Text>
                 <View
@@ -69,34 +78,43 @@ const Inventory = ({ navigation }) => {
                     borderBottomWidth: 2,
                     borderBottomColor: '#ccc',
                     backgroundColor: '#f5f5f5',
-                  }}
-                >
-                  <Text style={{ color: '#333', flex: 2, fontWeight: 'bold' }}>
+                  }}>
+                  <Text style={{color: '#333', flex: 2, fontWeight: 'bold'}}>
                     Produto
                   </Text>
-                  <Text style={{ color: '#333', flex: 1, textAlign: 'right', fontWeight: 'bold' }}>
+                  <Text
+                    style={{
+                      color: '#333',
+                      flex: 1,
+                      textAlign: 'right',
+                      fontWeight: 'bold',
+                    }}>
                     Disponível
                   </Text>
                 </View>
-                {groupedByInventory[inventoryName].items.map((item, itemIndex) => (
-                  <View
-                    key={`item-${item.product_id}-${itemIndex}`}
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      paddingVertical: 4,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#eee',
-                    }}
-                  >
-                    <Text style={{ color: '#333', flex: 2 }}>
-                      {item.product_name} {item.description ? ` - ${item.description}` : ''} {item.productUnit ? `(${item.productUnit})` : ''}
-                    </Text>
-                    <Text style={{ color: '#333', flex: 1, textAlign: 'right' }}>
-                      {item.available} {item.productUnit}
-                    </Text>
-                  </View>
-                ))}
+                {groupedByInventory[inventoryName].items.map(
+                  (item, itemIndex) => (
+                    <View
+                      key={`item-${item.product_id}-${itemIndex}`}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        paddingVertical: 4,
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#eee',
+                      }}>
+                      <Text style={{color: '#333', flex: 2}}>
+                        {item.product_name}{' '}
+                        {item.description ? ` - ${item.description}` : ''}{' '}
+                        {item.productUnit ? `(${item.productUnit})` : ''}
+                      </Text>
+                      <Text
+                        style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                        {item.available} {item.productUnit}
+                      </Text>
+                    </View>
+                  ),
+                )}
               </View>
             ))}
           </ScrollView>

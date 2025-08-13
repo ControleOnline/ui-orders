@@ -7,9 +7,9 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
@@ -17,24 +17,28 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
 
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
-  const {getters: authGetters} = getStore('auth');
-  const {getters: peopleGetters} = getStore('people');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {getters: deviceConfigGetters, actions: deviceConfigsActions} =
-    getStore('device_config');
+  const authStore = useStores(state => state.auth);
+  const authGetters = authStore.getters;
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const invoiceActions = invoiceStore.actions;
+  const device_configStore = useStores(state => state.device_config);
+  const deviceConfigGetters = device_configStore.getters;
+  const deviceConfigsActions = device_configStore.actions;
   const {item: device} = deviceConfigGetters;
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
-  const {getters: deviceGetters} = getStore('device');
-  const {item: storagedDevice} = deviceGetters;  
+  const deviceStore = useStores(state => state.device);
+  const deviceGetters = deviceStore.getters;
+  const {item: storagedDevice} = deviceGetters;
   const {isLoading, error} = invoiceGetters;
   const [orderItems, setOrderItems] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
-      if (storagedDevice)
+      if (storagedDevice) {
         invoiceActions
           .getCashRegister({
             device: storagedDevice.id,
@@ -43,6 +47,7 @@ const CloseCashRegister = ({navigation}) => {
           .then(data => {
             setOrderItems(data);
           });
+      }
     }, [storagedDevice]),
   );
 
@@ -78,7 +83,9 @@ const CloseCashRegister = ({navigation}) => {
       })
       .then(data => {
         let openId = 0;
-        if (data && data.length > 0) openId = data[0]['@id'].replace(/\D/g, '');
+        if (data && data.length > 0) {
+          openId = data[0]['@id'].replace(/\D/g, '');
+        }
 
         const configValue = isOpening
           ? {
@@ -158,14 +165,14 @@ const CloseCashRegister = ({navigation}) => {
               <PrintButton
                 printType={'cash-register'}
                 store={'invoice'}
-                style={[globalStyles.button, ]}
+                style={[globalStyles.button]}
               />
               {!device?.configs ||
               device?.configs['cash-wallet-closed-id'] === undefined ||
               device?.configs['cash-wallet-closed-id'] === 0 ? (
                 <TouchableOpacity
                   onPress={handleConfirmClose}
-                  style={[globalStyles.button, ]}>
+                  style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
                   <Text style={{color: '#fff', marginLeft: 8}}>
                     Fechar Caixa
@@ -174,7 +181,7 @@ const CloseCashRegister = ({navigation}) => {
               ) : (
                 <TouchableOpacity
                   onPress={handleConfirmOpen}
-                  style={[globalStyles.button, ]}>
+                  style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
                   <Text style={{color: '#fff', marginLeft: 8}}>
                     Abrir Caixa

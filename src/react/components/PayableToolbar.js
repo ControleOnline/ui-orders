@@ -1,16 +1,18 @@
-import React, {useCallback, useState, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
+import {useStores} from '@store';
 
-export default PayableToolbar = ({route}) => {
-  const {styles, globalStyles} = css();
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {isLoading, items: invoices} = invoiceGetters;
+const PayableToolbar = ({route}) => {
+  const {styles} = css();
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const {isLoading} = invoiceGetters;
   const {items: orders, item: order, payable} = ordersGetters;
   const [price, setPrice] = useState(0);
   const [paid, setPaid] = useState(0);
@@ -69,3 +71,5 @@ export default PayableToolbar = ({route}) => {
     )
   );
 };
+
+export default PayableToolbar;

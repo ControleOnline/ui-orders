@@ -1,22 +1,19 @@
-import React, {useCallback, useState, useEffect, useRef} from 'react';
-import {View, Text, ActivityIndicator} from 'react-native';
+import React, {useCallback, useState, useRef} from 'react';
+import {Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {
-  useNavigation,
-  useFocusEffect,
-  useNavigationState,
-} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
-export default OrderTotalToolbar = ({route}) => {
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const routes = useNavigationState(state => state.routes);
-  const currentRoute = routes[routes.length - 1];
+const OrderTotalToolbar = () => {
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+
   const {item: order} = ordersGetters;
-  const {styles, globalStyles} = css();
+  const {styles} = css();
   const [price, setPrice] = useState(0);
   const timeoutId = useRef(null);
   let products = [];
@@ -89,3 +86,5 @@ export default OrderTotalToolbar = ({route}) => {
     </Text>
   );
 };
+
+export default OrderTotalToolbar;

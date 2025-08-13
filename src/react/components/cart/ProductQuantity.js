@@ -1,9 +1,9 @@
-import React, {useCallback, useState, useRef, useEffect} from 'react';
+import React, {useCallback, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {getStore} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
+import {useStores} from '@store';
 const styles = {
   container: {
     flexDirection: 'row',
@@ -19,7 +19,9 @@ const styles = {
 };
 
 const ProductQuantity = ({product, category}) => {
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(0);
@@ -46,9 +48,15 @@ const ProductQuantity = ({product, category}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (qtd === 1) setDecreaseIcon('delete');
-      if (!qtd || qtd === 0) setDecreaseIcon(null);
-      if (qtd > 1) setDecreaseIcon('remove');
+      if (qtd === 1) {
+        setDecreaseIcon('delete');
+      }
+      if (!qtd || qtd === 0) {
+        setDecreaseIcon(null);
+      }
+      if (qtd > 1) {
+        setDecreaseIcon('remove');
+      }
     }, [qtd]),
   );
 
@@ -61,11 +69,12 @@ const ProductQuantity = ({product, category}) => {
   );
 
   const handleSave = useCallback(() => {
-    if (product.quantity > 0)
+    if (product.quantity > 0) {
       eventBus.emit('add-product', {
         product: product['@id'].replace(/\D/g, ''),
         quantity: product.quantity,
       });
+    }
   }, [product]);
 
   return (
