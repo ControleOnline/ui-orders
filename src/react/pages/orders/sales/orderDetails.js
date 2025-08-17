@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 
 import ProductsList from '@controleonline/ui-orders/src/react/components/cart/ProductList';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';

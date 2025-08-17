@@ -1,14 +1,12 @@
 import React from 'react';
-import {Text, View, ScrollView} from 'react-native';
+import {Text, View} from 'react-native';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import css from '@controleonline/ui-orders/src/react/css/orders';
 
-const OrderDetails = ({route}) => {
+const OrderDetails = () => {
   const {getters} = getStore('orders');
   const {item: order, isLoading, error} = getters;
-  const {styles, globalStyles} = css();
 
   return (
     <>

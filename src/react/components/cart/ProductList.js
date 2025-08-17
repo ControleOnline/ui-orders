@@ -1,16 +1,12 @@
-import React, {useCallback} from 'react';
-import {TouchableOpacity, Text, View} from 'react-native';
+import React from 'react';
+import {View} from 'react-native';
 import {getStore} from '@store';
-import css from '@controleonline/ui-products/src/react/css/products';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import ProductItem from '@controleonline/ui-orders/src/react/components/cart/ProductItem';
 
-export default function ProductsList({route}) {
-  const {styles, globalStyles} = css();
-  const navigation = useNavigation();
+export default function ProductsList() {
   const {getters: ordersGetters} = getStore('orders');
-  const {item: order, isLoading, isSaving, error, reload} = ordersGetters;
+  const {item: order, isLoading, isSaving, error} = ordersGetters;
 
   return (
     <View>

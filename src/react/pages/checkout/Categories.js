@@ -1,4 +1,4 @@
-import React, {useCallback, useState, useEffect} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   Text,
   View,
@@ -10,11 +10,8 @@ import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {
-  useNavigation,
-  useFocusEffect,
-  useRoute,
-} from '@react-navigation/native';
+import {useFocusEffect, useRoute} from '@react-navigation/native';
+
 const CategoriesPage = ({navigation}) => {
   const route = useRoute();
   const {getters, actions: categoryActions} = getStore('categories');
@@ -25,7 +22,7 @@ const CategoriesPage = ({navigation}) => {
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
   const {item: order, items: orders} = ordersGetters;
-  const {styles, globalStyles} = css();
+  const {styles} = css();
   const status = defaultCompany?.configs['pos-default-status'];
   const [forceCreate, setForceCreate] = useState(
     route.params?.forceCreate || false,

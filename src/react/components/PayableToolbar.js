@@ -3,14 +3,13 @@ import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {getStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
-export default PayableToolbar = ({route}) => {
-  const {styles, globalStyles} = css();
+const PayableToolbar = () => {
+  const {styles} = css();
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters} = getStore('invoice');
   const {isLoading, items: invoices} = invoiceGetters;
   const {items: orders, item: order, payable} = ordersGetters;
   const [price, setPrice] = useState(0);
@@ -88,3 +87,5 @@ export default PayableToolbar = ({route}) => {
     )
   );
 };
+
+export default PayableToolbar;

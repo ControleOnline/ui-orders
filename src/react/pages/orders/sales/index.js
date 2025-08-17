@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useCallback} from 'react';
 import {
   Text,
   View,
@@ -12,11 +12,11 @@ import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
   const {getters, actions: ordersActions} = getStore('orders');
-  const {items, item, isLoading, error, columns} = getters;
+  const {items, isLoading, error} = getters;
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
   const {getters: deviceGetters} = getStore('device');

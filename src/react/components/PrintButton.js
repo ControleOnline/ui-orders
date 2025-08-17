@@ -1,6 +1,5 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import {TouchableOpacity, Text, View, Modal, FlatList} from 'react-native';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -13,10 +12,10 @@ const PrinterButton = ({printType, store}) => {
     getStore('device_config');
   const {getters: printerGetters, actions: printerActions} =
     getStore('printer');
-  const {getters: printGetters, actions: printActions} = getStore('print');
-  const {getters: peopleGetters, actions: peopleActions} = getStore('people');
+  const {actions: printActions} = getStore('print');
+  const {getters: peopleGetters} = getStore('people');
 
-  const {currentCompany, defaultCompany, companies} = peopleGetters;
+  const {currentCompany} = peopleGetters;
   const {isLoading, items: printers, item: printer} = printerGetters;
   const {item: device_config} = deviceConfigGetters;
 

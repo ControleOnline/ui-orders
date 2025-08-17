@@ -1,18 +1,19 @@
-import { NativeModules } from 'react-native';
-import { env } from '@env';
+import {NativeModules} from 'react-native';
 
 class InfinitePay {
   async payment(paymentMethod, installments, orderId, amount) {
-    const json = {    
+    const json = {
       amount: amount,
       payment_method: paymentMethod,
       installments: installments,
       order_id: orderId,
-      app_client_referrer: "ControleOnline",
-      af_force_deeplink: "true",
+      app_client_referrer: 'ControleOnline',
+      af_force_deeplink: 'true',
     };
 
-    const response = await NativeModules.InfinitePay.payment(JSON.stringify(json));
+    const response = await NativeModules.InfinitePay.payment(
+      JSON.stringify(json),
+    );
 
     return {
       success: response.success,

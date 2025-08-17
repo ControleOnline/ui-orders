@@ -1,15 +1,11 @@
 import React from 'react';
-import {TouchableOpacity, Text, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {Text, View} from 'react-native';
 import css from '@controleonline/ui-products/src/react/css/products';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 
 const ProductItem = ({orderProduct}) => {
-  const navigation = useNavigation();
-  const {styles, globalStyles} = css();
-  const currentPageName =
-    navigation.getState().routes[navigation.getState().index].name;
+  const {styles} = css();
 
   const groupComponentsByGroup = components => {
     return components.reduce((acc, component) => {

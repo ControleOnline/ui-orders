@@ -1,24 +1,18 @@
-import React, { useCallback, useState } from 'react';
-import {
-  Text,
-  View,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
-import { getStore } from '@store';
+import React, {useCallback, useState} from 'react';
+import {Text, View, ScrollView, SafeAreaView} from 'react-native';
+import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 
-const PurchasingSuggestion = ({ navigation }) => {
-  const { styles, globalStyles } = css();
-  const { getters: peopleGetters } = getStore('people');
-  const { getters: authGetters } = getStore('auth');
-  const { getters: productsGetters, actions: productsActions } = getStore('products');
-  const { currentCompany } = peopleGetters;
-  const { user } = authGetters;
-  const { isLoading, error } = productsGetters;
+const PurchasingSuggestion = () => {
+  const {styles, globalStyles} = css();
+  const {getters: peopleGetters} = getStore('people');
+  const {getters: productsGetters, actions: productsActions} =
+    getStore('products');
+  const {currentCompany} = peopleGetters;
+  const {isLoading, error} = productsGetters;
   const [orderItems, setOrderItems] = useState([]);
 
   useFocusEffect(
@@ -32,11 +26,11 @@ const PurchasingSuggestion = ({ navigation }) => {
             setOrderItems(data);
           });
       }
-    }, [currentCompany])
+    }, [currentCompany]),
   );
 
   const groupedByCompany = orderItems.reduce((acc, item) => {
-    const companyName = item.company_name ;
+    const companyName = item.company_name;
     if (!acc[companyName]) {
       acc[companyName] = [];
     }
@@ -51,8 +45,14 @@ const PurchasingSuggestion = ({ navigation }) => {
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             {Object.keys(groupedByCompany).map((companyName, index) => (
-              <View key={`company-${index}`} style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 10 }}>
+              <View key={`company-${index}`} style={{marginBottom: 20}}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    marginBottom: 10,
+                  }}>
                   {companyName}
                 </Text>
                 <View
@@ -63,18 +63,35 @@ const PurchasingSuggestion = ({ navigation }) => {
                     borderBottomWidth: 2,
                     borderBottomColor: '#ccc',
                     backgroundColor: '#f5f5f5',
-                  }}
-                >
-                  <Text style={{ color: '#333', flex: 2, fontWeight: 'bold' }}>
+                  }}>
+                  <Text style={{color: '#333', flex: 2, fontWeight: 'bold'}}>
                     Produto
                   </Text>
-                  <Text style={{ color: '#333', flex: 1, textAlign: 'right', fontWeight: 'bold' }}>
+                  <Text
+                    style={{
+                      color: '#333',
+                      flex: 1,
+                      textAlign: 'right',
+                      fontWeight: 'bold',
+                    }}>
                     Estoque
                   </Text>
-                  <Text style={{ color: '#333', flex: 1, textAlign: 'right', fontWeight: 'bold' }}>
+                  <Text
+                    style={{
+                      color: '#333',
+                      flex: 1,
+                      textAlign: 'right',
+                      fontWeight: 'bold',
+                    }}>
                     Mínimo
                   </Text>
-                  <Text style={{ color: '#333', flex: 1, textAlign: 'right', fontWeight: 'bold' }}>
+                  <Text
+                    style={{
+                      color: '#333',
+                      flex: 1,
+                      textAlign: 'right',
+                      fontWeight: 'bold',
+                    }}>
                     Comprar
                   </Text>
                 </View>
@@ -87,18 +104,18 @@ const PurchasingSuggestion = ({ navigation }) => {
                       paddingVertical: 4,
                       borderBottomWidth: 1,
                       borderBottomColor: '#eee',
-                    }}
-                  >
-                    <Text style={{ color: '#333', flex: 2 }}>
-                      {item.product_name} {item.description ? ` - ${item.description}` : ''}
+                    }}>
+                    <Text style={{color: '#333', flex: 2}}>
+                      {item.product_name}{' '}
+                      {item.description ? ` - ${item.description}` : ''}
                     </Text>
-                    <Text style={{ color: '#333', flex: 1, textAlign: 'right' }}>
+                    <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
                       {item.stock} {item.unity}
                     </Text>
-                    <Text style={{ color: '#333', flex: 1, textAlign: 'right' }}>
+                    <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
                       {item.minimum} {item.unity}
                     </Text>
-                    <Text style={{ color: '#333', flex: 1, textAlign: 'right' }}>
+                    <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
                       {item.needed} {item.unity}
                     </Text>
                   </View>

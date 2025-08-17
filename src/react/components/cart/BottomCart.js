@@ -1,14 +1,14 @@
-import React, {useCallback, useEffect} from 'react';
+import React from 'react';
 import {Text, View, TouchableOpacity} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 
 const BottomCart = ({}) => {
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {item: order, payable} = ordersGetters;
+  const {getters: ordersGetters} = getStore('orders');
+  const {item: order} = ordersGetters;
   const {styles, globalStyles} = css();
   const navigation = useNavigation();
 

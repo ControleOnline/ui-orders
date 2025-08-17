@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {getStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
@@ -17,7 +17,6 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
 
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
-  const {getters: configsGetters, actions: configActions} = getStore('configs');
   const {getters: authGetters} = getStore('auth');
   const {getters: peopleGetters} = getStore('people');
   const {getters: invoiceGetters, actions: invoiceActions} =
@@ -28,7 +27,7 @@ const CloseCashRegister = ({navigation}) => {
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;
   const {getters: deviceGetters} = getStore('device');
-  const {item: storagedDevice} = deviceGetters;  
+  const {item: storagedDevice} = deviceGetters;
   const {isLoading, error} = invoiceGetters;
   const [orderItems, setOrderItems] = useState([]);
 
@@ -158,14 +157,14 @@ const CloseCashRegister = ({navigation}) => {
               <PrintButton
                 printType={'cash-register'}
                 store={'invoice'}
-                style={[globalStyles.button, ]}
+                style={[globalStyles.button]}
               />
               {!device?.configs ||
               device?.configs['cash-wallet-closed-id'] === undefined ||
               device?.configs['cash-wallet-closed-id'] === 0 ? (
                 <TouchableOpacity
                   onPress={handleConfirmClose}
-                  style={[globalStyles.button, ]}>
+                  style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
                   <Text style={{color: '#fff', marginLeft: 8}}>
                     Fechar Caixa
@@ -174,7 +173,7 @@ const CloseCashRegister = ({navigation}) => {
               ) : (
                 <TouchableOpacity
                   onPress={handleConfirmOpen}
-                  style={[globalStyles.button, ]}>
+                  style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
                   <Text style={{color: '#fff', marginLeft: 8}}>
                     Abrir Caixa

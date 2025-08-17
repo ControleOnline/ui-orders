@@ -1,10 +1,10 @@
 import React from 'react';
-import {Text, View, TextInput} from 'react-native';
+import {Text, View} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 
 const OrderHeader = ({order, showId = false}) => {
-  const {styles, globalStyles} = css();
+  const {styles} = css();
   const oh = styles.OrderHeader;
 
   return (
@@ -33,30 +33,6 @@ const OrderHeader = ({order, showId = false}) => {
             {order?.client.name}
           </Text>
         ) : null}
-        {/*
-        <View
-          style={[
-            oh.boxContent,
-            {flexDirection: 'row', justifyContent: 'space-between'},
-          ]}>
-          <Text
-            style={[
-              oh.boxTextColor,
-              oh.tableNumber,
-              {backgroundColor: 'transparent'},
-            ]}>
-            Mesa:
-          </Text>
-          <TextInput placeholderTextColor="#666"
-            style={[
-              oh.boxTextColor,
-              oh.tableNumber,
-              {backgroundColor: 'transparent', borderWidth: 0},
-            ]}
-            value={order?.tableNumber}
-            editable={true}
-          />
-        </View>*/}
       </View>
     </View>
   );

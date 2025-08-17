@@ -6,52 +6,39 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
-  TextInput,
   Button,
 } from 'react-native';
 import InfinitePay from './InfinitePay';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
 
-export default Checkout = ({
-  route,
+const Checkout = ({
   createInvoice,
   cancelOperation,
   remoteCheckoutMode = false,
   paymentType = {},
-  paymentValue = 0,
 }) => {
   const {styles, globalStyles} = css();
   const {getters: orderGetters} = getStore('orders');
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
-  const {getters: orderProductsGetters, actions: orderProductsActions} =
-    getStore('order_products');
+  const {getters: paymentTypeGetters} = getStore('walletPaymentType');
   const {getters: invoiceGetters, actions: invoiceActions} =
     getStore('invoice');
 
-  const {isLoading, error, items: payments} = paymentTypeGetters;
+  const {error, items: payments} = paymentTypeGetters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
-  const {
-    IsSaving: invoiceIsSaving,
-    error: invoiceError,
-    isLoading: invoiceLoading,
-  } = invoiceGetters;
-  const {item: order, isLoading: orderLoading} = orderGetters;
-  const {items: orderProducts, isLoading: orderProductisLoading} =
-    orderProductsGetters;
+  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
+  const {item: order} = orderGetters;
 
   const [installmentsModalVisible, setInstallmentsModalVisible] =
     useState(false);
-  const [selectedInstallments, setSelectedInstallments] = useState(null);
+  const [setSelectedInstallments] = useState(null);
 
   const selectPayment = async payment => {
     setSelectedPayment(payment);
@@ -266,3 +253,5 @@ export default Checkout = ({
     </>
   );
 };
+
+export default Checkout;

@@ -1,30 +1,23 @@
 import React, {useState, useCallback, useEffect, useRef, useMemo} from 'react';
 import {
-  Text,
-  View,
-  ScrollView,
   SafeAreaView,
-  TouchableOpacity,
-  InteractionManager,
+  FlatList,
 } from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import { useFocusEffect} from '@react-navigation/native';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
   const {actions, isLoading, error} = getStore('products');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const {actions: ordersActions} = getStore('orders');
   const {getters: categoriesGetters, actions: categoryActions} =
     getStore('categories');
   const {items: categories} = categoriesGetters;
-  const {item: order} = ordersGetters;
-  const {styles, globalStyles} = css();
+  const {styles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
-
-
 
   const changeCategoryProduct = (p, changeStorage = false) => {
     const index = categories.findIndex(c => c['@id'] === category['@id']);

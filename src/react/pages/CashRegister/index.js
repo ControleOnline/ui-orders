@@ -5,7 +5,7 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {getStore} from '@store';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const CashRegister = ({navigation}) => {
@@ -21,7 +21,7 @@ const CashRegister = ({navigation}) => {
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;
   const {getters: deviceGetters} = getStore('device');
-  const {item: storagedDevice} = deviceGetters;  
+  const {item: storagedDevice} = deviceGetters;
 
   const [processedData, setProcessedData] = useState({
     walletGroups: [],

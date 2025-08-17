@@ -1,4 +1,4 @@
-import React, {useCallback, useState, useRef, useEffect} from 'react';
+import React, {useCallback, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {getStore} from '@store';
@@ -18,8 +18,8 @@ const styles = {
   },
 };
 
-const ProductQuantity = ({product, category}) => {
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+const ProductQuantity = ({product}) => {
+  const {getters: ordersGetters} = getStore('orders');
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(0);

@@ -1,14 +1,13 @@
 import React, {useState, useCallback} from 'react';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {View, Text, TextInput, Button} from 'react-native';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import {getStore} from '@store';
 
-export default Calculate = ({handleConfirmValue, handleCancel}) => {
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
+const Calculate = ({handleConfirmValue, handleCancel}) => {
+  const {actions: paymentTypeActions} = getStore('walletPaymentType');
   const {getters} = getStore('orders');
-  const {item: order, payable} = getters;
+  const {payable} = getters;
   const [inputValue, setInputValue] = useState('');
 
   useFocusEffect(
@@ -77,3 +76,5 @@ export default Calculate = ({handleConfirmValue, handleCancel}) => {
     </View>
   );
 };
+
+export default Calculate;

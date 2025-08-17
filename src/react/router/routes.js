@@ -15,6 +15,7 @@ import CustomizeScreen from '@controleonline/ui-products/src/react/pages/Customi
 import {getStore} from '@store';
 
 import React from 'react';
+import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput';
 
 const WrappedOrdersPage = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
@@ -94,6 +95,7 @@ const WrappedCategoryPage = ({navigation, route}) => {
 
   return (
     <ShopLayout navigation={navigation} route={route}>
+      <BarcodeInput />
       <CartLayout navigation={navigation} route={route}>
         <Categories navigation={navigation} route={route} />
       </CartLayout>
@@ -130,6 +132,7 @@ const WrappedOrderDetails = ({navigation, route}) => {
 
   return (
     <ShopLayout navigation={navigation} route={route}>
+      <BarcodeInput />
       <CartLayout navigation={navigation} route={route}>
         <OrderDetails navigation={navigation} route={route} />
       </CartLayout>
