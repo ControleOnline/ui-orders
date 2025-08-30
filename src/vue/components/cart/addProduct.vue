@@ -24,7 +24,7 @@ export default {
     ...mapGetters({
       customProducts: "cart/customProducts",
       product: "cart/product",
-      order: "cart/order",
+      order: "cart/item",
     }),
   },
   created() {},

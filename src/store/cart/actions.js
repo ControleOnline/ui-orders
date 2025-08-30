@@ -17,3 +17,10 @@ export const discoveryCart = ({commit}, params = {}) => {
       commit(types.SET_ISLOADING, false);
     });
 };
+export const setCustomProducts = ({ commit }, customProducts = []) => {
+  commit('SET_CUSTOM_PRODUCTS', customProducts);
+};
+
+export const setProduct = ({ commit }, product = []) => {
+  commit('SET_PRODUCT', product);
+};

@@ -4,7 +4,7 @@
       class="row col-12 bottom-cart sticky-bottom full-width bg-white q-pa-md"
     >
       <div class="col flex items-center justify-center text-primary">
-        {{ $formatter.formatMoney(order.price, "R$", "pt-br") }}
+        {{ $formatter.formatMoney(order?.price, "R$", "pt-br") }}
       </div>
       <div class="col flex items-center justify-center">
         <q-btn
@@ -24,8 +24,9 @@ export default {
   components: {},
   computed: {
     ...mapGetters({
-      order: "cart/order",
+      order: "cart/item",
       reload: "cart/reload",
+      myCompany: "people/currentCompany",
     }),
   },
   props: {
@@ -40,6 +41,9 @@ export default {
     this.init();
   },
   watch: {
+    myCompany() {
+      this.init(true);
+    },
     reload() {
       if (this.reload == true) this.init(this.reload);
       this.setReload(false);
@@ -52,7 +56,8 @@ export default {
     }),
 
     init(reload) {
-      if (!this.order?.id || reload) this.discoveryCart();
+      if ((!this.order?.id || reload) && this.myCompany?.id)
+        this.discoveryCart({ provider: this.myCompany.id });
     },
     toCart() {
       this.$router.push({ name: "ShopCart" });

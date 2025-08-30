@@ -1,0 +1,2 @@
+export const SET_CUSTOM_PRODUCTS = 'SET_CUSTOM_PRODUCTS';
+export const SET_PRODUCT = 'SET_PRODUCT';

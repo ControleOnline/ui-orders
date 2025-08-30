@@ -70,7 +70,7 @@ export default {
     ...mapGetters({
       customProducts: "cart/customProducts",
       products: "products/items",
-      order: "cart/order",
+      order: "cart/item",
     }),
     carouselConfigs() {
       return {

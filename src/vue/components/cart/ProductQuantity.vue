@@ -3,23 +3,21 @@
     flat
     dense
     :disabled="!product.quantity || isSaving || isLoading"
-    :icon="
-      product.quantity == 1 ? 'delete' : !product.quantity ? '' : 'remove'
-    "
+    :icon="product.quantity == 1 ? 'delete' : !product.quantity ? '' : 'remove'"
     color="red"
     @click="decreaseQuantity()"
   />
   <span class="q-mx-md">{{ product.quantity || defaultQuantity }}</span>
-<q-btn
-  :disabled="isSaving || isLoading"
-  flat
-  dense
-  icon="add"
-  color="red"
-  text-color="blue"
-  @click="increaseQuantity()"
-  class="icon-hover"
-/>
+  <q-btn
+    :disabled="isSaving || isLoading"
+    flat
+    dense
+    icon="add"
+    color="red"
+    text-color="blue"
+    @click="increaseQuantity()"
+    class="icon-hover"
+  />
 </template>
 
 <script>
@@ -39,7 +37,7 @@ export default {
   computed: {
     ...mapGetters({
       products: "products/items",
-      order: "cart/order",
+      order: "cart/item",
       isSaving: "order_products/isSaving",
       isLoading: "cart/isLoading",
     }),
@@ -92,14 +90,18 @@ export default {
 
       let product = this.$copyObject(this.product);
 
-      this.order?.orderProducts?.forEach((p, i) => {
-        if (p.product.type == "product")
-          if (p.product["@id"] == product["@id"]) {
-            product.quantity = p.quantity;
-            product.order_products = p.id;
-            this.changeQuantity(product);
-          }
-      });
+      if (this.order?.orderProducts?.length == 0) {
+        product.quantity = 0;
+        this.changeQuantity(product);
+      } else
+        this.order?.orderProducts?.forEach((p, i) => {
+          if (p.product.type == "product")
+            if (p.product["@id"] == product["@id"]) {
+              product.quantity = p.quantity;
+              product.order_products = p.id;
+              this.changeQuantity(product);
+            }
+        });
     },
   },
 };
