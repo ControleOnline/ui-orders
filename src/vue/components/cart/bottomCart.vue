@@ -19,6 +19,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import { defaultCompany } from "../../../../../ui-people/src/store/people/customActions";
 
 export default {
   components: {},
@@ -27,6 +28,7 @@ export default {
       order: "cart/item",
       reload: "cart/reload",
       myCompany: "people/currentCompany",
+      defaultCompany: "people/defaultCompany",
     }),
   },
   props: {
@@ -57,7 +59,10 @@ export default {
 
     init(reload) {
       if ((!this.order?.id || reload) && this.myCompany?.id)
-        this.discoveryCart({ provider: this.myCompany.id });
+        this.discoveryCart({
+          provider: this.defaultCompany.id,
+          client: this.myCompany.id,
+        });
     },
     toCart() {
       this.$router.push({ name: "ShopCart" });

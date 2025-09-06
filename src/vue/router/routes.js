@@ -29,28 +29,23 @@ export const routes = [
   {
     path: "/orders/",
     component: () =>
-      import("@controleonline/ui-layout/src/vue/layouts/MainLayout.vue"),
+      import("@controleonline/ui-layout/src/vue/layouts/ClientLayout.vue"),
     children: [
       {
         name: "ClientOrdersIndex",
         path: "my",
-        component: () => import("../pages/Orders"),
+        component: () => import("../pages/Client"),
       },
       {
         name: "ClientOrderDetails",
         path: "my/id/:id",
-        component: () => import("../pages/Orders/Details.vue"),
-      },
+        component: () => import("../pages/Client/Details.vue"),
+      },      
       {
-        name: "PurchasingOrderIndex",
-        path: "purchasing",
-        component: () => import("../pages/Orders"),
-      },
-      {
-        name: "PurchasingOrderDetails",
-        path: "purchasing/id/:id",
+        name: "ClientProfile",
+        path: "my-profile",
         component: () => import("../pages/Orders/Details.vue"),
-      },
+      },      
     ],
   },
 ];
