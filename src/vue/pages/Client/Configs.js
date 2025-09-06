@@ -5,10 +5,14 @@ export default function getConfigs(context, myCompany, invoice, peopleId) {
     status: ["order"],
     store: "orders",
     add: true,
+    
     delete: false,
     selection: false,
     search: false,
     columns: {
+      client:{
+        editable:false,
+      },
       category: {
         filters: {
           context: context,

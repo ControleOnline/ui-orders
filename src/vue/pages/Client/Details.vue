@@ -48,19 +48,32 @@
               </q-item>
             </q-list>
           </q-card-section>
+          <q-card-section>
+            <Payment :order="order" :invoice="invoices[0]"/>
+          </q-card-section>
         </q-card>
       </div>
 
       <!-- Cards Menores -->
       <div class="col-12 col-md-4">
-        <ClientWidget
-          v-if="order"
-          :people="order.client"
-          context="client"
-          :row="order"
-          :configs="configs"
-          @saved="saved"
-        />
+        <q-card class="q-mb-md">
+          <q-card-section>
+            <q-card-section class="row items-center">
+              <q-icon name="person" color="primary" size="md" class="q-mr-sm" />
+              <div class="text-bold">{{ $tt("people", "label", context) }}</div>
+            </q-card-section>
+            <q-card-section>
+              {{ order.client.name }}{{ order.client.alias }}
+
+              <q-item-label v-for="phone in order.client.phone" caption
+                >({{ phone.ddd }}) {{ phone.phone }}</q-item-label
+              >
+              <q-item-label v-for="phone in order.client.email" caption>
+                {{ phone.email }}</q-item-label
+              >
+            </q-card-section>
+          </q-card-section>
+        </q-card>
 
         <AddressWidget
           v-if="order"
@@ -100,11 +113,12 @@ import getConfigs from "./Configs";
 import AddressWidget from "@controleonline/ui-people/src/vue/components/Address/Widget.vue";
 import ProductsTable from "./ProductsTable";
 import ProductList from "./ProductList";
-
+import Payment from "@controleonline/ui-financial/src/vue/components/Payment.vue";
 import ClientWidget from "@controleonline/ui-people/src/vue/components/People/Widget.vue";
 
 export default {
   components: {
+    Payment,
     ProductsTable,
     DefaultDetail,
     ClientWidget,
@@ -117,6 +131,7 @@ export default {
     ...mapGetters({
       myCompany: "people/currentCompany",
       columns: "orders/columns",
+      invoices: "invoice/items",      
       order: "orders/item",
       isLoading: "orders/isLoading",
     }),
@@ -154,14 +169,22 @@ export default {
   },
   methods: {
     ...mapActions({
+      getInvoices: "invoice/getItems",
       getOrder: "orders/get",
       setOrder: "orders/setItem",
       setOrders: "orders/setItems",
       setCart: "cart/setOrder",
     }),
     loadData() {
+
+
+
       this.getOrder(this.orderId).then((order) => {
         this.loaded([order]);
+      });
+
+            this.getInvoices({'order.order': this.orderId}).then((data) => {
+        console.log(data);
       });
     },
     loaded(data) {
