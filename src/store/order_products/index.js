@@ -61,8 +61,7 @@ export default {
         name: "orderProductQueues",
         label: "status",
         align: "left",
-        format(value, column, row) {
-          console.log(value);
+        format(value, column, row) {          
           return value && value[0]
             ? value[0].queue?.queue + "/" + value[0].status?.status
             : "---";
