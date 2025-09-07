@@ -57,8 +57,7 @@ export default {
       {
         sortable: true,
         editable: false,
-        name: 'price',
-        prefix: 'R$ ',
+        name: 'price',        
         label: 'price',
         align: 'left',
         format(value) {
@@ -68,8 +67,7 @@ export default {
       {
         sortable: true,
         editable: false,
-        name: 'total',
-        prefix: 'R$ ',
+        name: 'total',        
         label: 'total',
         sum: true,
         align: 'left',

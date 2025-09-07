@@ -48,8 +48,8 @@
               </q-item>
             </q-list>
           </q-card-section>
-          <q-card-section>
-            <Payment :order="order" :invoice="invoices[0]"/>
+          <q-card-section v-if="invoices">
+            <PaymentList :rows="invoices" />
           </q-card-section>
         </q-card>
       </div>
@@ -87,8 +87,8 @@
     </div>
 
     <div class="row">
-      <div class="col-12 q-mt-md">
-        <DefaultButtonDialog :configs="componentConfigs" />
+      <div class="text-h6 q-mb-md q-mt-md">
+        {{ $tt("order", "title", "Products") }}
       </div>
       <div class="col-12">
         <q-card class="q-mt-md">
@@ -113,12 +113,12 @@ import getConfigs from "./Configs";
 import AddressWidget from "@controleonline/ui-people/src/vue/components/Address/Widget.vue";
 import ProductsTable from "./ProductsTable";
 import ProductList from "./ProductList";
-import Payment from "@controleonline/ui-financial/src/vue/components/Payment.vue";
+import PaymentList from "@controleonline/ui-financial/src/vue/components/PaymentList.vue";
 import ClientWidget from "@controleonline/ui-people/src/vue/components/People/Widget.vue";
 
 export default {
   components: {
-    Payment,
+    PaymentList,
     ProductsTable,
     DefaultDetail,
     ClientWidget,
@@ -131,7 +131,7 @@ export default {
     ...mapGetters({
       myCompany: "people/currentCompany",
       columns: "orders/columns",
-      invoices: "invoice/items",      
+      invoices: "invoice/items",
       order: "orders/item",
       isLoading: "orders/isLoading",
     }),
@@ -176,14 +176,11 @@ export default {
       setCart: "cart/setOrder",
     }),
     loadData() {
-
-
-
       this.getOrder(this.orderId).then((order) => {
         this.loaded([order]);
       });
 
-            this.getInvoices({'order.order': this.orderId}).then((data) => {
+      this.getInvoices({ "order.order": this.orderId }).then((data) => {
         console.log(data);
       });
     },
