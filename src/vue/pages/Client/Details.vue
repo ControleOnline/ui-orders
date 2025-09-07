@@ -87,9 +87,6 @@
     </div>
 
     <div class="row">
-      <div class="text-h6 q-mb-md q-mt-md">
-        {{ $tt("order", "title", "Products") }}
-      </div>
       <div class="col-12">
         <q-card class="q-mt-md">
           <ProductsTable
