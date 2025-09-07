@@ -48,8 +48,8 @@
               </q-item>
             </q-list>
           </q-card-section>
-          <q-card-section v-if="invoices">
-            <PaymentList :rows="invoices" />
+          <q-card-section v-if="invoiceFilters">
+            <PaymentList />
           </q-card-section>
         </q-card>
       </div>
@@ -134,6 +134,8 @@ export default {
       invoices: "invoice/items",
       order: "orders/item",
       isLoading: "orders/isLoading",
+      invoiceFilters: "invoice/filters",
+      invoiceColumns: "invoice/columns",
     }),
 
     configs() {
@@ -165,6 +167,7 @@ export default {
   created() {
     this.orderId = decodeURIComponent(this.$route.params.id);
     if ((this.order && this.order.id == this.orderId) || this.isLoading) return;
+    this.prepareInvoices();
     this.loadData();
   },
   methods: {
@@ -175,13 +178,23 @@ export default {
       setOrders: "orders/setItems",
       setCart: "cart/setOrder",
     }),
+
+    prepareInvoices() {
+      let columns = this.$copyObject(this.invoiceColumns);
+      let fields = ["id", "status", "dueDate","payer", "price"];
+
+      columns = columns.filter((col) => fields.includes(col.name));
+      columns.forEach((col) => {
+        col.editable = false;
+      });
+
+      this.$store.commit("invoice/SET_COLUMNS", columns);
+      this.$store.commit("invoice/SET_FILTERS", {"order.order": this.orderId});
+    },
+
     loadData() {
       this.getOrder(this.orderId).then((order) => {
         this.loaded([order]);
-      });
-
-      this.getInvoices({ "order.order": this.orderId }).then((data) => {
-        console.log(data);
       });
     },
     loaded(data) {

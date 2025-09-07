@@ -12,7 +12,7 @@ import * as DefaultFiltersMethods from "@controleonline/ui-default/src/vue/compo
 import ProductList from "./ProductList";
 
 export default {
-  components: {ProductList},
+  components: { ProductList },
   props: {
     context: {
       required: true,
@@ -36,13 +36,17 @@ export default {
 
     configs() {
       return {
-        filters: true,
+        filters: false,
         "full-height": false,
         title: "Products",
         store: "order_products",
         editable: false,
-        headers: false,
+        headers: true,
+        toolbar: false,
+        delete: false,
         add: false,
+        selection: false,
+        search: false,
         expanded: {
           component: this.$components.DefaultTable,
           store: "expanded_order_products",
@@ -61,9 +65,6 @@ export default {
             };
           },
         },
-        delete: true,
-        selection: false,
-        search: false,
         components: {
           headerActions: [
             {
