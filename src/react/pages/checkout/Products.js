@@ -1,13 +1,10 @@
 import React, {useState, useCallback, useEffect, useRef, useMemo} from 'react';
-import {
-  SafeAreaView,
-  FlatList,
-} from 'react-native';
+import {SafeAreaView, ScrollView, View, FlatList} from 'react-native';
 import {getStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
-import { useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
