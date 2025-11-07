@@ -53,7 +53,7 @@ const Calculate = ({handleConfirmValue, handleCancel}) => {
           borderRadius: 10,
           width: '80%',
         }}>
-        <Text style={{marginBottom: 10}}>Valor à pagar:</Text>
+        <Text style={{marginBottom: 10}}>Valor a pagar:</Text>
         <TextInput
           placeholderTextColor="#666"
           style={{
