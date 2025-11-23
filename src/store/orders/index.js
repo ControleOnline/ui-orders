@@ -21,7 +21,7 @@ export default {
     reload: false,
     columns: [
       {
-        externalFilter: false,
+        externalFilter: true,
         //filter:false,
         isIdentity: true,
         sortable: true,
@@ -61,7 +61,7 @@ export default {
         label: 'status',
         list: 'status/getItems',
         searchParam: 'status',
-        externalFilter: false,
+        externalFilter: true,
         style: function (row) {
           return {color: row?.status?.color};
         },
@@ -128,7 +128,7 @@ export default {
         name: 'orderDate',
         align: 'center',
         label: 'orderDate',
-        externalFilter: false,
+        externalFilter: true,
         saveFormat: function (value) {
           return undefined;
         },
