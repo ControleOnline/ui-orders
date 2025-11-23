@@ -43,6 +43,7 @@ export default {
         },
       },
       {
+        translate: true,
         sortable: true,
         name: 'orderType',
         editable: false,
@@ -53,6 +54,7 @@ export default {
         },
       },
       {
+        translate: true,
         sortable: true,
         name: 'status',
         align: 'left',
