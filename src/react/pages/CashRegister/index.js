@@ -53,8 +53,8 @@ const CashRegister = ({navigation}) => {
     navigation.navigate('Withdrawal');
   };
 
-  const handleCloseCachRegister = () => {
-    navigation.navigate('CloseCachRegister');
+  const handleCloseCashRegister = () => {
+    navigation.navigate('CloseCashRegister');
   };
 
   useFocusEffect(
@@ -232,7 +232,7 @@ const CashRegister = ({navigation}) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[globalStyles.button]}
-                onPress={handleCloseCachRegister}>
+                onPress={handleCloseCacsRegister}>
                 <Icon name="print" size={24} color="#fff" />
                 <Text style={{color: '#fff', marginLeft: 8}}>Detalhar</Text>
               </TouchableOpacity>

@@ -10,7 +10,7 @@ import PurchasingSuggestion from '@controleonline/ui-orders/src/react/pages/orde
 import Inventory from '@controleonline/ui-orders/src/react/pages/inventory';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
-import CloseCachRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCachRegister';
+import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import CustomizeScreen from '@controleonline/ui-products/src/react/pages/CustomizeScreen';
 import {getStore} from '@store';
 
@@ -23,7 +23,7 @@ const WrappedOrdersPage = ({navigation, route}) => (
   </ShopLayout>
 );
 
-const WrappedCloseCachRegister = ({navigation, route}) => {
+const WrappedCloseCashRegister = ({navigation, route}) => {
   const {getters: deviceConfigGetters} = getStore('device_config');
   const {item: device} = deviceConfigGetters;
 
@@ -40,7 +40,7 @@ const WrappedCloseCachRegister = ({navigation, route}) => {
 
   return (
     <ShopLayout navigation={navigation} route={route}>
-      <CloseCachRegister navigation={navigation} route={route} />
+      <CloseCashRegister navigation={navigation} route={route} />
     </ShopLayout>
   );
 };
@@ -199,8 +199,8 @@ const ordersRoutes = [
     },
   },
   {
-    name: 'CloseCachRegister',
-    component: WrappedCloseCachRegister,
+    name: 'CloseCashRegister',
+    component: WrappedCloseCashRegister,
     options: {
       headerShown: true,
       title: 'Caixa',
