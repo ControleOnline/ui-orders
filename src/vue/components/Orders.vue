@@ -83,6 +83,7 @@ export default {
           this.context === "sales" ? "client" : "provider";
       }
 
+      /*
       const columnIdIndex = columns.findIndex((c) => c.name === "id");
       if (columnIdIndex !== -1) {
         columns[columnIdIndex].to = (value) => {
@@ -96,6 +97,7 @@ export default {
           };
         };
       }
+        */
 
       this.$store.commit(this.configs.store + "/SET_COLUMNS", columns);
     },
