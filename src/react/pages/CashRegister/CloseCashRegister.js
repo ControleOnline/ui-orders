@@ -19,10 +19,8 @@ const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {getters: authGetters} = getStore('auth');
   const {getters: peopleGetters} = getStore('people');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
-  const {getters: deviceConfigGetters, actions: deviceConfigsActions} =
-    getStore('device_config');
+  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
+  const {getters: deviceConfigGetters, actions: deviceConfigsActions} = getStore('device_config');
   const {item: device} = deviceConfigGetters;
   const {currentCompany} = peopleGetters;
   const {user} = authGetters;

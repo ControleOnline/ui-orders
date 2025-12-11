@@ -8,10 +8,8 @@ import {getStore} from '@store';
 const PrinterButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
   const {getters, actions} = getStore(store);
-  const {getters: deviceConfigGetters, actions: deviceConfigsActions} =
-    getStore('device_config');
-  const {getters: printerGetters, actions: printerActions} =
-    getStore('printer');
+  const {getters: deviceConfigGetters, actions: deviceConfigsActions} = getStore('device_config');
+  const {getters: printerGetters, actions: printerActions} = getStore('printer');
   const {actions: printActions} = getStore('print');
   const {getters: peopleGetters} = getStore('people');
 

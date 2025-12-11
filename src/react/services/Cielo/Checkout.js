@@ -26,8 +26,7 @@ const Checkout = ({
   const {styles, globalStyles} = css();
   const {getters: paymentTypeGetters} = getStore('walletPaymentType');
   const {getters: orderProductsGetters} = getStore('order_products');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
   const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
 
   const {items: orderProducts} = orderProductsGetters;

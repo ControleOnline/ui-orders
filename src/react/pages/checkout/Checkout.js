@@ -13,8 +13,7 @@ const Checkout = () => {
   const {getters: deviceConfigGetters} = getStore('device_config');
   const {item: device} = deviceConfigGetters;
   const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
   const {getters: orderProductsGetters} = getStore('order_products');
   const {actions: printActions} = getStore('print');
 

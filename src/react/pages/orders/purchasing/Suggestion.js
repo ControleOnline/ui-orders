@@ -9,8 +9,7 @@ import PrintButton from '@controleonline/ui-orders/src/react/components/PrintBut
 const PurchasingSuggestion = () => {
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
-  const {getters: productsGetters, actions: productsActions} =
-    getStore('products');
+  const {getters: productsGetters, actions: productsActions} = getStore('products');
   const {currentCompany} = peopleGetters;
   const {isLoading, error} = productsGetters;
   const [orderItems, setOrderItems] = useState([]);

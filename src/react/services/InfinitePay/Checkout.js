@@ -27,8 +27,7 @@ const Checkout = ({
   const {styles, globalStyles} = css();
   const {getters: orderGetters} = getStore('orders');
   const {getters: paymentTypeGetters} = getStore('walletPaymentType');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
 
   const {error, items: payments} = paymentTypeGetters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);

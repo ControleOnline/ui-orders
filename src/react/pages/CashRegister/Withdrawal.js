@@ -17,8 +17,7 @@ export default function BleedScreen() {
   const navigation = useNavigation();
 
   const {styles, globalStyles} = css();
-  const {getters: paymentTypeGetters, actions: paymentTypeActions} =
-    getStore('walletPaymentType');
+  const {getters: paymentTypeGetters, actions: paymentTypeActions} = getStore('walletPaymentType');
   const {getters: peopleGetters} = getStore('people');
   const {items: paymentTypes} = paymentTypeGetters;
   const {currentCompany, defaultCompany} = peopleGetters;

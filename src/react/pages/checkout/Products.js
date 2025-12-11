@@ -10,8 +10,7 @@ const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
   const {actions, isLoading, error} = getStore('products');
   const {actions: ordersActions} = getStore('orders');
-  const {getters: categoriesGetters, actions: categoryActions} =
-    getStore('categories');
+  const {getters: categoriesGetters, actions: categoryActions} = getStore('categories');
   const {items: categories} = categoriesGetters;
   const {styles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);

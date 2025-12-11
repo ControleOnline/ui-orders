@@ -19,8 +19,7 @@ const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
   const {getters, actions: ordersActions} = getStore('orders');
   const {actions: orderProductsActions} = getStore('order_products');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
   const {items: invoices} = invoiceGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();

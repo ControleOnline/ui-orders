@@ -11,8 +11,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 const CashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {getters: peopleGetters} = getStore('people');
-  const {getters: invoiceGetters, actions: invoiceActions} =
-    getStore('invoice');
+  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
   const {actions: paymentTypeActions} = getStore('walletPaymentType');
   const {getters: configsGetters} = getStore('configs');
   const {getters: deviceConfigGetters} = getStore('device_config');
