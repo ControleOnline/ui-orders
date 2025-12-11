@@ -3,15 +3,21 @@ import {TouchableOpacity, Text, View, Modal, FlatList} from 'react-native';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 
 const PrinterButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
   const {getters, actions} = getStore(store);
-  const {getters: deviceConfigGetters, actions: deviceConfigsActions} = getStore('device_config');
-  const {getters: printerGetters, actions: printerActions} = getStore('printer');
-  const {actions: printActions} = getStore('print');
-  const {getters: peopleGetters} = getStore('people');
+  const device_configStore = useStores(state => state.device_config);
+  const deviceConfigGetters = device_configStore.getters;
+  const deviceConfigsActions = device_configStore.actions;
+  const printerStore = useStores(state => state.printer);
+  const printerGetters = printerStore.getters;
+  const printerActions = printerStore.actions;
+  const printStore = useStores(state => state.print);
+  const printActions = printStore.actions;
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
 
   const {currentCompany} = peopleGetters;
   const {isLoading, items: printers, item: printer} = printerGetters;

@@ -1,15 +1,18 @@
 import React, {useCallback, useState, useEffect} from 'react';
 import {View, Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
 const PayableToolbar = () => {
   const {styles} = css();
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: invoiceGetters} = getStore('invoice');
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
   const {isLoading, items: invoices} = invoiceGetters;
   const {items: orders, item: order, payable} = ordersGetters;
   const [price, setPrice] = useState(0);

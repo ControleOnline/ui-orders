@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
@@ -14,10 +14,16 @@ import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 const CategoriesPage = ({navigation}) => {
   const route = useRoute();
-  const {getters, actions: categoryActions} = getStore('categories');
-  const {getters: peopleGetters} = getStore('people');
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: deviceGetters} = getStore('device');
+  const categoriesStore = useStores(state => state.categories);
+  const getters = categoriesStore.getters;
+  const categoryActions = categoriesStore.actions;
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const deviceStore = useStores(state => state.device);
+  const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;

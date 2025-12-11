@@ -10,16 +10,21 @@ import {useFocusEffect} from '@react-navigation/native';
 
 import ProductsList from '@controleonline/ui-orders/src/react/components/cart/ProductList';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const OrderDetails = ({route, navigation}) => {
   const order = route.params.order;
-  const {getters, actions: ordersActions} = getStore('orders');
-  const {actions: orderProductsActions} = getStore('order_products');
-  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
+  const ordersStore = useStores(state => state.orders);
+  const getters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const order_productsStore = useStores(state => state.order_products);
+  const orderProductsActions = order_productsStore.actions;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const invoiceActions = invoiceStore.actions;
   const {items: invoices} = invoiceGetters;
   const {item, isLoading, error} = getters;
   const {styles, globalStyles} = css();

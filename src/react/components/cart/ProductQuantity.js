@@ -1,7 +1,7 @@
 import React, {useCallback, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 const styles = {
@@ -19,7 +19,8 @@ const styles = {
 };
 
 const ProductQuantity = ({product}) => {
-  const {getters: ordersGetters} = getStore('orders');
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(0);

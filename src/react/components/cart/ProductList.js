@@ -1,11 +1,12 @@
 import React from 'react';
 import {View} from 'react-native';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-orders/src/react/components/cart/ProductItem';
 
 export default function ProductsList() {
-  const {getters: ordersGetters} = getStore('orders');
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
   const {item: order, isLoading, isSaving, error} = ordersGetters;
 
   return (

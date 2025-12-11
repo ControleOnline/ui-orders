@@ -1,14 +1,16 @@
 import React, {useCallback, useState, useRef} from 'react';
 import {Text, ActivityIndicator} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
 
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
 const OrderTotalToolbar = () => {
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
   const {item: order} = ordersGetters;
   const {styles} = css();
   const [price, setPrice] = useState(0);

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Cielo from './Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {getStore} from '@store';
+import {useStores} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
@@ -24,9 +24,13 @@ const Checkout = ({
   paymentValue = 0,
 }) => {
   const {styles, globalStyles} = css();
-  const {getters: paymentTypeGetters} = getStore('walletPaymentType');
-  const {getters: orderProductsGetters} = getStore('order_products');
-  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
+  const walletPaymentTypeStore = useStores(state => state.walletPaymentType);
+  const paymentTypeGetters = walletPaymentTypeStore.getters;
+  const order_productsStore = useStores(state => state.order_products);
+  const orderProductsGetters = order_productsStore.getters;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const invoiceActions = invoiceStore.actions;
   const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
 
   const {items: orderProducts} = orderProductsGetters;

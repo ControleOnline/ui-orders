@@ -7,17 +7,25 @@ import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Ch
 import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {getStore} from '@store';
+import {useStores} from '@store';
 
 const Checkout = () => {
-  const {getters: deviceConfigGetters} = getStore('device_config');
+  const device_configStore = useStores(state => state.device_config);
+  const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
-  const {getters: ordersGetters, actions: ordersActions} = getStore('orders');
-  const {getters: invoiceGetters, actions: invoiceActions} = getStore('invoice');
-  const {getters: orderProductsGetters} = getStore('order_products');
-  const {actions: printActions} = getStore('print');
+  const ordersStore = useStores(state => state.orders);
+  const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
+  const invoiceStore = useStores(state => state.invoice);
+  const invoiceGetters = invoiceStore.getters;
+  const invoiceActions = invoiceStore.actions;
+  const order_productsStore = useStores(state => state.order_products);
+  const orderProductsGetters = order_productsStore.getters;
+  const printStore = useStores(state => state.print);
+  const printActions = printStore.actions;
 
-  const {getters: peopleGetters} = getStore('people');
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const {
     item: order,
