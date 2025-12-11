@@ -7,7 +7,11 @@ import {useStores} from '@store';
 
 const PrinterButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
-  const {getters, actions} = getStore(store);
+
+  const currentStore = useStores(state => state[store]);
+  getters = currentStore.getters;
+  actions = currentStore.actions;
+
   const device_configStore = useStores(state => state.device_config);
   const deviceConfigGetters = device_configStore.getters;
   const deviceConfigsActions = device_configStore.actions;
