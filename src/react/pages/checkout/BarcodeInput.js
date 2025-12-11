@@ -11,7 +11,7 @@ import {
 import {api} from '@controleonline/ui-common/src/api';
 import {useStores} from '@controleonline/ui-common/src/react/stores';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
-import {useMessage} from '../../../../../../../src/services/MessageService';
+import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
 
 const BarcodeInput = () => {
   const peopleStore = useStores(state => state.people);
