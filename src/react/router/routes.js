@@ -1,7 +1,8 @@
 import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/index';
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
-import Categories from '@controleonline/ui-orders/src/react/pages/checkout/Categories';
+import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
+
 import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
 import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
 import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
@@ -84,7 +85,7 @@ const WrappedProductsPage = ({navigation, route}) => (
   </ShopLayout>
 );
 
-const WrappedCategoryPage = ({navigation, route}) => {
+const WrappedAddProductsPage = ({navigation, route}) => {
   const ordersStore = useStores(state => state.orders);
   const ordersGetters = ordersStore.getters;
   const {item: order} = ordersGetters;
@@ -99,7 +100,7 @@ const WrappedCategoryPage = ({navigation, route}) => {
     <ShopLayout navigation={navigation} route={route}>
       <BarcodeInput />
       <CartLayout navigation={navigation} route={route}>
-        <Categories navigation={navigation} route={route} />
+        <AddProductScreen navigation={navigation} route={route} />
       </CartLayout>
     </ShopLayout>
   );
@@ -228,7 +229,7 @@ const ordersRoutes = [
   },
   {
     name: 'AddProductScreen',
-    component: WrappedCategoryPage,
+    component: WrappedAddProductsPage,
     options: {
       headerShown: true,
       title: 'Escolher Categoria',

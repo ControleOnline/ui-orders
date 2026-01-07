@@ -20,6 +20,9 @@ const ProductsPage = ({navigation, route}) => {
   const {items: categories} = categoriesGetters;
   const {styles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
+  const peopleStore = useStores(state => state.people);
+  const peopleGetters = peopleStore.getters;
+  const {currentCompany, defaultCompany} = peopleGetters;
 
   const changeCategoryProduct = (p, changeStorage = false) => {
     const index = categories.findIndex(c => c['@id'] === category['@id']);
@@ -54,7 +57,8 @@ const ProductsPage = ({navigation, route}) => {
             active: 1,
             'order[product]': 'ASC',
             'order[description]': 'ASC',
-            type: ['custom', 'product', 'manufactured'],
+            company: currentCompany?.id,
+            type: ['custom', 'product', 'manufactured', 'service'],
           })
           .then(data => {
             if (data && Object.keys(data).length > 0)

@@ -24,7 +24,6 @@ const OrderTotalToolbar = () => {
 
     timeoutId.current = setTimeout(() => {
       const currentOrder = {...order};
-      console.log(currentProducts);
       addProducts(currentOrder, currentProducts);
       timeoutId.current = null;
     }, 200);

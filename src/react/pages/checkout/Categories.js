@@ -13,26 +13,18 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 const CategoriesPage = ({navigation}) => {
-  const route = useRoute();
+ 
   const categoriesStore = useStores(state => state.categories);
   const getters = categoriesStore.getters;
   const categoryActions = categoriesStore.actions;
   const peopleStore = useStores(state => state.people);
   const peopleGetters = peopleStore.getters;
-  const ordersStore = useStores(state => state.orders);
-  const ordersGetters = ordersStore.getters;
-  const ordersActions = ordersStore.actions;
-  const deviceStore = useStores(state => state.device);
-  const deviceGetters = deviceStore.getters;
-  const {item: storagedDevice} = deviceGetters;
+
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
-  const {item: order, items: orders} = ordersGetters;
+
   const {styles} = css();
-  const status = defaultCompany?.configs['pos-default-status'];
-  const [forceCreate, setForceCreate] = useState(
-    route.params?.forceCreate || false,
-  );
+
 
   useFocusEffect(
     useCallback(() => {
@@ -55,44 +47,7 @@ const CategoriesPage = ({navigation}) => {
     }, [currentCompany]),
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        ordersActions.initQueue();
-      };
-    }, []),
-  );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (forceCreate) {
-        setForceCreate(false);
-        ordersActions
-          .save({
-            app: 'POS',
-            provider: '/people/' + currentCompany.id,
-            status: '/statuses/' + status,
-            'device.device': storagedDevice.id,
-            orderType: 'sale',
-          })
-          .then(data => {
-            ordersActions.setItem(data);
-          });
-      }
-    }, [forceCreate]),
-  );
-  useFocusEffect(
-    useCallback(() => {
-      if (
-        status &&
-        currentCompany &&
-        orders &&
-        orders.length === 0 &&
-        order === null
-      )
-        setForceCreate(true);
-    }, [currentCompany, order, orders]),
-  );
 
   const changeCategory = category => {
     navigation.navigate('ProductsPage', {category: category});
