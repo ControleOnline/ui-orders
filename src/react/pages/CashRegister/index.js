@@ -238,7 +238,7 @@ const CashRegister = ({navigation}) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[globalStyles.button]}
-                onPress={handleCloseCacsRegister}>
+                onPress={handleCloseCashRegister}>
                 <Icon name="print" size={24} color="#fff" />
                 <Text style={{color: '#fff', marginLeft: 8}}>Detalhar</Text>
               </TouchableOpacity>
