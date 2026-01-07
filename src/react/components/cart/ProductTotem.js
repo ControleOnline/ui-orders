@@ -21,17 +21,27 @@ const styles = {
 
 const ProductTotem = ({product}) => {
   const ordersStore = useStores(state => state.orders);
+  const ordersProductsStore = useStores(state => state.order_products);
   const ordersGetters = ordersStore.getters;
+  const ordersProductsGetters = ordersProductsStore.getters;
   const ordersActions = ordersStore.actions;
+  const ordersProductsActions = ordersProductsStore.actions;
   const {item: order} = ordersGetters;
+  const {item: ordersProducts} = ordersProductsGetters;
   const [selected, setSelected] = useState(false);
 
   const removeAllProducts = useCallback(async () => {
-    if (!order?.products?.length) return;
+    
+    
+    console.log(ordersProducts,order.orderProducts);
 
-    for (const item of order.products) {
+
+    if (!order?.orderProducts?.length) return;
+
+    for (const item of order.orderProducts) {
       if (!item?.product) continue;
-      await ordersActions.remove(item.product);
+      console.log(item.product);
+      await ordersProductsActions.remove(item.product['@id']);
     }
 
     await ordersActions.setItem({...order, products: []});
