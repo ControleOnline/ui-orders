@@ -81,7 +81,8 @@ const BarcodeInput = () => {
       <TextInput
         ref={inputRef}
         style={styles.input}
-        placeholder="Escaneie ou digite"
+        //placeholder="Escaneie ou digite"
+        placeholder = {t.t('default','title',"Scan")}
         placeholderTextColor="#999"
         value={value}
         onChangeText={setValue}
