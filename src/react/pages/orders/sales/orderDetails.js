@@ -70,13 +70,13 @@ const OrderDetails = ({route, navigation}) => {
               onPress={handleAddProduct}
               style={[globalStyles.button, {marginRight: 5}]}>
               <Icon name="add-circle" size={24} color="#fff" />
-              <Text style={{color: '#fff', marginLeft: 8}}>Adicionar Item</Text>
+              <Text style={{color: '#fff', marginLeft: 8}}>{t.t('default','button',"AddItem")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleOrderTools}
               style={[globalStyles.button, {marginLeft: 5}]}>
               <Icon name="settings" size={24} color="#fff" />
-              <Text style={{color: '#fff', marginLeft: 8}}>Detalhes</Text>
+              <Text style={{color: '#fff', marginLeft: 8}}>{t.t('default','button',"Details")}</Text>
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={{paddingBottom: 0}}>
