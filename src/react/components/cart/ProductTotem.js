@@ -41,7 +41,10 @@ const ProductTotem = ({product}) => {
     for (const item of order.orderProducts) {
       if (!item?.product) continue;
       console.log(item.product);
-      await ordersProductsActions.remove(item.product['@id']);
+
+      // ALEMAC // apaga corretamente o item do pedido
+      // await ordersProductsActions.remove(item.product['@id']);
+      await ordersProductsActions.remove(item['@id']);
     }
 
     await ordersActions.setItem({...order, orderProducts: []});
