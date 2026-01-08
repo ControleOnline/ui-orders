@@ -44,7 +44,7 @@ const ProductTotem = ({product}) => {
       await ordersProductsActions.remove(item.product['@id']);
     }
 
-    await ordersActions.setItem({...order, products: []});
+    await ordersActions.setItem({...order, orderProducts: []});
   }, [order, ordersActions]);
 
   const selectProduct = useCallback(async () => {
