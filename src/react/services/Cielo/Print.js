@@ -1,13 +1,7 @@
-import {NativeModules} from 'react-native';
-
-const {Cielo} = NativeModules;
+import Cielo from '@controleonline-rn/react-native-cielo-payment';
 
 export class CieloPrint {
-  print = async printRequest => {
-    try {
-      return await Cielo.print(printRequest);
-    } catch (error) {
-      throw error;
-    }
-  };
+  async print(printRequest) {
+    return await Cielo.print(printRequest);
+  }
 }

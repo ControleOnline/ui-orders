@@ -1,6 +1,6 @@
-import {NativeModules} from 'react-native';
+import InfinitePay from '@controleonline-rn/react-native-infinitepay-payment';
 
-class InfinitePay {
+class InfinitePayService {
   async payment(paymentMethod, installments, orderId, amount) {
     const json = {
       amount: amount,
@@ -11,9 +11,7 @@ class InfinitePay {
       af_force_deeplink: 'true',
     };
 
-    const response = await NativeModules.InfinitePay.payment(
-      JSON.stringify(json),
-    );
+    const response = await InfinitePay.payment(JSON.stringify(json));
 
     return {
       success: response.success,
@@ -23,4 +21,4 @@ class InfinitePay {
   }
 }
 
-export default InfinitePay;
+export default InfinitePayService;

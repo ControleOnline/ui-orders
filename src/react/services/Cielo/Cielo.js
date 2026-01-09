@@ -1,7 +1,7 @@
-import {NativeModules} from 'react-native';
+import Cielo from '@controleonline-rn/react-native-cielo-payment';
 import {env} from '@env';
 
-class Cielo {
+class CieloService {
   async payment(paymentCode, items, orderPrice) {
     const json = {
       accessToken: env.CIELO.ACCESS_TOKEN,
@@ -13,7 +13,7 @@ class Cielo {
       value: orderPrice,
     };
 
-    const response = await NativeModules.Cielo.payment(JSON.stringify(json));
+    const response = await Cielo.payment(JSON.stringify(json));
 
     return {
       success: response.success,
@@ -23,4 +23,4 @@ class Cielo {
   }
 }
 
-export default Cielo;
+export default CieloService;
