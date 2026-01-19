@@ -29,6 +29,12 @@ export default {
         name: "id",
         label: "id",
         align: "left",
+        to: function (value) {
+          return {
+            name: 'OrderDetails',
+            params: { id: value },
+          };
+        },
         format(value) {
           return "#" + value;
         },
