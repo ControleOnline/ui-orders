@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import InfinitePay from './InfinitePay';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
@@ -25,11 +25,11 @@ const Checkout = ({
   paymentType = {},
 }) => {
   const {styles, globalStyles} = css();
-  const ordersStore = useStores(state => state.orders);
+  const ordersStore = useStore('orders');
   const orderGetters = ordersStore.getters;
-  const walletPaymentTypeStore = useStores(state => state.walletPaymentType);
+  const walletPaymentTypeStore = useStore('walletPaymentType');
   const paymentTypeGetters = walletPaymentTypeStore.getters;
-  const invoiceStore = useStores(state => state.invoice);
+  const invoiceStore = useStore('invoice');
   const invoiceGetters = invoiceStore.getters;
   const invoiceActions = invoiceStore.actions;
 

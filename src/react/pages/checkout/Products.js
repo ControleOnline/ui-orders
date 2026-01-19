@@ -1,6 +1,6 @@
 import React, {useState, useCallback, useEffect, useRef, useMemo} from 'react';
 import {SafeAreaView, ScrollView, View, FlatList} from 'react-native';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
@@ -8,19 +8,19 @@ import {useFocusEffect} from '@react-navigation/native';
 
 const ProductsPage = ({navigation, route}) => {
   const {category} = route.params;
-  const productsStore = useStores(state => state.products);
+  const productsStore = useStore('products');
   const actions = productsStore.actions;
   const isLoading = productsStore.isLoading;
   const error = productsStore.error;
-  const ordersStore = useStores(state => state.orders);
+  const ordersStore = useStore('orders');
   const ordersActions = ordersStore.actions;
-  const categoriesStore = useStores(state => state.categories);
+  const categoriesStore = useStore('categories');
   const categoriesGetters = categoriesStore.getters;
   const categoryActions = categoriesStore.actions;
   const {items: categories} = categoriesGetters;
   const {styles} = css();
   const [categoryProducts, setCategoryProducts] = useState([]);
-  const peopleStore = useStores(state => state.people);
+  const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
   const {currentCompany, defaultCompany} = peopleGetters;
 

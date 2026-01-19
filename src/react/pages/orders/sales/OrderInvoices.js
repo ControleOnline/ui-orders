@@ -1,11 +1,11 @@
 import React from 'react';
 import {Text, View} from 'react-native';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 
 const OrderDetails = () => {
-  const ordersStore = useStores(state => state.orders);
+  const ordersStore = useStore('orders');
   const getters = ordersStore.getters;
   const {item: order, isLoading, error} = getters;
 

@@ -1,7 +1,7 @@
 import React, {useCallback, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
@@ -20,8 +20,8 @@ const styles = {
 };
 
 const ProductTotem = ({product}) => {
-  const ordersStore = useStores(state => state.orders);
-  const ordersProductsStore = useStores(state => state.order_products);
+  const ordersStore = useStore('orders');
+  const ordersProductsStore = useStore('order_products');
   const ordersGetters = ordersStore.getters;
   const ordersProductsGetters = ordersProductsStore.getters;
   const ordersActions = ordersStore.actions;

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
@@ -17,19 +17,19 @@ export default function BleedScreen() {
   const navigation = useNavigation();
 
   const {styles, globalStyles} = css();
-  const walletPaymentTypeStore = useStores(state => state.walletPaymentType);
+  const walletPaymentTypeStore = useStore('walletPaymentType');
   const paymentTypeGetters = walletPaymentTypeStore.getters;
   const paymentTypeActions = walletPaymentTypeStore.actions;
-  const peopleStore = useStores(state => state.people);
+  const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
   const {items: paymentTypes} = paymentTypeGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
-  const invoiceStore = useStores(state => state.invoice);
+  const invoiceStore = useStore('invoice');
   const invoiceActions = invoiceStore.actions;
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
   const [bleedValue, setBleedValue] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const configsStore = useStores(state => state.configs);
+  const configsStore = useStore('configs');
   const configsGetters = configsStore.getters;
   const {items: companyConfigs} = configsGetters;
   const [cashWallet, setCashWallet] = useState(null);

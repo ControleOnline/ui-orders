@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from 'react';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Categories from '@controleonline/ui-orders/src/react/pages/checkout/Categories';
@@ -7,9 +7,9 @@ import TotemProducts from '@controleonline/ui-orders/src/react/pages/checkout/To
 import {APP_ENV} from '@controleonline/../../config/env.js';
 const CheckoutContent = ({navigation}) => {
   const route = useRoute();
-  const ordersStore = useStores(state => state.orders);
-  const peopleStore = useStores(state => state.people);
-  const deviceStore = useStores(state => state.device);
+  const ordersStore = useStore('orders');
+  const peopleStore = useStore('people');
+  const deviceStore = useStore('device');
   const ordersActions = ordersStore.actions;
   const ordersGetters = ordersStore.getters;
   const peopleGetters = peopleStore.getters;

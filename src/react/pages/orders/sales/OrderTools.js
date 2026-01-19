@@ -1,14 +1,14 @@
 import React from 'react';
 import {View, SafeAreaView, ScrollView} from 'react-native';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import OrderInvoices from './OrderInvoices';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 
 const OrderDetails = () => {
-  const ordersStore = useStores(state => state.orders);
+  const ordersStore = useStore('orders');
   const getters = ordersStore.getters;
   const {item, isLoading, error} = getters;
   const {styles} = css();

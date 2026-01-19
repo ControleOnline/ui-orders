@@ -1,6 +1,6 @@
 import React, {useCallback, useState} from 'react';
 import {Text, View, ScrollView, SafeAreaView} from 'react-native';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import {useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -8,9 +8,9 @@ import PrintButton from '@controleonline/ui-orders/src/react/components/PrintBut
 
 const PurchasingSuggestion = () => {
   const {styles, globalStyles} = css();
-  const peopleStore = useStores(state => state.people);
+  const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
-  const productsStore = useStores(state => state.products);
+  const productsStore = useStore('products');
   const productsGetters = productsStore.getters;
   const productsActions = productsStore.actions;
   const {currentCompany} = peopleGetters;

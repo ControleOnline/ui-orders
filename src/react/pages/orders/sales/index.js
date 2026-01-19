@@ -8,26 +8,26 @@ import {
   Alert,
 } from 'react-native';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useFocusEffect} from '@react-navigation/native';
 
 const Orders = ({navigation}) => {
-  const ordersStore = useStores(state => state.orders);
+  const ordersStore = useStore('orders');
   const getters = ordersStore.getters;
   const ordersActions = ordersStore.actions;
   const {items, isLoading, error} = getters;
   const {styles, globalStyles} = css();
-  const peopleStore = useStores(state => state.people);
+  const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
-  const deviceStore = useStores(state => state.device);
+  const deviceStore = useStore('device');
   const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const status = defaultCompany?.configs['pos-default-status'];
-  const device_configStore = useStores(state => state.device_config);
+  const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
 

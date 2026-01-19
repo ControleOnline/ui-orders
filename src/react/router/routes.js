@@ -13,14 +13,14 @@ import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import CustomizeScreen from '@controleonline/ui-products/src/react/pages/CustomizeScreen';
-import {useStores} from '@store';
+import {useStore} from '@store';
 
 import React from 'react';
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput';
 
 
 // ALEMAC // TO DO // colocar no lugar certo e pegar a info do banco?
-// const device_configStore = useStores(state => state.device_config);
+// const device_configStore = useStore('device_config');
 // const showBarcode = device_configStore.getters?.item?.configs?.['show-barcode'];
 const ShowBarcode = false;
 
@@ -33,7 +33,7 @@ const WrappedOrdersPage = ({navigation, route}) => (
 );
 
 const WrappedCloseCashRegister = ({navigation, route}) => {
-  const device_configStore = useStores(state => state.device_config);
+  const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
 
@@ -94,7 +94,7 @@ const WrappedProductsPage = ({navigation, route}) => (
 );
 
 const WrappedAddProductsPage = ({navigation, route}) => {
-  const ordersStore = useStores(state => state.orders);
+  const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const {item: order} = ordersGetters;
 

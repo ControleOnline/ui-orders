@@ -4,28 +4,28 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useStores} from '@store';
+import {useStore} from '@store';
 import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const CashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
-  const peopleStore = useStores(state => state.people);
+  const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
-  const invoiceStore = useStores(state => state.invoice);
+  const invoiceStore = useStore('invoice');
   const invoiceGetters = invoiceStore.getters;
   const invoiceActions = invoiceStore.actions;
-  const walletPaymentTypeStore = useStores(state => state.walletPaymentType);
+  const walletPaymentTypeStore = useStore('walletPaymentType');
   const paymentTypeActions = walletPaymentTypeStore.actions;
-  const configsStore = useStores(state => state.configs);
+  const configsStore = useStore('configs');
   const configsGetters = configsStore.getters;
-  const device_configStore = useStores(state => state.device_config);
+  const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
   const {items: companyConfigs} = configsGetters;
   const {currentCompany} = peopleGetters;
   const {items: payments, isLoading, error} = invoiceGetters;
-  const deviceStore = useStores(state => state.device);
+  const deviceStore = useStore('device');
   const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
 
