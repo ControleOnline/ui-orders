@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback} from 'react';
 import {
   Text,
   View,
@@ -10,30 +10,32 @@ import {useStore} from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useFocusEffect, useRoute} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
-const CategoriesPage = ({navigation}) => {
- 
+const CategoriesPage = () => {
+  const navigation = useNavigation();
+
   const categoriesStore = useStore('categories');
   const getters = categoriesStore.getters;
   const categoryActions = categoriesStore.actions;
+
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
 
-  const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
+  const {currentCompany, isLoading, error} = peopleGetters;
   const {items} = getters;
 
   const {styles} = css();
 
-
   useFocusEffect(
     useCallback(() => {
-      //if (!items || items.length == 0) {
+      const categories = JSON.parse(
+        localStorage.getItem('categories') || '[]',
+      );
 
-      const categories = JSON.parse(localStorage.getItem('categories') || '[]');
-
-      if (categories.length > 0) categoryActions.setItems(categories);
-      else
+      if (categories.length > 0) {
+        categoryActions.setItems(categories);
+      } else {
         categoryActions
           .getItems({
             context: 'products',
@@ -43,20 +45,24 @@ const CategoriesPage = ({navigation}) => {
           .then(data => {
             localStorage.setItem('categories', JSON.stringify(data));
           });
-      //}
+      }
     }, [currentCompany]),
   );
 
-
-
   const changeCategory = category => {
-    navigation.navigate('ProductsPage', {category: category});
+    navigation.navigate('ProductsPage', {category});
   };
+
   return (
     <SafeAreaView style={styles.container}>
       <StateStore store="categories" />
+
       {!isLoading && items && items.length > 0 && !error && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 220 },
+          ]}>
           <View style={styles.Category.categoriesContainer}>
             {items.map(category => (
               <TouchableOpacity

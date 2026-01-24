@@ -87,7 +87,11 @@ const ProductsPage = ({navigation, route}) => {
         categoryProducts.length > 0 &&
         !error &&
         !isLoading && (
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              {paddingBottom: 220},
+            ]}>
             <View style={styles.gridContainer}>
               {categoryProducts.map(product => (
                 <View key={product.id} style={styles.cardWrapper}>

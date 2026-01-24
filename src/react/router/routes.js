@@ -16,15 +16,6 @@ import CustomizeScreen from '@controleonline/ui-products/src/react/pages/Customi
 import {useStore} from '@store';
 
 import React from 'react';
-import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput';
-
-
-// ALEMAC // TO DO // colocar no lugar certo e pegar a info do banco?
-// const device_configStore = useStore('device_config');
-// const showBarcode = device_configStore.getters?.item?.configs?.['show-barcode'];
-const ShowBarcode = false;
-
-
 
 const WrappedOrdersPage = ({navigation, route}) => (
   <ShopLayout navigation={navigation} route={route}>
@@ -106,7 +97,6 @@ const WrappedAddProductsPage = ({navigation, route}) => {
 
   return (
     <ShopLayout navigation={navigation} route={route}>
-      {ShowBarcode ? <BarcodeInput /> : null}
       <CartLayout navigation={navigation} route={route}>
         <AddProductScreen navigation={navigation} route={route} />
       </CartLayout>
@@ -143,7 +133,6 @@ const WrappedOrderDetails = ({navigation, route}) => {
 
   return (
     <ShopLayout navigation={navigation} route={route}>
-      {ShowBarcode ? <BarcodeInput /> : null}
       <CartLayout navigation={navigation} route={route}>
         <OrderDetails navigation={navigation} route={route} />
       </CartLayout>
