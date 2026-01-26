@@ -31,6 +31,11 @@ const Orders = ({navigation}) => {
   const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
 
+  // ALEMAC // 24/01/2026 // para validar o tipo de input de produto
+  const productInputType = device?.configs?.['product-input-type'] || 'manual';
+  
+  console.log('📋 [ORDERS] productInputType:', productInputType);
+
   useFocusEffect(
     useCallback(() => {
       if (
@@ -74,6 +79,7 @@ const Orders = ({navigation}) => {
     ordersActions.setPayable(0);
     navigation.navigate('AddProductScreen', {forceCreate: force});
   };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={{height: 50}}>
@@ -111,4 +117,5 @@ const Orders = ({navigation}) => {
     </SafeAreaView>
   );
 };
+
 export default Orders;

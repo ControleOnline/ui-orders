@@ -36,15 +36,23 @@ const OrderDetails = ({route, navigation}) => {
   const {item, isLoading, error} = ordersGetters;
   const {styles, globalStyles} = css();
 
-  // ALEMAC // 24/01/2026 // para mostrar ou não o barcode input
+  // ALEMAC // 24/01/2026 // para mostrar ou não o barcode input baseado no tipo de produto
   const deviceConfigStore = useStore('device_config');
   const device = deviceConfigStore.getters?.item;
-  const showBarcode =
-    device?.configs?.['barcode-reader'] === '1' ||
-    device?.configs?.['barcode-reader'] === true;
+  const productInputType = device?.configs?.['product-input-type'] || 'manual';
+
+  const showBarcodeInput = productInputType === 'barcode' || productInputType === 'rfid';
+  const isManualInput = productInputType === 'manual';
+
+  console.log('📋 [ORDER DETAILS] productInputType:', productInputType);
+  console.log('📋 [ORDER DETAILS] showBarcodeInput:', showBarcodeInput);
+  console.log('📋 [ORDER DETAILS] isManualInput:', isManualInput);
 
   useFocusEffect(
     useCallback(() => {
+      console.log('📋 [ORDER DETAILS FOCUS] productInputType:', productInputType);
+      console.log('📋 [ORDER DETAILS FOCUS] device.configs:', device?.configs);
+
       if (
         invoices &&
         invoices.length === 0 &&
@@ -54,7 +62,7 @@ const OrderDetails = ({route, navigation}) => {
       ) {
         invoiceActions.getItems({'order.order': order['@id']});
       }
-    }, [invoices, order, isLoading]),
+    }, [invoices, order, isLoading, productInputType]),
   );
 
   useFocusEffect(
@@ -77,8 +85,8 @@ const OrderDetails = ({route, navigation}) => {
 
   return (
     <SafeAreaView style={[styles.container, {paddingBottom: 120}]}>
-      {/* ALEMAC // 24/01/2026 // para mostrar ou não o barcode input */}
-      {showBarcode && <BarcodeInput />}
+      {/* ALEMAC // 24/01/2026 // mostrar barcode input apenas se product-input-type for 'barcode' ou 'rfid' */}
+      {showBarcodeInput && <BarcodeInput />}
 
       <StateStore store="orders" />
 
@@ -87,14 +95,17 @@ const OrderDetails = ({route, navigation}) => {
           <OrderHeader key={item.id} order={item} />
 
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <TouchableOpacity
-              onPress={handleAddProduct}
-              style={[globalStyles.button, {marginRight: 5}]}>
-              <Icon name="add-circle" size={24} color="#fff" />
-              <Text style={{color: '#fff', marginLeft: 8}}>
-                {t.t('default', 'button', 'AddItem')}
-              </Text>
-            </TouchableOpacity>
+            {/* ALEMAC // 24/01/2026 // botão adicionar item apenas se input for manual */}
+            {isManualInput && (
+              <TouchableOpacity
+                onPress={handleAddProduct}
+                style={[globalStyles.button, {marginRight: 5}]}>
+                <Icon name="add-circle" size={24} color="#fff" />
+                <Text style={{color: '#fff', marginLeft: 8}}>
+                  {t.t('default', 'button', 'AddItem')}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={handleOrderTools}

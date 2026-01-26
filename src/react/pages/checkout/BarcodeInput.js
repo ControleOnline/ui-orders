@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import {api} from '@controleonline/ui-common/src/api';
 import {useStore} from '@controleonline/ui-common/src/react/stores';
@@ -15,13 +16,31 @@ import {useMessage} from '@controleonline/ui-common/src/react/components/Message
 
 const BarcodeInput = () => {
   const peopleStore = useStore('people');
+  const deviceConfigStore = useStore('device_config');
   const peopleGetters = peopleStore.getters;
   const {currentCompany} = peopleGetters;
+
+  const device = deviceConfigStore.getters?.item;
+  const productInputType = device?.configs?.['product-input-type'] || 'manual';
 
   const [value, setValue] = useState('');
   const [quantity, setQuantity] = useState(1);
   const inputRef = useRef(null);
   const {showToast} = useMessage();
+
+  const getIconName = () => {
+    if (productInputType === 'rfid') {
+      return 'nfc';
+    }
+    return 'camera-alt';
+  };
+
+  const getPlaceholder = () => {
+    if (productInputType === 'rfid') {
+      return t.t('default', 'title', 'RFIDInput');
+    }
+    return t.t('default', 'title', 'BarcodeInput');
+  };
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
@@ -66,6 +85,15 @@ const BarcodeInput = () => {
   const increaseQuantity = () => setQuantity(q => q + 1);
   const decreaseQuantity = () => setQuantity(q => (q > 1 ? q - 1 : 1));
 
+  const handleReadButton = () => {
+    inputRef.current?.focus();
+    if (productInputType === 'rfid') {
+      console.log('📡 [RFID] Ativando leitor RFID para produtos...');
+    } else {
+      console.log('🎥 [CAMERA] Ativando leitor de código de barras para produtos...');
+    }
+  };
+
   return (
     <View style={styles.inputRow}>
       <View style={styles.qtyContainer}>
@@ -78,11 +106,14 @@ const BarcodeInput = () => {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity onPress={handleReadButton} style={styles.readButton}>
+        <Icon name={getIconName()} size={24} color="#fff" />
+      </TouchableOpacity>
+
       <TextInput
         ref={inputRef}
         style={styles.input}
-        //placeholder="Escaneie ou digite"
-        placeholder = {t.t('default','title',"Scan")}
+        placeholder={getPlaceholder()}
         placeholderTextColor="#999"
         value={value}
         onChangeText={setValue}
@@ -102,9 +133,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     marginVertical: 5,
+    gap: 10,
   },
   input: {
-    flex: 7,
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 8,
     paddingVertical: 3,
@@ -113,11 +145,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   qtyContainer: {
-    flex: 3,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginRight: 10,
+    gap: 8,
   },
   qtyButton: {
     backgroundColor: '#1B5587',
@@ -133,7 +164,16 @@ const styles = StyleSheet.create({
   qtyLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginHorizontal: 5,
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  readButton: {
+    backgroundColor: '#1B5587',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
