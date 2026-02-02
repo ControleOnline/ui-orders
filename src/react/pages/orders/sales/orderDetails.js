@@ -4,10 +4,9 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ProductsList from '@controleonline/ui-orders/src/react/components/cart/ProductList';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 

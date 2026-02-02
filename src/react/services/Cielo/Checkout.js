@@ -1,17 +1,17 @@
-import React, {useCallback, useState, useEffect} from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Cielo from './Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {useStore} from '@store';
+import { useStore } from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {useFocusEffect} from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
@@ -23,7 +23,7 @@ const Checkout = ({
   paymentType = {},
   paymentValue = 0,
 }) => {
-  const {styles, globalStyles} = css();
+  const { styles, globalStyles } = css();
   const walletPaymentTypeStore = useStore('walletPaymentType');
   const paymentTypeGetters = walletPaymentTypeStore.getters;
   const order_productsStore = useStore('order_products');
@@ -31,10 +31,10 @@ const Checkout = ({
   const invoiceStore = useStore('invoice');
   const invoiceGetters = invoiceStore.getters;
   const invoiceActions = invoiceStore.actions;
-  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
+  const { IsSaving: invoiceIsSaving, error: invoiceError } = invoiceGetters;
 
-  const {items: orderProducts} = orderProductsGetters;
-  const {error, items: payments} = paymentTypeGetters;
+  const { items: orderProducts } = orderProductsGetters;
+  const { error, items: payments } = paymentTypeGetters;
   const [selectedPayment, setSelectedPayment] = useState(paymentType);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -144,8 +144,8 @@ const Checkout = ({
               <ScrollView
                 contentContainerStyle={[
                   styles.scrollContent,
-                  {paddingBottom: 100},
-                  {flexGrow: 1},
+                  { paddingBottom: 100 },
+                  { flexGrow: 1 },
                 ]}>
                 <View>
                   {payments.map(payment => (
@@ -156,11 +156,11 @@ const Checkout = ({
                         style={[
                           styles.boxPayment,
                           selectedPayment.paymentType?.id ===
-                            payment.paymentType.id && styles.selectedBoxPayment,
+                          payment.paymentType.id && styles.selectedBoxPayment,
                         ]}>
                         <View style={styles.paymentIcon}>
                           {selectedPayment.paymentType?.id ===
-                          payment.paymentType.id ? (
+                            payment.paymentType.id ? (
                             <Icon name="check-box" size={24} color="black" />
                           ) : (
                             <Icon
@@ -171,7 +171,7 @@ const Checkout = ({
                           )}
                         </View>
                         <View>
-                          <Text style={{color: '#666'}}>
+                          <Text style={{ color: '#666' }}>
                             {payment.paymentType.paymentType}
                           </Text>
                         </View>

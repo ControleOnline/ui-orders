@@ -1,10 +1,11 @@
-import React, {useState, useEffect, useCallback} from 'react';
-import {SafeAreaView, ScrollView, View} from 'react-native';
-import {useStore} from '@store';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useStore } from '@store';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import ProductItem from '@controleonline/ui-products/src/react/components/products/ProductItem';
-import {useFocusEffect} from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
 const ProductsPage = () => {
   const productsStore = useStore('products');
@@ -13,11 +14,11 @@ const ProductsPage = () => {
   const error = productsStore.error;
   const ordersStore = useStore('orders');
   const ordersActions = ordersStore.actions;
-  const {styles} = css();
+  const { styles } = css();
   const [products, setProducts] = useState([]);
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
-  const {currentCompany, defaultCompany} = peopleGetters;
+  const { currentCompany, defaultCompany } = peopleGetters;
 
   useEffect(() => {
     actions

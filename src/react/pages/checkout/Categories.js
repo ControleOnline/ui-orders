@@ -1,16 +1,17 @@
-import React, {useCallback} from 'react';
+import React, { useCallback } from 'react';
 import {
   Text,
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
+
 } from 'react-native';
-import {useStore} from '@store';
+import { useStore } from '@store';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 const CategoriesPage = () => {
   const navigation = useNavigation();
@@ -22,10 +23,10 @@ const CategoriesPage = () => {
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
 
-  const {currentCompany, isLoading, error} = peopleGetters;
-  const {items} = getters;
+  const { currentCompany, isLoading, error } = peopleGetters;
+  const { items } = getters;
 
-  const {styles} = css();
+  const { styles } = css();
 
   useFocusEffect(
     useCallback(() => {
@@ -50,7 +51,7 @@ const CategoriesPage = () => {
   );
 
   const changeCategory = category => {
-    navigation.navigate('ProductsPage', {category});
+    navigation.navigate('ProductsPage', { category });
   };
 
   return (
@@ -72,7 +73,7 @@ const CategoriesPage = () => {
                 <View
                   style={[
                     styles.Category.categorySquare,
-                    {backgroundColor: category.color},
+                    { backgroundColor: category.color },
                   ]}>
                   <Carousel images={category.categoryFiles} />
                 </View>

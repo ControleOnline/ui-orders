@@ -4,10 +4,10 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   Modal,
   Button,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import InfinitePay from './InfinitePay';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useStore} from '@store';

@@ -1,14 +1,16 @@
-import React, {useState, useCallback} from 'react';
-import {Text, View,SafeAreaView, ScrollView, TouchableOpacity} from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import {useStore} from '@store';
-import {useFocusEffect} from '@react-navigation/native';
+import { useStore } from '@store';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const CashRegister = ({navigation}) => {
-  const {styles, globalStyles} = css();
+const CashRegister = ({ navigation }) => {
+  const { styles, globalStyles } = css();
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
   const invoiceStore = useStore('invoice');
@@ -20,13 +22,13 @@ const CashRegister = ({navigation}) => {
   const configsGetters = configsStore.getters;
   const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
-  const {item: device} = deviceConfigGetters;
-  const {items: companyConfigs} = configsGetters;
-  const {currentCompany} = peopleGetters;
-  const {items: payments, isLoading, error} = invoiceGetters;
+  const { item: device } = deviceConfigGetters;
+  const { items: companyConfigs } = configsGetters;
+  const { currentCompany } = peopleGetters;
+  const { items: payments, isLoading, error } = invoiceGetters;
   const deviceStore = useStore('device');
   const deviceGetters = deviceStore.getters;
-  const {item: storagedDevice} = deviceGetters;
+  const { item: storagedDevice } = deviceGetters;
 
   const [processedData, setProcessedData] = useState({
     walletGroups: [],
@@ -143,7 +145,7 @@ const CashRegister = ({navigation}) => {
               key={payment.id}
               style={[
                 styles.boxContent,
-                {flexDirection: 'column', marginVertical: 2},
+                { flexDirection: 'column', marginVertical: 2 },
               ]}>
               {payment.inflow > 0 && (
                 <View
@@ -174,11 +176,11 @@ const CashRegister = ({navigation}) => {
                     justifyContent: 'space-between',
                   }}>
                   <Text
-                    style={[styles.CashRegister.paymentText, {color: 'red'}]}>
+                    style={[styles.CashRegister.paymentText, { color: 'red' }]}>
                     Sangria {group['withdrawal-wallet']}
                   </Text>
                   <Text
-                    style={[styles.CashRegister.paymentText, {color: 'red'}]}>
+                    style={[styles.CashRegister.paymentText, { color: 'red' }]}>
                     {Formatter.formatMoney(payment.withdrawal)}
                   </Text>
                 </View>
@@ -233,13 +235,13 @@ const CashRegister = ({navigation}) => {
                 style={[globalStyles.button]}
                 onPress={handleWithdrawal}>
                 <Icon name="print" size={24} color="#fff" />
-                <Text style={{color: '#fff', marginLeft: 8}}>Sangria</Text>
+                <Text style={{ color: '#fff', marginLeft: 8 }}>Sangria</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[globalStyles.button]}
                 onPress={handleCloseCashRegister}>
                 <Icon name="print" size={24} color="#fff" />
-                <Text style={{color: '#fff', marginLeft: 8}}>Detalhar</Text>
+                <Text style={{ color: '#fff', marginLeft: 8 }}>Detalhar</Text>
               </TouchableOpacity>
             </View>
           </View>
