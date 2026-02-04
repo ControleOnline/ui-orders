@@ -49,8 +49,8 @@ const OrderDetails = ({route, navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('📋 [ORDER DETAILS FOCUS] productInputType:', productInputType);
-      console.log('📋 [ORDER DETAILS FOCUS] device.configs:', device?.configs);
+      //console.log('📋 [ORDER DETAILS FOCUS] productInputType:', productInputType);
+      //console.log('📋 [ORDER DETAILS FOCUS] device.configs:', device?.configs);
 
       if (
         invoices &&
