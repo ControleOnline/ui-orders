@@ -43,9 +43,9 @@ const OrderDetails = ({route, navigation}) => {
   const showBarcodeInput = productInputType === 'barcode' || productInputType === 'rfid';
   const isManualInput = productInputType === 'manual';
 
-  console.log('📋 [ORDER DETAILS] productInputType:', productInputType);
-  console.log('📋 [ORDER DETAILS] showBarcodeInput:', showBarcodeInput);
-  console.log('📋 [ORDER DETAILS] isManualInput:', isManualInput);
+  //console.log('📋 [ORDER DETAILS] productInputType:', productInputType);
+  //console.log('📋 [ORDER DETAILS] showBarcodeInput:', showBarcodeInput);
+  //console.log('📋 [ORDER DETAILS] isManualInput:', isManualInput);
 
   useFocusEffect(
     useCallback(() => {

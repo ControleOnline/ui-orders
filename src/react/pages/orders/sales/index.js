@@ -35,7 +35,7 @@ const Orders = ({ navigation }) => {
   // ALEMAC // 24/01/2026 // para validar o tipo de input de produto
   const productInputType = device?.configs?.['product-input-type'] || 'manual';
 
-  console.log('📋 [ORDERS] productInputType:', productInputType);
+  //console.log('📋 [ORDERS] productInputType:', productInputType);
 
   useFocusEffect(
     useCallback(() => {
