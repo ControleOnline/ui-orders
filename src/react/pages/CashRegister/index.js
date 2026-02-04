@@ -78,7 +78,7 @@ const CashRegister = ({ navigation }) => {
       if (
         device?.configs &&
         storagedDevice &&
-        device.configs['config-version'] == storagedDevice.buildNumber
+        device.configs['config-version'] == storagedDevice.appVersion
       )
         invoiceActions.getInflow({
           receiver: currentCompany.id,

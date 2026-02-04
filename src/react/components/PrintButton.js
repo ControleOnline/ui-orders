@@ -9,8 +9,8 @@ const PrinterButton = ({printType, store}) => {
   const {styles, globalStyles} = css();
 
   const currentStore = useStore(store);
-  getters = currentStore.getters;
-  actions = currentStore.actions;
+  const storeGetters = currentStore.getters;
+  const storeActions = currentStore.actions;
 
   const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
@@ -63,12 +63,12 @@ const PrinterButton = ({printType, store}) => {
       printActions.addToPrint({
         printType: printType,
         id:
-          getters.item && getters.item['@id']
-            ? getters.item['@id'].split('/').pop()
+          storeGetters.item && storeGetters.item['@id']
+            ? storeGetters.item['@id'].split('/').pop()
             : null,
       });
     } catch (err) {
-      actions.setError(err.message || 'Erro ao processar impressão');
+      storeActions.setError(err.message || 'Erro ao processar impressão');
     }
   };
 
