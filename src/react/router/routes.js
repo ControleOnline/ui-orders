@@ -34,8 +34,8 @@ const WrappedCloseCashRegister = ({navigation, route}) => {
         !device?.configs ||
         device?.configs['cash-wallet-closed-id'] == undefined ||
         device?.configs['cash-wallet-closed-id'] > 0
-          ? 'Abrir Caixa'
-          : 'Fechar Caixa',
+          ? 'Abrir Caixa XXX'
+          : 'Fechar Caixa YYY',
     });
   }, [navigation, device.configs['cash-wallet-open-id']]);
 

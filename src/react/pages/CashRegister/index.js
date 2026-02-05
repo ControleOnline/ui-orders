@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, {useState, useCallback} from 'react';
 import { Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,6 +36,22 @@ const CashRegister = ({ navigation }) => {
   });
 
   const [defaultWallets, setDefaultWallets] = useState(null);
+
+  // ===== ALTERAÇÃO: NOVO useEffect PARA REDIRECIONAR PARA SETTINGS =====
+  useFocusEffect(
+    useCallback(() => {
+      if (storagedDevice && device?.configs) {
+        if (device.configs['config-version'] !== storagedDevice.appVersion) {
+          navigation.reset({
+            index: 0,
+            routes: [{name: 'SettingsPage'}],
+          });
+        }
+      }
+    }, [device, storagedDevice, navigation]),
+  );
+  // ===== FIM DA ALTERAÇÃO =====
+
   useFocusEffect(
     useCallback(() => {
       if (
@@ -73,6 +89,7 @@ const CashRegister = ({ navigation }) => {
         });
     }, [currentCompany, defaultWallets]),
   );
+
   useFocusEffect(
     useCallback(() => {
       if (
