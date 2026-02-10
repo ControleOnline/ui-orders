@@ -4,8 +4,6 @@ import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkou
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
 import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
-import PurchasingSuggestion from '@controleonline/ui-orders/src/react/pages/orders/purchasing/Suggestion';
-import Inventory from '@controleonline/ui-orders/src/react/pages/inventory';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
@@ -91,26 +89,6 @@ const ordersRoutes = [
       headerBackButtonMenuEnabled: false,
     },
     initialParams: { store: 'product' },
-  },
-  {
-    name: 'PurchasingSuggestion',
-    component: PurchasingSuggestion,
-    options: {
-      headerShown: true,
-      title: 'Sugestão de Compras',
-      headerBackButtonMenuEnabled: false,
-    },
-    initialParams: { store: 'products' },
-  },
-  {
-    name: 'Inventory',
-    component: Inventory,
-    options: {
-      headerShown: true,
-      title: 'Estoque',
-      headerBackButtonMenuEnabled: false,
-    },
-    initialParams: { store: 'products' },
   },
   {
     name: 'SalesOrderIndex',
