@@ -2,10 +2,7 @@ import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/i
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
-
 import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
-import DefaultLayout from '@controleonline/ui-layout/src/react/layouts/DefaultLayout';
-import DefaultLayout from '@controleonline/ui-layout/src/react/layouts/DefaultLayout';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
 import PurchasingSuggestion from '@controleonline/ui-orders/src/react/pages/orders/purchasing/Suggestion';
 import Inventory from '@controleonline/ui-orders/src/react/pages/inventory';
@@ -13,81 +10,37 @@ import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import CustomizeScreen from '@controleonline/ui-products/src/react/pages/CustomizeScreen';
-import {useStore} from '@store';
+import { useStore } from '@store';
 
 import React from 'react';
 
-const WrappedOrdersPage = ({navigation, route}) => (
-  <DefaultLayout navigation={navigation} route={route}>
-    <OrdersPage navigation={navigation} route={route} />
-  </DefaultLayout>
-);
 
-const WrappedCloseCashRegister = ({navigation, route}) => {
+const WrappedCloseCashRegister = ({ navigation, route }) => {
   const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
-  const {item: device} = deviceConfigGetters;
+  const { item: device } = deviceConfigGetters;
 
   React.useEffect(() => {
     navigation.setOptions({
       title:
         !device?.configs ||
-        device?.configs['cash-wallet-closed-id'] == undefined ||
-        device?.configs['cash-wallet-closed-id'] > 0
+          device?.configs['cash-wallet-closed-id'] == undefined ||
+          device?.configs['cash-wallet-closed-id'] > 0
           ? 'Abrir Caixa XXX'
           : 'Fechar Caixa YYY',
     });
   }, [navigation, device.configs['cash-wallet-open-id']]);
 
   return (
-    <DefaultLayout navigation={navigation} route={route}>
-      <CloseCashRegister navigation={navigation} route={route} />
-    </DefaultLayout>
+    <CloseCashRegister navigation={navigation} route={route} />
   );
 };
 
-const WrappedCustomizeScreen = ({navigation, route}) => (
-  <DefaultLayout navigation={navigation} route={route}>
-    <CustomizeScreen navigation={navigation} route={route} />
-  </DefaultLayout>
-);
 
-const WrappedPurchasingSuggestion = ({navigation, route}) => (
-  <DefaultLayout navigation={navigation} route={route}>
-    <PurchasingSuggestion navigation={navigation} route={route} />
-  </DefaultLayout>
-);
-
-const WrappedInventory = ({navigation, route}) => (
-  <DefaultLayout navigation={navigation} route={route}>
-    <Inventory navigation={navigation} route={route} />
-  </DefaultLayout>
-);
-
-const WrappedWithdrawal = ({navigation, route}) => (
-  <DefaultLayout navigation={navigation} route={route}>
-    <Withdrawal navigation={navigation} route={route} />
-  </DefaultLayout>
-);
-
-const WrappedCashRegister = ({navigation, route}) => (
-  <DefaultLayout navigation={navigation} route={route}>
-    <CashRegister navigation={navigation} route={route} />
-  </DefaultLayout>
-);
-
-const WrappedProductsPage = ({navigation, route}) => (
-  <DefaultLayout navigation={navigation} route={route}>
-    <DefaultLayout navigation={navigation} route={route}>
-      <Products navigation={navigation} route={route} />
-    </DefaultLayout>
-  </DefaultLayout>
-);
-
-const WrappedAddProductsPage = ({navigation, route}) => {
+const WrappedAddProductsPage = ({ navigation, route }) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
-  const {item: order} = ordersGetters;
+  const { item: order } = ordersGetters;
 
   React.useEffect(() => {
     navigation.setOptions({
@@ -96,15 +49,11 @@ const WrappedAddProductsPage = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <DefaultLayout navigation={navigation} route={route}>
-      <DefaultLayout navigation={navigation} route={route}>
-        <AddProductScreen navigation={navigation} route={route} />
-      </DefaultLayout>
-    </DefaultLayout>
+    <AddProductScreen navigation={navigation} route={route} />
   );
 };
 
-const WrappedOrderTools = ({navigation, route}) => {
+const WrappedOrderTools = ({ navigation, route }) => {
   const order = route.params?.order;
 
   React.useEffect(() => {
@@ -114,15 +63,11 @@ const WrappedOrderTools = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <DefaultLayout navigation={navigation} route={route}>
-      <DefaultLayout navigation={navigation} route={route}>
-        <OrderTools navigation={navigation} route={route} />
-      </DefaultLayout>
-    </DefaultLayout>
+    <OrderTools navigation={navigation} route={route} />
   );
 };
 
-const WrappedOrderDetails = ({navigation, route}) => {
+const WrappedOrderDetails = ({ navigation, route }) => {
   const order = route.params?.order;
 
   React.useEffect(() => {
@@ -132,54 +77,50 @@ const WrappedOrderDetails = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <DefaultLayout navigation={navigation} route={route}>
-      <DefaultLayout navigation={navigation} route={route}>
-        <OrderDetails navigation={navigation} route={route} />
-      </DefaultLayout>
-    </DefaultLayout>
+    <OrderDetails navigation={navigation} route={route} />
   );
 };
 
 const ordersRoutes = [
   {
     name: 'CustomizeScreen',
-    component: WrappedCustomizeScreen,
+    component: CustomizeScreen,
     options: {
       headerShown: true,
       title: 'Customizar Produto',
       headerBackButtonMenuEnabled: false,
     },
-    initialParams: {store: 'product'},
+    initialParams: { store: 'product' },
   },
   {
     name: 'PurchasingSuggestion',
-    component: WrappedPurchasingSuggestion,
+    component: PurchasingSuggestion,
     options: {
       headerShown: true,
       title: 'Sugestão de Compras',
       headerBackButtonMenuEnabled: false,
     },
-    initialParams: {store: 'products'},
+    initialParams: { store: 'products' },
   },
   {
     name: 'Inventory',
-    component: WrappedInventory,
+    component: Inventory,
     options: {
       headerShown: true,
       title: 'Estoque',
       headerBackButtonMenuEnabled: false,
     },
-    initialParams: {store: 'products'},
+    initialParams: { store: 'products' },
   },
   {
     name: 'SalesOrderIndex',
-    component: WrappedOrdersPage,
+    component: OrdersPage,
     options: {
       headerShown: true,
       title: 'Pedidos de Venda',
       headerBackButtonMenuEnabled: false,
     },
-    initialParams: {store: 'orders'},
+    initialParams: { store: 'orders' },
   },
   {
     name: 'OrderTools',
@@ -188,11 +129,11 @@ const ordersRoutes = [
       headerShown: true,
       title: 'Pedido',
     },
-    initialParams: {store: 'orders'},
+    initialParams: { store: 'orders' },
   },
   {
     name: 'CashRegisterIndex',
-    component: WrappedCashRegister,
+    component: CashRegister,
     options: {
       headerShown: true,
       title: 'Caixa',
@@ -208,7 +149,7 @@ const ordersRoutes = [
   },
   {
     name: 'Withdrawal',
-    component: WrappedWithdrawal,
+    component: Withdrawal,
     options: {
       headerShown: true,
       title: 'Sangria',
@@ -216,13 +157,13 @@ const ordersRoutes = [
   },
   {
     name: 'ProductsPage',
-    component: WrappedProductsPage,
+    component: Products,
     options: {
       headerShown: true,
       title: 'Escolher Produtos',
       headerBackButtonMenuEnabled: false,
     },
-    initialParams: {store: 'products'},
+    initialParams: { store: 'products' },
   },
   {
     name: 'AddProductScreen',
@@ -232,7 +173,7 @@ const ordersRoutes = [
       title: 'Escolher Categoria',
       headerBackButtonMenuEnabled: false,
     },
-    initialParams: {store: 'categories'},
+    initialParams: { store: 'categories' },
   },
   {
     name: 'OrderDetails',
@@ -241,13 +182,13 @@ const ordersRoutes = [
       headerShown: true,
       title: 'Pedido',
     },
-    initialParams: {store: 'orders'},
+    initialParams: { store: 'orders' },
   },
   {
     name: 'Checkout',
     component: Checkout,
-    options: {headerShown: false},
-    initialParams: {store: 'cart'},
+    options: { headerShown: false },
+    initialParams: { store: 'cart' },
   },
 ];
 
