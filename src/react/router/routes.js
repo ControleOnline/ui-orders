@@ -4,8 +4,8 @@ import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkou
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
 
 import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
-import ShopLayout from '@controleonline/ui-layout/src/react/layouts/ShopLayout';
-import CartLayout from '@controleonline/ui-layout/src/react/layouts/CartLayout';
+import DefaultLayout from '@controleonline/ui-layout/src/react/layouts/DefaultLayout';
+import DefaultLayout from '@controleonline/ui-layout/src/react/layouts/DefaultLayout';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
 import PurchasingSuggestion from '@controleonline/ui-orders/src/react/pages/orders/purchasing/Suggestion';
 import Inventory from '@controleonline/ui-orders/src/react/pages/inventory';
@@ -18,9 +18,9 @@ import {useStore} from '@store';
 import React from 'react';
 
 const WrappedOrdersPage = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
+  <DefaultLayout navigation={navigation} route={route}>
     <OrdersPage navigation={navigation} route={route} />
-  </ShopLayout>
+  </DefaultLayout>
 );
 
 const WrappedCloseCashRegister = ({navigation, route}) => {
@@ -40,48 +40,48 @@ const WrappedCloseCashRegister = ({navigation, route}) => {
   }, [navigation, device.configs['cash-wallet-open-id']]);
 
   return (
-    <ShopLayout navigation={navigation} route={route}>
+    <DefaultLayout navigation={navigation} route={route}>
       <CloseCashRegister navigation={navigation} route={route} />
-    </ShopLayout>
+    </DefaultLayout>
   );
 };
 
 const WrappedCustomizeScreen = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
+  <DefaultLayout navigation={navigation} route={route}>
     <CustomizeScreen navigation={navigation} route={route} />
-  </ShopLayout>
+  </DefaultLayout>
 );
 
 const WrappedPurchasingSuggestion = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
+  <DefaultLayout navigation={navigation} route={route}>
     <PurchasingSuggestion navigation={navigation} route={route} />
-  </ShopLayout>
+  </DefaultLayout>
 );
 
 const WrappedInventory = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
+  <DefaultLayout navigation={navigation} route={route}>
     <Inventory navigation={navigation} route={route} />
-  </ShopLayout>
+  </DefaultLayout>
 );
 
 const WrappedWithdrawal = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
+  <DefaultLayout navigation={navigation} route={route}>
     <Withdrawal navigation={navigation} route={route} />
-  </ShopLayout>
+  </DefaultLayout>
 );
 
 const WrappedCashRegister = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
+  <DefaultLayout navigation={navigation} route={route}>
     <CashRegister navigation={navigation} route={route} />
-  </ShopLayout>
+  </DefaultLayout>
 );
 
 const WrappedProductsPage = ({navigation, route}) => (
-  <ShopLayout navigation={navigation} route={route}>
-    <CartLayout navigation={navigation} route={route}>
+  <DefaultLayout navigation={navigation} route={route}>
+    <DefaultLayout navigation={navigation} route={route}>
       <Products navigation={navigation} route={route} />
-    </CartLayout>
-  </ShopLayout>
+    </DefaultLayout>
+  </DefaultLayout>
 );
 
 const WrappedAddProductsPage = ({navigation, route}) => {
@@ -96,11 +96,11 @@ const WrappedAddProductsPage = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <ShopLayout navigation={navigation} route={route}>
-      <CartLayout navigation={navigation} route={route}>
+    <DefaultLayout navigation={navigation} route={route}>
+      <DefaultLayout navigation={navigation} route={route}>
         <AddProductScreen navigation={navigation} route={route} />
-      </CartLayout>
-    </ShopLayout>
+      </DefaultLayout>
+    </DefaultLayout>
   );
 };
 
@@ -114,11 +114,11 @@ const WrappedOrderTools = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <ShopLayout navigation={navigation} route={route}>
-      <CartLayout navigation={navigation} route={route}>
+    <DefaultLayout navigation={navigation} route={route}>
+      <DefaultLayout navigation={navigation} route={route}>
         <OrderTools navigation={navigation} route={route} />
-      </CartLayout>
-    </ShopLayout>
+      </DefaultLayout>
+    </DefaultLayout>
   );
 };
 
@@ -132,11 +132,11 @@ const WrappedOrderDetails = ({navigation, route}) => {
   }, [navigation, order]);
 
   return (
-    <ShopLayout navigation={navigation} route={route}>
-      <CartLayout navigation={navigation} route={route}>
+    <DefaultLayout navigation={navigation} route={route}>
+      <DefaultLayout navigation={navigation} route={route}>
         <OrderDetails navigation={navigation} route={route} />
-      </CartLayout>
-    </ShopLayout>
+      </DefaultLayout>
+    </DefaultLayout>
   );
 };
 
