@@ -2,9 +2,9 @@ import React, {useCallback, useState} from 'react';
 import {useStore} from '@store';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
-import Categories from '@controleonline/ui-orders/src/react/pages/checkout/Categories';
+import Categories from '@controleonline/ui-products/src/react/pages/Categories';
 import TotemProducts from '@controleonline/ui-orders/src/react/pages/checkout/TotemProducts';
-import {APP_ENV} from '@controleonline/../../config/env.js';
+import {APP_ENV} from '@env';
 const CheckoutContent = ({navigation}) => {
   const route = useRoute();
   const ordersStore = useStore('orders');

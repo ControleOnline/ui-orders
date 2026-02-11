@@ -2,12 +2,10 @@ import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/i
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
-import Products from '@controleonline/ui-orders/src/react/pages/checkout/Products';
 import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
-import CustomizeScreen from '@controleonline/ui-products/src/react/pages/CustomizeScreen';
 import { useStore } from '@store';
 
 import React from 'react';
@@ -80,16 +78,7 @@ const WrappedOrderDetails = ({ navigation, route }) => {
 };
 
 const ordersRoutes = [
-  {
-    name: 'CustomizeScreen',
-    component: CustomizeScreen,
-    options: {
-      headerShown: true,
-      title: 'Customizar Produto',
-      headerBackButtonMenuEnabled: false,
-    },
-    initialParams: { store: 'product' },
-  },
+
   {
     name: 'SalesOrderIndex',
     component: OrdersPage,
@@ -132,16 +121,6 @@ const ordersRoutes = [
       headerShown: true,
       title: 'Sangria',
     },
-  },
-  {
-    name: 'ProductsPage',
-    component: Products,
-    options: {
-      headerShown: true,
-      title: 'Escolher Produtos',
-      headerBackButtonMenuEnabled: false,
-    },
-    initialParams: { store: 'products' },
   },
   {
     name: 'AddProductScreen',
