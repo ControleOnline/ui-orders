@@ -109,7 +109,7 @@ const Orders = ({ navigation }) => {
                 key={order.id}
                 onPress={() => handleEdit(order)}
                 style={[styles.itemsSection]}>
-                <OrderHeader order={order} showId={true} />
+                <OrderHeader order={order}/>
               </TouchableOpacity>
             ))}
           </View>

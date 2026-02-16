@@ -21,17 +21,12 @@ const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
 
   const ordersStore = useStore('orders')
-  const ordersGetters = ordersStore.getters
-  const ordersActions = ordersStore.actions
-
-  const orderProductsStore = useStore('order_products')
-  const orderProductsActions = orderProductsStore.actions
+  const { getters: ordersGetters, actions: ordersActions } = ordersStore
+  const { item, isLoading, error } = ordersGetters
 
   const invoiceStore = useStore('invoice')
-  const invoiceGetters = invoiceStore.getters
-  const invoiceActions = invoiceStore.actions
+  const { getters: invoiceGetters, actions: invoiceActions } = invoiceStore
   const { items: invoices } = invoiceGetters
-  const { item, isLoading, error } = ordersGetters
 
   const { styles: cssStyles, globalStyles } = css()
   const { width } = useWindowDimensions()
@@ -48,31 +43,30 @@ const OrderDetails = ({ route, navigation }) => {
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
 
-  const showBarcodeInput =
-    productInputType === 'barcode' || productInputType === 'rfid'
+  const showBarcodeInput = item?.app === 'POS'
 
-  const isManualInput = productInputType === 'manual'
+  productInputType === 'barcode' || productInputType === 'rfid'
 
-  useFocusEffect(
-    useCallback(() => {
-      if (
-        invoices &&
-        invoices.length === 0 &&
-        orderParam &&
-        orderParam['@id'] &&
-        !isLoading
-      ) {
-        invoiceActions.getItems({ 'order.order': orderParam['@id'] })
-      }
-    }, [invoices, orderParam, isLoading]),
-  )
+  const isManualInput =
+
+    useFocusEffect(
+      useCallback(() => {
+        if (
+          invoices &&
+          invoices.length === 0 &&
+          orderParam &&
+          orderParam['@id'] &&
+          !isLoading
+        ) {
+          invoiceActions.getItems({ 'order.order': orderParam['@id'] })
+        }
+      }, [invoices, orderParam, isLoading]),
+    )
 
   useFocusEffect(
     useCallback(() => {
       if (orderParam && orderParam['@id']) {
-        ordersActions.get(orderParam['@id']).then(data => {
-          orderProductsActions.setItems(data.orderProducts)
-        })
+        ordersActions.get(orderParam['@id'])
       }
     }, [orderParam]),
   )
@@ -86,13 +80,13 @@ const OrderDetails = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[cssStyles.container, { paddingBottom: 120 }]}>
+    <SafeAreaView style={[cssStyles.container, { flex: 1, paddingBottom: 120 }]}>
       {showBarcodeInput && <BarcodeInput />}
 
       <StateStore store="orders" />
 
       {!isLoading && item && !error && (
-        <>
+        <View style={{ flex: 1 }}>
           <OrderHeader key={item.id} order={item} />
 
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -119,8 +113,17 @@ const OrderDetails = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{ paddingBottom: 0 }}>
-            <View style={cssStyles.itemsSection}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+            <View
+              style={[
+                cssStyles.itemsSection,
+                {
+                  flex: 1,
+                  flexDirection: 'column',
+                  width: '100%',
+                },
+              ]}
+            >
               <OrderProducts
                 order={item}
                 scale={scale}
@@ -128,7 +131,7 @@ const OrderDetails = ({ route, navigation }) => {
               />
             </View>
           </ScrollView>
-        </>
+        </View>
       )}
     </SafeAreaView>
   )
