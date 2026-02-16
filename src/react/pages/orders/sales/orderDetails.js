@@ -1,90 +1,92 @@
-import React, {useCallback} from 'react';
+import React, { useCallback, useMemo } from 'react'
 import {
   Text,
   View,
   ScrollView,
   TouchableOpacity,
-} from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import ProductsList from '@controleonline/ui-orders/src/react/components/cart/ProductList';
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native'
+import { useFocusEffect } from '@react-navigation/native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
+import { useStore } from '@store'
+import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
+import css from '@controleonline/ui-orders/src/react/css/orders'
+import Icon from 'react-native-vector-icons/MaterialIcons'
+import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
+import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
 
-import {useStore} from '@store';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import css from '@controleonline/ui-orders/src/react/css/orders';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+const OrderDetails = ({ route, navigation }) => {
+  const orderParam = route.params.order
 
-// ALEMAC // 24/01/2026 // para mostrar ou não o barcode input
-import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput';
+  const ordersStore = useStore('orders')
+  const ordersGetters = ordersStore.getters
+  const ordersActions = ordersStore.actions
 
-const OrderDetails = ({route, navigation}) => {
-  const order = route.params.order;
+  const orderProductsStore = useStore('order_products')
+  const orderProductsActions = orderProductsStore.actions
 
-  const ordersStore = useStore('orders');
-  const ordersGetters = ordersStore.getters;
-  const ordersActions = ordersStore.actions;
+  const invoiceStore = useStore('invoice')
+  const invoiceGetters = invoiceStore.getters
+  const invoiceActions = invoiceStore.actions
+  const { items: invoices } = invoiceGetters
+  const { item, isLoading, error } = ordersGetters
 
-  const order_productsStore = useStore('order_products');
-  const orderProductsActions = order_productsStore.actions;
+  const { styles: cssStyles, globalStyles } = css()
+  const { width } = useWindowDimensions()
 
-  const invoiceStore = useStore('invoice');
-  const invoiceGetters = invoiceStore.getters;
-  const invoiceActions = invoiceStore.actions;
-  const {items: invoices} = invoiceGetters;
-  const {item, isLoading, error} = ordersGetters;
-  const {styles, globalStyles} = css();
+  const scale = useMemo(() => {
+    if (width >= 1800) return 0.85
+    if (width >= 1400) return 0.9
+    return 0.95
+  }, [width])
 
-  // ALEMAC // 24/01/2026 // para mostrar ou não o barcode input baseado no tipo de produto
-  const deviceConfigStore = useStore('device_config');
-  const device = deviceConfigStore.getters?.item;
-  const productInputType = device?.configs?.['product-input-type'] || 'manual';
+  const localStyles = useMemo(() => createStyles(scale), [scale])
 
-  const showBarcodeInput = productInputType === 'barcode' || productInputType === 'rfid';
-  const isManualInput = productInputType === 'manual';
+  const deviceConfigStore = useStore('device_config')
+  const device = deviceConfigStore.getters?.item
+  const productInputType = device?.configs?.['product-input-type'] || 'manual'
 
-  //console.log('📋 [ORDER DETAILS] productInputType:', productInputType);
-  //console.log('📋 [ORDER DETAILS] showBarcodeInput:', showBarcodeInput);
-  //console.log('📋 [ORDER DETAILS] isManualInput:', isManualInput);
+  const showBarcodeInput =
+    productInputType === 'barcode' || productInputType === 'rfid'
+
+  const isManualInput = productInputType === 'manual'
 
   useFocusEffect(
     useCallback(() => {
-      //console.log('📋 [ORDER DETAILS FOCUS] productInputType:', productInputType);
-      //console.log('📋 [ORDER DETAILS FOCUS] device.configs:', device?.configs);
-
       if (
         invoices &&
         invoices.length === 0 &&
-        order &&
-        order['@id'] &&
+        orderParam &&
+        orderParam['@id'] &&
         !isLoading
       ) {
-        invoiceActions.getItems({'order.order': order['@id']});
+        invoiceActions.getItems({ 'order.order': orderParam['@id'] })
       }
-    }, [invoices, order, isLoading, productInputType]),
-  );
+    }, [invoices, orderParam, isLoading]),
+  )
 
   useFocusEffect(
     useCallback(() => {
-      if (order && order['@id']) {
-        ordersActions.get(order['@id']).then(data => {
-          orderProductsActions.setItems(data.orderProducts);
-        });
+      if (orderParam && orderParam['@id']) {
+        ordersActions.get(orderParam['@id']).then(data => {
+          orderProductsActions.setItems(data.orderProducts)
+        })
       }
-    }, [order]),
-  );
+    }, [orderParam]),
+  )
 
   const handleAddProduct = () => {
-    navigation.navigate('AddProductScreen');
-  };
+    navigation.navigate('AddProductScreen')
+  }
 
   const handleOrderTools = () => {
-    navigation.navigate('OrderTools');
-  };
+    navigation.navigate('OrderTools')
+  }
 
   return (
-    <SafeAreaView style={[styles.container, {paddingBottom: 120}]}>
-      {/* ALEMAC // 24/01/2026 // mostrar barcode input apenas se product-input-type for 'barcode' ou 'rfid' */}
+    <SafeAreaView style={[cssStyles.container, { paddingBottom: 120 }]}>
       {showBarcodeInput && <BarcodeInput />}
 
       <StateStore store="orders" />
@@ -93,38 +95,60 @@ const OrderDetails = ({route, navigation}) => {
         <>
           <OrderHeader key={item.id} order={item} />
 
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            {/* ALEMAC // 24/01/2026 // botão adicionar item apenas se input for manual */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {isManualInput && (
               <TouchableOpacity
                 onPress={handleAddProduct}
-                style={[globalStyles.button, {marginRight: 5}]}>
+                style={[globalStyles.button, { marginRight: 5 }]}
+              >
                 <Icon name="add-circle" size={24} color="#fff" />
-                <Text style={{color: '#fff', marginLeft: 8}}>
-                  {t.t('default', 'button', 'AddItem')}
+                <Text style={{ color: '#fff', marginLeft: 8 }}>
+                  Adicionar Item
                 </Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
               onPress={handleOrderTools}
-              style={[globalStyles.button, {marginLeft: 5}]}>
+              style={[globalStyles.button, { marginLeft: 5 }]}
+            >
               <Icon name="settings" size={24} color="#fff" />
-              <Text style={{color: '#fff', marginLeft: 8}}>
-                {t.t('default', 'button', 'Details')}
+              <Text style={{ color: '#fff', marginLeft: 8 }}>
+                Detalhes
               </Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={{paddingBottom: 0}}>
-            <View style={styles.itemsSection}>
-              <ProductsList order={order} />
+          <ScrollView contentContainerStyle={{ paddingBottom: 0 }}>
+            <View style={cssStyles.itemsSection}>
+              <OrderProducts
+                order={item}
+                scale={scale}
+                styles={localStyles}
+              />
             </View>
           </ScrollView>
         </>
       )}
     </SafeAreaView>
-  );
-};
+  )
+}
 
-export default OrderDetails;
+const createStyles = scale =>
+  StyleSheet.create({
+    itemRow: {
+      marginTop: 4 * scale,
+      paddingLeft: 6 * scale,
+      borderLeftWidth: 4,
+    },
+    text: {
+      color: '#fff',
+      fontSize: 14 * scale,
+    },
+    subText: {
+      color: '#aaa',
+      fontSize: 12 * scale,
+    },
+  })
+
+export default OrderDetails
