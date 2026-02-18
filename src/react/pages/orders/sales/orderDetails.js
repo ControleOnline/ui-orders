@@ -107,7 +107,7 @@ const OrderDetails = ({ route, navigation }) => {
               </View>
 
               <View style={localStyles.kdsActionRow}>
-                {isManualInput && (
+                {showBarcodeInput && isManualInput && (
                   <TouchableOpacity
                     onPress={handleAddProduct}
                     style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
