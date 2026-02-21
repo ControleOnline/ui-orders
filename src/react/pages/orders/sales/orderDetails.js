@@ -46,8 +46,11 @@ const OrderDetails = ({ route, navigation }) => {
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
 
-  const showBarcodeInput = item?.app === 'POS'
+  // @todo implementar. já vem do banco.
+  const selectionType = device?.configs?.['selection-type'] || 'single' // ou multiple
+
   const isManualInput = productInputType === 'manual'
+  const showBarcodeInput = item?.app === 'POS' && !isManualInput
 
   useFocusEffect(
     useCallback(() => {
