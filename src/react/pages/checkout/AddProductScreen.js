@@ -4,7 +4,8 @@ import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
 import TotemProducts from '@controleonline/ui-orders/src/react/pages/checkout/TotemProducts';
-import {APP_ENV} from '@env';
+import {env} from '@env';
+
 const CheckoutContent = ({navigation}) => {
   const route = useRoute();
   const ordersStore = useStore('orders');
@@ -22,7 +23,10 @@ const CheckoutContent = ({navigation}) => {
   const [forceCreate, setForceCreate] = useState(
     route.params?.forceCreate || false,
   );
-  const Component = APP_ENV.APP_TYPE === 'TOTEM' ? TotemProducts : Categories;
+
+  // ALEMAC // @todo: tem que remover o TOTEM. não usamos mais no APP_TYPE
+  // pegar o settings do banco para fazer seleção única ou múltipla de produtos ou categorias
+  const Component = env.APP_TYPE === 'TOTEM' ? TotemProducts : Categories;
 
   useFocusEffect(
     useCallback(() => {
