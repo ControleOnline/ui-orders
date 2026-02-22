@@ -42,10 +42,7 @@ const CashRegister = ({ navigation }) => {
     useCallback(() => {
       if (storagedDevice && device?.configs) {
         if (device.configs['config-version'] !== storagedDevice.appVersion) {
-          navigation.reset({
-            index: 0,
-            routes: [{name: 'SettingsPage'}],
-          });
+          navigation.navigate('SettingsPage');
         }
       }
     }, [device, storagedDevice, navigation]),
