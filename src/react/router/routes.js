@@ -84,8 +84,8 @@ const ordersRoutes = [
     component: OrdersPage,
     options: {
       headerShown: true,
+      headerBackVisible: false,
       title: 'Pedidos de Venda',
-      headerBackButtonMenuEnabled: false,
     },
     initialParams: { store: 'orders' },
   },
@@ -94,6 +94,7 @@ const ordersRoutes = [
     component: WrappedOrderTools,
     options: {
       headerShown: true,
+      headerBackVisible: false,
       title: 'Pedido',
     },
     initialParams: { store: 'orders' },
@@ -103,6 +104,7 @@ const ordersRoutes = [
     component: CashRegister,
     options: {
       headerShown: true,
+      headerBackVisible: false,
       title: 'Caixa',
     },
   },
@@ -111,6 +113,7 @@ const ordersRoutes = [
     component: WrappedCloseCashRegister,
     options: {
       headerShown: true,
+      headerBackVisible: false,
       title: 'Caixa',
     },
   },
@@ -119,6 +122,7 @@ const ordersRoutes = [
     component: Withdrawal,
     options: {
       headerShown: true,
+      headerBackVisible: false,
       title: 'Sangria',
     },
   },
@@ -127,8 +131,8 @@ const ordersRoutes = [
     component: WrappedAddProductsPage,
     options: {
       headerShown: true,
+      headerBackVisible: false,
       title: 'Escolher Categoria',
-      headerBackButtonMenuEnabled: false,
     },
     initialParams: { store: 'categories' },
   },
@@ -137,6 +141,7 @@ const ordersRoutes = [
     component: WrappedOrderDetails,
     options: {
       headerShown: true,
+      headerBackVisible: false,
       title: 'Pedido',
     },
     initialParams: { store: 'orders' },
