@@ -84,7 +84,7 @@ const ordersRoutes = [
     component: OrdersPage,
     options: {
       headerShown: true,
-      headerBackVisible: false,
+      headerBackVisible: true,
       title: 'Pedidos de Venda',
     },
     initialParams: { store: 'orders' },
