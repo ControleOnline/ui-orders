@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {useStore} from '@store';
@@ -47,33 +48,32 @@ const CloseCashRegister = ({navigation}) => {
           .then(data => {
             setOrderItems(data);
           });
-    }, [storagedDevice]),
+    }, [storagedDevice, currentCompany]),
   );
 
+  const confirm = (message, callback) => {
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) callback();
+    } else {
+      Alert.alert('Confirmação', message, [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Confirmar', onPress: callback },
+      ]);
+    }
+  };
+
   const handleConfirmClose = () => {
-    Alert.alert('Confirmação', 'Deseja realmente fechar o caixa?', [
-      {
-        text: 'Cancelar',
-        style: 'cancel',
-      },
-      {
-        text: 'Confirmar',
-        onPress: () => handleCashRegister(false),
-      },
-    ]);
+    confirm('Deseja realmente fechar o caixa?', () =>
+      handleCashRegister(false),
+    );
   };
+
   const handleConfirmOpen = () => {
-    Alert.alert('Confirmação', 'Deseja realmente abrir o caixa?', [
-      {
-        text: 'Cancelar',
-        style: 'cancel',
-      },
-      {
-        text: 'Confirmar',
-        onPress: () => handleCashRegister(true),
-      },
-    ]);
+    confirm('Deseja realmente abrir o caixa?', () =>
+      handleCashRegister(true),
+    );
   };
+
   const handleCashRegister = isOpening => {
     invoiceActions
       .getItems({
@@ -82,7 +82,8 @@ const CloseCashRegister = ({navigation}) => {
       })
       .then(data => {
         let openId = 0;
-        if (data && data.length > 0) openId = data[0]['@id'].replace(/\D/g, '');
+        if (data && data.length > 0)
+          openId = data[0]['@id'].replace(/\D/g, '');
 
         const configValue = isOpening
           ? {
@@ -98,7 +99,7 @@ const CloseCashRegister = ({navigation}) => {
             configs: JSON.stringify(configValue),
             people: '/people/' + currentCompany.id,
           })
-          .then(data => {
+          .then(() => {
             navigation.reset({
               index: 0,
               routes: [{name: 'HomePage'}],
@@ -120,8 +121,9 @@ const CloseCashRegister = ({navigation}) => {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View>
               <Text style={{color: '#666', marginLeft: 8}}>
-                {user.realname}
+                {user?.realname}
               </Text>
+
               {orderItems.map((item, index) => (
                 <View
                   key={index}
@@ -135,15 +137,18 @@ const CloseCashRegister = ({navigation}) => {
                   <Text style={{color: '#333', flex: 0.2}}>
                     {item.quantity}
                   </Text>
+
                   <Text style={{color: '#333', flex: 2}}>
-                    {item.product_name}{' '}
+                    {item.product_name}
                     {item.product_description
                       ? ' - ' + item.product_description
                       : ''}
                   </Text>
+
                   <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
                     {Formatter.formatMoney(item.order_product_price)}
                   </Text>
+
                   <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
                     {Formatter.formatMoney(item.order_product_total)}
                   </Text>
@@ -151,6 +156,7 @@ const CloseCashRegister = ({navigation}) => {
               ))}
             </View>
           </ScrollView>
+
           <View style={styles.CloseCashRegister.footerContainer}>
             <View style={styles.CloseCashRegister.totalContainer}>
               <Text style={styles.CloseCashRegister.total}>TOTAL</Text>
@@ -158,12 +164,14 @@ const CloseCashRegister = ({navigation}) => {
                 {Formatter.formatMoney(total)}
               </Text>
             </View>
+
             <View style={styles.CloseCashRegister.buttonContainer}>
               <PrintButton
                 printType={'cash-register'}
                 store={'invoice'}
                 style={[globalStyles.button]}
               />
+
               {!device?.configs ||
               device?.configs['cash-wallet-closed-id'] === undefined ||
               device?.configs['cash-wallet-closed-id'] === 0 ? (
