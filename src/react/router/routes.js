@@ -18,14 +18,9 @@ const WrappedCloseCashRegister = ({ navigation, route }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      title:
-        !device?.configs ||
-          device?.configs['cash-wallet-closed-id'] == undefined ||
-          device?.configs['cash-wallet-closed-id'] > 0
-          ? 'Abrir Caixa XXX'
-          : 'Fechar Caixa YYY',
+      title: 'Caixa',
     });
-  }, [navigation, device.configs['cash-wallet-open-id']]);
+  }, [navigation]);
 
   return (
     <CloseCashRegister navigation={navigation} route={route} />
