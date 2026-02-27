@@ -83,6 +83,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       headerBackVisible: true,
+      tabBarVisible: true,
       title: 'Pedidos de Venda',
     },
     initialParams: { store: 'orders' },
