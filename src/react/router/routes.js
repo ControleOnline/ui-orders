@@ -36,6 +36,7 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
   React.useEffect(() => {
     navigation.setOptions({
       title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+      headerBackVisible: true,
     });
   }, [navigation, order]);
 
@@ -50,6 +51,7 @@ const WrappedOrderTools = ({ navigation, route }) => {
   React.useEffect(() => {
     navigation.setOptions({
       title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+      headerBackVisible: true,
     });
   }, [navigation, order]);
 
@@ -64,6 +66,7 @@ const WrappedOrderDetails = ({ navigation, route }) => {
   React.useEffect(() => {
     navigation.setOptions({
       title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+      headerBackVisible: true,
     });
   }, [navigation, order]);
 
@@ -100,7 +103,7 @@ const ordersRoutes = [
     component: CashRegister,
     options: {
       headerShown: true,
-      headerBackVisible: false,
+      headerBackVisible: true,
       title: 'Caixa',
     },
   },
