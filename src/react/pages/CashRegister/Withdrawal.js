@@ -39,8 +39,15 @@ export default function BleedScreen() {
     useCallback(() => {
       if (companyConfigs && companyConfigs['pos-cash-wallet'])
         setCashWallet(companyConfigs['pos-cash-wallet']);
-      if (companyConfigs && companyConfigs['pos-withdrawl-wallet'])
-        setWithdrawlWallet(companyConfigs['pos-withdrawl-wallet']);
+      if (
+        companyConfigs &&
+        (companyConfigs['pos-withdrawl-wallet'] ||
+          companyConfigs['pos-withdrawal-wallet'])
+      )
+        setWithdrawlWallet(
+          companyConfigs['pos-withdrawl-wallet'] ||
+            companyConfigs['pos-withdrawal-wallet'],
+        );
     }, [companyConfigs]),
   );
 
