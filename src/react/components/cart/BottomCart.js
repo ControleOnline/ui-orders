@@ -6,7 +6,7 @@ import {useNavigation} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 
-const BottomCart = ({}) => {
+const BottomCart = ({bottomOffset = 0}) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const {item: order} = ordersGetters;
@@ -19,8 +19,8 @@ const BottomCart = ({}) => {
 
   return (
     <>
-      <PayableToolbar />
-      <View style={[styles.toolbar, {flexDirection: 'row'}]}>
+      <PayableToolbar bottomOffset={bottomOffset} />
+      <View style={[styles.toolbar, {bottom: bottomOffset, flexDirection: 'row'}]}>
         <OrderTotalToolbar />
         <TouchableOpacity
           onPress={() => handlePay(order)}

@@ -6,7 +6,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 
-const PayableToolbar = () => {
+const PayableToolbar = ({bottomOffset = 0}) => {
   const {styles} = css();
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
@@ -65,7 +65,12 @@ const PayableToolbar = () => {
       <View
         style={[
           styles.payable.toolbar,
-          payable != undefined && payable == 0 ? {bottom: 0} : null,
+          {
+            bottom:
+              payable != undefined && payable == 0
+                ? bottomOffset
+                : 60 + bottomOffset,
+          },
         ]}>
         {isLoading ? (
           <ActivityIndicator

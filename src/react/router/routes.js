@@ -84,6 +84,8 @@ const ordersRoutes = [
       headerShown: true,
       headerBackVisible: true,
       tabBarVisible: true,
+      showBottomToolBar: true,
+
       title: 'Pedidos de Venda',
     },
     initialParams: { store: 'orders' },
@@ -130,9 +132,10 @@ const ordersRoutes = [
     name: 'AddProductScreen',
     component: WrappedAddProductsPage,
     options: {
-      showBottomCart: true,
       headerShown: true,
       headerBackVisible: false,
+      showBottomCart: true,
+      showBottomToolBar: true,
       title: 'Escolher Categoria',
     },
     initialParams: { store: 'categories' },
@@ -141,9 +144,10 @@ const ordersRoutes = [
     name: 'OrderDetails',
     component: WrappedOrderDetails,
     options: {
-      showBottomCart: true,
       headerShown: true,
       headerBackVisible: false,
+      showBottomCart: true,
+      showBottomToolBar: true,
       title: 'Pedido',
     },
     initialParams: { store: 'orders' },
