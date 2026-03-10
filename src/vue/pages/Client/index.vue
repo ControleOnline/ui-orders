@@ -31,7 +31,7 @@
             </div>
             <div class="text-caption text-grey-7">
               {{ $tt("order", "input", "date") }}:
-              {{ new Date(props.row.orderDate).toLocaleDateString("pt-BR") }}
+              {{ new Date(props.row.orderDate).toLocaleDateString("pt-br") }}
             </div>
             <div class="text-caption text-grey-7">
               {{ props.row.provider.alias }}
