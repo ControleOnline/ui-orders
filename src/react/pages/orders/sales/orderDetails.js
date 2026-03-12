@@ -9,14 +9,13 @@ import {
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import { useStore } from '@store'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
 import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
-import KDSOrderHeader from '@controleonline/ui-ppc/src/react/components/KDSOrderHeader'
+import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
@@ -98,7 +97,7 @@ const OrderDetails = ({ route, navigation }) => {
         <View style={{ flex: 1 }}>
           {isKds ? (
             <>
-              <KDSOrderHeader order={item} showCustomer />
+              <OrderHeader order={item} showCustomer />
 
               <View style={localStyles.kdsActionRow}>
                 <TouchableOpacity style={[localStyles.kdsActionButton, localStyles.kdsActionDanger]}>
