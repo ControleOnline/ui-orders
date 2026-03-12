@@ -180,11 +180,13 @@ const OrderHeader = ({ order, compact = false, showCustomer = false }) => {
             {externalOrderRef || channelLabel}
           </Text>
         </View>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <PrintButton printType={'order'} store={'orders'} />
-        </View>
+        {!compact && (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <PrintButton printType={'order'} store={'orders'} />
+          </View>
+        )}
       </View>
+
 
       {showCustomer && !!customerName && (
         <Text numberOfLines={1} style={styles.customerNameText}>
