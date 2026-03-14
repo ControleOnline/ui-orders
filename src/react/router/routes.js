@@ -1,4 +1,3 @@
-import OrdersPage from '@controleonline/ui-orders/src/react/pages/orders/sales/index';
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
@@ -6,6 +5,7 @@ import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/O
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
+import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import { useStore } from '@store';
 
 import React from 'react';
@@ -77,19 +77,7 @@ const WrappedOrderDetails = ({ navigation, route }) => {
 
 const ordersRoutes = [
 
-  {
-    name: 'SalesOrderIndex',
-    component: OrdersPage,
-    options: {
-      headerShown: true,
-      headerBackVisible: true,
-      tabBarVisible: true,
-      showBottomToolBar: true,
-
-      title: 'Pedidos de Venda',
-    },
-    initialParams: { store: 'orders' },
-  },
+  menuStorefrontRoute,
   {
     name: 'OrderTools',
     component: WrappedOrderTools,
