@@ -226,6 +226,8 @@ const OrderDetails = ({ route, navigation }) => {
   const food99Integration = food99State?.integration || null
   const canManualCompleteFood99Order = !!food99Delivery?.allows_manual_delivery_completion
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
+  const isFood99Ready = String(food99Integration?.remote_order_state || '').toLowerCase() === 'ready'
+  const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
 
   return (
     <SafeAreaView
@@ -291,6 +293,12 @@ const OrderDetails = ({ route, navigation }) => {
                       Entrega 99: a loja conclui no status Pronto. A plataforma finaliza a entrega.
                     </Text>
                   ) : null}
+
+                  {shouldHideReadyFood99Action ? (
+                    <Text style={localStyles.food99InfoHint}>
+                      Pedido pronto aguardando plataforma. O cliente sera atualizado pela 99Food.
+                    </Text>
+                  ) : null}
                 </View>
               )}
 
@@ -311,21 +319,23 @@ const OrderDetails = ({ route, navigation }) => {
                       <Text style={localStyles.kdsActionText}>Cancelar</Text>
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => runFood99OrderAction('ready')}
-                    disabled={!!food99ActionLoading}
-                    style={[
-                      localStyles.kdsActionButton,
-                      localStyles.kdsActionPrimary,
-                      food99ActionLoading && localStyles.kdsActionButtonDisabled,
-                    ]}
-                  >
-                    {food99ActionLoading === 'ready' ? (
-                      <ActivityIndicator size="small" color="#F8FAFC" />
-                    ) : (
-                      <Text style={localStyles.kdsActionText}>Pronto</Text>
-                    )}
-                  </TouchableOpacity>
+                  {!shouldHideReadyFood99Action && (
+                    <TouchableOpacity
+                      onPress={() => runFood99OrderAction('ready')}
+                      disabled={!!food99ActionLoading}
+                      style={[
+                        localStyles.kdsActionButton,
+                        localStyles.kdsActionPrimary,
+                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                      ]}
+                    >
+                      {food99ActionLoading === 'ready' ? (
+                        <ActivityIndicator size="small" color="#F8FAFC" />
+                      ) : (
+                        <Text style={localStyles.kdsActionText}>Pronto</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
                   {canManualCompleteFood99Order && (
                     <TouchableOpacity
                       onPress={() => runFood99OrderAction('delivered')}
