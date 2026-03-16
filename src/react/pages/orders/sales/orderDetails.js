@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
+  ActivityIndicator,
   Text,
   View,
   ScrollView,
@@ -10,6 +11,8 @@ import {
 import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useStore } from '@store'
+import { api } from '@controleonline/ui-common/src/api'
+import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
@@ -17,9 +20,24 @@ import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/Bar
 import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 
+const formatApiError = error => {
+  if (!error) return 'Nao foi possivel concluir a operacao.'
+  if (typeof error === 'string') return error
+  if (Array.isArray(error?.message)) {
+    return error.message
+      .map(item => item?.message || item?.title || String(item))
+      .filter(Boolean)
+      .join('\n')
+  }
+
+  return error?.message || error?.description || error?.errmsg || 'Nao foi possivel concluir a operacao.'
+}
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
+  const { showError, showSuccess } = useMessage()
+  const [food99ActionLoading, setFood99ActionLoading] = useState('')
 
   const ordersStore = useStore('orders')
   const { getters: ordersGetters, actions: ordersActions } = ordersStore
@@ -50,6 +68,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
+  const isFood99Order = /food99|99food/i.test(String(item?.app || ''))
 
   useFocusEffect(
     useCallback(() => {
@@ -81,6 +100,73 @@ const OrderDetails = ({ route, navigation }) => {
     navigation.navigate('OrderTools')
   }
 
+  const refreshCurrentOrder = useCallback(async () => {
+    if (orderParam && orderParam['@id']) {
+      await ordersActions.get(orderParam['@id'])
+    }
+  }, [orderParam, ordersActions])
+
+  const runFood99OrderAction = useCallback(
+    async action => {
+      if (!item?.id || !isFood99Order || food99ActionLoading) {
+        return
+      }
+
+      const actionMap = {
+        ready: {
+          path: `/marketplace/integrations/99food/orders/${item.id}/ready`,
+          success: 'Pedido marcado como pronto na 99Food.',
+        },
+        cancel: {
+          path: `/marketplace/integrations/99food/orders/${item.id}/cancel`,
+          success: 'Pedido cancelado na 99Food.',
+        },
+        delivered: {
+          path: `/marketplace/integrations/99food/orders/${item.id}/delivered`,
+          success: 'Pedido finalizado na 99Food.',
+        },
+      }
+
+      const actionConfig = actionMap[action]
+      if (!actionConfig) {
+        return
+      }
+
+      try {
+        setFood99ActionLoading(action)
+        const response = await api.fetch(actionConfig.path, {
+          method: 'POST',
+          body: {},
+        })
+
+        if ((response?.result?.errno ?? 1) !== 0) {
+          throw response?.result || response
+        }
+
+        await refreshCurrentOrder()
+        showSuccess(actionConfig.success)
+
+        if (isKds && (action === 'cancel' || action === 'delivered')) {
+          navigation.goBack()
+        }
+      } catch (actionError) {
+        showError(formatApiError(actionError))
+      } finally {
+        setFood99ActionLoading('')
+      }
+    },
+    [
+      item?.id,
+      isFood99Order,
+      food99ActionLoading,
+      refreshCurrentOrder,
+      showSuccess,
+      showError,
+      isKds,
+      navigation,
+    ],
+  )
+
   return (
     <SafeAreaView
       style={[
@@ -99,14 +185,64 @@ const OrderDetails = ({ route, navigation }) => {
             <>
               <OrderHeader order={item} showCustomer />
 
-              <View style={localStyles.kdsActionRow}>
-                <TouchableOpacity style={[localStyles.kdsActionButton, localStyles.kdsActionDanger]}>
-                  <Text style={localStyles.kdsActionText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[localStyles.kdsActionButton, localStyles.kdsActionSuccess]}>
-                  <Text style={localStyles.kdsActionText}>Entregue</Text>
-                </TouchableOpacity>
-              </View>
+              {isFood99Order ? (
+                <View style={localStyles.kdsActionRow}>
+                  <TouchableOpacity
+                    onPress={() => runFood99OrderAction('cancel')}
+                    disabled={!!food99ActionLoading}
+                    style={[
+                      localStyles.kdsActionButton,
+                      localStyles.kdsActionDanger,
+                      food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                    ]}
+                  >
+                    {food99ActionLoading === 'cancel' ? (
+                      <ActivityIndicator size="small" color="#F8FAFC" />
+                    ) : (
+                      <Text style={localStyles.kdsActionText}>Cancelar</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => runFood99OrderAction('ready')}
+                    disabled={!!food99ActionLoading}
+                    style={[
+                      localStyles.kdsActionButton,
+                      localStyles.kdsActionPrimary,
+                      food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                    ]}
+                  >
+                    {food99ActionLoading === 'ready' ? (
+                      <ActivityIndicator size="small" color="#F8FAFC" />
+                    ) : (
+                      <Text style={localStyles.kdsActionText}>Pronto</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => runFood99OrderAction('delivered')}
+                    disabled={!!food99ActionLoading}
+                    style={[
+                      localStyles.kdsActionButton,
+                      localStyles.kdsActionSuccess,
+                      food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                    ]}
+                  >
+                    {food99ActionLoading === 'delivered' ? (
+                      <ActivityIndicator size="small" color="#F8FAFC" />
+                    ) : (
+                      <Text style={localStyles.kdsActionText}>Entregue</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={localStyles.kdsActionRow}>
+                  <TouchableOpacity style={[localStyles.kdsActionButton, localStyles.kdsActionDanger]}>
+                    <Text style={localStyles.kdsActionText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[localStyles.kdsActionButton, localStyles.kdsActionSuccess]}>
+                    <Text style={localStyles.kdsActionText}>Entregue</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <View style={localStyles.kdsActionRow}>
                 {showBarcodeInput && isManualInput && (
@@ -245,6 +381,9 @@ const createStyles = scale =>
       color: '#F8FAFC',
       fontSize: 14,
       fontWeight: '700',
+    },
+    kdsActionButtonDisabled: {
+      opacity: 0.6,
     },
   })
 
