@@ -50,6 +50,24 @@ const formatFood99Eta = value => {
   return normalized
 }
 
+const normalizeErrno = value => String(value ?? '').trim()
+
+const hasErrnoError = value => {
+  const normalized = normalizeErrno(value)
+  if (!normalized) return false
+  return normalized !== '0'
+}
+
+const formatAgeMinutes = value => {
+  if (value === null || value === undefined || value === '') return ''
+
+  const minutes = Number(value)
+  if (!Number.isFinite(minutes) || minutes < 0) return ''
+  if (minutes === 0) return 'agora'
+  if (minutes === 1) return 'ha 1 min'
+  return `ha ${minutes} min`
+}
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
@@ -161,6 +179,7 @@ const OrderDetails = ({ route, navigation }) => {
         return
       }
 
+      const reconcilePath = `/marketplace/integrations/99food/orders/${item.id}/reconcile`
       const actionMap = {
         ready: {
           path: `/marketplace/integrations/99food/orders/${item.id}/ready`,
@@ -173,6 +192,10 @@ const OrderDetails = ({ route, navigation }) => {
         delivered: {
           path: `/marketplace/integrations/99food/orders/${item.id}/delivered`,
           success: 'Pedido finalizado na 99Food.',
+        },
+        reconcile: {
+          path: reconcilePath,
+          success: 'Pedido sincronizado com a 99Food.',
         },
       }
 
@@ -188,12 +211,30 @@ const OrderDetails = ({ route, navigation }) => {
           body: {},
         })
 
-        if ((response?.result?.errno ?? 1) !== 0) {
+        if (normalizeErrno(response?.result?.errno) !== '0') {
           throw response?.result || response
         }
 
         if (response?.state) {
           setFood99State(response.state)
+        }
+
+        if (action === 'ready') {
+          try {
+            const reconcileResponse = await api.fetch(reconcilePath, {
+              method: 'POST',
+              body: {},
+            })
+
+            if (
+              normalizeErrno(reconcileResponse?.result?.errno) === '0' &&
+              reconcileResponse?.state
+            ) {
+              setFood99State(reconcileResponse.state)
+            }
+          } catch {
+            // Keep user flow going; full state refresh runs below.
+          }
         }
 
         await refreshCurrentOrder()
@@ -224,10 +265,19 @@ const OrderDetails = ({ route, navigation }) => {
 
   const food99Delivery = food99State?.delivery || null
   const food99Integration = food99State?.integration || null
+  const food99Observability = food99State?.observability || null
   const canManualCompleteFood99Order = !!food99Delivery?.allows_manual_delivery_completion
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const isFood99Ready = String(food99Integration?.remote_order_state || '').toLowerCase() === 'ready'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
+  const remoteStateAgeLabel = formatAgeMinutes(food99Observability?.remote_state_age_minutes)
+  const lastActionAgeLabel = formatAgeMinutes(food99Observability?.last_action_age_minutes)
+  const lastReconcileAgeLabel = formatAgeMinutes(food99Observability?.last_reconcile_age_minutes)
+  const hasFood99SyncIssue =
+    food99Observability?.is_healthy === false ||
+    hasErrnoError(food99Integration?.last_action_errno) ||
+    hasErrnoError(food99Integration?.confirm_errno) ||
+    hasErrnoError(food99Integration?.reconcile_errno)
 
   return (
     <SafeAreaView
@@ -264,6 +314,12 @@ const OrderDetails = ({ route, navigation }) => {
                     Status remoto: {food99Delivery?.remote_delivery_status || food99Integration?.remote_order_state || 'Sem retorno'}
                   </Text>
 
+                  {!!remoteStateAgeLabel && (
+                    <Text style={localStyles.food99InfoText}>
+                      Atualizacao remota: {remoteStateAgeLabel}
+                    </Text>
+                  )}
+
                   {!!formattedFood99Eta && (
                     <Text style={localStyles.food99InfoText}>
                       ETA previsto: {formattedFood99Eta}
@@ -294,9 +350,27 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   ) : null}
 
+                  {!!lastActionAgeLabel && (
+                    <Text style={localStyles.food99InfoText}>
+                      Ultima acao: {lastActionAgeLabel}
+                    </Text>
+                  )}
+
+                  {!!lastReconcileAgeLabel && (
+                    <Text style={localStyles.food99InfoText}>
+                      Ultima conciliacao: {lastReconcileAgeLabel}
+                    </Text>
+                  )}
+
                   {shouldHideReadyFood99Action ? (
                     <Text style={localStyles.food99InfoHint}>
                       Pedido pronto aguardando plataforma. O cliente sera atualizado pela 99Food.
+                    </Text>
+                  ) : null}
+
+                  {hasFood99SyncIssue ? (
+                    <Text style={localStyles.food99InfoWarning}>
+                      Integracao com divergencia. Use Sincronizar para atualizar o estado.
                     </Text>
                   ) : null}
                 </View>
@@ -353,6 +427,21 @@ const OrderDetails = ({ route, navigation }) => {
                       )}
                     </TouchableOpacity>
                   )}
+                  <TouchableOpacity
+                    onPress={() => runFood99OrderAction('reconcile')}
+                    disabled={!!food99ActionLoading}
+                    style={[
+                      localStyles.kdsActionButton,
+                      localStyles.kdsActionNeutral,
+                      food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                    ]}
+                  >
+                    {food99ActionLoading === 'reconcile' ? (
+                      <ActivityIndicator size="small" color="#F8FAFC" />
+                    ) : (
+                      <Text style={localStyles.kdsActionText}>Sincronizar</Text>
+                    )}
+                  </TouchableOpacity>
                 </View>
               ) : (
                 <View style={localStyles.kdsActionRow}>
@@ -534,6 +623,10 @@ const createStyles = scale =>
       backgroundColor: '#102617',
       borderColor: '#166534',
     },
+    kdsActionNeutral: {
+      backgroundColor: '#1E293B',
+      borderColor: '#334155',
+    },
     kdsActionText: {
       color: '#F8FAFC',
       fontSize: 14,
@@ -541,6 +634,12 @@ const createStyles = scale =>
     },
     kdsActionButtonDisabled: {
       opacity: 0.6,
+    },
+    food99InfoWarning: {
+      color: '#FDBA74',
+      fontSize: 12,
+      fontWeight: '700',
+      marginTop: 6,
     },
   })
 
