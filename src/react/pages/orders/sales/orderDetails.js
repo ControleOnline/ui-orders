@@ -33,11 +33,30 @@ const formatApiError = error => {
   return error?.message || error?.description || error?.errmsg || 'Nao foi possivel concluir a operacao.'
 }
 
+const formatFood99Eta = value => {
+  if (value === null || value === undefined || value === '') return ''
+
+  const normalized = String(value).trim()
+  if (!normalized) return ''
+
+  if (/^\d+$/.test(normalized)) {
+    const timestamp = Number(normalized)
+    const date = new Date(timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp)
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleString('pt-BR')
+    }
+  }
+
+  return normalized
+}
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
   const { showError, showSuccess } = useMessage()
   const [food99ActionLoading, setFood99ActionLoading] = useState('')
+  const [food99State, setFood99State] = useState(null)
+  const [food99StateLoading, setFood99StateLoading] = useState(false)
 
   const ordersStore = useStore('orders')
   const { getters: ordersGetters, actions: ordersActions } = ordersStore
@@ -106,6 +125,36 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [orderParam, ordersActions])
 
+  const loadFood99OrderState = useCallback(async ({ silent = false } = {}) => {
+    if (!item?.id || !isFood99Order || !isKds) {
+      setFood99State(null)
+      return
+    }
+
+    try {
+      setFood99StateLoading(true)
+      const response = await api.fetch(
+        `/marketplace/integrations/99food/orders/${item.id}/state`,
+      )
+      setFood99State(response || null)
+    } catch (stateError) {
+      setFood99State(null)
+      if (!silent) {
+        showError(formatApiError(stateError))
+      }
+    } finally {
+      setFood99StateLoading(false)
+    }
+  }, [item?.id, isFood99Order, isKds, showError])
+
+  useFocusEffect(
+    useCallback(() => {
+      if (item?.id && isFood99Order && isKds) {
+        loadFood99OrderState({ silent: true })
+      }
+    }, [item?.id, isFood99Order, isKds, loadFood99OrderState]),
+  )
+
   const runFood99OrderAction = useCallback(
     async action => {
       if (!item?.id || !isFood99Order || food99ActionLoading) {
@@ -143,7 +192,12 @@ const OrderDetails = ({ route, navigation }) => {
           throw response?.result || response
         }
 
+        if (response?.state) {
+          setFood99State(response.state)
+        }
+
         await refreshCurrentOrder()
+        await loadFood99OrderState({ silent: true })
         showSuccess(actionConfig.success)
 
         if (isKds && (action === 'cancel' || action === 'delivered')) {
@@ -164,8 +218,14 @@ const OrderDetails = ({ route, navigation }) => {
       showError,
       isKds,
       navigation,
+      loadFood99OrderState,
     ],
   )
+
+  const food99Delivery = food99State?.delivery || null
+  const food99Integration = food99State?.integration || null
+  const canManualCompleteFood99Order = !!food99Delivery?.allows_manual_delivery_completion
+  const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
 
   return (
     <SafeAreaView
@@ -184,6 +244,55 @@ const OrderDetails = ({ route, navigation }) => {
           {isKds ? (
             <>
               <OrderHeader order={item} showCustomer />
+
+              {isFood99Order && (
+                <View style={localStyles.food99InfoCard}>
+                  <View style={localStyles.food99InfoHeader}>
+                    <Text style={localStyles.food99InfoTitle}>Operacao 99Food</Text>
+                    {food99StateLoading ? (
+                      <ActivityIndicator size="small" color="#38BDF8" />
+                    ) : (
+                      <Text style={localStyles.food99InfoBadge}>
+                        {food99Delivery?.delivery_label || 'Entrega indefinida'}
+                      </Text>
+                    )}
+                  </View>
+
+                  <Text style={localStyles.food99InfoText}>
+                    Status remoto: {food99Delivery?.remote_delivery_status || food99Integration?.remote_order_state || 'Sem retorno'}
+                  </Text>
+
+                  {!!formattedFood99Eta && (
+                    <Text style={localStyles.food99InfoText}>
+                      ETA previsto: {formattedFood99Eta}
+                    </Text>
+                  )}
+
+                  {!!food99Delivery?.handover_code && (
+                    <Text style={localStyles.food99InfoText}>
+                      Codigo de entrega: {food99Delivery.handover_code}
+                    </Text>
+                  )}
+
+                  {!!food99Delivery?.locator && (
+                    <Text style={localStyles.food99InfoText}>
+                      Localizador: {food99Delivery.locator}
+                    </Text>
+                  )}
+
+                  {!!food99Delivery?.virtual_phone_number && (
+                    <Text style={localStyles.food99InfoText}>
+                      Telefone virtual: {food99Delivery.virtual_phone_number}
+                    </Text>
+                  )}
+
+                  {food99Delivery?.is_platform_delivery ? (
+                    <Text style={localStyles.food99InfoHint}>
+                      Entrega 99: a loja conclui no status Pronto. A plataforma finaliza a entrega.
+                    </Text>
+                  ) : null}
+                </View>
+              )}
 
               {isFood99Order ? (
                 <View style={localStyles.kdsActionRow}>
@@ -217,21 +326,23 @@ const OrderDetails = ({ route, navigation }) => {
                       <Text style={localStyles.kdsActionText}>Pronto</Text>
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => runFood99OrderAction('delivered')}
-                    disabled={!!food99ActionLoading}
-                    style={[
-                      localStyles.kdsActionButton,
-                      localStyles.kdsActionSuccess,
-                      food99ActionLoading && localStyles.kdsActionButtonDisabled,
-                    ]}
-                  >
-                    {food99ActionLoading === 'delivered' ? (
-                      <ActivityIndicator size="small" color="#F8FAFC" />
-                    ) : (
-                      <Text style={localStyles.kdsActionText}>Entregue</Text>
-                    )}
-                  </TouchableOpacity>
+                  {canManualCompleteFood99Order && (
+                    <TouchableOpacity
+                      onPress={() => runFood99OrderAction('delivered')}
+                      disabled={!!food99ActionLoading}
+                      style={[
+                        localStyles.kdsActionButton,
+                        localStyles.kdsActionSuccess,
+                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                      ]}
+                    >
+                      {food99ActionLoading === 'delivered' ? (
+                        <ActivityIndicator size="small" color="#F8FAFC" />
+                      ) : (
+                        <Text style={localStyles.kdsActionText}>Entregue</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
                 </View>
               ) : (
                 <View style={localStyles.kdsActionRow}>
@@ -350,6 +461,42 @@ const createStyles = scale =>
     },
     kdsContainer: {
       backgroundColor: '#060A11',
+    },
+    food99InfoCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#163047',
+      backgroundColor: '#0A1420',
+      padding: 12,
+      marginBottom: 10,
+    },
+    food99InfoHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    food99InfoTitle: {
+      color: '#E2E8F0',
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    food99InfoBadge: {
+      color: '#7DD3FC',
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    food99InfoText: {
+      color: '#CBD5E1',
+      fontSize: 13,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    food99InfoHint: {
+      color: '#FCD34D',
+      fontSize: 12,
+      fontWeight: '700',
+      marginTop: 6,
     },
     kdsActionRow: {
       flexDirection: 'row',
