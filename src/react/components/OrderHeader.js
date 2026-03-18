@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, Animated } from 'react-native'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { getOrderChannelLabel, getOrderChannelLogo } from '@assets/ppc/channels'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
+import { buildFood99OrderSummary } from '../services/food99OrderSummary'
 
 const BRAND_LOGO = require('@assets/ppc/logo 512x512 r.png')
 
@@ -126,8 +127,13 @@ const OrderHeader = ({ order, compact = false, showCustomer = false }) => {
   const channelLabel = getOrderChannelLabel(order)
   const statusColor = order?.status?.color || '#6B7280'
   const externalOrderRef = getExternalOrderRef(order)
-  const customerName = getCustomerName(order)
-  const customerContact = getCustomerContact(order)
+  const food99Summary = buildFood99OrderSummary(order)
+  const displayPrice = Number.isFinite(Number(food99Summary?.financial?.customerTotal))
+    ? Number(food99Summary.financial.customerTotal)
+    : Number(order?.price || 0)
+  const customerName = getCustomerName(order) || normalizeText(food99Summary?.customer?.name)
+  const customerContact =
+    getCustomerContact(order) || normalizeText(food99Summary?.customer?.phone)
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
@@ -166,7 +172,7 @@ const OrderHeader = ({ order, compact = false, showCustomer = false }) => {
             </Text>
           </View>
           <Text style={styles.orderPrice}>
-            {Formatter.formatMoney(order?.price)}
+            {Formatter.formatMoney(displayPrice)}
           </Text>
         </View>
       </View>

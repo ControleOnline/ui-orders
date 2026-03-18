@@ -5,6 +5,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
+import {buildFood99OrderSummary} from '../services/food99OrderSummary';
 
 const withAlpha = (color, alphaHex) => {
   const raw = String(color || '').trim().replace('#', '');
@@ -34,6 +35,10 @@ const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
   const primaryColor = colors.primary || '#1B5587';
   const dangerColor = colors['danger'] || '#DC2626';
   const successColor = colors['success'] || '#16A34A';
+  const food99Summary = useMemo(() => buildFood99OrderSummary(order), [order]);
+  const resolvedPrice = Number.isFinite(Number(food99Summary?.financial?.customerTotal))
+    ? Number(food99Summary.financial.customerTotal)
+    : Number(order?.price || 0);
   const styles = useMemo(
     () =>
       createStyles({
@@ -46,9 +51,9 @@ const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (order && price == 0 && order.price > 0 && price != order.price)
-        setPrice(order.price);
-    }, [order]),
+      if (!order) return;
+      setPrice(resolvedPrice > 0 ? resolvedPrice : 0);
+    }, [order, resolvedPrice]),
   );
 
   useEffect(() => {
@@ -61,14 +66,22 @@ const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
   }, [price, setPrice]);
 
   useEffect(() => {
+    if (food99Summary?.payment) {
+      setPaid(Number(food99Summary.payment.amountPaid || 0));
+      return;
+    }
+
     if (invoices && invoices.length > 0) {
       const localPaid = invoices.reduce(
         (sum, invoice) => sum + parseFloat(invoice.price),
         0,
       );
       setPaid(localPaid);
+      return;
     }
-  }, [invoices]);
+
+    setPaid(0);
+  }, [food99Summary, invoices]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

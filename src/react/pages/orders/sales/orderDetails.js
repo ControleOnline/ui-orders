@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Linking,
   Modal,
   Text,
+  TextInput,
   View,
   ScrollView,
   TouchableOpacity,
@@ -14,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useStore } from '@store'
 import { api } from '@controleonline/ui-common/src/api'
+import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
@@ -54,6 +55,11 @@ const formatFood99Eta = value => {
 
 const normalizeErrno = value => String(value ?? '').trim()
 
+const normalizeDigits = (value, maxLength) =>
+  String(value ?? '')
+    .replace(/\D+/g, '')
+    .slice(0, maxLength)
+
 const hasErrnoError = value => {
   const normalized = normalizeErrno(value)
   if (!normalized) return false
@@ -78,6 +84,9 @@ const OrderDetails = ({ route, navigation }) => {
   const [food99State, setFood99State] = useState(null)
   const [food99StateLoading, setFood99StateLoading] = useState(false)
   const [deliveryCodeModalVisible, setDeliveryCodeModalVisible] = useState(false)
+  const [deliveryFlowStep, setDeliveryFlowStep] = useState('locator')
+  const [deliveryLocator, setDeliveryLocator] = useState('')
+  const [deliveryCustomerCode, setDeliveryCustomerCode] = useState('')
 
   const ordersStore = useStore('orders')
   const { getters: ordersGetters, actions: ordersActions } = ordersStore
@@ -220,9 +229,11 @@ const OrderDetails = ({ route, navigation }) => {
         setFood99ActionLoading(action)
         const response = await api.fetch(actionConfig.path, {
           method: 'POST',
-          body: options?.deliveryCode
-            ? { delivery_code: options.deliveryCode }
-            : {},
+          body: {
+            ...(options?.body || {}),
+            ...(options?.deliveryCode ? { delivery_code: options.deliveryCode } : {}),
+            ...(options?.locator ? { locator: options.locator } : {}),
+          },
         })
 
         if (normalizeErrno(response?.result?.errno) !== '0') {
@@ -256,6 +267,8 @@ const OrderDetails = ({ route, navigation }) => {
 
         if (action === 'delivered') {
           setDeliveryCodeModalVisible(false)
+          setDeliveryFlowStep('locator')
+          setDeliveryCustomerCode('')
         }
 
         showSuccess(actionConfig.success)
@@ -287,6 +300,12 @@ const OrderDetails = ({ route, navigation }) => {
   const food99Delivery = food99State?.delivery || null
   const food99Integration = food99State?.integration || null
   const food99Observability = food99State?.observability || null
+  const food99Financial = food99State?.financial || null
+  const food99Payment = food99State?.payment || null
+  const food99Customer = food99State?.customer || null
+  const food99Address = food99State?.address || null
+  const food99Notes = food99State?.notes || null
+  const food99Identifiers = food99State?.identifiers || null
   const food99Capabilities = food99State?.capabilities || {}
   const normalizedOrderRealStatus = String(
     food99State?.order?.status?.real_status || item?.status?.realStatus || '',
@@ -303,28 +322,23 @@ const OrderDetails = ({ route, navigation }) => {
     typeof food99Capabilities?.can_delivered === 'boolean'
       ? food99Capabilities.can_delivered
       : !!food99Delivery?.allows_manual_delivery_completion
-  const requiresFood99HandoverConfirmation =
-    typeof food99Capabilities?.requires_handover_confirmation === 'boolean'
-      ? food99Capabilities.requires_handover_confirmation
-      : !!food99Delivery?.handover_code
-  const canOpenFood99HandoverFlow =
-    typeof food99Capabilities?.can_open_handover_flow === 'boolean'
-      ? food99Capabilities.can_open_handover_flow
-      : !!(
-          food99Delivery?.handover_confirmation_url ||
-          food99Delivery?.handover_page_url ||
-          food99Delivery?.locator
-        )
-  const food99HandoverUrl =
-    food99Delivery?.handover_confirmation_url ||
-    food99Delivery?.handover_page_url ||
-    (food99Delivery?.locator
-      ? 'https://food-b-h5.99app.com/pt-BR/v2/confirmation-entrega'
-      : '')
-  const shouldShowFood99DeliveryAction =
-    canManualCompleteFood99Order || requiresFood99HandoverConfirmation
+  const requiresFood99DeliveryLocator =
+    typeof food99Capabilities?.requires_delivery_locator === 'boolean'
+      ? food99Capabilities.requires_delivery_locator
+      : !!food99Delivery?.is_store_delivery
+  const food99LocatorLength =
+    Number(food99Capabilities?.delivery_locator_length) > 0
+      ? Number(food99Capabilities.delivery_locator_length)
+      : 8
+  const food99DeliveryCodeLength =
+    Number(food99Capabilities?.delivery_code_length) > 0
+      ? Number(food99Capabilities.delivery_code_length)
+      : 4
+  const shouldShowFood99DeliveryAction = canManualCompleteFood99Order
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
+  const food99PickupCode = String(food99Delivery?.pickup_code || '').trim()
+  const food99HandoverCode = String(food99Delivery?.handover_code || '').trim()
   const isFood99Ready = String(food99Integration?.remote_order_state || '').toLowerCase() === 'ready'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
   const canReadyFood99Order =
@@ -346,40 +360,138 @@ const OrderDetails = ({ route, navigation }) => {
     hasErrnoError(food99Integration?.confirm_errno) ||
     hasErrnoError(food99Integration?.reconcile_errno)
 
-  const handleFood99DeliveredPress = useCallback(() => {
-    if (requiresFood99HandoverConfirmation) {
-      setDeliveryCodeModalVisible(true)
+  const closeFood99DeliveryFlow = useCallback(() => {
+    if (food99ActionLoading) {
       return
     }
 
-    runFood99OrderAction('delivered')
-  }, [requiresFood99HandoverConfirmation, runFood99OrderAction])
+    setDeliveryCodeModalVisible(false)
+    setDeliveryFlowStep('locator')
+    setDeliveryCustomerCode('')
+  }, [food99ActionLoading])
 
-  const openFood99HandoverFlow = useCallback(async () => {
-    if (!food99HandoverUrl) {
-      showError(
-        'A 99Food nao enviou handover_page_url ou localizador para este pedido. Sem isso o PPC nao consegue reproduzir o fluxo oficial de homologacao.',
-      )
+  const openFood99DeliveryFlow = useCallback(() => {
+    setDeliveryLocator(normalizeDigits(food99Delivery?.locator, food99LocatorLength))
+    setDeliveryCustomerCode('')
+    setDeliveryFlowStep('locator')
+    setDeliveryCodeModalVisible(true)
+  }, [food99Delivery?.locator, food99LocatorLength])
+
+  const handleFood99LocatorVerify = useCallback(async () => {
+    if (!item?.id || !isFood99Order || food99ActionLoading) {
+      return
+    }
+
+    const normalizedLocator = normalizeDigits(deliveryLocator, food99LocatorLength)
+    if (normalizedLocator.length !== food99LocatorLength) {
+      showError(`Informe o localizador de ${food99LocatorLength} digitos.`)
       return
     }
 
     try {
-      if (typeof window !== 'undefined' && typeof window.open === 'function') {
-        window.open(food99HandoverUrl, '_blank', 'noopener,noreferrer')
-      } else {
-        await Linking.openURL(food99HandoverUrl)
+      setFood99ActionLoading('locator_verify')
+
+      const response = await api.fetch(
+        `/marketplace/integrations/99food/orders/${item.id}/delivery-locator/verify`,
+        {
+          method: 'POST',
+          body: {
+            locator: normalizedLocator,
+          },
+        },
+      )
+
+      if (normalizeErrno(response?.result?.errno) !== '0') {
+        throw response?.result || response
       }
 
-      setDeliveryCodeModalVisible(false)
-      showSuccess(
-        food99Delivery?.locator
-          ? 'Pagina de confirmacao da 99 aberta. Use o localizador e o codigo do cliente para concluir.'
-          : 'Pagina de confirmacao da 99 aberta. Conclua a entrega na 99 e depois atualize o pedido.',
-      )
-    } catch {
-      showError('Nao foi possivel abrir a pagina de confirmacao da 99Food.')
+      if (response?.state) {
+        setFood99State(response.state)
+      }
+
+      const flow = response?.flow || {}
+      const nextStep = String(flow?.step || '').toLowerCase()
+      setDeliveryLocator(flow?.locator || normalizedLocator)
+
+      await refreshCurrentOrder()
+      await loadFood99OrderState({ silent: true })
+
+      if (nextStep === 'completed') {
+        setDeliveryCodeModalVisible(false)
+        setDeliveryFlowStep('locator')
+        showSuccess('Entrega confirmada na 99Food.')
+
+        if (isKds) {
+          navigation.goBack()
+        }
+        return
+      }
+
+      if (nextStep === 'delivery_code') {
+        setDeliveryFlowStep('delivery_code')
+        showSuccess('Localizador validado. Agora confirme o codigo do cliente.')
+        return
+      }
+
+      throw response?.result || { message: 'A 99Food retornou um fluxo inesperado para o localizador.' }
+    } catch (actionError) {
+      showError(formatApiError(actionError))
+    } finally {
+      setFood99ActionLoading('')
     }
-  }, [food99Delivery?.locator, food99HandoverUrl, showError, showSuccess])
+  }, [
+    item?.id,
+    isFood99Order,
+    food99ActionLoading,
+    deliveryLocator,
+    food99LocatorLength,
+    showError,
+    refreshCurrentOrder,
+    loadFood99OrderState,
+    showSuccess,
+    isKds,
+    navigation,
+  ])
+
+  const handleFood99DeliveryCodeConfirm = useCallback(async () => {
+    const normalizedLocator = normalizeDigits(deliveryLocator, food99LocatorLength)
+    const normalizedDeliveryCode = normalizeDigits(
+      deliveryCustomerCode,
+      food99DeliveryCodeLength,
+    )
+
+    if (normalizedLocator.length !== food99LocatorLength) {
+      showError(`Informe o localizador de ${food99LocatorLength} digitos.`)
+      setDeliveryFlowStep('locator')
+      return
+    }
+
+    if (normalizedDeliveryCode.length !== food99DeliveryCodeLength) {
+      showError(`Informe o codigo do cliente com ${food99DeliveryCodeLength} digitos.`)
+      return
+    }
+
+    await runFood99OrderAction('delivered', {
+      locator: normalizedLocator,
+      deliveryCode: normalizedDeliveryCode,
+    })
+  }, [
+    deliveryLocator,
+    food99LocatorLength,
+    deliveryCustomerCode,
+    food99DeliveryCodeLength,
+    showError,
+    runFood99OrderAction,
+  ])
+
+  const handleFood99DeliveredPress = useCallback(() => {
+    if (requiresFood99DeliveryLocator) {
+      openFood99DeliveryFlow()
+      return
+    }
+
+    runFood99OrderAction('delivered')
+  }, [requiresFood99DeliveryLocator, openFood99DeliveryFlow, runFood99OrderAction])
 
   return (
     <SafeAreaView
@@ -399,17 +511,19 @@ const OrderDetails = ({ route, navigation }) => {
         visible={deliveryCodeModalVisible}
         onRequestClose={() => {
           if (!food99ActionLoading) {
-            setDeliveryCodeModalVisible(false)
+            closeFood99DeliveryFlow()
           }
         }}
       >
         <View style={localStyles.deliveryCodeOverlay}>
           <View style={localStyles.deliveryCodeModal}>
-            <Text style={localStyles.deliveryCodeTitle}>Finalizar entrega 99Food</Text>
+            <Text style={localStyles.deliveryCodeStepBadge}>
+              {deliveryFlowStep === 'locator' ? 'Passo 1 de 2' : 'Passo 2 de 2'}
+            </Text>
             <Text style={localStyles.deliveryCodeDescription}>
-              {canOpenFood99HandoverFlow
-                ? 'Para homologacao e conclusao correta, finalize pela pagina oficial da 99 com localizador e codigo do cliente.'
-                : 'Este pedido depende do fluxo oficial da 99, mas a plataforma nao enviou handover_page_url/localizador para abrir a confirmacao.'}
+              {deliveryFlowStep === 'locator'
+                ? 'Valide o localizador oficial da 99Food. Se ele nao vier no webhook, informe manualmente o numero do recibo.'
+                : 'Depois de encontrar o cliente, informe o codigo de confirmacao de 4 digitos para concluir a entrega.'}
             </Text>
 
             {!!food99Delivery?.locator && (
@@ -419,35 +533,102 @@ const OrderDetails = ({ route, navigation }) => {
               </View>
             )}
 
-            {!!food99Delivery?.handover_code && (
+            {!!food99PickupCode && (
               <View style={localStyles.deliveryCodeMetaCard}>
-                <Text style={localStyles.deliveryCodeMetaLabel}>Codigo do cliente</Text>
-                <Text style={localStyles.deliveryCodeMetaValue}>{food99Delivery.handover_code}</Text>
+                <Text style={localStyles.deliveryCodeMetaLabel}>Pickup code (99)</Text>
+                <Text style={localStyles.deliveryCodeMetaValue}>{food99PickupCode}</Text>
               </View>
             )}
 
+            {!!food99HandoverCode && food99HandoverCode !== food99PickupCode && (
+              <View style={localStyles.deliveryCodeMetaCard}>
+                <Text style={localStyles.deliveryCodeMetaLabel}>Handover code (99)</Text>
+                <Text style={localStyles.deliveryCodeMetaValue}>{food99HandoverCode}</Text>
+              </View>
+            )}
+
+            <Text style={localStyles.deliveryCodeTitle}>
+              {deliveryFlowStep === 'locator' ? 'Validar localizador' : 'Confirmar codigo do cliente'}
+            </Text>
+
+            <TextInput
+              value={deliveryFlowStep === 'locator' ? deliveryLocator : deliveryCustomerCode}
+              onChangeText={value => {
+                const normalizedValue = normalizeDigits(
+                  value,
+                  deliveryFlowStep === 'locator'
+                    ? food99LocatorLength
+                    : food99DeliveryCodeLength,
+                )
+
+                if (deliveryFlowStep === 'locator') {
+                  setDeliveryLocator(normalizedValue)
+                } else {
+                  setDeliveryCustomerCode(normalizedValue)
+                }
+              }}
+              placeholder={deliveryFlowStep === 'locator' ? '00000000' : '0000'}
+              placeholderTextColor="#64748B"
+              keyboardType="number-pad"
+              maxLength={
+                deliveryFlowStep === 'locator'
+                  ? food99LocatorLength
+                  : food99DeliveryCodeLength
+              }
+              editable={!food99ActionLoading}
+              style={localStyles.deliveryCodeInput}
+            />
+
+            <Text style={localStyles.deliveryCodeHelper}>
+              {deliveryFlowStep === 'locator'
+                ? `O localizador oficial da 99Food tem ${food99LocatorLength} digitos.`
+                : `O codigo do cliente tem ${food99DeliveryCodeLength} digitos.`}
+            </Text>
+
             <View style={localStyles.deliveryCodeActions}>
               <TouchableOpacity
-                onPress={() => setDeliveryCodeModalVisible(false)}
+                onPress={() => {
+                  if (deliveryFlowStep === 'delivery_code') {
+                    setDeliveryFlowStep('locator')
+                    setDeliveryCustomerCode('')
+                    return
+                  }
+
+                  closeFood99DeliveryFlow()
+                }}
                 style={[
                   localStyles.deliveryCodeButton,
                   localStyles.deliveryCodeButtonSecondary,
                 ]}
               >
-                <Text style={localStyles.deliveryCodeButtonSecondaryText}>Cancelar</Text>
+                <Text style={localStyles.deliveryCodeButtonSecondaryText}>
+                  {deliveryFlowStep === 'delivery_code' ? 'Voltar' : 'Cancelar'}
+                </Text>
               </TouchableOpacity>
 
-              {canOpenFood99HandoverFlow ? (
-                <TouchableOpacity
-                  onPress={openFood99HandoverFlow}
-                  style={[
-                    localStyles.deliveryCodeButton,
-                    localStyles.deliveryCodeButtonPrimary,
-                  ]}
-                >
-                  <Text style={localStyles.deliveryCodeButtonPrimaryText}>Abrir confirmacao 99</Text>
-                </TouchableOpacity>
-              ) : null}
+              <TouchableOpacity
+                onPress={
+                  deliveryFlowStep === 'locator'
+                    ? handleFood99LocatorVerify
+                    : handleFood99DeliveryCodeConfirm
+                }
+                disabled={!!food99ActionLoading}
+                style={[
+                  localStyles.deliveryCodeButton,
+                  localStyles.deliveryCodeButtonPrimary,
+                  !!food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                ]}
+              >
+                {food99ActionLoading === 'locator_verify' || food99ActionLoading === 'delivered' ? (
+                  <ActivityIndicator size="small" color="#F8FAFC" />
+                ) : (
+                  <Text style={localStyles.deliveryCodeButtonPrimaryText}>
+                    {deliveryFlowStep === 'locator'
+                      ? 'Verificar e continuar'
+                      : 'Concluir entrega'}
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -500,11 +681,15 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {isFood99Delivering ? (
                     <Text style={localStyles.food99InfoHint}>
-                      {requiresFood99HandoverConfirmation
-                        ? canOpenFood99HandoverFlow
-                          ? 'Pedido em entrega. Finalize pela confirmacao oficial da 99 com localizador e codigo do cliente.'
-                          : 'Pedido em entrega, mas a 99 nao enviou localizador/handover_page_url. Sem isso o PPC nao reproduz o fluxo oficial.'
+                      {requiresFood99DeliveryLocator
+                        ? 'Pedido em entrega. Use Entregue para validar o localizador e confirmar o codigo do cliente.'
                         : 'Pedido em entrega. Conclua em Entregue quando a loja finalizar no app 99Food.'}
+                    </Text>
+                  ) : null}
+
+                  {food99Delivery?.is_store_delivery && !food99Delivery?.locator ? (
+                    <Text style={localStyles.food99InfoWarning}>
+                      A 99 nao enviou o localizador neste payload. Pelo roteiro oficial, isso depende da lista de envio do localizador; use o numero do recibo manualmente e solicite habilitacao ao time da 99.
                     </Text>
                   ) : null}
 
@@ -520,9 +705,21 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   )}
 
-                  {!!food99Delivery?.handover_code && (
+                  {!!food99Identifiers?.order_index && (
                     <Text style={localStyles.food99InfoText}>
-                      Codigo de entrega: {food99Delivery.handover_code}
+                      Numero 99Food: #{food99Identifiers.order_index}
+                    </Text>
+                  )}
+
+                  {!!food99HandoverCode && (
+                    <Text style={localStyles.food99InfoText}>
+                      Handover code: {food99HandoverCode}
+                    </Text>
+                  )}
+
+                  {!!food99PickupCode && (
+                    <Text style={localStyles.food99InfoText}>
+                      Pickup code: {food99PickupCode}
                     </Text>
                   )}
 
@@ -536,6 +733,107 @@ const OrderDetails = ({ route, navigation }) => {
                     <Text style={localStyles.food99InfoText}>
                       Telefone virtual: {food99Delivery.virtual_phone_number}
                     </Text>
+                  )}
+
+                  {!!food99Payment?.pay_type_label && (
+                    <Text style={localStyles.food99InfoText}>
+                      Pagamento: {food99Payment.pay_type_label}
+                    </Text>
+                  )}
+
+                  {food99Payment && (
+                    <View style={localStyles.food99SummaryRow}>
+                      <View style={localStyles.food99SummaryPill}>
+                        <Text style={localStyles.food99SummaryLabel}>Pago</Text>
+                        <Text style={localStyles.food99SummaryValue}>
+                          {Formatter.formatMoney(food99Payment.amount_paid || 0)}
+                        </Text>
+                      </View>
+                      <View style={localStyles.food99SummaryPill}>
+                        <Text style={localStyles.food99SummaryLabel}>Pendente</Text>
+                        <Text style={localStyles.food99SummaryValue}>
+                          {Formatter.formatMoney(food99Payment.amount_pending || 0)}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {food99Financial && (
+                    <View style={localStyles.food99SummaryBlock}>
+                      <Text style={localStyles.food99SummaryTitle}>Resumo financeiro 99Food</Text>
+                      <Text style={localStyles.food99InfoText}>
+                        Itens: {Formatter.formatMoney(food99Financial.items_total || 0)}
+                      </Text>
+                      <Text style={localStyles.food99InfoText}>
+                        Entrega: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
+                      </Text>
+                      {!!Number(food99Financial.service_fee || 0) && (
+                        <Text style={localStyles.food99InfoText}>
+                          Taxa de servico: {Formatter.formatMoney(food99Financial.service_fee || 0)}
+                        </Text>
+                      )}
+                      {!!Number(food99Financial.small_order_fee || 0) && (
+                        <Text style={localStyles.food99InfoText}>
+                          Taxa de pedido minimo: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
+                        </Text>
+                      )}
+                      {!!Number(food99Financial.meal_top_up_fee || 0) && (
+                        <Text style={localStyles.food99InfoText}>
+                          Adicional/reforco: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
+                        </Text>
+                      )}
+                      {!!Number(food99Financial.discount_total || 0) && (
+                        <Text style={localStyles.food99InfoText}>
+                          Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
+                        </Text>
+                      )}
+                      {!!Number(food99Financial.store_discount_total || 0) && (
+                        <Text style={localStyles.food99InfoText}>
+                          Desconto subsidiado pela loja: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
+                        </Text>
+                      )}
+                      {!!Number(food99Financial.platform_discount_total || 0) && (
+                        <Text style={localStyles.food99InfoText}>
+                          Desconto subsidiado pela 99: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
+                        </Text>
+                      )}
+                      <Text style={localStyles.food99InfoTextStrong}>
+                        Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {!!food99Address?.display && (
+                    <View style={localStyles.food99SummaryBlock}>
+                      <Text style={localStyles.food99SummaryTitle}>Endereco do cliente</Text>
+                      <Text style={localStyles.food99InfoText}>{food99Address.display}</Text>
+                    </View>
+                  )}
+
+                  {(food99Customer?.name || food99Customer?.phone) && (
+                    <View style={localStyles.food99SummaryBlock}>
+                      <Text style={localStyles.food99SummaryTitle}>Cliente</Text>
+                      {!!food99Customer?.name && (
+                        <Text style={localStyles.food99InfoText}>{food99Customer.name}</Text>
+                      )}
+                      {!!food99Customer?.phone && (
+                        <Text style={localStyles.food99InfoText}>{food99Customer.phone}</Text>
+                      )}
+                    </View>
+                  )}
+
+                  {(food99Notes?.remark || food99Notes?.need_cutlery !== null && food99Notes?.need_cutlery !== undefined) && (
+                    <View style={localStyles.food99SummaryBlock}>
+                      <Text style={localStyles.food99SummaryTitle}>Observacoes</Text>
+                      {!!food99Notes?.remark && (
+                        <Text style={localStyles.food99InfoText}>{food99Notes.remark}</Text>
+                      )}
+                      {food99Notes?.need_cutlery !== null && food99Notes?.need_cutlery !== undefined && (
+                        <Text style={localStyles.food99InfoText}>
+                          Precisa de talheres: {food99Notes?.need_cutlery ? 'Sim' : 'Nao'}
+                        </Text>
+                      )}
+                    </View>
                   )}
 
                   {food99Delivery?.is_platform_delivery ? (
@@ -619,9 +917,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {food99ActionLoading === 'delivered' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>
-                          {requiresFood99HandoverConfirmation ? 'Confirmar na 99' : 'Entregue'}
-                        </Text>
+                        <Text style={localStyles.kdsActionText}>Entregue</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -779,6 +1075,12 @@ const createStyles = scale =>
       fontWeight: '600',
       marginBottom: 4,
     },
+    food99InfoTextStrong: {
+      color: '#F8FAFC',
+      fontSize: 13,
+      fontWeight: '800',
+      marginBottom: 4,
+    },
     food99InfoHint: {
       color: '#FCD34D',
       fontSize: 12,
@@ -797,6 +1099,49 @@ const createStyles = scale =>
     },
     food99RefreshButtonDisabled: {
       opacity: 0.55,
+    },
+    food99SummaryRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 8,
+      marginBottom: 2,
+    },
+    food99SummaryPill: {
+      flex: 1,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#1E3A5F',
+      backgroundColor: '#0B1220',
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    food99SummaryLabel: {
+      color: '#93C5FD',
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 3,
+    },
+    food99SummaryValue: {
+      color: '#F8FAFC',
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    food99SummaryBlock: {
+      marginTop: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#1E293B',
+      backgroundColor: '#0B1220',
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+    },
+    food99SummaryTitle: {
+      color: '#93C5FD',
+      fontSize: 12,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 4,
     },
     kdsActionRow: {
       flexDirection: 'row',
@@ -858,6 +1203,21 @@ const createStyles = scale =>
       backgroundColor: '#0A1420',
       padding: 18,
     },
+    deliveryCodeStepBadge: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: '#1D4ED8',
+      backgroundColor: '#0F172A',
+      color: '#93C5FD',
+      fontSize: 11,
+      fontWeight: '800',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      marginBottom: 10,
+      overflow: 'hidden',
+      textTransform: 'uppercase',
+    },
     deliveryCodeTitle: {
       color: '#F8FAFC',
       fontSize: 20,
@@ -868,6 +1228,26 @@ const createStyles = scale =>
       color: '#CBD5E1',
       fontSize: 13,
       lineHeight: 20,
+      marginBottom: 14,
+    },
+    deliveryCodeInput: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#1E3A5F',
+      backgroundColor: '#020617',
+      color: '#F8FAFC',
+      minHeight: 52,
+      paddingHorizontal: 16,
+      fontSize: 24,
+      fontWeight: '800',
+      letterSpacing: 6,
+      textAlign: 'center',
+      marginBottom: 10,
+    },
+    deliveryCodeHelper: {
+      color: '#94A3B8',
+      fontSize: 12,
+      fontWeight: '600',
       marginBottom: 14,
     },
     deliveryCodeActions: {
