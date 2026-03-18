@@ -179,6 +179,15 @@ const OrderDetails = ({ route, navigation }) => {
         return
       }
 
+      const capabilities = food99State?.capabilities || {}
+      if (
+        (action === 'ready' && capabilities.can_ready === false) ||
+        (action === 'cancel' && capabilities.can_cancel === false) ||
+        (action === 'delivered' && capabilities.can_delivered === false)
+      ) {
+        return
+      }
+
       const reconcilePath = `/marketplace/integrations/99food/orders/${item.id}/reconcile`
       const actionMap = {
         ready: {
@@ -254,6 +263,7 @@ const OrderDetails = ({ route, navigation }) => {
       item?.id,
       isFood99Order,
       food99ActionLoading,
+      food99State,
       refreshCurrentOrder,
       showSuccess,
       showError,
@@ -266,10 +276,36 @@ const OrderDetails = ({ route, navigation }) => {
   const food99Delivery = food99State?.delivery || null
   const food99Integration = food99State?.integration || null
   const food99Observability = food99State?.observability || null
-  const canManualCompleteFood99Order = !!food99Delivery?.allows_manual_delivery_completion
+  const food99Capabilities = food99State?.capabilities || {}
+  const normalizedOrderRealStatus = String(
+    food99State?.order?.status?.real_status || item?.status?.realStatus || '',
+  ).toLowerCase()
+  const isTerminalFood99Order =
+    typeof food99Capabilities?.is_terminal === 'boolean'
+      ? food99Capabilities.is_terminal
+      : ['closed', 'cancelled', 'canceled'].includes(normalizedOrderRealStatus)
+  const canCancelFood99Order =
+    typeof food99Capabilities?.can_cancel === 'boolean'
+      ? food99Capabilities.can_cancel
+      : !isTerminalFood99Order
+  const canManualCompleteFood99Order =
+    typeof food99Capabilities?.can_delivered === 'boolean'
+      ? food99Capabilities.can_delivered
+      : !!food99Delivery?.allows_manual_delivery_completion
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
+  const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const isFood99Ready = String(food99Integration?.remote_order_state || '').toLowerCase() === 'ready'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
+  const canReadyFood99Order =
+    typeof food99Capabilities?.can_ready === 'boolean'
+      ? food99Capabilities.can_ready
+      : !isTerminalFood99Order && !shouldHideReadyFood99Action
+  const isFood99Delivering =
+    typeof food99Capabilities?.is_delivering === 'boolean'
+      ? food99Capabilities.is_delivering
+      : ['picked_up', 'delivering', 'arriving'].includes(
+          String(food99Integration?.remote_order_state || '').toLowerCase(),
+        )
   const remoteStateAgeLabel = formatAgeMinutes(food99Observability?.remote_state_age_minutes)
   const lastActionAgeLabel = formatAgeMinutes(food99Observability?.last_action_age_minutes)
   const lastReconcileAgeLabel = formatAgeMinutes(food99Observability?.last_reconcile_age_minutes)
@@ -313,6 +349,18 @@ const OrderDetails = ({ route, navigation }) => {
                   <Text style={localStyles.food99InfoText}>
                     Status remoto: {food99Delivery?.remote_delivery_status || food99Integration?.remote_order_state || 'Sem retorno'}
                   </Text>
+
+                  {!!remoteOrderStateLabel && (
+                    <Text style={localStyles.food99InfoText}>
+                      Estado remoto: {remoteOrderStateLabel}
+                    </Text>
+                  )}
+
+                  {isFood99Delivering ? (
+                    <Text style={localStyles.food99InfoHint}>
+                      Pedido em entrega. Conclua em Entregue quando a loja finalizar no app 99Food.
+                    </Text>
+                  ) : null}
 
                   {!!remoteStateAgeLabel && (
                     <Text style={localStyles.food99InfoText}>
@@ -378,22 +426,24 @@ const OrderDetails = ({ route, navigation }) => {
 
               {isFood99Order ? (
                 <View style={localStyles.kdsActionRow}>
-                  <TouchableOpacity
-                    onPress={() => runFood99OrderAction('cancel')}
-                    disabled={!!food99ActionLoading}
-                    style={[
-                      localStyles.kdsActionButton,
-                      localStyles.kdsActionDanger,
-                      food99ActionLoading && localStyles.kdsActionButtonDisabled,
-                    ]}
-                  >
-                    {food99ActionLoading === 'cancel' ? (
-                      <ActivityIndicator size="small" color="#F8FAFC" />
-                    ) : (
-                      <Text style={localStyles.kdsActionText}>Cancelar</Text>
-                    )}
-                  </TouchableOpacity>
-                  {!shouldHideReadyFood99Action && (
+                  {canCancelFood99Order && (
+                    <TouchableOpacity
+                      onPress={() => runFood99OrderAction('cancel')}
+                      disabled={!!food99ActionLoading}
+                      style={[
+                        localStyles.kdsActionButton,
+                        localStyles.kdsActionDanger,
+                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                      ]}
+                    >
+                      {food99ActionLoading === 'cancel' ? (
+                        <ActivityIndicator size="small" color="#F8FAFC" />
+                      ) : (
+                        <Text style={localStyles.kdsActionText}>Cancelar</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  {canReadyFood99Order && (
                     <TouchableOpacity
                       onPress={() => runFood99OrderAction('ready')}
                       disabled={!!food99ActionLoading}
