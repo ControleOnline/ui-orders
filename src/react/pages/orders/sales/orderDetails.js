@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Text,
-  TextInput,
   View,
   ScrollView,
   TouchableOpacity,
@@ -70,11 +70,6 @@ const formatAgeMinutes = value => {
   return `ha ${minutes} min`
 }
 
-const normalizeDeliveryCodeInput = value =>
-  String(value ?? '')
-    .replace(/\D/g, '')
-    .slice(0, 4)
-
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
@@ -83,7 +78,6 @@ const OrderDetails = ({ route, navigation }) => {
   const [food99State, setFood99State] = useState(null)
   const [food99StateLoading, setFood99StateLoading] = useState(false)
   const [deliveryCodeModalVisible, setDeliveryCodeModalVisible] = useState(false)
-  const [food99DeliveryCode, setFood99DeliveryCode] = useState('')
 
   const ordersStore = useStore('orders')
   const { getters: ordersGetters, actions: ordersActions } = ordersStore
@@ -262,7 +256,6 @@ const OrderDetails = ({ route, navigation }) => {
 
         if (action === 'delivered') {
           setDeliveryCodeModalVisible(false)
-          setFood99DeliveryCode('')
         }
 
         showSuccess(actionConfig.success)
@@ -282,7 +275,6 @@ const OrderDetails = ({ route, navigation }) => {
       food99ActionLoading,
       food99State,
       setDeliveryCodeModalVisible,
-      setFood99DeliveryCode,
       refreshCurrentOrder,
       showSuccess,
       showError,
@@ -311,11 +303,26 @@ const OrderDetails = ({ route, navigation }) => {
     typeof food99Capabilities?.can_delivered === 'boolean'
       ? food99Capabilities.can_delivered
       : !!food99Delivery?.allows_manual_delivery_completion
-  const food99DeliveryCodeLength = Number(food99Capabilities?.delivery_code_length || 4)
-  const requiresFood99DeliveryCode =
-    typeof food99Capabilities?.requires_delivery_code === 'boolean'
-      ? food99Capabilities.requires_delivery_code
-      : canManualCompleteFood99Order && !!food99Delivery?.handover_code
+  const requiresFood99HandoverConfirmation =
+    typeof food99Capabilities?.requires_handover_confirmation === 'boolean'
+      ? food99Capabilities.requires_handover_confirmation
+      : !!food99Delivery?.handover_code
+  const canOpenFood99HandoverFlow =
+    typeof food99Capabilities?.can_open_handover_flow === 'boolean'
+      ? food99Capabilities.can_open_handover_flow
+      : !!(
+          food99Delivery?.handover_confirmation_url ||
+          food99Delivery?.handover_page_url ||
+          food99Delivery?.locator
+        )
+  const food99HandoverUrl =
+    food99Delivery?.handover_confirmation_url ||
+    food99Delivery?.handover_page_url ||
+    (food99Delivery?.locator
+      ? 'https://food-b-h5.99app.com/pt-BR/v2/confirmation-entrega'
+      : '')
+  const shouldShowFood99DeliveryAction =
+    canManualCompleteFood99Order || requiresFood99HandoverConfirmation
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const isFood99Ready = String(food99Integration?.remote_order_state || '').toLowerCase() === 'ready'
@@ -340,28 +347,39 @@ const OrderDetails = ({ route, navigation }) => {
     hasErrnoError(food99Integration?.reconcile_errno)
 
   const handleFood99DeliveredPress = useCallback(() => {
-    if (requiresFood99DeliveryCode) {
-      setFood99DeliveryCode('')
+    if (requiresFood99HandoverConfirmation) {
       setDeliveryCodeModalVisible(true)
       return
     }
 
     runFood99OrderAction('delivered')
-  }, [requiresFood99DeliveryCode, runFood99OrderAction])
+  }, [requiresFood99HandoverConfirmation, runFood99OrderAction])
 
-  const handleFood99DeliveryCodeChange = useCallback(value => {
-    setFood99DeliveryCode(normalizeDeliveryCodeInput(value))
-  }, [])
-
-  const handleFood99DeliveryCodeConfirm = useCallback(() => {
-    const normalizedCode = normalizeDeliveryCodeInput(food99DeliveryCode)
-    if (normalizedCode.length !== food99DeliveryCodeLength) {
-      showError(`Informe o codigo de ${food99DeliveryCodeLength} digitos do cliente.`)
+  const openFood99HandoverFlow = useCallback(async () => {
+    if (!food99HandoverUrl) {
+      showError(
+        'A 99Food nao enviou handover_page_url ou localizador para este pedido. Sem isso o PPC nao consegue reproduzir o fluxo oficial de homologacao.',
+      )
       return
     }
 
-    runFood99OrderAction('delivered', { deliveryCode: normalizedCode })
-  }, [food99DeliveryCode, food99DeliveryCodeLength, runFood99OrderAction, showError])
+    try {
+      if (typeof window !== 'undefined' && typeof window.open === 'function') {
+        window.open(food99HandoverUrl, '_blank', 'noopener,noreferrer')
+      } else {
+        await Linking.openURL(food99HandoverUrl)
+      }
+
+      setDeliveryCodeModalVisible(false)
+      showSuccess(
+        food99Delivery?.locator
+          ? 'Pagina de confirmacao da 99 aberta. Use o localizador e o codigo do cliente para concluir.'
+          : 'Pagina de confirmacao da 99 aberta. Conclua a entrega na 99 e depois atualize o pedido.',
+      )
+    } catch {
+      showError('Nao foi possivel abrir a pagina de confirmacao da 99Food.')
+    }
+  }, [food99Delivery?.locator, food99HandoverUrl, showError, showSuccess])
 
   return (
     <SafeAreaView
@@ -387,51 +405,49 @@ const OrderDetails = ({ route, navigation }) => {
       >
         <View style={localStyles.deliveryCodeOverlay}>
           <View style={localStyles.deliveryCodeModal}>
-            <Text style={localStyles.deliveryCodeTitle}>Concluir entrega 99Food</Text>
+            <Text style={localStyles.deliveryCodeTitle}>Finalizar entrega 99Food</Text>
             <Text style={localStyles.deliveryCodeDescription}>
-              Confirme os {food99DeliveryCodeLength} digitos informados pelo cliente para finalizar a entrega da loja.
+              {canOpenFood99HandoverFlow
+                ? 'Para homologacao e conclusao correta, finalize pela pagina oficial da 99 com localizador e codigo do cliente.'
+                : 'Este pedido depende do fluxo oficial da 99, mas a plataforma nao enviou handover_page_url/localizador para abrir a confirmacao.'}
             </Text>
 
-            <TextInput
-              autoFocus
-              value={food99DeliveryCode}
-              onChangeText={handleFood99DeliveryCodeChange}
-              editable={food99ActionLoading !== 'delivered'}
-              keyboardType="number-pad"
-              maxLength={food99DeliveryCodeLength}
-              placeholder="0000"
-              placeholderTextColor="#64748B"
-              style={localStyles.deliveryCodeInput}
-            />
+            {!!food99Delivery?.locator && (
+              <View style={localStyles.deliveryCodeMetaCard}>
+                <Text style={localStyles.deliveryCodeMetaLabel}>Localizador</Text>
+                <Text style={localStyles.deliveryCodeMetaValue}>{food99Delivery.locator}</Text>
+              </View>
+            )}
+
+            {!!food99Delivery?.handover_code && (
+              <View style={localStyles.deliveryCodeMetaCard}>
+                <Text style={localStyles.deliveryCodeMetaLabel}>Codigo do cliente</Text>
+                <Text style={localStyles.deliveryCodeMetaValue}>{food99Delivery.handover_code}</Text>
+              </View>
+            )}
 
             <View style={localStyles.deliveryCodeActions}>
               <TouchableOpacity
                 onPress={() => setDeliveryCodeModalVisible(false)}
-                disabled={food99ActionLoading === 'delivered'}
                 style={[
                   localStyles.deliveryCodeButton,
                   localStyles.deliveryCodeButtonSecondary,
-                  food99ActionLoading === 'delivered' && localStyles.kdsActionButtonDisabled,
                 ]}
               >
                 <Text style={localStyles.deliveryCodeButtonSecondaryText}>Cancelar</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handleFood99DeliveryCodeConfirm}
-                disabled={food99ActionLoading === 'delivered'}
-                style={[
-                  localStyles.deliveryCodeButton,
-                  localStyles.deliveryCodeButtonPrimary,
-                  food99ActionLoading === 'delivered' && localStyles.kdsActionButtonDisabled,
-                ]}
-              >
-                {food99ActionLoading === 'delivered' ? (
-                  <ActivityIndicator size="small" color="#F8FAFC" />
-                ) : (
-                  <Text style={localStyles.deliveryCodeButtonPrimaryText}>Concluir entrega</Text>
-                )}
-              </TouchableOpacity>
+              {canOpenFood99HandoverFlow ? (
+                <TouchableOpacity
+                  onPress={openFood99HandoverFlow}
+                  style={[
+                    localStyles.deliveryCodeButton,
+                    localStyles.deliveryCodeButtonPrimary,
+                  ]}
+                >
+                  <Text style={localStyles.deliveryCodeButtonPrimaryText}>Abrir confirmacao 99</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         </View>
@@ -484,8 +500,10 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {isFood99Delivering ? (
                     <Text style={localStyles.food99InfoHint}>
-                      {requiresFood99DeliveryCode
-                        ? 'Pedido em entrega. Informe o codigo do cliente em Entregue para concluir.'
+                      {requiresFood99HandoverConfirmation
+                        ? canOpenFood99HandoverFlow
+                          ? 'Pedido em entrega. Finalize pela confirmacao oficial da 99 com localizador e codigo do cliente.'
+                          : 'Pedido em entrega, mas a 99 nao enviou localizador/handover_page_url. Sem isso o PPC nao reproduz o fluxo oficial.'
                         : 'Pedido em entrega. Conclua em Entregue quando a loja finalizar no app 99Food.'}
                     </Text>
                   ) : null}
@@ -588,7 +606,7 @@ const OrderDetails = ({ route, navigation }) => {
                       )}
                     </TouchableOpacity>
                   )}
-                  {canManualCompleteFood99Order && (
+                  {shouldShowFood99DeliveryAction && (
                     <TouchableOpacity
                       onPress={handleFood99DeliveredPress}
                       disabled={!!food99ActionLoading}
@@ -601,7 +619,9 @@ const OrderDetails = ({ route, navigation }) => {
                       {food99ActionLoading === 'delivered' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Entregue</Text>
+                        <Text style={localStyles.kdsActionText}>
+                          {requiresFood99HandoverConfirmation ? 'Confirmar na 99' : 'Entregue'}
+                        </Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -850,23 +870,31 @@ const createStyles = scale =>
       lineHeight: 20,
       marginBottom: 14,
     },
-    deliveryCodeInput: {
-      minHeight: 52,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#334155',
-      backgroundColor: '#020617',
-      color: '#F8FAFC',
-      fontSize: 24,
-      fontWeight: '800',
-      letterSpacing: 10,
-      textAlign: 'center',
-      paddingHorizontal: 16,
-      marginBottom: 14,
-    },
     deliveryCodeActions: {
       flexDirection: 'row',
       gap: 10,
+    },
+    deliveryCodeMetaCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#1E293B',
+      backgroundColor: '#020617',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 12,
+    },
+    deliveryCodeMetaLabel: {
+      color: '#94A3B8',
+      fontSize: 11,
+      fontWeight: '700',
+      marginBottom: 4,
+      textTransform: 'uppercase',
+    },
+    deliveryCodeMetaValue: {
+      color: '#F8FAFC',
+      fontSize: 20,
+      fontWeight: '800',
+      letterSpacing: 2,
     },
     deliveryCodeButton: {
       flex: 1,
