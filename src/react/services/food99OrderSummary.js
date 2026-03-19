@@ -157,7 +157,7 @@ export const buildFood99OrderSummary = order => {
     Math.round((discountTotal - storeDiscountTotal) * 100) / 100,
   )
   const isPlatformDelivery = deliveryType === '1'
-  const isPaidOnline = isPlatformDelivery || payType === '2'
+  const isPaidOnline = isPlatformDelivery
   const amountPaid = isPaidOnline ? customerTotal : 0
   const amountPending = Math.max(
     0,
@@ -184,10 +184,10 @@ export const buildFood99OrderSummary = order => {
       payTypeLabel: isPlatformDelivery
         ? 'Online pela 99Food'
         : payType === '2'
-          ? 'Online'
+          ? 'Pagamento fora da plataforma'
           : payType === '1'
             ? 'Pagamento na entrega'
-            : 'Indefinido',
+            : 'Pagamento fora da plataforma',
       amountPaid,
       amountPending,
       isPaidOnline,

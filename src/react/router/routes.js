@@ -134,7 +134,6 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       headerBackVisible: false,
-      showBottomCart: true,
       showBottomToolBar: true,
       title: 'Pedido',
     },

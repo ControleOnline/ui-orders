@@ -54,6 +54,19 @@ const formatFood99Eta = value => {
   return normalized
 }
 
+const formatFood99RiderEta = value => {
+  if (value === null || value === undefined || value === '') return ''
+
+  const minutes = Number(value)
+  if (!Number.isFinite(minutes) || minutes < 0) {
+    return String(value).trim()
+  }
+
+  if (minutes === 0) return 'Chegando agora'
+  if (minutes === 1) return 'Chega em 1 min'
+  return `Chega em ${minutes} min`
+}
+
 const normalizeErrno = value => String(value ?? '').trim()
 
 const normalizeDigits = (value, maxLength) =>
@@ -112,6 +125,17 @@ const normalizeFood99CancelReasonId = value => {
   return Number.isFinite(normalized) && normalized > 0 ? normalized : null
 }
 
+const formatOrderDateTime = value => {
+  if (!value) return ''
+
+  const date = new Date(value)
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleString('pt-BR')
+  }
+
+  return String(value)
+}
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
@@ -124,6 +148,8 @@ const OrderDetails = ({ route, navigation }) => {
   const [cancelReasonModalVisible, setCancelReasonModalVisible] = useState(false)
   const [selectedFood99CancelReasonId, setSelectedFood99CancelReasonId] = useState(null)
   const [food99CancelReasonText, setFood99CancelReasonText] = useState('')
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false)
+  const [markPaidLoading, setMarkPaidLoading] = useState(false)
   const [deliveryCodeModalVisible, setDeliveryCodeModalVisible] = useState(false)
   const [deliveryFlowStep, setDeliveryFlowStep] = useState('locator')
   const [deliveryLocator, setDeliveryLocator] = useState('')
@@ -136,6 +162,9 @@ const OrderDetails = ({ route, navigation }) => {
   const invoiceStore = useStore('invoice')
   const { getters: invoiceGetters, actions: invoiceActions } = invoiceStore
   const { items: invoices } = invoiceGetters
+  const peopleStore = useStore('people')
+  const { getters: peopleGetters } = peopleStore
+  const { defaultCompany } = peopleGetters
 
   const { styles: cssStyles, globalStyles } = css()
   const { width } = useWindowDimensions()
@@ -186,10 +215,6 @@ const OrderDetails = ({ route, navigation }) => {
     navigation.navigate('AddProductScreen')
   }
 
-  const handleOrderTools = () => {
-    navigation.navigate('OrderTools')
-  }
-
   const refreshCurrentOrder = useCallback(async () => {
     if (orderParam && orderParam['@id']) {
       await ordersActions.get(orderParam['@id'])
@@ -197,7 +222,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [orderParam, ordersActions])
 
   const loadFood99OrderState = useCallback(async ({ silent = false } = {}) => {
-    if (!item?.id || !isFood99Order || !isKds) {
+    if (!item?.id || !isFood99Order) {
       setFood99State(null)
       return
     }
@@ -216,14 +241,14 @@ const OrderDetails = ({ route, navigation }) => {
     } finally {
       setFood99StateLoading(false)
     }
-  }, [item?.id, isFood99Order, isKds, showError])
+  }, [item?.id, isFood99Order, showError])
 
   useFocusEffect(
     useCallback(() => {
-      if (item?.id && isFood99Order && isKds) {
+      if (item?.id && isFood99Order) {
         loadFood99OrderState({ silent: true })
       }
-    }, [item?.id, isFood99Order, isKds, loadFood99OrderState]),
+    }, [item?.id, isFood99Order, loadFood99OrderState]),
   )
 
   const resetFood99CancelReasonFlow = useCallback(() => {
@@ -390,14 +415,19 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldShowFood99DeliveryAction = canManualCompleteFood99Order
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
+  const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
   const food99Locator = String(food99Delivery?.locator || '').trim()
   const food99PickupCode = String(food99Delivery?.pickup_code || '').trim()
   const food99HandoverCode = String(food99Delivery?.handover_code || '').trim()
+  const food99RiderName = String(food99Delivery?.rider_name || '').trim()
+  const food99RiderPhone = String(food99Delivery?.rider_phone || '').trim()
+  const food99RiderToStoreEta = formatFood99RiderEta(food99Delivery?.rider_to_store_eta)
   const food99HandoverLink = String(
     food99Delivery?.handover_confirmation_url || food99Delivery?.handover_page_url || '',
   ).trim()
   const activeFood99Locator = String(deliveryLocator || food99Locator).trim()
-  const isFood99Ready = String(food99Integration?.remote_order_state || '').toLowerCase() === 'ready'
+  const isFood99Ready = remoteOrderStateKey === 'ready'
+  const isFood99CourierToStore = remoteOrderStateKey === 'courier_to_store'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
   const canReadyFood99Order =
     typeof food99Capabilities?.can_ready === 'boolean'
@@ -415,12 +445,29 @@ const OrderDetails = ({ route, navigation }) => {
   const isFood99Delivering =
     typeof food99Capabilities?.is_delivering === 'boolean'
       ? food99Capabilities.is_delivering
-      : ['picked_up', 'delivering', 'arriving'].includes(
-          String(food99Integration?.remote_order_state || '').toLowerCase(),
-        )
+      : ['courier_to_store', 'picked_up', 'delivering', 'arriving'].includes(remoteOrderStateKey)
   const remoteStateAgeLabel = formatAgeMinutes(food99Observability?.remote_state_age_minutes)
   const lastActionAgeLabel = formatAgeMinutes(food99Observability?.last_action_age_minutes)
   const lastReconcileAgeLabel = formatAgeMinutes(food99Observability?.last_reconcile_age_minutes)
+  const localPaidAmount = Array.isArray(invoices)
+    ? invoices.reduce((sum, invoice) => sum + Number(invoice?.price || 0), 0)
+    : 0
+  const localOrderTotal = Number(item?.price || 0)
+  const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
+  const paidStatusId = String(defaultCompany?.configs?.['pos-paid-status'] || '').trim()
+  const localStatusLabel = String(item?.status?.status || '').trim().toLowerCase()
+  const localStatusId = String(item?.status?.['@id'] || item?.status?.id || '').trim()
+  const isStatusMarkedPaid =
+    localStatusLabel === 'paid' ||
+    (paidStatusId &&
+      (localStatusId === paidStatusId ||
+        localStatusId.endsWith(`/${paidStatusId}`)))
+  const isFinanciallyPaid =
+    (isFood99Order && food99Payment?.is_fully_paid) ||
+    localPendingAmount <= 0.009
+  const isOrderPaidForCompletion = isStatusMarkedPaid || isFinanciallyPaid
+  const canMarkOrderAsPaid =
+    !!item?.id && !!paidStatusId && !isStatusMarkedPaid
   const hasFood99SyncIssue =
     food99Observability?.is_healthy === false ||
     hasErrnoError(food99Integration?.last_action_errno) ||
@@ -436,6 +483,51 @@ const OrderDetails = ({ route, navigation }) => {
     setDeliveryFlowStep('locator')
     setDeliveryCustomerCode('')
   }, [food99ActionLoading])
+
+  const closeDetailsModal = useCallback(() => {
+    setDetailsModalVisible(false)
+  }, [])
+
+  const handleOrderTools = useCallback(async () => {
+    setDetailsModalVisible(true)
+
+    if (item?.id && isFood99Order && !food99State && !food99StateLoading) {
+      await loadFood99OrderState({ silent: true })
+    }
+  }, [item?.id, isFood99Order, food99State, food99StateLoading, loadFood99OrderState])
+
+  const handleMarkOrderAsPaid = useCallback(async () => {
+    if (!item?.id || !paidStatusId || markPaidLoading) {
+      return
+    }
+
+    try {
+      setMarkPaidLoading(true)
+      const updatedOrder = await ordersActions.save({
+        id: item.id,
+        status: `/statuses/${paidStatusId}`,
+      })
+
+      if (updatedOrder) {
+        ordersActions.setItem(updatedOrder)
+      }
+
+      await refreshCurrentOrder()
+      showSuccess('Pedido marcado como pago.')
+    } catch (saveError) {
+      showError(formatApiError(saveError))
+    } finally {
+      setMarkPaidLoading(false)
+    }
+  }, [
+    item?.id,
+    paidStatusId,
+    markPaidLoading,
+    ordersActions,
+    refreshCurrentOrder,
+    showSuccess,
+    showError,
+  ])
 
   const openFood99DeliveryFlow = useCallback(() => {
     setDeliveryLocator(normalizeDigits(food99Delivery?.locator, food99LocatorLength))
@@ -691,13 +783,24 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   const handleFood99DeliveredPress = useCallback(() => {
+    if (!isOrderPaidForCompletion) {
+      showError('Marque o pedido como pago antes de concluir a entrega.')
+      return
+    }
+
     if (requiresFood99DeliveryLocator) {
       openFood99DeliveryFlow()
       return
     }
 
     runFood99OrderAction('delivered')
-  }, [requiresFood99DeliveryLocator, openFood99DeliveryFlow, runFood99OrderAction])
+  }, [
+    isOrderPaidForCompletion,
+    showError,
+    requiresFood99DeliveryLocator,
+    openFood99DeliveryFlow,
+    runFood99OrderAction,
+  ])
 
   const handleFood99CancelConfirm = useCallback(async () => {
     const reasonId = normalizeFood99CancelReasonId(selectedFood99CancelReasonId)
@@ -737,6 +840,267 @@ const OrderDetails = ({ route, navigation }) => {
       {showBarcodeInput && <BarcodeInput />}
 
       <StateStore store="orders" />
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={detailsModalVisible}
+        onRequestClose={closeDetailsModal}
+      >
+        <View style={localStyles.deliveryCodeOverlay}>
+          <View style={localStyles.detailsModal}>
+            <View style={localStyles.detailsModalHeader}>
+              <View>
+                <Text style={localStyles.detailsModalEyebrow}>Resumo do pedido</Text>
+                <Text style={localStyles.detailsModalTitle}>
+                  Pedido #{item?.id || orderParam?.id || '--'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={closeDetailsModal}
+                style={localStyles.detailsModalCloseButton}
+              >
+                <Icon name="close" size={22} color="#E2E8F0" />
+              </TouchableOpacity>
+            </View>
+
+            {canMarkOrderAsPaid && (
+              <TouchableOpacity
+                onPress={handleMarkOrderAsPaid}
+                disabled={markPaidLoading}
+                style={[
+                  localStyles.detailsMarkPaidButton,
+                  markPaidLoading && localStyles.kdsActionButtonDisabled,
+                ]}
+              >
+                {markPaidLoading ? (
+                  <ActivityIndicator size="small" color="#F8FAFC" />
+                ) : (
+                  <>
+                    <Icon name="payments" size={18} color="#F8FAFC" />
+                    <Text style={localStyles.detailsMarkPaidButtonText}>
+                      Marcar como pago
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            <ScrollView
+              style={localStyles.detailsModalScroll}
+              contentContainerStyle={localStyles.detailsModalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={localStyles.detailsGrid}>
+                <View style={localStyles.detailsCard}>
+                  <Text style={localStyles.detailsCardLabel}>Aplicativo</Text>
+                  <Text style={localStyles.detailsCardValue}>{item?.app || '-'}</Text>
+                </View>
+                <View style={localStyles.detailsCard}>
+                  <Text style={localStyles.detailsCardLabel}>Status local</Text>
+                  <Text style={localStyles.detailsCardValue}>
+                    {item?.status?.status || item?.status?.realStatus || '-'}
+                  </Text>
+                </View>
+                <View style={localStyles.detailsCard}>
+                  <Text style={localStyles.detailsCardLabel}>Pagamento local</Text>
+                  <Text style={localStyles.detailsCardValue}>
+                    {isOrderPaidForCompletion ? 'Pago' : 'Pendente'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={localStyles.detailsSection}>
+                <Text style={localStyles.detailsSectionTitle}>Dados do pedido</Text>
+                <Text style={localStyles.detailsInfoText}>
+                  Criado em: {formatOrderDateTime(item?.orderDate)}
+                </Text>
+                <Text style={localStyles.detailsInfoText}>
+                  Alterado em: {formatOrderDateTime(item?.alterDate)}
+                </Text>
+                <Text style={localStyles.detailsInfoText}>
+                  Total local: {Formatter.formatMoney(localOrderTotal || 0)}
+                </Text>
+                <Text style={localStyles.detailsInfoText}>
+                  Pago local: {Formatter.formatMoney(localPaidAmount || 0)}
+                </Text>
+                <Text style={localStyles.detailsInfoText}>
+                  Pendente local: {Formatter.formatMoney(localPendingAmount || 0)}
+                </Text>
+              </View>
+
+              {isFood99Order && food99StateLoading && !food99State ? (
+                <View style={localStyles.detailsLoadingState}>
+                  <ActivityIndicator size="small" color="#38BDF8" />
+                  <Text style={localStyles.detailsLoadingText}>
+                    Carregando dados da integracao 99Food...
+                  </Text>
+                </View>
+              ) : null}
+
+              {isFood99Order && food99State ? (
+                <>
+                  <View style={localStyles.detailsSection}>
+                    <Text style={localStyles.detailsSectionTitle}>Operacao 99Food</Text>
+                    {!!food99Identifiers?.order_index && (
+                      <Text style={localStyles.detailsInfoText}>
+                        Numero 99Food: #{food99Identifiers.order_index}
+                      </Text>
+                    )}
+                    <Text style={localStyles.detailsInfoText}>
+                      Entrega: {food99Delivery?.delivery_label || '-'}
+                    </Text>
+                    <Text style={localStyles.detailsInfoText}>
+                      Estado remoto: {remoteOrderStateLabel || '-'}
+                    </Text>
+                    <Text style={localStyles.detailsInfoText}>
+                      Status remoto: {food99Delivery?.remote_delivery_status || '-'}
+                    </Text>
+                    {!!formattedFood99Eta && (
+                      <Text style={localStyles.detailsInfoText}>
+                        ETA previsto: {formattedFood99Eta}
+                      </Text>
+                    )}
+                    {!!food99Payment?.pay_type_label && (
+                      <Text style={localStyles.detailsInfoText}>
+                        Pagamento: {food99Payment.pay_type_label}
+                      </Text>
+                    )}
+                  </View>
+
+                  {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
+                    <View style={localStyles.detailsSection}>
+                      <Text style={localStyles.detailsSectionTitle}>Entregador 99</Text>
+                      {!!food99RiderName && (
+                        <Text style={localStyles.detailsInfoText}>Nome: {food99RiderName}</Text>
+                      )}
+                      {!!food99RiderPhone && (
+                        <Text style={localStyles.detailsInfoText}>Telefone: {food99RiderPhone}</Text>
+                      )}
+                      {!!food99RiderToStoreEta && (
+                        <Text style={localStyles.detailsInfoText}>
+                          ETA ate a loja: {food99RiderToStoreEta}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  {food99Financial && (
+                    <View style={localStyles.detailsSection}>
+                      <Text style={localStyles.detailsSectionTitle}>Financeiro 99Food</Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Itens: {Formatter.formatMoney(food99Financial.items_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Entrega: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Taxa de servico: {Formatter.formatMoney(food99Financial.service_fee || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Taxa de pedido minimo: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Adicional/reforco: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Desconto loja: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Desconto 99: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoTextStrong}>
+                        Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {food99Payment && (
+                    <View style={localStyles.detailsGrid}>
+                      <View style={localStyles.detailsCard}>
+                        <Text style={localStyles.detailsCardLabel}>Pago</Text>
+                        <Text style={localStyles.detailsCardValue}>
+                          {Formatter.formatMoney(food99Payment.amount_paid || 0)}
+                        </Text>
+                      </View>
+                      <View style={localStyles.detailsCard}>
+                        <Text style={localStyles.detailsCardLabel}>Pendente</Text>
+                        <Text style={localStyles.detailsCardValue}>
+                          {Formatter.formatMoney(food99Payment.amount_pending || 0)}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {(food99Customer?.name || food99Customer?.phone || food99Address?.display) && (
+                    <View style={localStyles.detailsSection}>
+                      <Text style={localStyles.detailsSectionTitle}>Cliente e entrega</Text>
+                      {!!food99Customer?.name && (
+                        <Text style={localStyles.detailsInfoText}>{food99Customer.name}</Text>
+                      )}
+                      {!!food99Customer?.phone && (
+                        <Text style={localStyles.detailsInfoText}>{food99Customer.phone}</Text>
+                      )}
+                      {!!food99Address?.display && (
+                        <Text style={localStyles.detailsInfoText}>{food99Address.display}</Text>
+                      )}
+                    </View>
+                  )}
+
+                  {(food99PickupCode ||
+                    food99HandoverCode ||
+                    food99Delivery?.locator ||
+                    food99Delivery?.virtual_phone_number) && (
+                    <View style={localStyles.detailsSection}>
+                      <Text style={localStyles.detailsSectionTitle}>Codigos e suporte</Text>
+                      {!!food99PickupCode && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Pickup code: {food99PickupCode}
+                        </Text>
+                      )}
+                      {!!food99HandoverCode && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Handover code: {food99HandoverCode}
+                        </Text>
+                      )}
+                      {!!food99Delivery?.locator && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Localizador: {food99Delivery.locator}
+                        </Text>
+                      )}
+                      {!!food99Delivery?.virtual_phone_number && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Telefone virtual: {food99Delivery.virtual_phone_number}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  {(food99Notes?.remark ||
+                    (food99Notes?.need_cutlery !== null &&
+                      food99Notes?.need_cutlery !== undefined)) && (
+                    <View style={localStyles.detailsSection}>
+                      <Text style={localStyles.detailsSectionTitle}>Observacoes</Text>
+                      {!!food99Notes?.remark && (
+                        <Text style={localStyles.detailsInfoText}>{food99Notes.remark}</Text>
+                      )}
+                      {food99Notes?.need_cutlery !== null &&
+                      food99Notes?.need_cutlery !== undefined ? (
+                        <Text style={localStyles.detailsInfoText}>
+                          Precisa de talheres: {food99Notes.need_cutlery ? 'Sim' : 'Nao'}
+                        </Text>
+                      ) : null}
+                    </View>
+                  )}
+                </>
+              ) : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         transparent
@@ -1092,7 +1456,13 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   )}
 
-                  {isFood99Delivering ? (
+                  {isFood99CourierToStore ? (
+                    <Text style={localStyles.food99InfoHint}>
+                      Entregador designado pela 99 e a caminho da loja. O proximo avancao depende dos webhooks logisticos da plataforma.
+                    </Text>
+                  ) : null}
+
+                  {isFood99Delivering && !isFood99CourierToStore ? (
                     <Text style={localStyles.food99InfoHint}>
                       {requiresFood99DeliveryLocator
                         ? 'Pedido em entrega. Use Entregue para validar o localizador e confirmar o codigo do cliente.'
@@ -1116,6 +1486,21 @@ const OrderDetails = ({ route, navigation }) => {
                     <Text style={localStyles.food99InfoText}>
                       ETA previsto: {formattedFood99Eta}
                     </Text>
+                  )}
+
+                  {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
+                    <View style={localStyles.food99SummaryBlock}>
+                      <Text style={localStyles.food99SummaryTitle}>Entregador 99</Text>
+                      {!!food99RiderName && (
+                        <Text style={localStyles.food99InfoText}>{food99RiderName}</Text>
+                      )}
+                      {!!food99RiderPhone && (
+                        <Text style={localStyles.food99InfoText}>{food99RiderPhone}</Text>
+                      )}
+                      {!!food99RiderToStoreEta && (
+                        <Text style={localStyles.food99InfoText}>{food99RiderToStoreEta}</Text>
+                      )}
+                    </View>
                   )}
 
                   {!!food99Identifiers?.order_index && (
@@ -1255,6 +1640,7 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   ) : null}
 
+
                   {!!lastActionAgeLabel && (
                     <Text style={localStyles.food99InfoText}>
                       Ultima acao: {lastActionAgeLabel}
@@ -1276,6 +1662,12 @@ const OrderDetails = ({ route, navigation }) => {
                   {hasFood99SyncIssue ? (
                     <Text style={localStyles.food99InfoWarning}>
                       Integracao com divergencia. Toque no refresh para atualizar o estado.
+                    </Text>
+                  ) : null}
+
+                  {!isOrderPaidForCompletion && shouldShowFood99DeliveryAction ? (
+                    <Text style={localStyles.food99InfoWarning}>
+                      Este pedido ainda nao esta pago localmente. Marque como pago em Detalhes antes de concluir a entrega.
                     </Text>
                   ) : null}
                 </View>
@@ -1321,11 +1713,12 @@ const OrderDetails = ({ route, navigation }) => {
                   {shouldShowFood99DeliveryAction && (
                     <TouchableOpacity
                       onPress={handleFood99DeliveredPress}
-                      disabled={!!food99ActionLoading}
+                      disabled={!!food99ActionLoading || !isOrderPaidForCompletion}
                       style={[
                         localStyles.kdsActionButton,
                         localStyles.kdsActionSuccess,
-                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                        (food99ActionLoading || !isOrderPaidForCompletion) &&
+                          localStyles.kdsActionButtonDisabled,
                       ]}
                     >
                       {food99ActionLoading === 'delivered' ? (
@@ -1678,6 +2071,145 @@ const createStyles = scale =>
     cancelReasonButtonDanger: {
       borderColor: '#991B1B',
       backgroundColor: '#7F1D1D',
+    },
+    detailsModal: {
+      width: '94%',
+      maxWidth: 860,
+      maxHeight: '88%',
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: '#163047',
+      backgroundColor: '#0A1420',
+      padding: 18,
+      shadowColor: '#020617',
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: 0.35,
+      shadowRadius: 18,
+      elevation: 14,
+    },
+    detailsModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginBottom: 14,
+    },
+    detailsModalEyebrow: {
+      color: '#93C5FD',
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    detailsModalTitle: {
+      color: '#F8FAFC',
+      fontSize: 28,
+      fontWeight: '900',
+    },
+    detailsModalCloseButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: '#1E3A5F',
+      backgroundColor: '#0F172A',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    detailsModalScroll: {
+      flexGrow: 0,
+    },
+    detailsModalScrollContent: {
+      paddingBottom: 6,
+      gap: 12,
+    },
+    detailsMarkPaidButton: {
+      minHeight: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#166534',
+      backgroundColor: '#102617',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 14,
+    },
+    detailsMarkPaidButtonText: {
+      color: '#F8FAFC',
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    detailsGrid: {
+      flexDirection: 'row',
+      gap: 10,
+      flexWrap: 'wrap',
+    },
+    detailsCard: {
+      flexGrow: 1,
+      minWidth: 180,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: '#1E293B',
+      backgroundColor: '#0B1220',
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+    },
+    detailsCardLabel: {
+      color: '#93C5FD',
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    detailsCardValue: {
+      color: '#F8FAFC',
+      fontSize: 17,
+      fontWeight: '800',
+    },
+    detailsSection: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: '#1E293B',
+      backgroundColor: '#0B1220',
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+    },
+    detailsSectionTitle: {
+      color: '#93C5FD',
+      fontSize: 12,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 6,
+    },
+    detailsInfoText: {
+      color: '#CBD5E1',
+      fontSize: 13,
+      fontWeight: '600',
+      lineHeight: 19,
+      marginBottom: 4,
+    },
+    detailsInfoTextStrong: {
+      color: '#F8FAFC',
+      fontSize: 13,
+      fontWeight: '800',
+      lineHeight: 19,
+      marginBottom: 4,
+    },
+    detailsLoadingState: {
+      minHeight: 120,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: '#1E293B',
+      backgroundColor: '#0B1220',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    detailsLoadingText: {
+      color: '#CBD5E1',
+      fontSize: 13,
+      fontWeight: '600',
     },
     kdsActionRow: {
       flexDirection: 'row',
