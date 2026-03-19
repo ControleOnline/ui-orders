@@ -443,7 +443,10 @@ const OrderDetails = ({ route, navigation }) => {
       delivery_discount_total: financial.deliveryDiscountTotal ?? 0,
       coupon_discount_total: financial.couponDiscountTotal ?? 0,
       customer_total: financial.customerTotal ?? 0,
+      customer_need_paying_money: financial.customerNeedPayingMoney ?? 0,
       store_receivable_total: financial.storeReceivableTotal ?? 0,
+      real_pay_total: financial.realPayTotal ?? 0,
+      refund_total: financial.refundTotal ?? 0,
       store_charged_delivery_price: financial.storeChargedDeliveryPrice ?? 0,
     }
   }, [fallbackFood99Summary])
@@ -458,6 +461,9 @@ const OrderDetails = ({ route, navigation }) => {
       pay_channel: payment.payChannel || '',
       amount_paid: payment.amountPaid ?? 0,
       amount_pending: payment.amountPending ?? 0,
+      customer_need_paying_money: payment.customerNeedPayingMoney ?? 0,
+      collect_on_delivery_amount: payment.collectOnDeliveryAmount ?? 0,
+      should_confirm_payment: !payment.isPaidOnline,
       is_fully_paid: !!payment.isFullyPaid,
       is_paid_online: !!payment.isPaidOnline,
     }
@@ -477,6 +483,15 @@ const OrderDetails = ({ route, navigation }) => {
 
     return {
       display: address.display || '',
+      street_name: address.streetName || '',
+      street_number: address.streetNumber || '',
+      district: address.district || '',
+      city: address.city || '',
+      state: address.state || '',
+      postal_code: address.postalCode || '',
+      reference: address.reference || '',
+      complement: address.complement || '',
+      poi_address: address.poiAddress || '',
     }
   }, [fallbackFood99Summary])
   const fallbackFood99Notes = fallbackFood99Summary?.notes || null
@@ -535,9 +550,21 @@ const OrderDetails = ({ route, navigation }) => {
         fallbackFood99Financial.coupon_discount_total,
       ),
       customer_total: resolvePreferredMoney(stateFinancial.customer_total, fallbackFood99Financial.customer_total),
+      customer_need_paying_money: resolvePreferredMoney(
+        stateFinancial.customer_need_paying_money,
+        fallbackFood99Financial.customer_need_paying_money,
+      ),
       store_receivable_total: resolvePreferredMoney(
         stateFinancial.store_receivable_total,
         fallbackFood99Financial.store_receivable_total,
+      ),
+      real_pay_total: resolvePreferredMoney(
+        stateFinancial.real_pay_total,
+        fallbackFood99Financial.real_pay_total,
+      ),
+      refund_total: resolvePreferredMoney(
+        stateFinancial.refund_total,
+        fallbackFood99Financial.refund_total,
       ),
       store_charged_delivery_price: resolvePreferredMoney(
         stateFinancial.store_charged_delivery_price,
@@ -565,6 +592,18 @@ const OrderDetails = ({ route, navigation }) => {
         statePayment.amount_pending,
         fallbackFood99Payment.amount_pending,
       ),
+      customer_need_paying_money: resolvePreferredMoney(
+        statePayment.customer_need_paying_money,
+        fallbackFood99Payment.customer_need_paying_money,
+      ),
+      collect_on_delivery_amount: resolvePreferredMoney(
+        statePayment.collect_on_delivery_amount,
+        fallbackFood99Payment.collect_on_delivery_amount,
+      ),
+      should_confirm_payment:
+        typeof statePayment.should_confirm_payment === 'boolean'
+          ? statePayment.should_confirm_payment
+          : !!fallbackFood99Payment.should_confirm_payment,
       is_fully_paid:
         typeof statePayment.is_fully_paid === 'boolean'
           ? statePayment.is_fully_paid
@@ -596,6 +635,31 @@ const OrderDetails = ({ route, navigation }) => {
       ...fallbackFood99Address,
       ...stateAddress,
       display: resolvePreferredText(stateAddress.display, fallbackFood99Address.display),
+      street_name: resolvePreferredText(
+        stateAddress.street_name,
+        stateAddress.streetName,
+        fallbackFood99Address.street_name,
+      ),
+      street_number: resolvePreferredText(
+        stateAddress.street_number,
+        stateAddress.streetNumber,
+        fallbackFood99Address.street_number,
+      ),
+      district: resolvePreferredText(stateAddress.district, fallbackFood99Address.district),
+      city: resolvePreferredText(stateAddress.city, fallbackFood99Address.city),
+      state: resolvePreferredText(stateAddress.state, fallbackFood99Address.state),
+      postal_code: resolvePreferredText(
+        stateAddress.postal_code,
+        stateAddress.postalCode,
+        fallbackFood99Address.postal_code,
+      ),
+      reference: resolvePreferredText(stateAddress.reference, fallbackFood99Address.reference),
+      complement: resolvePreferredText(stateAddress.complement, fallbackFood99Address.complement),
+      poi_address: resolvePreferredText(
+        stateAddress.poi_address,
+        stateAddress.poiAddress,
+        fallbackFood99Address.poi_address,
+      ),
     }
   }, [food99State?.address, fallbackFood99Address])
   const food99Notes = useMemo(() => {
@@ -670,6 +734,8 @@ const OrderDetails = ({ route, navigation }) => {
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
+  const normalizedFood99LastEventType = String(food99Integration?.last_event_type || '').toLowerCase()
+  const normalizedFood99LastAction = String(food99Integration?.last_action || '').toLowerCase()
   const food99Locator = String(food99Delivery?.locator || '').trim()
   const food99PickupCode = String(
     food99Delivery?.pickup_code || food99Identifiers?.pickup_code || '',
@@ -704,6 +770,45 @@ const OrderDetails = ({ route, navigation }) => {
     typeof food99Capabilities?.is_delivering === 'boolean'
       ? food99Capabilities.is_delivering
       : ['courier_to_store', 'picked_up', 'delivering', 'arriving'].includes(remoteOrderStateKey)
+  const hasFood99VisualData = !!(food99State || fallbackFood99Summary)
+  const food99PaymentMethodValue = resolvePreferredText(food99Payment?.pay_method)
+  const food99PaymentChannelValue = resolvePreferredText(food99Payment?.pay_channel)
+  const food99RemarkText = resolvePreferredText(food99Notes?.remark)
+  const food99AddressPrimaryLine = resolvePreferredText(
+    food99Address?.display,
+    food99Address?.poi_address,
+  )
+  const food99AddressStreetLine = [food99Address?.street_name, food99Address?.street_number]
+    .map(normalizeText)
+    .filter(Boolean)
+    .join(', ')
+  const food99AddressCityStateLine = [food99Address?.city, food99Address?.state]
+    .map(normalizeText)
+    .filter(Boolean)
+    .join(' / ')
+  const food99CollectOnDeliveryFallback = resolvePreferredMoney(
+    food99Payment?.collect_on_delivery_amount,
+    food99Payment?.amount_pending,
+  )
+  const food99CashCollectionAmount = resolvePreferredMoney(
+    food99Payment?.customer_need_paying_money ?? food99Financial?.customer_need_paying_money,
+    food99CollectOnDeliveryFallback,
+  )
+  const hasFood99CancellationInfo =
+    ['cancel_requested', 'partial_cancel', 'cancelled', 'canceled'].includes(remoteOrderStateKey) ||
+    !!food99Integration?.cancel_code ||
+    !!food99Integration?.cancel_reason
+  const food99CancellationSourceLabel =
+    normalizedFood99LastAction === 'cancel' &&
+    !hasErrnoError(food99Integration?.last_action_errno)
+      ? 'Loja'
+      : /(ordercancelapply|ordercancelrequest|cancelapply|cancelrequest)/.test(
+            normalizedFood99LastEventType,
+          )
+        ? 'Cliente'
+        : hasFood99CancellationInfo
+          ? 'Cliente / 99Food'
+          : ''
   const remoteStateAgeLabel = formatAgeMinutes(food99Observability?.remote_state_age_minutes)
   const lastActionAgeLabel = formatAgeMinutes(food99Observability?.last_action_age_minutes)
   const lastReconcileAgeLabel = formatAgeMinutes(food99Observability?.last_reconcile_age_minutes)
@@ -1196,7 +1301,7 @@ const OrderDetails = ({ route, navigation }) => {
                 </View>
               ) : null}
 
-              {isFood99Order && food99State ? (
+              {isFood99Order && hasFood99VisualData ? (
                 <>
                   <View style={localStyles.detailsSection}>
                     <Text style={localStyles.detailsSectionTitle}>Operacao 99Food</Text>
@@ -1224,10 +1329,34 @@ const OrderDetails = ({ route, navigation }) => {
                         Pagamento: {food99Payment.pay_type_label}
                       </Text>
                     )}
-                    {!!food99Payment?.pay_channel && (
+                    {!!food99PaymentMethodValue && (
                       <Text style={localStyles.detailsInfoText}>
-                        Canal de pagamento: {food99Payment.pay_channel}
+                        Metodo de pagamento (pay_method): {food99PaymentMethodValue}
                       </Text>
+                    )}
+                    {!!food99PaymentChannelValue && (
+                      <Text style={localStyles.detailsInfoText}>
+                        Canal de pagamento (pay_channel): {food99PaymentChannelValue}
+                      </Text>
+                    )}
+                    {hasFood99CancellationInfo && (
+                      <>
+                        {!!food99CancellationSourceLabel && (
+                          <Text style={localStyles.detailsInfoText}>
+                            Origem do cancelamento: {food99CancellationSourceLabel}
+                          </Text>
+                        )}
+                        {!!food99Integration?.cancel_code && (
+                          <Text style={localStyles.detailsInfoText}>
+                            Codigo de cancelamento: {food99Integration.cancel_code}
+                          </Text>
+                        )}
+                        {!!food99Integration?.cancel_reason && (
+                          <Text style={localStyles.detailsInfoText}>
+                            Motivo do cancelamento: {food99Integration.cancel_reason}
+                          </Text>
+                        )}
+                      </>
                     )}
                   </View>
 
@@ -1270,13 +1399,28 @@ const OrderDetails = ({ route, navigation }) => {
                         Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Desconto loja: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
+                        Desconto nos itens: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Desconto 99: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
+                        Desconto na entrega: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Cupom/desconto informado: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Cupom/desconto subsidiado pela loja: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Cupom/desconto subsidiado pela 99: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoText}>
+                        Taxa original de entrega: {Formatter.formatMoney(food99Financial.store_charged_delivery_price || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoTextStrong}>
                         Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
+                      </Text>
+                      <Text style={localStyles.detailsInfoTextStrong}>
+                        Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                       </Text>
                     </View>
                   )}
@@ -1295,20 +1439,68 @@ const OrderDetails = ({ route, navigation }) => {
                           {Formatter.formatMoney(food99Payment.amount_pending || 0)}
                         </Text>
                       </View>
+                      <View style={localStyles.detailsCard}>
+                        <Text style={localStyles.detailsCardLabel}>Cobrar cliente</Text>
+                        <Text style={localStyles.detailsCardValue}>
+                          {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                        </Text>
+                      </View>
                     </View>
                   )}
 
-                  {(food99Customer?.name || food99Customer?.phone || food99Address?.display) && (
+                  {(food99Customer?.name || food99Customer?.phone) && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Cliente e entrega</Text>
+                      <Text style={localStyles.detailsSectionTitle}>Cliente</Text>
                       {!!food99Customer?.name && (
                         <Text style={localStyles.detailsInfoText}>{food99Customer.name}</Text>
                       )}
                       {!!food99Customer?.phone && (
                         <Text style={localStyles.detailsInfoText}>{food99Customer.phone}</Text>
                       )}
-                      {!!food99Address?.display && (
-                        <Text style={localStyles.detailsInfoText}>{food99Address.display}</Text>
+                    </View>
+                  )}
+
+                  {(food99AddressPrimaryLine ||
+                    food99AddressStreetLine ||
+                    food99Address?.district ||
+                    food99AddressCityStateLine ||
+                    food99Address?.postal_code ||
+                    food99Address?.reference ||
+                    food99Address?.complement) && (
+                    <View style={localStyles.detailsSection}>
+                      <Text style={localStyles.detailsSectionTitle}>Endereco do cliente</Text>
+                      {!!food99AddressPrimaryLine && (
+                        <Text style={localStyles.detailsInfoText}>{food99AddressPrimaryLine}</Text>
+                      )}
+                      {!!food99AddressStreetLine && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Rua/numero: {food99AddressStreetLine}
+                        </Text>
+                      )}
+                      {!!food99Address?.district && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Bairro: {food99Address.district}
+                        </Text>
+                      )}
+                      {!!food99AddressCityStateLine && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Cidade/UF: {food99AddressCityStateLine}
+                        </Text>
+                      )}
+                      {!!food99Address?.postal_code && (
+                        <Text style={localStyles.detailsInfoText}>
+                          CEP: {food99Address.postal_code}
+                        </Text>
+                      )}
+                      {!!food99Address?.reference && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Referencia: {food99Address.reference}
+                        </Text>
+                      )}
+                      {!!food99Address?.complement && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Complemento: {food99Address.complement}
+                        </Text>
                       )}
                     </View>
                   )}
@@ -1342,22 +1534,18 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
-                  {(food99Notes?.remark ||
-                    (food99Notes?.need_cutlery !== null &&
-                      food99Notes?.need_cutlery !== undefined)) && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Observacoes</Text>
-                      {!!food99Notes?.remark && (
-                        <Text style={localStyles.detailsInfoText}>{food99Notes.remark}</Text>
-                      )}
-                      {food99Notes?.need_cutlery !== null &&
-                      food99Notes?.need_cutlery !== undefined ? (
-                        <Text style={localStyles.detailsInfoText}>
-                          Precisa de talheres: {food99Notes.need_cutlery ? 'Sim' : 'Nao'}
-                        </Text>
-                      ) : null}
-                    </View>
-                  )}
+                  <View style={localStyles.detailsSection}>
+                    <Text style={localStyles.detailsSectionTitle}>Observacoes</Text>
+                    <Text style={localStyles.detailsInfoText}>
+                      {food99RemarkText || 'Sem observacoes informadas pela 99Food.'}
+                    </Text>
+                    {food99Notes?.need_cutlery !== null &&
+                    food99Notes?.need_cutlery !== undefined ? (
+                      <Text style={localStyles.detailsInfoText}>
+                        Precisa de talheres: {food99Notes.need_cutlery ? 'Sim' : 'Nao'}
+                      </Text>
+                    ) : null}
+                  </View>
                 </>
               ) : null}
             </ScrollView>
@@ -1801,10 +1989,40 @@ const OrderDetails = ({ route, navigation }) => {
                       Pagamento: {food99Payment.pay_type_label}
                     </Text>
                   )}
-                  {!!food99Payment?.pay_channel && (
+                  {!!food99PaymentMethodValue && (
                     <Text style={localStyles.food99InfoText}>
-                      Canal de pagamento: {food99Payment.pay_channel}
+                      Metodo de pagamento (pay_method): {food99PaymentMethodValue}
                     </Text>
+                  )}
+                  {!!food99PaymentChannelValue && (
+                    <Text style={localStyles.food99InfoText}>
+                      Canal de pagamento (pay_channel): {food99PaymentChannelValue}
+                    </Text>
+                  )}
+                  {!food99Payment?.is_paid_online && (
+                    <Text style={localStyles.food99InfoTextStrong}>
+                      Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                    </Text>
+                  )}
+                  {hasFood99CancellationInfo && (
+                    <View style={localStyles.food99SummaryBlock}>
+                      <Text style={localStyles.food99SummaryTitle}>Cancelamento</Text>
+                      {!!food99CancellationSourceLabel && (
+                        <Text style={localStyles.food99InfoText}>
+                          Origem: {food99CancellationSourceLabel}
+                        </Text>
+                      )}
+                      {!!food99Integration?.cancel_code && (
+                        <Text style={localStyles.food99InfoText}>
+                          Codigo: {food99Integration.cancel_code}
+                        </Text>
+                      )}
+                      {!!food99Integration?.cancel_reason && (
+                        <Text style={localStyles.food99InfoText}>
+                          Motivo: {food99Integration.cancel_reason}
+                        </Text>
+                      )}
+                    </View>
                   )}
 
                   {food99Payment && (
@@ -1849,9 +2067,20 @@ const OrderDetails = ({ route, navigation }) => {
                         </Text>
                       )}
                       {!!Number(food99Financial.discount_total || 0) && (
-                        <Text style={localStyles.food99InfoText}>
-                          Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
-                        </Text>
+                        <>
+                          <Text style={localStyles.food99InfoText}>
+                            Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
+                          </Text>
+                          <Text style={localStyles.food99InfoText}>
+                            Desconto nos itens: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
+                          </Text>
+                          <Text style={localStyles.food99InfoText}>
+                            Desconto na entrega: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
+                          </Text>
+                          <Text style={localStyles.food99InfoText}>
+                            Cupom/desconto informado: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
+                          </Text>
+                        </>
                       )}
                       {!!Number(food99Financial.store_discount_total || 0) && (
                         <Text style={localStyles.food99InfoText}>
@@ -1866,13 +2095,56 @@ const OrderDetails = ({ route, navigation }) => {
                       <Text style={localStyles.food99InfoTextStrong}>
                         Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
                       </Text>
+                      {!food99Payment?.is_paid_online && (
+                        <Text style={localStyles.food99InfoTextStrong}>
+                          Receber em dinheiro: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                        </Text>
+                      )}
                     </View>
                   )}
 
-                  {!!food99Address?.display && (
+                  {(food99AddressPrimaryLine ||
+                    food99AddressStreetLine ||
+                    food99Address?.district ||
+                    food99AddressCityStateLine ||
+                    food99Address?.postal_code ||
+                    food99Address?.reference ||
+                    food99Address?.complement) && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>Endereco do cliente</Text>
-                      <Text style={localStyles.food99InfoText}>{food99Address.display}</Text>
+                      {!!food99AddressPrimaryLine && (
+                        <Text style={localStyles.food99InfoText}>{food99AddressPrimaryLine}</Text>
+                      )}
+                      {!!food99AddressStreetLine && (
+                        <Text style={localStyles.food99InfoText}>
+                          Rua/numero: {food99AddressStreetLine}
+                        </Text>
+                      )}
+                      {!!food99Address?.district && (
+                        <Text style={localStyles.food99InfoText}>
+                          Bairro: {food99Address.district}
+                        </Text>
+                      )}
+                      {!!food99AddressCityStateLine && (
+                        <Text style={localStyles.food99InfoText}>
+                          Cidade/UF: {food99AddressCityStateLine}
+                        </Text>
+                      )}
+                      {!!food99Address?.postal_code && (
+                        <Text style={localStyles.food99InfoText}>
+                          CEP: {food99Address.postal_code}
+                        </Text>
+                      )}
+                      {!!food99Address?.reference && (
+                        <Text style={localStyles.food99InfoText}>
+                          Referencia: {food99Address.reference}
+                        </Text>
+                      )}
+                      {!!food99Address?.complement && (
+                        <Text style={localStyles.food99InfoText}>
+                          Complemento: {food99Address.complement}
+                        </Text>
+                      )}
                     </View>
                   )}
 
@@ -1888,19 +2160,17 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
-                  {(food99Notes?.remark || food99Notes?.need_cutlery !== null && food99Notes?.need_cutlery !== undefined) && (
-                    <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>Observacoes</Text>
-                      {!!food99Notes?.remark && (
-                        <Text style={localStyles.food99InfoText}>{food99Notes.remark}</Text>
-                      )}
-                      {food99Notes?.need_cutlery !== null && food99Notes?.need_cutlery !== undefined && (
-                        <Text style={localStyles.food99InfoText}>
-                          Precisa de talheres: {food99Notes?.need_cutlery ? 'Sim' : 'Nao'}
-                        </Text>
-                      )}
-                    </View>
-                  )}
+                  <View style={localStyles.food99SummaryBlock}>
+                    <Text style={localStyles.food99SummaryTitle}>Observacoes</Text>
+                    <Text style={localStyles.food99InfoText}>
+                      {food99RemarkText || 'Sem observacoes informadas pela 99Food.'}
+                    </Text>
+                    {food99Notes?.need_cutlery !== null && food99Notes?.need_cutlery !== undefined && (
+                      <Text style={localStyles.food99InfoText}>
+                        Precisa de talheres: {food99Notes?.need_cutlery ? 'Sim' : 'Nao'}
+                      </Text>
+                    )}
+                  </View>
 
                   {food99Delivery?.is_platform_delivery ? (
                     <Text style={localStyles.food99InfoHint}>

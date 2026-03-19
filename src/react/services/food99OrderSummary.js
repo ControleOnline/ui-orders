@@ -174,6 +174,9 @@ export const buildFood99OrderSummary = order => {
     price?.store_charged_delivery_price ?? price?.delivery_price,
   )
   const promotionsTotal = sumPromotionDiscount(promotions)
+  const customerNeedPayingMoney = toMoney(price?.customer_need_paying_money)
+  const realPayTotal = toMoney(price?.real_pay_price)
+  const refundTotal = toMoney(price?.refund_price)
 
   const itemsTotal = toMoney(price?.order_price)
   const deliveryFee = originalDeliveryFee
@@ -230,6 +233,9 @@ export const buildFood99OrderSummary = order => {
       itemsDiscountTotal,
       deliveryDiscountTotal,
       couponDiscountTotal,
+      customerNeedPayingMoney,
+      realPayTotal,
+      refundTotal,
       storeChargedDeliveryPrice: originalDeliveryFee,
       storeReceivableTotal: toMoney(price?.real_price),
     },
@@ -246,6 +252,8 @@ export const buildFood99OrderSummary = order => {
       payChannel,
       amountPaid,
       amountPending,
+      collectOnDeliveryAmount: isPaidOnline ? 0 : customerTotal,
+      customerNeedPayingMoney,
       isPaidOnline,
       isFullyPaid: amountPending <= 0.009,
     },
@@ -265,6 +273,15 @@ export const buildFood99OrderSummary = order => {
         .filter(Boolean)
         .filter((value, index, list) => list.indexOf(value) === index)
         .join(', '),
+      streetName: normalizeText(receiveAddress?.street_name),
+      streetNumber: normalizeText(receiveAddress?.street_number),
+      district: normalizeText(receiveAddress?.district),
+      city: normalizeText(receiveAddress?.city),
+      state: normalizeText(receiveAddress?.state),
+      postalCode: normalizeText(receiveAddress?.postal_code),
+      reference: normalizeText(receiveAddress?.reference),
+      complement: normalizeText(receiveAddress?.complement),
+      poiAddress: normalizeText(receiveAddress?.poi_address),
     },
     notes: {
       remark: normalizeText(orderInfo?.remark ?? data?.remark),
