@@ -23,6 +23,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
 import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
+import { buildFood99OrderSummary } from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
 
 const formatApiError = error => {
   if (!error) return 'Nao foi possivel concluir a operacao.'
@@ -68,6 +69,51 @@ const formatFood99RiderEta = value => {
 }
 
 const normalizeErrno = value => String(value ?? '').trim()
+const normalizeText = value => String(value ?? '').trim()
+
+const hasMeaningfulValue = value =>
+  !(
+    value === null ||
+    value === undefined ||
+    (typeof value === 'string' && normalizeText(value) === '')
+  )
+
+const resolvePreferredText = (...values) => {
+  for (const value of values) {
+    const normalized = normalizeText(value)
+    if (normalized) return normalized
+  }
+
+  return ''
+}
+
+const resolvePreferredMoney = (primary, fallback) => {
+  const primaryPresent = hasMeaningfulValue(primary)
+  const fallbackPresent = hasMeaningfulValue(fallback)
+
+  if (!primaryPresent) {
+    return fallbackPresent ? Number(fallback) : 0
+  }
+
+  const primaryNumber = Number(primary)
+  const fallbackNumber = Number(fallback)
+
+  if (
+    Number.isFinite(primaryNumber) &&
+    fallbackPresent &&
+    Number.isFinite(fallbackNumber) &&
+    primaryNumber === 0 &&
+    fallbackNumber !== 0
+  ) {
+    return fallbackNumber
+  }
+
+  if (Number.isFinite(primaryNumber)) {
+    return primaryNumber
+  }
+
+  return fallbackPresent && Number.isFinite(fallbackNumber) ? fallbackNumber : 0
+}
 
 const normalizeDigits = (value, maxLength) =>
   String(value ?? '')
@@ -375,15 +421,223 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
+  const fallbackFood99Summary = useMemo(() => buildFood99OrderSummary(item), [item])
+  const fallbackFood99Financial = useMemo(() => {
+    const financial = fallbackFood99Summary?.financial
+    if (!financial) return null
+
+    return {
+      currency: 'BRL',
+      items_total: financial.itemsTotal ?? 0,
+      delivery_fee: financial.deliveryFee ?? 0,
+      service_fee: financial.serviceFee ?? 0,
+      small_order_fee: financial.smallOrderFee ?? 0,
+      meal_top_up_fee: financial.mealTopUpFee ?? 0,
+      tip_total: financial.tipTotal ?? 0,
+      subtotal_before_discounts: financial.subtotalBeforeDiscounts ?? 0,
+      discount_total: financial.discountTotal ?? 0,
+      store_discount_total: financial.storeDiscountTotal ?? 0,
+      platform_discount_total: financial.platformDiscountTotal ?? 0,
+      promotions_total: financial.promotionsTotal ?? 0,
+      items_discount_total: financial.itemsDiscountTotal ?? 0,
+      delivery_discount_total: financial.deliveryDiscountTotal ?? 0,
+      coupon_discount_total: financial.couponDiscountTotal ?? 0,
+      customer_total: financial.customerTotal ?? 0,
+      store_receivable_total: financial.storeReceivableTotal ?? 0,
+      store_charged_delivery_price: financial.storeChargedDeliveryPrice ?? 0,
+    }
+  }, [fallbackFood99Summary])
+  const fallbackFood99Payment = useMemo(() => {
+    const payment = fallbackFood99Summary?.payment
+    if (!payment) return null
+
+    return {
+      pay_type: payment.payType || '',
+      pay_type_label: payment.payTypeLabel || '',
+      pay_method: payment.payMethod || '',
+      pay_channel: payment.payChannel || '',
+      amount_paid: payment.amountPaid ?? 0,
+      amount_pending: payment.amountPending ?? 0,
+      is_fully_paid: !!payment.isFullyPaid,
+      is_paid_online: !!payment.isPaidOnline,
+    }
+  }, [fallbackFood99Summary])
+  const fallbackFood99Customer = useMemo(() => {
+    const customer = fallbackFood99Summary?.customer
+    if (!customer) return null
+
+    return {
+      name: customer.name || '',
+      phone: customer.phone || '',
+    }
+  }, [fallbackFood99Summary])
+  const fallbackFood99Address = useMemo(() => {
+    const address = fallbackFood99Summary?.address
+    if (!address) return null
+
+    return {
+      display: address.display || '',
+    }
+  }, [fallbackFood99Summary])
+  const fallbackFood99Notes = fallbackFood99Summary?.notes || null
+  const fallbackFood99Identifiers = useMemo(() => {
+    const identifiers = fallbackFood99Summary?.identifiers
+    if (!identifiers) return null
+
+    return {
+      order_index: identifiers.orderIndex || '',
+      pickup_code: identifiers.pickupCode || '',
+      handover_code: identifiers.handoverCode || '',
+    }
+  }, [fallbackFood99Summary])
   const food99Delivery = food99State?.delivery || null
   const food99Integration = food99State?.integration || null
   const food99Observability = food99State?.observability || null
-  const food99Financial = food99State?.financial || null
-  const food99Payment = food99State?.payment || null
-  const food99Customer = food99State?.customer || null
-  const food99Address = food99State?.address || null
-  const food99Notes = food99State?.notes || null
-  const food99Identifiers = food99State?.identifiers || null
+  const food99Financial = useMemo(() => {
+    const stateFinancial = food99State?.financial || null
+    if (!stateFinancial) return fallbackFood99Financial
+    if (!fallbackFood99Financial) return stateFinancial
+
+    return {
+      ...fallbackFood99Financial,
+      ...stateFinancial,
+      currency: resolvePreferredText(stateFinancial.currency, fallbackFood99Financial.currency) || 'BRL',
+      items_total: resolvePreferredMoney(stateFinancial.items_total, fallbackFood99Financial.items_total),
+      delivery_fee: resolvePreferredMoney(stateFinancial.delivery_fee, fallbackFood99Financial.delivery_fee),
+      service_fee: resolvePreferredMoney(stateFinancial.service_fee, fallbackFood99Financial.service_fee),
+      small_order_fee: resolvePreferredMoney(stateFinancial.small_order_fee, fallbackFood99Financial.small_order_fee),
+      meal_top_up_fee: resolvePreferredMoney(stateFinancial.meal_top_up_fee, fallbackFood99Financial.meal_top_up_fee),
+      tip_total: resolvePreferredMoney(stateFinancial.tip_total, fallbackFood99Financial.tip_total),
+      subtotal_before_discounts: resolvePreferredMoney(
+        stateFinancial.subtotal_before_discounts,
+        fallbackFood99Financial.subtotal_before_discounts,
+      ),
+      discount_total: resolvePreferredMoney(stateFinancial.discount_total, fallbackFood99Financial.discount_total),
+      store_discount_total: resolvePreferredMoney(
+        stateFinancial.store_discount_total,
+        fallbackFood99Financial.store_discount_total,
+      ),
+      platform_discount_total: resolvePreferredMoney(
+        stateFinancial.platform_discount_total,
+        fallbackFood99Financial.platform_discount_total,
+      ),
+      promotions_total: resolvePreferredMoney(stateFinancial.promotions_total, fallbackFood99Financial.promotions_total),
+      items_discount_total: resolvePreferredMoney(
+        stateFinancial.items_discount_total,
+        fallbackFood99Financial.items_discount_total,
+      ),
+      delivery_discount_total: resolvePreferredMoney(
+        stateFinancial.delivery_discount_total,
+        fallbackFood99Financial.delivery_discount_total,
+      ),
+      coupon_discount_total: resolvePreferredMoney(
+        stateFinancial.coupon_discount_total,
+        fallbackFood99Financial.coupon_discount_total,
+      ),
+      customer_total: resolvePreferredMoney(stateFinancial.customer_total, fallbackFood99Financial.customer_total),
+      store_receivable_total: resolvePreferredMoney(
+        stateFinancial.store_receivable_total,
+        fallbackFood99Financial.store_receivable_total,
+      ),
+      store_charged_delivery_price: resolvePreferredMoney(
+        stateFinancial.store_charged_delivery_price,
+        fallbackFood99Financial.store_charged_delivery_price,
+      ),
+    }
+  }, [food99State?.financial, fallbackFood99Financial])
+  const food99Payment = useMemo(() => {
+    const statePayment = food99State?.payment || null
+    if (!statePayment) return fallbackFood99Payment
+    if (!fallbackFood99Payment) return statePayment
+
+    return {
+      ...fallbackFood99Payment,
+      ...statePayment,
+      pay_type: resolvePreferredText(statePayment.pay_type, fallbackFood99Payment.pay_type),
+      pay_type_label: resolvePreferredText(
+        statePayment.pay_type_label,
+        fallbackFood99Payment.pay_type_label,
+      ),
+      pay_method: resolvePreferredText(statePayment.pay_method, fallbackFood99Payment.pay_method),
+      pay_channel: resolvePreferredText(statePayment.pay_channel, fallbackFood99Payment.pay_channel),
+      amount_paid: resolvePreferredMoney(statePayment.amount_paid, fallbackFood99Payment.amount_paid),
+      amount_pending: resolvePreferredMoney(
+        statePayment.amount_pending,
+        fallbackFood99Payment.amount_pending,
+      ),
+      is_fully_paid:
+        typeof statePayment.is_fully_paid === 'boolean'
+          ? statePayment.is_fully_paid
+          : !!fallbackFood99Payment.is_fully_paid,
+      is_paid_online:
+        typeof statePayment.is_paid_online === 'boolean'
+          ? statePayment.is_paid_online
+          : !!fallbackFood99Payment.is_paid_online,
+    }
+  }, [food99State?.payment, fallbackFood99Payment])
+  const food99Customer = useMemo(() => {
+    const stateCustomer = food99State?.customer || null
+    if (!stateCustomer) return fallbackFood99Customer
+    if (!fallbackFood99Customer) return stateCustomer
+
+    return {
+      ...fallbackFood99Customer,
+      ...stateCustomer,
+      name: resolvePreferredText(stateCustomer.name, fallbackFood99Customer.name),
+      phone: resolvePreferredText(stateCustomer.phone, fallbackFood99Customer.phone),
+    }
+  }, [food99State?.customer, fallbackFood99Customer])
+  const food99Address = useMemo(() => {
+    const stateAddress = food99State?.address || null
+    if (!stateAddress) return fallbackFood99Address
+    if (!fallbackFood99Address) return stateAddress
+
+    return {
+      ...fallbackFood99Address,
+      ...stateAddress,
+      display: resolvePreferredText(stateAddress.display, fallbackFood99Address.display),
+    }
+  }, [food99State?.address, fallbackFood99Address])
+  const food99Notes = useMemo(() => {
+    const stateNotes = food99State?.notes || null
+    const remark = String(stateNotes?.remark || fallbackFood99Notes?.remark || '').trim()
+    const needCutlery =
+      stateNotes?.need_cutlery ??
+      fallbackFood99Notes?.need_cutlery ??
+      fallbackFood99Notes?.needCutlery ??
+      null
+
+    if (!remark && (needCutlery === null || needCutlery === undefined)) {
+      return null
+    }
+
+    return {
+      remark,
+      need_cutlery: needCutlery,
+    }
+  }, [food99State?.notes, fallbackFood99Notes])
+  const food99Identifiers = useMemo(() => {
+    const stateIdentifiers = food99State?.identifiers || null
+    if (!stateIdentifiers) return fallbackFood99Identifiers
+    if (!fallbackFood99Identifiers) return stateIdentifiers
+
+    return {
+      ...fallbackFood99Identifiers,
+      ...stateIdentifiers,
+      order_index: resolvePreferredText(
+        stateIdentifiers.order_index,
+        fallbackFood99Identifiers.order_index,
+      ),
+      pickup_code: resolvePreferredText(
+        stateIdentifiers.pickup_code,
+        fallbackFood99Identifiers.pickup_code,
+      ),
+      handover_code: resolvePreferredText(
+        stateIdentifiers.handover_code,
+        fallbackFood99Identifiers.handover_code,
+      ),
+    }
+  }, [food99State?.identifiers, fallbackFood99Identifiers])
   const food99Capabilities = food99State?.capabilities || {}
   const normalizedOrderRealStatus = String(
     food99State?.order?.status?.real_status || item?.status?.realStatus || '',
@@ -417,8 +671,12 @@ const OrderDetails = ({ route, navigation }) => {
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
   const food99Locator = String(food99Delivery?.locator || '').trim()
-  const food99PickupCode = String(food99Delivery?.pickup_code || '').trim()
-  const food99HandoverCode = String(food99Delivery?.handover_code || '').trim()
+  const food99PickupCode = String(
+    food99Delivery?.pickup_code || food99Identifiers?.pickup_code || '',
+  ).trim()
+  const food99HandoverCode = String(
+    food99Delivery?.handover_code || food99Identifiers?.handover_code || '',
+  ).trim()
   const food99RiderName = String(food99Delivery?.rider_name || '').trim()
   const food99RiderPhone = String(food99Delivery?.rider_phone || '').trim()
   const food99RiderToStoreEta = formatFood99RiderEta(food99Delivery?.rider_to_store_eta)
@@ -964,6 +1222,11 @@ const OrderDetails = ({ route, navigation }) => {
                     {!!food99Payment?.pay_type_label && (
                       <Text style={localStyles.detailsInfoText}>
                         Pagamento: {food99Payment.pay_type_label}
+                      </Text>
+                    )}
+                    {!!food99Payment?.pay_channel && (
+                      <Text style={localStyles.detailsInfoText}>
+                        Canal de pagamento: {food99Payment.pay_channel}
                       </Text>
                     )}
                   </View>
@@ -1536,6 +1799,11 @@ const OrderDetails = ({ route, navigation }) => {
                   {!!food99Payment?.pay_type_label && (
                     <Text style={localStyles.food99InfoText}>
                       Pagamento: {food99Payment.pay_type_label}
+                    </Text>
+                  )}
+                  {!!food99Payment?.pay_channel && (
+                    <Text style={localStyles.food99InfoText}>
+                      Canal de pagamento: {food99Payment.pay_channel}
                     </Text>
                   )}
 

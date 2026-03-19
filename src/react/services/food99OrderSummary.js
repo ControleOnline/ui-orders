@@ -80,6 +80,12 @@ const sumStoreSubsidy = promotions =>
     return total + toMoney(promotion.shop_subside_price)
   }, 0)
 
+const sumPromotionDiscount = promotions =>
+  promotions.reduce((total, promotion) => {
+    if (!isObject(promotion)) return total
+    return total + toMoney(promotion.promo_discount)
+  }, 0)
+
 const extractPromotionList = payload => {
   const data = isObject(payload?.data) ? payload.data : {}
   const orderInfo = isObject(data?.order_info) ? data.order_info : {}
@@ -159,18 +165,37 @@ export const buildFood99OrderSummary = order => {
   const promotions = extractPromotionList(payload)
   const deliveryType = normalizeText(orderInfo?.delivery_type ?? data?.delivery_type)
   const payType = normalizeText(orderInfo?.pay_type ?? data?.pay_type)
+  const payMethod = normalizeText(orderInfo?.pay_method ?? data?.pay_method)
+  const payChannel = normalizeText(orderInfo?.pay_channel ?? data?.pay_channel)
+  const itemsDiscountTotal = toMoney(price?.items_discount)
+  const deliveryDiscountTotal = toMoney(price?.delivery_discount)
+  const couponDiscountTotal = toMoney(otherFees?.coupon_discount)
+  const originalDeliveryFee = toMoney(
+    price?.store_charged_delivery_price ?? price?.delivery_price,
+  )
+  const promotionsTotal = sumPromotionDiscount(promotions)
 
   const itemsTotal = toMoney(price?.order_price)
-  const deliveryFee = toMoney(price?.delivery_price)
+  const deliveryFee = originalDeliveryFee
   const serviceFee = toMoney(otherFees?.service_price)
   const smallOrderFee = toMoney(otherFees?.small_order_price)
   const mealTopUpFee = toMoney(otherFees?.meal_top_up_price)
   const tipTotal = toMoney(otherFees?.total_tip_money)
   const subtotalBeforeDiscounts =
     itemsTotal + deliveryFee + serviceFee + smallOrderFee + mealTopUpFee + tipTotal
-  const customerTotal = toMoney(
-    price?.customer_need_paying_money ?? price?.real_pay_price,
+  const explicitCustomerTotal = toMoney(
+    price?.customer_need_paying_money ?? price?.real_pay_price ?? price?.real_price,
   )
+  const knownDiscountTotal = Math.max(
+    itemsDiscountTotal + deliveryDiscountTotal + couponDiscountTotal,
+    promotionsTotal,
+  )
+  const customerTotal = explicitCustomerTotal > 0
+    ? explicitCustomerTotal
+    : Math.max(
+        0,
+        Math.round((subtotalBeforeDiscounts - knownDiscountTotal) * 100) / 100,
+      )
   const storeDiscountTotal = sumStoreSubsidy(promotions)
   const discountTotal = Math.max(
     0,
@@ -201,6 +226,11 @@ export const buildFood99OrderSummary = order => {
       storeDiscountTotal,
       platformDiscountTotal,
       customerTotal,
+      promotionsTotal,
+      itemsDiscountTotal,
+      deliveryDiscountTotal,
+      couponDiscountTotal,
+      storeChargedDeliveryPrice: originalDeliveryFee,
       storeReceivableTotal: toMoney(price?.real_price),
     },
     payment: {
@@ -212,6 +242,8 @@ export const buildFood99OrderSummary = order => {
           : payType === '1'
             ? 'Pagamento na entrega'
             : 'Pagamento fora da plataforma',
+      payMethod,
+      payChannel,
       amountPaid,
       amountPending,
       isPaidOnline,
