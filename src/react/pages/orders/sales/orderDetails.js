@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Linking,
   Modal,
   Text,
   TextInput,
@@ -60,6 +61,36 @@ const normalizeDigits = (value, maxLength) =>
     .replace(/\D+/g, '')
     .slice(0, maxLength)
 
+const copyTextToClipboard = async text => {
+  const normalizedText = String(text ?? '').trim()
+  if (!normalizedText) return false
+
+  if (
+    typeof navigator !== 'undefined' &&
+    navigator?.clipboard &&
+    typeof navigator.clipboard.writeText === 'function'
+  ) {
+    await navigator.clipboard.writeText(normalizedText)
+    return true
+  }
+
+  return false
+}
+
+const buildFood99LocatorShareMessage = ({ locator, url }) => {
+  const parts = ['Confirmacao de entrega 99Food']
+
+  if (locator) {
+    parts.push(`Localizador: ${locator}`)
+  }
+
+  if (url) {
+    parts.push(`Link oficial: ${url}`)
+  }
+
+  return parts.join('\n')
+}
+
 const hasErrnoError = value => {
   const normalized = normalizeErrno(value)
   if (!normalized) return false
@@ -76,6 +107,11 @@ const formatAgeMinutes = value => {
   return `ha ${minutes} min`
 }
 
+const normalizeFood99CancelReasonId = value => {
+  const normalized = Number(value)
+  return Number.isFinite(normalized) && normalized > 0 ? normalized : null
+}
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
@@ -83,6 +119,11 @@ const OrderDetails = ({ route, navigation }) => {
   const [food99ActionLoading, setFood99ActionLoading] = useState('')
   const [food99State, setFood99State] = useState(null)
   const [food99StateLoading, setFood99StateLoading] = useState(false)
+  const [food99CancelReasonsLoading, setFood99CancelReasonsLoading] = useState(false)
+  const [food99CancelReasons, setFood99CancelReasons] = useState([])
+  const [cancelReasonModalVisible, setCancelReasonModalVisible] = useState(false)
+  const [selectedFood99CancelReasonId, setSelectedFood99CancelReasonId] = useState(null)
+  const [food99CancelReasonText, setFood99CancelReasonText] = useState('')
   const [deliveryCodeModalVisible, setDeliveryCodeModalVisible] = useState(false)
   const [deliveryFlowStep, setDeliveryFlowStep] = useState('locator')
   const [deliveryLocator, setDeliveryLocator] = useState('')
@@ -185,6 +226,13 @@ const OrderDetails = ({ route, navigation }) => {
     }, [item?.id, isFood99Order, isKds, loadFood99OrderState]),
   )
 
+  const resetFood99CancelReasonFlow = useCallback(() => {
+    setCancelReasonModalVisible(false)
+    setSelectedFood99CancelReasonId(null)
+    setFood99CancelReasonText('')
+    setFood99CancelReasons([])
+  }, [])
+
   const runFood99OrderAction = useCallback(
     async (action, options = {}) => {
       if (!item?.id || !isFood99Order || food99ActionLoading) {
@@ -271,6 +319,10 @@ const OrderDetails = ({ route, navigation }) => {
           setDeliveryCustomerCode('')
         }
 
+        if (action === 'cancel') {
+          resetFood99CancelReasonFlow()
+        }
+
         showSuccess(actionConfig.success)
 
         if (isKds && (action === 'cancel' || action === 'delivered')) {
@@ -294,6 +346,7 @@ const OrderDetails = ({ route, navigation }) => {
       isKds,
       navigation,
       loadFood99OrderState,
+      resetFood99CancelReasonFlow,
     ],
   )
 
@@ -337,14 +390,28 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldShowFood99DeliveryAction = canManualCompleteFood99Order
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
+  const food99Locator = String(food99Delivery?.locator || '').trim()
   const food99PickupCode = String(food99Delivery?.pickup_code || '').trim()
   const food99HandoverCode = String(food99Delivery?.handover_code || '').trim()
+  const food99HandoverLink = String(
+    food99Delivery?.handover_confirmation_url || food99Delivery?.handover_page_url || '',
+  ).trim()
+  const activeFood99Locator = String(deliveryLocator || food99Locator).trim()
   const isFood99Ready = String(food99Integration?.remote_order_state || '').toLowerCase() === 'ready'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
   const canReadyFood99Order =
     typeof food99Capabilities?.can_ready === 'boolean'
       ? food99Capabilities.can_ready
       : !isTerminalFood99Order && !shouldHideReadyFood99Action
+  const applicableFood99CancelReasons = Array.isArray(food99CancelReasons)
+    ? food99CancelReasons.filter(reason => reason?.applicable !== false)
+    : []
+  const selectedFood99CancelReason = applicableFood99CancelReasons.find(
+    reason =>
+      normalizeFood99CancelReasonId(reason?.reason_id) ===
+      normalizeFood99CancelReasonId(selectedFood99CancelReasonId),
+  )
+  const requiresFood99CancelReasonText = !!selectedFood99CancelReason?.requires_description
   const isFood99Delivering =
     typeof food99Capabilities?.is_delivering === 'boolean'
       ? food99Capabilities.is_delivering
@@ -376,6 +443,145 @@ const OrderDetails = ({ route, navigation }) => {
     setDeliveryFlowStep('locator')
     setDeliveryCodeModalVisible(true)
   }, [food99Delivery?.locator, food99LocatorLength])
+
+  const closeFood99CancelReasonFlow = useCallback(() => {
+    if (food99ActionLoading || food99CancelReasonsLoading) {
+      return
+    }
+
+    resetFood99CancelReasonFlow()
+  }, [food99ActionLoading, food99CancelReasonsLoading, resetFood99CancelReasonFlow])
+
+  const handleFood99CancelPress = useCallback(async () => {
+    if (!item?.id || !isFood99Order || food99ActionLoading || food99CancelReasonsLoading) {
+      return
+    }
+
+    try {
+      setFood99CancelReasonsLoading(true)
+      const response = await api.fetch(
+        `/marketplace/integrations/99food/orders/${item.id}/cancel-reasons`,
+      )
+
+      if (response?.state) {
+        setFood99State(response.state)
+      }
+
+      const reasons = Array.isArray(response?.result?.data?.reasons)
+        ? response.result.data.reasons.filter(Boolean)
+        : []
+
+      if (reasons.length === 0) {
+        showError('A 99Food nao retornou motivos de cancelamento para este pedido.')
+        return
+      }
+
+      const applicableReasons = reasons.filter(reason => reason?.applicable !== false)
+      const defaultReason =
+        applicableReasons.find(reason => normalizeFood99CancelReasonId(reason?.reason_id) === 1080) ||
+        applicableReasons[0] ||
+        reasons[0]
+
+      setFood99CancelReasons(reasons)
+      setSelectedFood99CancelReasonId(
+        normalizeFood99CancelReasonId(defaultReason?.reason_id),
+      )
+      setFood99CancelReasonText('')
+      setCancelReasonModalVisible(true)
+    } catch (stateError) {
+      showError(formatApiError(stateError))
+    } finally {
+      setFood99CancelReasonsLoading(false)
+    }
+  }, [
+    item?.id,
+    isFood99Order,
+    food99ActionLoading,
+    food99CancelReasonsLoading,
+    showError,
+  ])
+
+  const handleFood99CopyLocator = useCallback(async () => {
+    if (!activeFood99Locator) {
+      showError('Nenhum localizador disponivel para copiar.')
+      return
+    }
+
+    try {
+      const copied = await copyTextToClipboard(activeFood99Locator)
+
+      if (!copied) {
+        showError('Copia nao suportada neste dispositivo. Use o codigo exibido no modal.')
+        return
+      }
+
+      showSuccess('Localizador copiado.')
+    } catch (copyError) {
+      showError(formatApiError(copyError))
+    }
+  }, [activeFood99Locator, showError, showSuccess])
+
+  const handleFood99OpenHandoverLink = useCallback(async () => {
+    if (!food99HandoverLink) {
+      showError('A 99Food nao enviou o link de confirmacao deste pedido.')
+      return
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(food99HandoverLink)
+      if (!supported) {
+        throw new Error('Nao foi possivel abrir o link de confirmacao.')
+      }
+
+      await Linking.openURL(food99HandoverLink)
+    } catch (linkError) {
+      showError(formatApiError(linkError))
+    }
+  }, [food99HandoverLink, showError])
+
+  const handleFood99CopyHandoverLink = useCallback(async () => {
+    if (!food99HandoverLink) {
+      showError('A 99Food nao enviou o link de confirmacao deste pedido.')
+      return
+    }
+
+    try {
+      const copied = await copyTextToClipboard(food99HandoverLink)
+
+      if (!copied) {
+        showError('Copia nao suportada neste dispositivo. Abra o link direto no navegador.')
+        return
+      }
+
+      showSuccess('Link de confirmacao copiado.')
+    } catch (copyError) {
+      showError(formatApiError(copyError))
+    }
+  }, [food99HandoverLink, showError, showSuccess])
+
+  const handleFood99ShareHandoverWhatsapp = useCallback(async () => {
+    if (!food99HandoverLink) {
+      showError('A 99Food nao enviou o link de confirmacao deste pedido.')
+      return
+    }
+
+    const message = buildFood99LocatorShareMessage({
+      locator: activeFood99Locator,
+      url: food99HandoverLink,
+    })
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
+
+    try {
+      const supported = await Linking.canOpenURL(whatsappUrl)
+      if (!supported) {
+        throw new Error('WhatsApp indisponivel neste dispositivo.')
+      }
+
+      await Linking.openURL(whatsappUrl)
+    } catch (shareError) {
+      showError(formatApiError(shareError))
+    }
+  }, [food99HandoverLink, activeFood99Locator, showError])
 
   const handleFood99LocatorVerify = useCallback(async () => {
     if (!item?.id || !isFood99Order || food99ActionLoading) {
@@ -493,6 +699,33 @@ const OrderDetails = ({ route, navigation }) => {
     runFood99OrderAction('delivered')
   }, [requiresFood99DeliveryLocator, openFood99DeliveryFlow, runFood99OrderAction])
 
+  const handleFood99CancelConfirm = useCallback(async () => {
+    const reasonId = normalizeFood99CancelReasonId(selectedFood99CancelReasonId)
+    if (!reasonId) {
+      showError('Selecione um motivo oficial da 99Food para cancelar.')
+      return
+    }
+
+    const reasonText = String(food99CancelReasonText || '').trim()
+    if (requiresFood99CancelReasonText && !reasonText) {
+      showError('Descreva o motivo do cancelamento para continuar.')
+      return
+    }
+
+    await runFood99OrderAction('cancel', {
+      body: {
+        reason_id: reasonId,
+        ...(reasonText ? { reason: reasonText } : {}),
+      },
+    })
+  }, [
+    selectedFood99CancelReasonId,
+    food99CancelReasonText,
+    requiresFood99CancelReasonText,
+    showError,
+    runFood99OrderAction,
+  ])
+
   return (
     <SafeAreaView
       style={[
@@ -504,6 +737,129 @@ const OrderDetails = ({ route, navigation }) => {
       {showBarcodeInput && <BarcodeInput />}
 
       <StateStore store="orders" />
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={cancelReasonModalVisible}
+        onRequestClose={() => {
+          if (!food99ActionLoading && !food99CancelReasonsLoading) {
+            closeFood99CancelReasonFlow()
+          }
+        }}
+      >
+        <View style={localStyles.deliveryCodeOverlay}>
+          <View style={localStyles.cancelReasonModal}>
+            <Text style={localStyles.cancelReasonBadge}>Cancelamento 99Food</Text>
+            <Text style={localStyles.cancelReasonTitle}>Escolha o motivo oficial</Text>
+            <Text style={localStyles.cancelReasonDescription}>
+              A 99 exige um motivo padrao para cancelar pedidos. Selecionamos abaixo
+              apenas os motivos validos para este tipo de entrega.
+            </Text>
+
+            {food99CancelReasonsLoading ? (
+              <View style={localStyles.cancelReasonLoadingState}>
+                <ActivityIndicator size="small" color="#38BDF8" />
+                <Text style={localStyles.cancelReasonLoadingText}>
+                  Carregando motivos oficiais...
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                style={localStyles.cancelReasonList}
+                contentContainerStyle={localStyles.cancelReasonListContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {applicableFood99CancelReasons.map(reason => {
+                  const reasonId = normalizeFood99CancelReasonId(reason?.reason_id)
+                  const isSelected =
+                    reasonId !== null &&
+                    reasonId === normalizeFood99CancelReasonId(selectedFood99CancelReasonId)
+
+                  return (
+                    <TouchableOpacity
+                      key={`food99-cancel-reason-${reasonId || 'unknown'}`}
+                      onPress={() => setSelectedFood99CancelReasonId(reasonId)}
+                      style={[
+                        localStyles.cancelReasonOption,
+                        isSelected && localStyles.cancelReasonOptionSelected,
+                      ]}
+                    >
+                      <View style={localStyles.cancelReasonOptionHeader}>
+                        <Text style={localStyles.cancelReasonOptionCode}>
+                          #{reason?.reason_id || '--'}
+                        </Text>
+                        {reason?.requires_description ? (
+                          <Text style={localStyles.cancelReasonOptionBadge}>
+                            Requer descricao
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text style={localStyles.cancelReasonOptionText}>
+                        {reason?.description || 'Motivo sem descricao'}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </ScrollView>
+            )}
+
+            {requiresFood99CancelReasonText && (
+              <View style={localStyles.cancelReasonInputBlock}>
+                <Text style={localStyles.cancelReasonInputLabel}>Descricao do motivo</Text>
+                <TextInput
+                  value={food99CancelReasonText}
+                  onChangeText={setFood99CancelReasonText}
+                  editable={!food99ActionLoading}
+                  multiline
+                  numberOfLines={3}
+                  placeholder="Explique brevemente o motivo do cancelamento."
+                  placeholderTextColor="#64748B"
+                  style={localStyles.cancelReasonInput}
+                />
+              </View>
+            )}
+
+            <View style={localStyles.deliveryCodeActions}>
+              <TouchableOpacity
+                onPress={closeFood99CancelReasonFlow}
+                disabled={!!food99ActionLoading || !!food99CancelReasonsLoading}
+                style={[
+                  localStyles.deliveryCodeButton,
+                  localStyles.deliveryCodeButtonSecondary,
+                ]}
+              >
+                <Text style={localStyles.deliveryCodeButtonSecondaryText}>Fechar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleFood99CancelConfirm}
+                disabled={
+                  !!food99ActionLoading ||
+                  !!food99CancelReasonsLoading ||
+                  !selectedFood99CancelReasonId
+                }
+                style={[
+                  localStyles.deliveryCodeButton,
+                  localStyles.cancelReasonButtonDanger,
+                  (!!food99ActionLoading ||
+                    !!food99CancelReasonsLoading ||
+                    !selectedFood99CancelReasonId) &&
+                    localStyles.kdsActionButtonDisabled,
+                ]}
+              >
+                {food99ActionLoading === 'cancel' ? (
+                  <ActivityIndicator size="small" color="#F8FAFC" />
+                ) : (
+                  <Text style={localStyles.deliveryCodeButtonPrimaryText}>
+                    Cancelar pedido
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         transparent
@@ -522,28 +878,85 @@ const OrderDetails = ({ route, navigation }) => {
             </Text>
             <Text style={localStyles.deliveryCodeDescription}>
               {deliveryFlowStep === 'locator'
-                ? 'Valide o localizador oficial da 99Food. Se ele nao vier no webhook, informe manualmente o numero do recibo.'
+                ? 'Confirme o localizador oficial da 99Food e envie o link de confirmacao ao entregador quando necessario.'
                 : 'Depois de encontrar o cliente, informe o codigo de confirmacao de 4 digitos para concluir a entrega.'}
             </Text>
 
-            {!!food99Delivery?.locator && (
-              <View style={localStyles.deliveryCodeMetaCard}>
-                <Text style={localStyles.deliveryCodeMetaLabel}>Localizador</Text>
-                <Text style={localStyles.deliveryCodeMetaValue}>{food99Delivery.locator}</Text>
+            <View style={localStyles.deliveryLocatorHero}>
+              <Text style={localStyles.deliveryCodeMetaLabel}>Localizador 99</Text>
+              <Text style={localStyles.deliveryLocatorHeroValue}>
+                {activeFood99Locator || 'Nao informado'}
+              </Text>
+              <Text style={localStyles.deliveryLocatorHeroHelper}>
+                {food99Locator
+                  ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial da 99.'
+                  : 'Se a 99 nao enviar o localizador no payload, use o numero do recibo e informe manualmente abaixo.'}
+              </Text>
+
+              {!!activeFood99Locator && (
+                <TouchableOpacity
+                  onPress={handleFood99CopyLocator}
+                  disabled={!!food99ActionLoading}
+                  style={localStyles.deliveryLinkPrimaryButton}
+                >
+                  <Text style={localStyles.deliveryLinkPrimaryButtonText}>
+                    Copiar localizador
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {!!food99HandoverLink && (
+              <View style={localStyles.deliveryLinkCard}>
+                <Text style={localStyles.deliveryCodeMetaLabel}>Link para confirmar</Text>
+                <Text style={localStyles.deliveryLinkUrl} selectable>
+                  {food99HandoverLink}
+                </Text>
+                <View style={localStyles.deliveryLinkActions}>
+                  <TouchableOpacity
+                    onPress={handleFood99OpenHandoverLink}
+                    disabled={!!food99ActionLoading}
+                    style={localStyles.deliveryLinkActionButton}
+                  >
+                    <Text style={localStyles.deliveryLinkActionText}>Abrir link</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handleFood99CopyHandoverLink}
+                    disabled={!!food99ActionLoading}
+                    style={localStyles.deliveryLinkActionButton}
+                  >
+                    <Text style={localStyles.deliveryLinkActionText}>Copiar link</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handleFood99ShareHandoverWhatsapp}
+                    disabled={!!food99ActionLoading}
+                    style={localStyles.deliveryLinkActionButton}
+                  >
+                    <Text style={localStyles.deliveryLinkActionText}>
+                      Enviar via WhatsApp
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
-            {!!food99PickupCode && (
-              <View style={localStyles.deliveryCodeMetaCard}>
-                <Text style={localStyles.deliveryCodeMetaLabel}>Pickup code (99)</Text>
-                <Text style={localStyles.deliveryCodeMetaValue}>{food99PickupCode}</Text>
-              </View>
-            )}
+            {(!!food99PickupCode || !!food99HandoverCode) && (
+              <View style={localStyles.deliveryCodeMetaRow}>
+                {!!food99PickupCode && (
+                  <View style={localStyles.deliveryCodeMetaCardCompact}>
+                    <Text style={localStyles.deliveryCodeMetaLabel}>Pickup code</Text>
+                    <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99PickupCode}</Text>
+                  </View>
+                )}
 
-            {!!food99HandoverCode && food99HandoverCode !== food99PickupCode && (
-              <View style={localStyles.deliveryCodeMetaCard}>
-                <Text style={localStyles.deliveryCodeMetaLabel}>Handover code (99)</Text>
-                <Text style={localStyles.deliveryCodeMetaValue}>{food99HandoverCode}</Text>
+                {!!food99HandoverCode && food99HandoverCode !== food99PickupCode && (
+                  <View style={localStyles.deliveryCodeMetaCardCompact}>
+                    <Text style={localStyles.deliveryCodeMetaLabel}>Handover code</Text>
+                    <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99HandoverCode}</Text>
+                  </View>
+                )}
               </View>
             )}
 
@@ -872,15 +1285,16 @@ const OrderDetails = ({ route, navigation }) => {
                 <View style={localStyles.kdsActionRow}>
                   {canCancelFood99Order && (
                     <TouchableOpacity
-                      onPress={() => runFood99OrderAction('cancel')}
-                      disabled={!!food99ActionLoading}
+                      onPress={handleFood99CancelPress}
+                      disabled={!!food99ActionLoading || !!food99CancelReasonsLoading}
                       style={[
                         localStyles.kdsActionButton,
                         localStyles.kdsActionDanger,
-                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                        (food99ActionLoading || food99CancelReasonsLoading) &&
+                          localStyles.kdsActionButtonDisabled,
                       ]}
                     >
-                      {food99ActionLoading === 'cancel' ? (
+                      {food99ActionLoading === 'cancel' || food99CancelReasonsLoading ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
                         <Text style={localStyles.kdsActionText}>Cancelar</Text>
@@ -1143,6 +1557,128 @@ const createStyles = scale =>
       textTransform: 'uppercase',
       marginBottom: 4,
     },
+    cancelReasonModal: {
+      width: '92%',
+      maxWidth: 520,
+      maxHeight: '84%',
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: '#1E3A5F',
+      backgroundColor: '#0A1420',
+      padding: 16,
+      shadowColor: '#020617',
+      shadowOffset: { width: 0, height: 14 },
+      shadowOpacity: 0.35,
+      shadowRadius: 18,
+      elevation: 12,
+    },
+    cancelReasonBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: '#1D4ED8',
+      backgroundColor: '#0F172A',
+      color: '#93C5FD',
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 10,
+    },
+    cancelReasonTitle: {
+      color: '#F8FAFC',
+      fontSize: 24,
+      fontWeight: '900',
+      marginBottom: 6,
+    },
+    cancelReasonDescription: {
+      color: '#CBD5E1',
+      fontSize: 13,
+      lineHeight: 19,
+      marginBottom: 14,
+    },
+    cancelReasonLoadingState: {
+      minHeight: 120,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    cancelReasonLoadingText: {
+      color: '#CBD5E1',
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    cancelReasonList: {
+      maxHeight: 300,
+    },
+    cancelReasonListContent: {
+      gap: 10,
+      paddingBottom: 4,
+    },
+    cancelReasonOption: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#1E293B',
+      backgroundColor: '#0B1220',
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+    },
+    cancelReasonOptionSelected: {
+      borderColor: '#38BDF8',
+      backgroundColor: '#0C1A2A',
+    },
+    cancelReasonOptionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    cancelReasonOptionCode: {
+      color: '#93C5FD',
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    cancelReasonOptionBadge: {
+      color: '#FCD34D',
+      fontSize: 10,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    cancelReasonOptionText: {
+      color: '#F8FAFC',
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 18,
+    },
+    cancelReasonInputBlock: {
+      marginTop: 12,
+      marginBottom: 2,
+    },
+    cancelReasonInputLabel: {
+      color: '#93C5FD',
+      fontSize: 12,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 6,
+    },
+    cancelReasonInput: {
+      minHeight: 82,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#1E3A5F',
+      backgroundColor: '#020617',
+      color: '#F8FAFC',
+      fontSize: 16,
+      fontWeight: '700',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      textAlignVertical: 'top',
+    },
+    cancelReasonButtonDanger: {
+      borderColor: '#991B1B',
+      backgroundColor: '#7F1D1D',
+    },
     kdsActionRow: {
       flexDirection: 'row',
       gap: 8,
@@ -1263,6 +1799,20 @@ const createStyles = scale =>
       paddingVertical: 12,
       marginBottom: 12,
     },
+    deliveryCodeMetaRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 12,
+    },
+    deliveryCodeMetaCardCompact: {
+      flex: 1,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#1E293B',
+      backgroundColor: '#020617',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
     deliveryCodeMetaLabel: {
       color: '#94A3B8',
       fontSize: 11,
@@ -1275,6 +1825,81 @@ const createStyles = scale =>
       fontSize: 20,
       fontWeight: '800',
       letterSpacing: 2,
+    },
+    deliveryCodeMetaValueCompact: {
+      color: '#F8FAFC',
+      fontSize: 18,
+      fontWeight: '800',
+      letterSpacing: 1.5,
+    },
+    deliveryLocatorHero: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: '#2B4A62',
+      backgroundColor: '#08111D',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      marginBottom: 12,
+    },
+    deliveryLocatorHeroValue: {
+      color: '#F8FAFC',
+      fontSize: 28,
+      fontWeight: '900',
+      letterSpacing: 4,
+      marginBottom: 8,
+    },
+    deliveryLocatorHeroHelper: {
+      color: '#CBD5E1',
+      fontSize: 12,
+      lineHeight: 18,
+      marginBottom: 10,
+    },
+    deliveryLinkCard: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: '#23405A',
+      backgroundColor: '#09131F',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 12,
+    },
+    deliveryLinkUrl: {
+      color: '#7DD3FC',
+      fontSize: 12,
+      lineHeight: 18,
+      marginBottom: 10,
+    },
+    deliveryLinkActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    deliveryLinkActionButton: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: '#2B4A62',
+      backgroundColor: '#0F172A',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    deliveryLinkActionText: {
+      color: '#E2E8F0',
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    deliveryLinkPrimaryButton: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: '#1D4ED8',
+      backgroundColor: '#0F172A',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    deliveryLinkPrimaryButtonText: {
+      color: '#DBEAFE',
+      fontSize: 12,
+      fontWeight: '700',
     },
     deliveryCodeButton: {
       flex: 1,
