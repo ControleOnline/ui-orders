@@ -15,6 +15,15 @@ const WAITING_RULES = [
 
 const normalizeText = value => String(value || '').trim()
 
+const isPrivacyPlaceholder = value => {
+  const normalized = normalizeText(value).toLowerCase()
+  if (!normalized) return false
+
+  return ['privacy protection', 'privacy_protection', 'privacy-protection'].includes(
+    normalized,
+  )
+}
+
 const getWaitingMinutes = orderDate => {
   if (!orderDate) return 0
   const diff = Date.now() - new Date(orderDate).getTime()
@@ -53,12 +62,16 @@ const getExternalOrderRef = order => {
 }
 
 const getCustomerName = order =>
-  normalizeText(
-    order?.client?.name ||
-    order?.person?.name ||
-    order?.customer?.name ||
-    order?.customerName,
-  )
+  {
+    const resolved = normalizeText(
+      order?.client?.name ||
+        order?.person?.name ||
+        order?.customer?.name ||
+        order?.customerName,
+    )
+
+    return isPrivacyPlaceholder(resolved) ? '' : resolved
+  }
 
 const getCustomerContact = order => {
   const email = Array.isArray(order?.client?.email)

@@ -1,5 +1,29 @@
 const normalizeText = value => String(value ?? '').trim()
 
+const isPrivacyPlaceholder = value => {
+  const normalized = normalizeText(value).toLowerCase()
+  if (!normalized) return false
+
+  return ['privacy protection', 'privacy_protection', 'privacy-protection'].includes(
+    normalized,
+  )
+}
+
+const sanitizeIdentityValue = value => {
+  const normalized = normalizeText(value)
+  return normalized && !isPrivacyPlaceholder(normalized) ? normalized : ''
+}
+
+const resolveCustomerName = receiveAddress =>
+  [
+    sanitizeIdentityValue(receiveAddress?.name),
+    sanitizeIdentityValue(receiveAddress?.first_name),
+    sanitizeIdentityValue(receiveAddress?.last_name),
+  ]
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index)
+    .join(' ')
+
 const isObject = value =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
@@ -194,12 +218,7 @@ export const buildFood99OrderSummary = order => {
       isFullyPaid: amountPending <= 0.009,
     },
     customer: {
-      name: normalizeText(
-        receiveAddress?.name ||
-          [receiveAddress?.first_name, receiveAddress?.last_name]
-            .filter(Boolean)
-            .join(' '),
-      ),
+      name: resolveCustomerName(receiveAddress),
       phone: normalizeText(receiveAddress?.phone),
     },
     address: {
