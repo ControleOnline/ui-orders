@@ -909,7 +909,6 @@ const OrderDetails = ({ route, navigation }) => {
   const food99SelectedPaymentLabel = resolvePreferredText(
     food99Payment?.selected_payment_label,
     food99Payment?.pay_channel_label,
-    food99Payment?.pay_type_label,
     food99Payment?.pay_method_label,
   )
   const food99AddressStreetLine = [food99Address?.street_name, food99Address?.street_number]
@@ -938,9 +937,23 @@ const OrderDetails = ({ route, navigation }) => {
     typeof food99Payment?.needs_change === 'boolean'
       ? food99Payment.needs_change
       : food99ChangeAmount > 0.009
+  const food99PaymentChannelLabelLower = normalizeText(
+    food99Payment?.pay_channel_label || food99SelectedPaymentLabel,
+  ).toLowerCase()
   const isCashPaymentSelection =
-    String(food99Payment?.pay_type || '').trim() === '2' ||
-    String(food99Payment?.pay_channel || '').trim() === '153'
+    String(food99Payment?.pay_channel || '').trim() === '153' ||
+    food99PaymentChannelLabelLower.includes('dinheiro')
+  const shouldShowCollectOnDelivery =
+    !food99Payment?.is_paid_online && food99CashCollectionAmount > 0.009
+  const collectOnDeliveryLabel = isCashPaymentSelection
+    ? 'Receber em dinheiro na entrega'
+    : 'Receber na entrega'
+  const shouldShowDeliveryPaymentSection =
+    shouldShowCollectOnDelivery ||
+    isCashPaymentSelection ||
+    food99NeedsChange ||
+    food99ChangeFor > 0 ||
+    food99ShopPaidMoney > 0
   const hasFood99CancellationInfo =
     ['cancel_requested', 'partial_cancel', 'cancelled', 'canceled'].includes(remoteOrderStateKey) ||
     !!food99Integration?.cancel_code ||
@@ -1095,7 +1108,6 @@ const OrderDetails = ({ route, navigation }) => {
   const orderPaymentMethodText = resolvePreferredText(
     food99SelectedPaymentLabel,
     food99Payment?.pay_channel_label,
-    food99Payment?.pay_type_label,
     food99Payment?.pay_method_label,
   ) || 'Nao informado'
   const shouldShowKdsCancel = isFood99Order ? canCancelFood99Order : false
@@ -1409,11 +1421,6 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   const handleFood99DeliveredPress = useCallback(() => {
-    if (!isOrderPaidForCompletion) {
-      showError('Marque o pedido como pago antes de concluir a entrega.')
-      return
-    }
-
     if (requiresFood99DeliveryLocator) {
       openFood99DeliveryFlow()
       return
@@ -1421,8 +1428,6 @@ const OrderDetails = ({ route, navigation }) => {
 
     runFood99OrderAction('delivered')
   }, [
-    isOrderPaidForCompletion,
-    showError,
     requiresFood99DeliveryLocator,
     openFood99DeliveryFlow,
     runFood99OrderAction,
@@ -1495,7 +1500,7 @@ const OrderDetails = ({ route, navigation }) => {
         label: 'Entregar Pedido',
         icon: 'local-shipping',
         loadingKey: 'delivered',
-        disabled: !!food99ActionLoading || !isOrderPaidForCompletion,
+        disabled: !!food99ActionLoading,
         onPress: handleFood99DeliveredPress,
       }
     }
@@ -1506,7 +1511,6 @@ const OrderDetails = ({ route, navigation }) => {
     food99ActionLoading,
     handleFood99DeliveredPress,
     isFood99Order,
-    isOrderPaidForCompletion,
     runFood99OrderAction,
     shouldShowFood99DeliveryAction,
   ])
@@ -1723,7 +1727,7 @@ const OrderDetails = ({ route, navigation }) => {
           <Text style={[localStyles.mobilePaymentMetricValue, localStyles.mobilePaymentPendingValue]}>
             {Formatter.formatMoney(food99Payment?.amount_pending || localPendingAmount || 0)}
           </Text>
-          {!food99Payment?.is_paid_online && (
+          {shouldShowCollectOnDelivery && (
             <Text style={localStyles.mobilePaymentMetricHint}>
               Cobrar cliente: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
             </Text>
@@ -1754,8 +1758,7 @@ const OrderDetails = ({ route, navigation }) => {
       {(isFood99CourierToStore ||
         isFood99Delivering ||
         shouldHideReadyFood99Action ||
-        hasFood99SyncIssue ||
-        (!isOrderPaidForCompletion && shouldShowFood99DeliveryAction)) && (
+        hasFood99SyncIssue) && (
         <View style={localStyles.mobileWarningCard}>
           {isFood99CourierToStore ? (
             <Text style={localStyles.mobileWarningText}>
@@ -1773,11 +1776,6 @@ const OrderDetails = ({ route, navigation }) => {
           {hasFood99SyncIssue ? (
             <Text style={localStyles.mobileWarningText}>
               Integracao com divergencia. Use detalhes para sincronizar.
-            </Text>
-          ) : null}
-          {!isOrderPaidForCompletion && shouldShowFood99DeliveryAction ? (
-            <Text style={localStyles.mobileWarningText}>
-              Marque como pago antes de finalizar a entrega.
             </Text>
           ) : null}
         </View>
@@ -1950,11 +1948,6 @@ const OrderDetails = ({ route, navigation }) => {
                         ETA previsto: {formattedFood99Eta}
                       </Text>
                     )}
-                    {!!food99Payment?.pay_type_label && (
-                      <Text style={localStyles.detailsInfoText}>
-                        Tipo de pagamento (pay_type): {food99Payment.pay_type_label}
-                      </Text>
-                    )}
                     {!!food99SelectedPaymentLabel && (
                       <Text style={localStyles.detailsInfoTextStrong}>
                         Forma de pagamento selecionada: {food99SelectedPaymentLabel}
@@ -2050,9 +2043,11 @@ const OrderDetails = ({ route, navigation }) => {
                       <Text style={localStyles.detailsInfoTextStrong}>
                         Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
                       </Text>
-                      <Text style={localStyles.detailsInfoTextStrong}>
-                        Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
-                      </Text>
+                      {shouldShowCollectOnDelivery && (
+                        <Text style={localStyles.detailsInfoTextStrong}>
+                          Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                        </Text>
+                      )}
                     </View>
                   )}
 
@@ -2070,21 +2065,23 @@ const OrderDetails = ({ route, navigation }) => {
                           {Formatter.formatMoney(food99Payment.amount_pending || 0)}
                         </Text>
                       </View>
-                      <View style={localStyles.detailsCard}>
-                        <Text style={localStyles.detailsCardLabel}>Cobrar cliente</Text>
-                        <Text style={localStyles.detailsCardValue}>
-                          {Formatter.formatMoney(food99CashCollectionAmount || 0)}
-                        </Text>
-                      </View>
+                      {shouldShowCollectOnDelivery && (
+                        <View style={localStyles.detailsCard}>
+                          <Text style={localStyles.detailsCardLabel}>Cobrar cliente</Text>
+                          <Text style={localStyles.detailsCardValue}>
+                            {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
 
-                  {food99Payment && (
+                  {food99Payment && shouldShowDeliveryPaymentSection && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>Pagamento na entrega</Text>
-                      {!food99Payment?.is_paid_online && (
+                      {shouldShowCollectOnDelivery && (
                         <Text style={localStyles.detailsInfoTextStrong}>
-                          Receber em dinheiro / na entrega: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                          {collectOnDeliveryLabel}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                         </Text>
                       )}
                       {food99ChangeFor > 0 ? (
@@ -2349,13 +2346,15 @@ const OrderDetails = ({ route, navigation }) => {
 
       <Modal
         transparent
-        animationType="fade"
+        animationType="slide"
         visible={deliveryCodeModalVisible}
         onRequestClose={() => {
           if (!food99ActionLoading) {
             closeFood99DeliveryFlow()
           }
         }}
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
       >
         <View style={localStyles.modalSheetRoot}>
           <TouchableOpacity
@@ -2368,133 +2367,156 @@ const OrderDetails = ({ route, navigation }) => {
             }}
           />
           <View style={localStyles.modalSheetWrap}>
-            <View style={localStyles.deliveryCodeModal}>
-            <Text style={localStyles.deliveryCodeStepBadge}>
-              {deliveryFlowStep === 'locator' ? 'Passo 1 de 2' : 'Passo 2 de 2'}
-            </Text>
-            <Text style={localStyles.deliveryCodeDescription}>
-              {deliveryFlowStep === 'locator'
-                ? 'Confirme o localizador oficial da 99Food e envie o link de confirmacao ao entregador quando necessario.'
-                : 'Depois de encontrar o cliente, informe o codigo de confirmacao de 4 digitos para concluir a entrega.'}
-            </Text>
-
-            <View style={localStyles.deliveryLocatorHero}>
-              <Text style={localStyles.deliveryCodeMetaLabel}>Localizador 99</Text>
-              <Text style={localStyles.deliveryLocatorHeroValue}>
-                {activeFood99Locator || 'Nao informado'}
-              </Text>
-              <Text style={localStyles.deliveryLocatorHeroHelper}>
-                {food99Locator
-                  ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial da 99.'
-                  : 'Se a 99 nao enviar o localizador no payload, use o numero do recibo e informe manualmente abaixo.'}
-              </Text>
-
-              {!!activeFood99Locator && (
-                <TouchableOpacity
-                  onPress={handleFood99CopyLocator}
-                  disabled={!!food99ActionLoading}
-                  style={localStyles.deliveryLinkPrimaryButton}
-                >
-                  <Text style={localStyles.deliveryLinkPrimaryButtonText}>
-                    Copiar localizador
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {!!food99HandoverLink && (
-              <View style={localStyles.deliveryLinkCard}>
-                <Text style={localStyles.deliveryCodeMetaLabel}>Link para confirmar</Text>
-                <Text style={localStyles.deliveryLinkUrl} selectable>
-                  {food99HandoverLink}
+            <View
+              style={[
+                localStyles.deliveryCodeModal,
+                { paddingBottom: 14 + modalBottomInset },
+              ]}
+            >
+              <View style={localStyles.deliveryCodeHeader}>
+                <Text style={localStyles.deliveryCodeStepBadge}>
+                  {deliveryFlowStep === 'locator' ? 'Passo 1 de 2' : 'Passo 2 de 2'}
                 </Text>
-                <View style={localStyles.deliveryLinkActions}>
-                  <TouchableOpacity
-                    onPress={handleFood99OpenHandoverLink}
-                    disabled={!!food99ActionLoading}
-                    style={localStyles.deliveryLinkActionButton}
-                  >
-                    <Text style={localStyles.deliveryLinkActionText}>Abrir link</Text>
-                  </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={closeFood99DeliveryFlow}
+                  disabled={!!food99ActionLoading}
+                  style={localStyles.deliveryCodeCloseButton}
+                >
+                  <Icon name="close" size={22} color={ppcColors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-                  <TouchableOpacity
-                    onPress={handleFood99CopyHandoverLink}
-                    disabled={!!food99ActionLoading}
-                    style={localStyles.deliveryLinkActionButton}
-                  >
-                    <Text style={localStyles.deliveryLinkActionText}>Copiar link</Text>
-                  </TouchableOpacity>
+              <Text style={localStyles.deliveryCodeModalTitle}>Concluir entrega 99Food</Text>
 
-                  <TouchableOpacity
-                    onPress={handleFood99ShareHandoverWhatsapp}
-                    disabled={!!food99ActionLoading}
-                    style={localStyles.deliveryLinkActionButton}
-                  >
-                    <Text style={localStyles.deliveryLinkActionText}>
-                      Enviar via WhatsApp
-                    </Text>
-                  </TouchableOpacity>
+              <ScrollView
+                style={localStyles.deliveryCodeScroll}
+                contentContainerStyle={localStyles.deliveryCodeScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={localStyles.deliveryCodeDescription}>
+                  {deliveryFlowStep === 'locator'
+                    ? 'Confirme o localizador oficial da 99Food e envie o link de confirmacao ao entregador quando necessario.'
+                    : 'Depois de encontrar o cliente, informe o codigo de confirmacao de 4 digitos para concluir a entrega.'}
+                </Text>
+
+                <View style={localStyles.deliveryLocatorHero}>
+                  <Text style={localStyles.deliveryCodeMetaLabel}>Localizador 99</Text>
+                  <Text style={localStyles.deliveryLocatorHeroValue}>
+                    {activeFood99Locator || 'Nao informado'}
+                  </Text>
+                  <Text style={localStyles.deliveryLocatorHeroHelper}>
+                    {food99Locator
+                      ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial da 99.'
+                      : 'Se a 99 nao enviar o localizador no payload, use o numero do recibo e informe manualmente abaixo.'}
+                  </Text>
+
+                  {!!activeFood99Locator && (
+                    <TouchableOpacity
+                      onPress={handleFood99CopyLocator}
+                      disabled={!!food99ActionLoading}
+                      style={localStyles.deliveryLinkPrimaryButton}
+                    >
+                      <Text style={localStyles.deliveryLinkPrimaryButtonText}>
+                        Copiar localizador
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-              </View>
-            )}
 
-            {(!!food99PickupCode || !!food99HandoverCode) && (
-              <View style={localStyles.deliveryCodeMetaRow}>
-                {!!food99PickupCode && (
-                  <View style={localStyles.deliveryCodeMetaCardCompact}>
-                    <Text style={localStyles.deliveryCodeMetaLabel}>Pickup code</Text>
-                    <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99PickupCode}</Text>
+                {!!food99HandoverLink && (
+                  <View style={localStyles.deliveryLinkCard}>
+                    <Text style={localStyles.deliveryCodeMetaLabel}>Link para confirmar</Text>
+                    <Text style={localStyles.deliveryLinkUrl} selectable>
+                      {food99HandoverLink}
+                    </Text>
+                    <View style={localStyles.deliveryLinkActions}>
+                      <TouchableOpacity
+                        onPress={handleFood99OpenHandoverLink}
+                        disabled={!!food99ActionLoading}
+                        style={localStyles.deliveryLinkActionButton}
+                      >
+                        <Text style={localStyles.deliveryLinkActionText}>Abrir link</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={handleFood99CopyHandoverLink}
+                        disabled={!!food99ActionLoading}
+                        style={localStyles.deliveryLinkActionButton}
+                      >
+                        <Text style={localStyles.deliveryLinkActionText}>Copiar link</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={handleFood99ShareHandoverWhatsapp}
+                        disabled={!!food99ActionLoading}
+                        style={localStyles.deliveryLinkActionButton}
+                      >
+                        <Text style={localStyles.deliveryLinkActionText}>
+                          Enviar via WhatsApp
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
 
-                {!!food99HandoverCode && food99HandoverCode !== food99PickupCode && (
-                  <View style={localStyles.deliveryCodeMetaCardCompact}>
-                    <Text style={localStyles.deliveryCodeMetaLabel}>Handover code</Text>
-                    <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99HandoverCode}</Text>
+                {(!!food99PickupCode || !!food99HandoverCode) && (
+                  <View style={localStyles.deliveryCodeMetaRow}>
+                    {!!food99PickupCode && (
+                      <View style={localStyles.deliveryCodeMetaCardCompact}>
+                        <Text style={localStyles.deliveryCodeMetaLabel}>Pickup code</Text>
+                        <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99PickupCode}</Text>
+                      </View>
+                    )}
+
+                    {!!food99HandoverCode && food99HandoverCode !== food99PickupCode && (
+                      <View style={localStyles.deliveryCodeMetaCardCompact}>
+                        <Text style={localStyles.deliveryCodeMetaLabel}>Handover code</Text>
+                        <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99HandoverCode}</Text>
+                      </View>
+                    )}
                   </View>
                 )}
-              </View>
-            )}
 
-            <Text style={localStyles.deliveryCodeTitle}>
-              {deliveryFlowStep === 'locator' ? 'Validar localizador' : 'Confirmar codigo do cliente'}
-            </Text>
+                <Text style={localStyles.deliveryCodeTitle}>
+                  {deliveryFlowStep === 'locator' ? 'Validar localizador' : 'Confirmar codigo do cliente'}
+                </Text>
 
-            <TextInput
-              value={deliveryFlowStep === 'locator' ? deliveryLocator : deliveryCustomerCode}
-              onChangeText={value => {
-                const normalizedValue = normalizeDigits(
-                  value,
-                  deliveryFlowStep === 'locator'
-                    ? food99LocatorLength
-                    : food99DeliveryCodeLength,
-                )
+                <TextInput
+                  value={deliveryFlowStep === 'locator' ? deliveryLocator : deliveryCustomerCode}
+                  onChangeText={value => {
+                    const normalizedValue = normalizeDigits(
+                      value,
+                      deliveryFlowStep === 'locator'
+                        ? food99LocatorLength
+                        : food99DeliveryCodeLength,
+                    )
 
-                if (deliveryFlowStep === 'locator') {
-                  setDeliveryLocator(normalizedValue)
-                } else {
-                  setDeliveryCustomerCode(normalizedValue)
-                }
-              }}
-              placeholder={deliveryFlowStep === 'locator' ? '00000000' : '0000'}
-              placeholderTextColor={ppcColors.textSecondary}
-              keyboardType="number-pad"
-              maxLength={
-                deliveryFlowStep === 'locator'
-                  ? food99LocatorLength
-                  : food99DeliveryCodeLength
-              }
-              editable={!food99ActionLoading}
-              style={localStyles.deliveryCodeInput}
-            />
+                    if (deliveryFlowStep === 'locator') {
+                      setDeliveryLocator(normalizedValue)
+                    } else {
+                      setDeliveryCustomerCode(normalizedValue)
+                    }
+                  }}
+                  placeholder={deliveryFlowStep === 'locator' ? '00000000' : '0000'}
+                  placeholderTextColor={ppcColors.textSecondary}
+                  keyboardType="number-pad"
+                  maxLength={
+                    deliveryFlowStep === 'locator'
+                      ? food99LocatorLength
+                      : food99DeliveryCodeLength
+                  }
+                  editable={!food99ActionLoading}
+                  style={localStyles.deliveryCodeInput}
+                />
 
-            <Text style={localStyles.deliveryCodeHelper}>
-              {deliveryFlowStep === 'locator'
-                ? `O localizador oficial da 99Food tem ${food99LocatorLength} digitos.`
-                : `O codigo do cliente tem ${food99DeliveryCodeLength} digitos.`}
-            </Text>
+                <Text style={localStyles.deliveryCodeHelper}>
+                  {deliveryFlowStep === 'locator'
+                    ? `O localizador oficial da 99Food tem ${food99LocatorLength} digitos.`
+                    : `O codigo do cliente tem ${food99DeliveryCodeLength} digitos.`}
+                </Text>
+              </ScrollView>
 
-            <View style={localStyles.deliveryCodeActions}>
+              <View style={localStyles.deliveryCodeActions}>
               <TouchableOpacity
                 onPress={() => {
                   if (deliveryFlowStep === 'delivery_code') {
@@ -2538,7 +2560,7 @@ const OrderDetails = ({ route, navigation }) => {
                   </Text>
                 )}
               </TouchableOpacity>
-            </View>
+              </View>
             </View>
           </View>
         </View>
@@ -2667,11 +2689,6 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   )}
 
-                  {!!food99Payment?.pay_type_label && (
-                    <Text style={localStyles.food99InfoText}>
-                      Tipo de pagamento (pay_type): {food99Payment.pay_type_label}
-                    </Text>
-                  )}
                   {!!food99SelectedPaymentLabel && (
                     <Text style={localStyles.food99InfoTextStrong}>
                       Forma de pagamento selecionada: {food99SelectedPaymentLabel}
@@ -2687,7 +2704,7 @@ const OrderDetails = ({ route, navigation }) => {
                       Canal de pagamento (pay_channel): {food99PaymentChannelValue}
                     </Text>
                   )}
-                  {!food99Payment?.is_paid_online && (
+                  {shouldShowCollectOnDelivery && (
                     <Text style={localStyles.food99InfoTextStrong}>
                       Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                     </Text>
@@ -2800,9 +2817,9 @@ const OrderDetails = ({ route, navigation }) => {
                       <Text style={localStyles.food99InfoTextStrong}>
                         Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
                       </Text>
-                      {!food99Payment?.is_paid_online && (
+                      {shouldShowCollectOnDelivery && (
                         <Text style={localStyles.food99InfoTextStrong}>
-                          Receber em dinheiro: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                          {collectOnDeliveryLabel}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                         </Text>
                       )}
                     </View>
@@ -2908,11 +2925,6 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   ) : null}
 
-                  {!isOrderPaidForCompletion && shouldShowFood99DeliveryAction ? (
-                    <Text style={localStyles.food99InfoWarning}>
-                      Este pedido ainda nao esta pago localmente. Marque como pago em Detalhes antes de concluir a entrega.
-                    </Text>
-                  ) : null}
                 </View>
               )}
 
@@ -2956,11 +2968,11 @@ const OrderDetails = ({ route, navigation }) => {
                   {shouldShowFood99DeliveryAction && (
                     <TouchableOpacity
                       onPress={handleFood99DeliveredPress}
-                      disabled={!!food99ActionLoading || !isOrderPaidForCompletion}
+                      disabled={!!food99ActionLoading}
                       style={[
                         localStyles.kdsActionButton,
                         localStyles.kdsActionSuccess,
-                        (food99ActionLoading || !isOrderPaidForCompletion) &&
+                        food99ActionLoading &&
                           localStyles.kdsActionButtonDisabled,
                       ]}
                     >
@@ -3987,15 +3999,46 @@ const createStyles = (scale, palette) =>
     },
     deliveryCodeModal: {
       width: '100%',
-      maxHeight: '88%',
+      maxHeight: '92%',
+      minHeight: 360,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.modalBg,
       paddingHorizontal: 16,
-      paddingTop: 14,
+      paddingTop: 12,
       paddingBottom: 14,
+      overflow: 'hidden',
+    },
+    deliveryCodeHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+      gap: 10,
+    },
+    deliveryCodeModalTitle: {
+      color: palette.textPrimary,
+      fontSize: 24,
+      fontWeight: '900',
+      marginBottom: 10,
+    },
+    deliveryCodeCloseButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deliveryCodeScroll: {
+      flex: 1,
+    },
+    deliveryCodeScrollContent: {
+      paddingBottom: 8,
     },
     deliveryCodeStepBadge: {
       alignSelf: 'flex-start',
@@ -4008,7 +4051,7 @@ const createStyles = (scale, palette) =>
       fontWeight: '800',
       paddingHorizontal: 10,
       paddingVertical: 5,
-      marginBottom: 10,
+      marginBottom: 0,
       overflow: 'hidden',
       textTransform: 'uppercase',
     },
@@ -4047,6 +4090,10 @@ const createStyles = (scale, palette) =>
     deliveryCodeActions: {
       flexDirection: 'row',
       gap: 10,
+      marginTop: 8,
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: palette.borderSoft,
     },
     deliveryCodeMetaCard: {
       borderRadius: 12,
