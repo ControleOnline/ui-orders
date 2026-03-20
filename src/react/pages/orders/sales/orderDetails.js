@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '@store'
 import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
@@ -212,6 +212,7 @@ const OrderDetails = ({ route, navigation }) => {
   const [deliveryFlowStep, setDeliveryFlowStep] = useState('locator')
   const [deliveryLocator, setDeliveryLocator] = useState('')
   const [deliveryCustomerCode, setDeliveryCustomerCode] = useState('')
+  const insets = useSafeAreaInsets()
 
   const ordersStore = useStore('orders')
   const { getters: ordersGetters, actions: ordersActions } = ordersStore
@@ -963,6 +964,15 @@ const OrderDetails = ({ route, navigation }) => {
     : 0
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
+  const food99AmountPending = resolvePreferredMoney(
+    food99Payment?.amount_pending,
+    food99CashCollectionAmount,
+  )
+  const hasFood99PendingSignals =
+    hasMeaningfulValue(food99Payment?.amount_pending) ||
+    hasMeaningfulValue(food99Payment?.customer_need_paying_money) ||
+    hasMeaningfulValue(food99Financial?.customer_need_paying_money) ||
+    hasMeaningfulValue(food99Payment?.collect_on_delivery_amount)
   const paidStatusId = String(defaultCompany?.configs?.['pos-paid-status'] || '').trim()
   const localStatusLabel = String(item?.status?.status || '').trim().toLowerCase()
   const localStatusId = String(item?.status?.['@id'] || item?.status?.id || '').trim()
@@ -971,10 +981,19 @@ const OrderDetails = ({ route, navigation }) => {
     (paidStatusId &&
       (localStatusId === paidStatusId ||
         localStatusId.endsWith(`/${paidStatusId}`)))
+  const isFood99FinanciallyPaid =
+    isFood99Order &&
+    (
+      food99Payment?.is_fully_paid === true ||
+      food99Payment?.is_paid_online === true ||
+      (hasFood99PendingSignals && food99AmountPending <= 0.009)
+    )
   const isFinanciallyPaid =
-    (isFood99Order && food99Payment?.is_fully_paid) ||
+    isFood99FinanciallyPaid ||
     localPendingAmount <= 0.009
-  const isOrderPaidForCompletion = isStatusMarkedPaid || isFinanciallyPaid
+  const isOrderPaidForCompletion = isFood99Order
+    ? isFood99FinanciallyPaid
+    : isStatusMarkedPaid || isFinanciallyPaid
   const canMarkOrderAsPaid =
     !!item?.id && !!paidStatusId && !isStatusMarkedPaid
   const hasFood99SyncIssue =
@@ -1777,6 +1796,8 @@ const OrderDetails = ({ route, navigation }) => {
     </ScrollView>
   )
 
+  const modalBottomInset = Math.max(insets?.bottom || 0, 8)
+
   return (
     <SafeAreaView
       style={[
@@ -1799,6 +1820,7 @@ const OrderDetails = ({ route, navigation }) => {
         visible={detailsModalVisible}
         onRequestClose={closeDetailsModal}
         statusBarTranslucent
+        presentationStyle="overFullScreen"
       >
         <View style={localStyles.modalSheetRoot}>
           <TouchableOpacity
@@ -1807,7 +1829,12 @@ const OrderDetails = ({ route, navigation }) => {
             onPress={closeDetailsModal}
           />
           <View style={localStyles.modalSheetWrap}>
-            <View style={localStyles.detailsModal}>
+            <View
+              style={[
+                localStyles.detailsModal,
+                { paddingBottom: 14 + modalBottomInset },
+              ]}
+            >
             <View style={localStyles.detailsModalHeader}>
               <View>
                 <Text style={localStyles.detailsModalEyebrow}>Resumo do pedido</Text>
@@ -1847,7 +1874,10 @@ const OrderDetails = ({ route, navigation }) => {
 
             <ScrollView
               style={localStyles.detailsModalScroll}
-              contentContainerStyle={localStyles.detailsModalScrollContent}
+              contentContainerStyle={[
+                localStyles.detailsModalScrollContent,
+                { paddingBottom: 20 + modalBottomInset },
+              ]}
               showsVerticalScrollIndicator={false}
             >
               <View style={localStyles.detailsGrid}>
@@ -3760,7 +3790,8 @@ const createStyles = (scale, palette) =>
     },
     detailsModal: {
       width: '100%',
-      height: '84%',
+      maxHeight: '84%',
+      minHeight: 320,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       borderWidth: 1,
@@ -3943,6 +3974,7 @@ const createStyles = (scale, palette) =>
       flex: 1,
       justifyContent: 'flex-end',
       backgroundColor: palette.overlay,
+      paddingTop: 24,
     },
     modalSheetBackdrop: {
       flex: 1,
@@ -3951,6 +3983,7 @@ const createStyles = (scale, palette) =>
       width: '100%',
       maxHeight: '100%',
       justifyContent: 'flex-end',
+      marginTop: 'auto',
     },
     deliveryCodeModal: {
       width: '100%',
