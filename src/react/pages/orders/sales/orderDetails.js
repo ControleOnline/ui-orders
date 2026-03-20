@@ -23,6 +23,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
 import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
+import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import { buildFood99OrderSummary } from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
 import { useDisplayTheme } from '@controleonline/ui-ppc/src/react/theme/displayTheme'
 
@@ -240,11 +241,6 @@ const OrderDetails = ({ route, navigation }) => {
 
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
-  const printerStore = useStore('printer')
-  const { getters: printerGetters, actions: printerActions } = printerStore
-  const { item: printer, items: printers, isLoading: printerLoading } = printerGetters
-  const printStore = useStore('print')
-  const { actions: printActions } = printStore
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
 
   // @todo implementar. já vem do banco.
@@ -275,16 +271,6 @@ const OrderDetails = ({ route, navigation }) => {
       }
     }, [orderParam]),
   )
-
-  useEffect(() => {
-    if (!Array.isArray(printers) || printers.length === 0) return
-    if (!device?.configs?.printer) return
-
-    const selectedPrinter = printers.find(itemPrinter => itemPrinter?.device === device.configs.printer)
-    if (selectedPrinter && selectedPrinter?.device !== printer?.device) {
-      printerActions.setItem(selectedPrinter)
-    }
-  }, [device?.configs?.printer, printer?.device, printerActions, printers])
 
   const handleAddProduct = () => {
     navigation.navigate('AddProductScreen')
@@ -1460,28 +1446,6 @@ const OrderDetails = ({ route, navigation }) => {
     runFood99OrderAction,
   ])
 
-  const handlePrintOrder = useCallback(async () => {
-    if (!item?.id) return
-
-    if (!printer) {
-      showError('Selecione uma impressora antes de imprimir.')
-      return
-    }
-
-    try {
-      await printActions.addToPrint({
-        printType: 'order',
-        id:
-          item?.['@id'] && String(item['@id']).includes('/')
-            ? String(item['@id']).split('/').pop()
-            : String(item.id),
-      })
-      showSuccess('Pedido enviado para impressao.')
-    } catch (printError) {
-      showError(formatApiError(printError))
-    }
-  }, [item, printActions, printer, showError, showSuccess])
-
   const primaryKdsAction = useMemo(() => {
     if (!isFood99Order) return null
 
@@ -1555,20 +1519,15 @@ const OrderDetails = ({ route, navigation }) => {
       ),
       headerRight: () => (
         <View style={localStyles.topBarActions}>
-          <TouchableOpacity
-            onPress={handlePrintOrder}
-            disabled={printerLoading || !item?.id}
-            style={[
-              localStyles.topBarIconButton,
-              (printerLoading || !item?.id) && localStyles.topBarIconButtonDisabled,
-            ]}
-          >
-            {printerLoading ? (
-              <ActivityIndicator size="small" color={ppcColors.accentInfo} />
-            ) : (
-              <Icon name="print" size={19} color={ppcColors.accentInfo} />
-            )}
-          </TouchableOpacity>
+          <PrintButton
+            printType="order"
+            store="orders"
+            compact
+            iconColor={ppcColors.accentInfo}
+            compactButtonStyle={localStyles.topBarIconButton}
+            compactSelectStyle={localStyles.topBarIconButton}
+            disabled={!item?.id}
+          />
 
           <TouchableOpacity
             onPress={handleOrderTools}
@@ -1581,11 +1540,9 @@ const OrderDetails = ({ route, navigation }) => {
     })
   }, [
     handleOrderTools,
-    handlePrintOrder,
     item?.id,
     localStyles.topBarActions,
     localStyles.topBarIconButton,
-    localStyles.topBarIconButtonDisabled,
     localStyles.topBarTitleSubText,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,
@@ -1593,7 +1550,6 @@ const OrderDetails = ({ route, navigation }) => {
     orderDateLabel,
     orderDisplayId,
     ppcColors.accentInfo,
-    printerLoading,
   ])
 
   const renderKdsMobileContent = () => (

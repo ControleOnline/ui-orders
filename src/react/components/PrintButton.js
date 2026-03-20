@@ -5,7 +5,15 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useStore} from '@store';
 
-const PrinterButton = ({printType, store}) => {
+const PrinterButton = ({
+  printType,
+  store,
+  compact = false,
+  iconColor = '#fff',
+  compactButtonStyle = null,
+  compactSelectStyle = null,
+  disabled = false,
+}) => {
   const {styles, globalStyles} = css();
 
   const currentStore = useStore(store);
@@ -59,6 +67,10 @@ const PrinterButton = ({printType, store}) => {
   };
 
   const handlePrint = async () => {
+    if (disabled) {
+      return;
+    }
+
     try {
       printActions.addToPrint({
         printType: printType,
@@ -80,58 +92,77 @@ const PrinterButton = ({printType, store}) => {
     </TouchableOpacity>
   );
 
+  if (!printers?.length) {
+    return null;
+  }
+
+  const printDisabled = disabled || isLoading || !printer;
+
   return (
-    printers?.length > 0 && (
-      <View
-        style={[
-          globalStyles.button,
-          {flexDirection: 'row', alignItems: 'center'},
-        ]}>
-        <TouchableOpacity
-          style={[styles.printButton.printButton]}
-          onPress={handlePrint}
-          disabled={isLoading || !printer}>
-          <Icon name="print" size={24} color="#fff" />
-          <Text style={{color: '#fff', marginLeft: 8}}>
+    <View
+      style={
+        compact
+          ? styles.printButton.compactWrap
+          : [
+              globalStyles.button,
+              {flexDirection: 'row', alignItems: 'center'},
+            ]
+      }>
+      <TouchableOpacity
+        style={
+          compact
+            ? [styles.printButton.compactButton, compactButtonStyle]
+            : [styles.printButton.printButton]
+        }
+        onPress={handlePrint}
+        disabled={printDisabled}>
+        <Icon name="print" size={compact ? 19 : 24} color={iconColor} />
+        {!compact && (
+          <Text style={{color: iconColor, marginLeft: 8}}>
             {isLoading
               ? 'Imprimindo...'
               : printer && printer.alias
               ? `Imprimir (${printer?.alias})`
               : 'Selecionar Impressora'}
           </Text>
-        </TouchableOpacity>
+        )}
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.printButton.selectButton}
-          onPress={handleOpenPrinters}>
-          <Icon name="list" size={24} color="#fff" />
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={
+          compact
+            ? [styles.printButton.compactButton, compactSelectStyle]
+            : styles.printButton.selectButton
+        }
+        disabled={disabled}
+        onPress={handleOpenPrinters}>
+        <Icon name="list" size={compact ? 20 : 24} color={iconColor} />
+      </TouchableOpacity>
 
-        <Modal
-          visible={isModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setIsModalVisible(false)}>
-          <View style={styles.printButton.modalContainer}>
-            <View style={styles.printButton.modalContent}>
-              <Text style={styles.printButton.modalTitle}>
-                Selecionar Impressora
-              </Text>
-              <FlatList
-                data={printers}
-                renderItem={renderPrinterItem}
-                keyExtractor={item => item.device}
-              />
-              <TouchableOpacity
-                style={styles.printButton.closeButton}
-                onPress={() => setIsModalVisible(false)}>
-                <Text style={styles.printButton.closeButtonText}>Fechar</Text>
-              </TouchableOpacity>
-            </View>
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsModalVisible(false)}>
+        <View style={styles.printButton.modalContainer}>
+          <View style={styles.printButton.modalContent}>
+            <Text style={styles.printButton.modalTitle}>
+              Selecionar Impressora
+            </Text>
+            <FlatList
+              data={printers}
+              renderItem={renderPrinterItem}
+              keyExtractor={item => item.device}
+            />
+            <TouchableOpacity
+              style={styles.printButton.closeButton}
+              onPress={() => setIsModalVisible(false)}>
+              <Text style={styles.printButton.closeButtonText}>Fechar</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </View>
-    )
+        </View>
+      </Modal>
+    </View>
   );
 };
 

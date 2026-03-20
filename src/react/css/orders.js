@@ -357,6 +357,14 @@ const css = () => {
       },
     },
     printButton: {
+      compactWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+      },
+      compactButton: {
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
       modalContainer: {
         flex: 1,
         justifyContent: 'center',
