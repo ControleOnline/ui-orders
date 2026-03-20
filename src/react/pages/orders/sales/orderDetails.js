@@ -171,6 +171,17 @@ const normalizeFood99CancelReasonId = value => {
   return Number.isFinite(normalized) && normalized > 0 ? normalized : null
 }
 
+const formatFood99CodeLabel = (label, code) => {
+  const normalizedLabel = resolvePreferredText(label)
+  const normalizedCode = resolvePreferredText(code)
+
+  if (normalizedLabel && normalizedCode) {
+    return `${normalizedLabel} (${normalizedCode})`
+  }
+
+  return normalizedLabel || normalizedCode
+}
+
 const formatOrderDateTime = value => {
   if (!value) return ''
 
@@ -447,6 +458,7 @@ const OrderDetails = ({ route, navigation }) => {
       store_receivable_total: financial.storeReceivableTotal ?? 0,
       real_pay_total: financial.realPayTotal ?? 0,
       refund_total: financial.refundTotal ?? 0,
+      shop_paid_money: financial.shopPaidMoney ?? 0,
       store_charged_delivery_price: financial.storeChargedDeliveryPrice ?? 0,
     }
   }, [fallbackFood99Summary])
@@ -458,11 +470,18 @@ const OrderDetails = ({ route, navigation }) => {
       pay_type: payment.payType || '',
       pay_type_label: payment.payTypeLabel || '',
       pay_method: payment.payMethod || '',
+      pay_method_label: payment.payMethodLabel || '',
       pay_channel: payment.payChannel || '',
+      pay_channel_label: payment.payChannelLabel || '',
+      selected_payment_label: payment.selectedPaymentLabel || '',
       amount_paid: payment.amountPaid ?? 0,
       amount_pending: payment.amountPending ?? 0,
       customer_need_paying_money: payment.customerNeedPayingMoney ?? 0,
       collect_on_delivery_amount: payment.collectOnDeliveryAmount ?? 0,
+      shop_paid_money: payment.shopPaidMoney ?? 0,
+      change_for: payment.changeFor ?? 0,
+      change_amount: payment.changeAmount ?? 0,
+      needs_change: !!payment.needsChange,
       should_confirm_payment: !payment.isPaidOnline,
       is_fully_paid: !!payment.isFullyPaid,
       is_paid_online: !!payment.isPaidOnline,
@@ -570,6 +589,10 @@ const OrderDetails = ({ route, navigation }) => {
         stateFinancial.store_charged_delivery_price,
         fallbackFood99Financial.store_charged_delivery_price,
       ),
+      shop_paid_money: resolvePreferredMoney(
+        stateFinancial.shop_paid_money,
+        fallbackFood99Financial.shop_paid_money,
+      ),
     }
   }, [food99State?.financial, fallbackFood99Financial])
   const food99Payment = useMemo(() => {
@@ -586,7 +609,19 @@ const OrderDetails = ({ route, navigation }) => {
         fallbackFood99Payment.pay_type_label,
       ),
       pay_method: resolvePreferredText(statePayment.pay_method, fallbackFood99Payment.pay_method),
+      pay_method_label: resolvePreferredText(
+        statePayment.pay_method_label,
+        fallbackFood99Payment.pay_method_label,
+      ),
       pay_channel: resolvePreferredText(statePayment.pay_channel, fallbackFood99Payment.pay_channel),
+      pay_channel_label: resolvePreferredText(
+        statePayment.pay_channel_label,
+        fallbackFood99Payment.pay_channel_label,
+      ),
+      selected_payment_label: resolvePreferredText(
+        statePayment.selected_payment_label,
+        fallbackFood99Payment.selected_payment_label,
+      ),
       amount_paid: resolvePreferredMoney(statePayment.amount_paid, fallbackFood99Payment.amount_paid),
       amount_pending: resolvePreferredMoney(
         statePayment.amount_pending,
@@ -600,6 +635,22 @@ const OrderDetails = ({ route, navigation }) => {
         statePayment.collect_on_delivery_amount,
         fallbackFood99Payment.collect_on_delivery_amount,
       ),
+      shop_paid_money: resolvePreferredMoney(
+        statePayment.shop_paid_money,
+        fallbackFood99Payment.shop_paid_money,
+      ),
+      change_for: resolvePreferredMoney(
+        statePayment.change_for,
+        fallbackFood99Payment.change_for,
+      ),
+      change_amount: resolvePreferredMoney(
+        statePayment.change_amount,
+        fallbackFood99Payment.change_amount,
+      ),
+      needs_change:
+        typeof statePayment.needs_change === 'boolean'
+          ? statePayment.needs_change
+          : !!fallbackFood99Payment.needs_change,
       should_confirm_payment:
         typeof statePayment.should_confirm_payment === 'boolean'
           ? statePayment.should_confirm_payment
@@ -771,12 +822,24 @@ const OrderDetails = ({ route, navigation }) => {
       ? food99Capabilities.is_delivering
       : ['courier_to_store', 'picked_up', 'delivering', 'arriving'].includes(remoteOrderStateKey)
   const hasFood99VisualData = !!(food99State || fallbackFood99Summary)
-  const food99PaymentMethodValue = resolvePreferredText(food99Payment?.pay_method)
-  const food99PaymentChannelValue = resolvePreferredText(food99Payment?.pay_channel)
+  const food99PaymentMethodValue = formatFood99CodeLabel(
+    food99Payment?.pay_method_label,
+    food99Payment?.pay_method,
+  )
+  const food99PaymentChannelValue = formatFood99CodeLabel(
+    food99Payment?.pay_channel_label,
+    food99Payment?.pay_channel,
+  )
   const food99RemarkText = resolvePreferredText(food99Notes?.remark)
   const food99AddressPrimaryLine = resolvePreferredText(
     food99Address?.display,
     food99Address?.poi_address,
+  )
+  const food99SelectedPaymentLabel = resolvePreferredText(
+    food99Payment?.selected_payment_label,
+    food99Payment?.pay_channel_label,
+    food99Payment?.pay_type_label,
+    food99Payment?.pay_method_label,
   )
   const food99AddressStreetLine = [food99Address?.street_name, food99Address?.street_number]
     .map(normalizeText)
@@ -794,6 +857,19 @@ const OrderDetails = ({ route, navigation }) => {
     food99Payment?.customer_need_paying_money ?? food99Financial?.customer_need_paying_money,
     food99CollectOnDeliveryFallback,
   )
+  const food99ShopPaidMoney = resolvePreferredMoney(
+    food99Payment?.shop_paid_money,
+    food99Financial?.shop_paid_money,
+  )
+  const food99ChangeFor = resolvePreferredMoney(food99Payment?.change_for)
+  const food99ChangeAmount = resolvePreferredMoney(food99Payment?.change_amount)
+  const food99NeedsChange =
+    typeof food99Payment?.needs_change === 'boolean'
+      ? food99Payment.needs_change
+      : food99ChangeAmount > 0.009
+  const isCashPaymentSelection =
+    String(food99Payment?.pay_type || '').trim() === '2' ||
+    String(food99Payment?.pay_channel || '').trim() === '153'
   const hasFood99CancellationInfo =
     ['cancel_requested', 'partial_cancel', 'cancelled', 'canceled'].includes(remoteOrderStateKey) ||
     !!food99Integration?.cancel_code ||
@@ -1326,7 +1402,12 @@ const OrderDetails = ({ route, navigation }) => {
                     )}
                     {!!food99Payment?.pay_type_label && (
                       <Text style={localStyles.detailsInfoText}>
-                        Pagamento: {food99Payment.pay_type_label}
+                        Tipo de pagamento (pay_type): {food99Payment.pay_type_label}
+                      </Text>
+                    )}
+                    {!!food99SelectedPaymentLabel && (
+                      <Text style={localStyles.detailsInfoTextStrong}>
+                        Forma de pagamento selecionada: {food99SelectedPaymentLabel}
                       </Text>
                     )}
                     {!!food99PaymentMethodValue && (
@@ -1445,6 +1526,34 @@ const OrderDetails = ({ route, navigation }) => {
                           {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                         </Text>
                       </View>
+                    </View>
+                  )}
+
+                  {food99Payment && (
+                    <View style={localStyles.detailsSection}>
+                      <Text style={localStyles.detailsSectionTitle}>Pagamento na entrega</Text>
+                      {!food99Payment?.is_paid_online && (
+                        <Text style={localStyles.detailsInfoTextStrong}>
+                          Receber em dinheiro / na entrega: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                        </Text>
+                      )}
+                      {food99ChangeFor > 0 ? (
+                        <Text style={localStyles.detailsInfoText}>
+                          Troco para: {Formatter.formatMoney(food99ChangeFor)}
+                        </Text>
+                      ) : isCashPaymentSelection ? (
+                        <Text style={localStyles.detailsInfoText}>Troco: nao solicitado</Text>
+                      ) : null}
+                      {food99NeedsChange ? (
+                        <Text style={localStyles.detailsInfoText}>
+                          Troco a devolver: {Formatter.formatMoney(food99ChangeAmount)}
+                        </Text>
+                      ) : null}
+                      {food99ShopPaidMoney > 0 ? (
+                        <Text style={localStyles.detailsInfoText}>
+                          Repasse ao lojista pelo entregador (shop_paid_money): {Formatter.formatMoney(food99ShopPaidMoney)}
+                        </Text>
+                      ) : null}
                     </View>
                   )}
 
@@ -1986,7 +2095,12 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {!!food99Payment?.pay_type_label && (
                     <Text style={localStyles.food99InfoText}>
-                      Pagamento: {food99Payment.pay_type_label}
+                      Tipo de pagamento (pay_type): {food99Payment.pay_type_label}
+                    </Text>
+                  )}
+                  {!!food99SelectedPaymentLabel && (
+                    <Text style={localStyles.food99InfoTextStrong}>
+                      Forma de pagamento selecionada: {food99SelectedPaymentLabel}
                     </Text>
                   )}
                   {!!food99PaymentMethodValue && (
@@ -2004,6 +2118,23 @@ const OrderDetails = ({ route, navigation }) => {
                       Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                     </Text>
                   )}
+                  {food99ChangeFor > 0 ? (
+                    <Text style={localStyles.food99InfoText}>
+                      Troco para: {Formatter.formatMoney(food99ChangeFor)}
+                    </Text>
+                  ) : isCashPaymentSelection ? (
+                    <Text style={localStyles.food99InfoText}>Troco: nao solicitado</Text>
+                  ) : null}
+                  {food99NeedsChange ? (
+                    <Text style={localStyles.food99InfoText}>
+                      Troco a devolver: {Formatter.formatMoney(food99ChangeAmount)}
+                    </Text>
+                  ) : null}
+                  {food99ShopPaidMoney > 0 ? (
+                    <Text style={localStyles.food99InfoText}>
+                      Repasse ao lojista pelo entregador (shop_paid_money): {Formatter.formatMoney(food99ShopPaidMoney)}
+                    </Text>
+                  ) : null}
                   {hasFood99CancellationInfo && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>Cancelamento</Text>

@@ -110,6 +110,145 @@ const extractPromotionList = payload => {
     .filter(isObject)
 }
 
+const resolveFood99PaymentMethodLabel = payMethod => {
+  switch (normalizeText(payMethod)) {
+    case '1':
+      return 'Pagamento online'
+    case '2':
+      return 'Pagamento offline'
+    case '0':
+      return 'Nao informado pela 99'
+    default:
+      return 'Metodo nao mapeado'
+  }
+}
+
+const resolveFood99PaymentTypeLabel = ({ payType, deliveryType }) => {
+  switch (normalizeText(payType)) {
+    case '1':
+      return 'Pagamento online'
+    case '2':
+      return 'Dinheiro'
+    case '3':
+      return 'POS'
+    case '4':
+      return 'Carteira / 99Pay'
+    case '5':
+      return 'PayPay sem senha'
+    case '6':
+      return 'PayPay com senha'
+    default:
+      return normalizeText(deliveryType) === '1'
+        ? 'Pagamento processado pela 99Food'
+        : 'Pagamento nao mapeado'
+  }
+}
+
+const resolveFood99PaymentChannelLabel = ({
+  payChannel,
+  payMethod,
+  deliveryType,
+}) => {
+  const normalizedPayChannel = normalizeText(payChannel)
+  const normalizedPayMethod = normalizeText(payMethod)
+  const normalizedDeliveryType = normalizeText(deliveryType)
+
+  if (!normalizedPayChannel) {
+    return ''
+  }
+
+  switch (normalizedPayChannel) {
+    case '0':
+      return 'Nao informado pela 99'
+    case '110':
+      return 'Cupom'
+    case '120':
+      return '99Food Wallet'
+    case '150':
+      return 'Cartao de credito / debito'
+    case '153':
+      return 'Dinheiro'
+    case '154':
+      return 'POS'
+    case '167':
+      return 'Preauth'
+    case '182':
+      return 'PayPay sem senha'
+    case '184':
+      return 'PayPay com senha'
+    case '190':
+      return '99Pay'
+    case '212':
+      return 'PIX'
+    case '219':
+      return '99Food Cuenta'
+    case '229':
+      return 'NuPay'
+    case '234':
+      return 'Apple Pay (pre-auth)'
+    case '235':
+      return 'Apple Pay'
+    case '257':
+      return 'Vale Refeicao Pluxee'
+    case '258':
+      return 'Vale Refeicao Ticket'
+    case '259':
+      return 'Vale Refeicao VR'
+    case '260':
+      return 'Vale Refeicao Alelo'
+    case '261':
+      return 'NEQUI'
+    case '262':
+      return 'POS cartao de credito'
+    case '263':
+      return 'POS cartao de debito'
+    case '264':
+      return 'POS vale refeicao'
+    case '272':
+      return 'Google Pay'
+    case '273':
+      return 'Google Pay (pre-auth)'
+    case '310':
+      return 'Yape'
+    case '311':
+      return 'Plin'
+    case '901':
+      return 'Beneficio'
+    case '2008':
+      return 'Marketing'
+    default:
+      if (normalizedPayMethod === '1') {
+        return normalizedDeliveryType === '1'
+          ? 'Pagamento online'
+          : 'Pagamento online selecionado pelo cliente'
+      }
+      if (normalizedPayMethod === '2') return 'Pagamento offline'
+      return 'Canal nao mapeado'
+  }
+}
+
+const resolveFood99SelectedPaymentLabel = ({
+  payChannelLabel,
+  payTypeLabel,
+  payMethodLabel,
+}) => {
+  const candidates = [payChannelLabel, payTypeLabel, payMethodLabel]
+    .map(normalizeText)
+    .filter(Boolean)
+
+  const preferredLabel = candidates.find(
+    label =>
+      ![
+        'Nao informado pela 99',
+        'Canal nao mapeado',
+        'Metodo nao mapeado',
+        'Pagamento nao mapeado',
+      ].includes(label),
+  )
+
+  return preferredLabel || candidates[0] || ''
+}
+
 const getBestPayload = order => {
   const otherInformations = decodeJson(order?.otherInformations)
   const latestEventType = normalizeText(otherInformations?.latest_event_type)
@@ -177,6 +316,8 @@ export const buildFood99OrderSummary = order => {
   const customerNeedPayingMoney = toMoney(price?.customer_need_paying_money)
   const realPayTotal = toMoney(price?.real_pay_price)
   const refundTotal = toMoney(price?.refund_price)
+  const changeFor = toMoney(orderInfo?.change_for ?? data?.change_for)
+  const shopPaidMoney = toMoney(price?.shop_paid_money)
 
   const itemsTotal = toMoney(price?.order_price)
   const deliveryFee = originalDeliveryFee
@@ -215,6 +356,24 @@ export const buildFood99OrderSummary = order => {
     0,
     Math.round((customerTotal - amountPaid) * 100) / 100,
   )
+  const paymentTypeLabel = resolveFood99PaymentTypeLabel({ payType, deliveryType })
+  const paymentMethodLabel = resolveFood99PaymentMethodLabel(payMethod)
+  const paymentChannelLabel = resolveFood99PaymentChannelLabel({
+    payChannel,
+    payMethod,
+    deliveryType,
+  })
+  const selectedPaymentLabel = resolveFood99SelectedPaymentLabel({
+    payChannelLabel: paymentChannelLabel,
+    payTypeLabel: paymentTypeLabel,
+    payMethodLabel: paymentMethodLabel,
+  })
+  const changeAmount = changeFor > 0 && customerNeedPayingMoney > 0
+    ? Math.max(
+        0,
+        Math.round((changeFor - customerNeedPayingMoney) * 100) / 100,
+      )
+    : 0
 
   return {
     financial: {
@@ -236,24 +395,26 @@ export const buildFood99OrderSummary = order => {
       customerNeedPayingMoney,
       realPayTotal,
       refundTotal,
+      shopPaidMoney,
       storeChargedDeliveryPrice: originalDeliveryFee,
       storeReceivableTotal: toMoney(price?.real_price),
     },
     payment: {
       payType,
-      payTypeLabel: isPlatformDelivery
-        ? 'Online pela 99Food'
-        : payType === '2'
-          ? 'Pagamento fora da plataforma'
-          : payType === '1'
-            ? 'Pagamento na entrega'
-            : 'Pagamento fora da plataforma',
+      payTypeLabel: paymentTypeLabel,
       payMethod,
+      payMethodLabel: paymentMethodLabel,
       payChannel,
+      payChannelLabel: paymentChannelLabel,
+      selectedPaymentLabel,
       amountPaid,
       amountPending,
       collectOnDeliveryAmount: isPaidOnline ? 0 : customerTotal,
       customerNeedPayingMoney,
+      shopPaidMoney,
+      changeFor,
+      changeAmount,
+      needsChange: changeAmount > 0.009,
       isPaidOnline,
       isFullyPaid: amountPending <= 0.009,
     },
