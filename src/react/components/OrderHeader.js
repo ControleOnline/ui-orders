@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, Image, StyleSheet, Animated } from 'react-native'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { getOrderChannelLabel, getOrderChannelLogo } from '@assets/ppc/channels'
@@ -91,8 +91,34 @@ const getCustomerContact = order => {
   return normalizeText(email || phoneSource)
 }
 
-const OrderHeader = ({ order, compact = false, showCustomer = false }) => {
+const DEFAULT_HEADER_PALETTE = {
+  border: '#2A313D',
+  cardBg: '#111821',
+  panelBg: '#0C1219',
+  textPrimary: '#F9FAFB',
+  textSecondary: '#98A2B3',
+  accent: '#FACC15',
+}
+
+const resolveHeaderPalette = palette => {
+  if (!palette || typeof palette !== 'object') {
+    return DEFAULT_HEADER_PALETTE
+  }
+
+  return {
+    border: palette.border || DEFAULT_HEADER_PALETTE.border,
+    cardBg: palette.cardBg || DEFAULT_HEADER_PALETTE.cardBg,
+    panelBg: palette.panelBg || DEFAULT_HEADER_PALETTE.panelBg,
+    textPrimary: palette.textPrimary || DEFAULT_HEADER_PALETTE.textPrimary,
+    textSecondary: palette.textSecondary || DEFAULT_HEADER_PALETTE.textSecondary,
+    accent: palette.accent || DEFAULT_HEADER_PALETTE.accent,
+  }
+}
+
+const OrderHeader = ({ order, compact = false, showCustomer = false, palette = null }) => {
   const isOpen = order?.status?.realStatus === 'open'
+  const headerPalette = useMemo(() => resolveHeaderPalette(palette), [palette])
+  const styles = useMemo(() => createStyles(headerPalette), [headerPalette])
 
   const [waitingMinutes, setWaitingMinutes] = useState(
     getWaitingMinutes(order?.orderDate),
@@ -222,117 +248,118 @@ const OrderHeader = ({ order, compact = false, showCustomer = false }) => {
   )
 }
 
-const styles = StyleSheet.create({
-  wrap: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#2A313D',
-    backgroundColor: '#111821',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 10,
-  },
-  wrapCompact: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  leftInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  brandLogo: {
-    width: 26,
-    height: 26,
-    marginRight: 10,
-  },
-  orderId: {
-    color: '#F9FAFB',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  orderTime: {
-    color: '#98A2B3',
-    fontSize: 13,
-  },
-  waitingTime: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  rightInfo: {
-    alignItems: 'flex-end',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    backgroundColor: '#0C1219',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    marginRight: 6,
-  },
-  statusText: {
-    color: '#E5E7EB',
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  orderPrice: {
-    color: '#FACC15',
-    fontSize: 16,
-    fontWeight: '800',
-    marginTop: 6,
-  },
-  bottomRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  channelWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    maxWidth: '52%',
-  },
-  channelLogo: {
-    width: 22,
-    height: 22,
-    marginRight: 8,
-    borderRadius: 4,
-  },
-  channelText: {
-    color: '#D1D5DB',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  customerNameText: {
-    marginTop: 6,
-    color: '#D1D5DB',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  customerContactText: {
-    marginTop: 2,
-    color: '#9CA3AF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-})
+const createStyles = palette =>
+  StyleSheet.create({
+    wrap: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.cardBg,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 10,
+    },
+    wrapCompact: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 12,
+    },
+    topRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    leftInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    brandLogo: {
+      width: 26,
+      height: 26,
+      marginRight: 10,
+    },
+    orderId: {
+      color: palette.textPrimary,
+      fontSize: 18,
+      fontWeight: '800',
+    },
+    timeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 2,
+    },
+    orderTime: {
+      color: palette.textSecondary,
+      fontSize: 13,
+    },
+    waitingTime: {
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    rightInfo: {
+      alignItems: 'flex-end',
+    },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      backgroundColor: palette.panelBg,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      marginRight: 6,
+    },
+    statusText: {
+      color: palette.textPrimary,
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    },
+    orderPrice: {
+      color: palette.accent,
+      fontSize: 16,
+      fontWeight: '800',
+      marginTop: 6,
+    },
+    bottomRow: {
+      marginTop: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    channelWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      maxWidth: '52%',
+    },
+    channelLogo: {
+      width: 22,
+      height: 22,
+      marginRight: 8,
+      borderRadius: 4,
+    },
+    channelText: {
+      color: palette.textSecondary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    customerNameText: {
+      marginTop: 6,
+      color: palette.textPrimary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    customerContactText: {
+      marginTop: 2,
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+  })
 
 export default OrderHeader

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Linking,
@@ -24,6 +24,7 @@ import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/Bar
 import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import { buildFood99OrderSummary } from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
+import { useDisplayTheme } from '@controleonline/ui-ppc/src/react/theme/displayTheme'
 
 const formatApiError = error => {
   if (!error) return 'Nao foi possivel concluir a operacao.'
@@ -224,6 +225,7 @@ const OrderDetails = ({ route, navigation }) => {
   const { defaultCompany } = peopleGetters
 
   const { styles: cssStyles, globalStyles } = css()
+  const { ppcColors } = useDisplayTheme()
   const { width } = useWindowDimensions()
 
   const scale = useMemo(() => {
@@ -233,10 +235,15 @@ const OrderDetails = ({ route, navigation }) => {
     return 0.92
   }, [width])
 
-  const localStyles = useMemo(() => createStyles(scale), [scale])
+  const localStyles = useMemo(() => createStyles(scale, ppcColors), [scale, ppcColors])
 
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
+  const printerStore = useStore('printer')
+  const { getters: printerGetters, actions: printerActions } = printerStore
+  const { item: printer, items: printers, isLoading: printerLoading } = printerGetters
+  const printStore = useStore('print')
+  const { actions: printActions } = printStore
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
 
   // @todo implementar. já vem do banco.
@@ -267,6 +274,16 @@ const OrderDetails = ({ route, navigation }) => {
       }
     }, [orderParam]),
   )
+
+  useEffect(() => {
+    if (!Array.isArray(printers) || printers.length === 0) return
+    if (!device?.configs?.printer) return
+
+    const selectedPrinter = printers.find(itemPrinter => itemPrinter?.device === device.configs.printer)
+    if (selectedPrinter && selectedPrinter?.device !== printer?.device) {
+      printerActions.setItem(selectedPrinter)
+    }
+  }, [device?.configs?.printer, printer?.device, printerActions, printers])
 
   const handleAddProduct = () => {
     navigation.navigate('AddProductScreen')
@@ -432,7 +449,37 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
-  const fallbackFood99Summary = useMemo(() => buildFood99OrderSummary(item), [item])
+  const orderForFood99Summary = useMemo(() => {
+    if (!item && !orderParam) return null
+
+    const currentOrder = item || {}
+    const initialOrder = orderParam || {}
+    const currentExtraData = Array.isArray(currentOrder?.extraData)
+      ? currentOrder.extraData
+      : []
+    const initialExtraData = Array.isArray(initialOrder?.extraData)
+      ? initialOrder.extraData
+      : []
+
+    return {
+      ...initialOrder,
+      ...currentOrder,
+      app: resolvePreferredText(currentOrder?.app, initialOrder?.app),
+      otherInformations: resolvePreferredText(
+        currentOrder?.otherInformations,
+        initialOrder?.otherInformations,
+      ),
+      extraData: currentExtraData.length ? currentExtraData : initialExtraData,
+      comments: resolvePreferredText(currentOrder?.comments, initialOrder?.comments),
+      remark: resolvePreferredText(currentOrder?.remark, initialOrder?.remark),
+      description: resolvePreferredText(currentOrder?.description, initialOrder?.description),
+    }
+  }, [item, orderParam])
+
+  const fallbackFood99Summary = useMemo(
+    () => buildFood99OrderSummary(orderForFood99Summary),
+    [orderForFood99Summary],
+  )
   const fallbackFood99Financial = useMemo(() => {
     const financial = fallbackFood99Summary?.financial
     if (!financial) return null
@@ -716,18 +763,25 @@ const OrderDetails = ({ route, navigation }) => {
   const food99Notes = useMemo(() => {
     const stateNotes = food99State?.notes || null
     const remark = String(stateNotes?.remark || fallbackFood99Notes?.remark || '').trim()
+    const itemRemarks = resolvePreferredText(
+      stateNotes?.item_remarks,
+      stateNotes?.itemRemarks,
+      fallbackFood99Notes?.item_remarks,
+      fallbackFood99Notes?.itemRemarks,
+    )
     const needCutlery =
       stateNotes?.need_cutlery ??
       fallbackFood99Notes?.need_cutlery ??
       fallbackFood99Notes?.needCutlery ??
       null
 
-    if (!remark && (needCutlery === null || needCutlery === undefined)) {
+    if (!remark && !itemRemarks && (needCutlery === null || needCutlery === undefined)) {
       return null
     }
 
     return {
       remark,
+      item_remarks: itemRemarks,
       need_cutlery: needCutlery,
     }
   }, [food99State?.notes, fallbackFood99Notes])
@@ -830,7 +884,23 @@ const OrderDetails = ({ route, navigation }) => {
     food99Payment?.pay_channel_label,
     food99Payment?.pay_channel,
   )
-  const food99RemarkText = resolvePreferredText(food99Notes?.remark)
+  const fallbackOrderObservation = resolvePreferredText(
+    item?.comments,
+    orderParam?.comments,
+    item?.remark,
+    orderParam?.remark,
+    item?.description,
+    orderParam?.description,
+  )
+  const food99ItemRemarksText = resolvePreferredText(
+    food99Notes?.item_remarks,
+    food99Notes?.itemRemarks,
+  )
+  const food99RemarkText = resolvePreferredText(
+    food99Notes?.remark,
+    food99ItemRemarksText,
+    fallbackOrderObservation,
+  )
   const food99AddressPrimaryLine = resolvePreferredText(
     food99Address?.display,
     food99Address?.poi_address,
@@ -912,6 +982,104 @@ const OrderDetails = ({ route, navigation }) => {
     hasErrnoError(food99Integration?.last_action_errno) ||
     hasErrnoError(food99Integration?.confirm_errno) ||
     hasErrnoError(food99Integration?.reconcile_errno)
+  const orderDisplayId = item?.id || orderParam?.id || '--'
+  const orderDateLabel = formatOrderDateTime(item?.orderDate)
+  const orderWaitingMinutes = item?.orderDate
+    ? Math.max(0, Math.floor((Date.now() - new Date(item.orderDate).getTime()) / 60000))
+    : null
+  const orderWaitingLabel =
+    orderWaitingMinutes === null
+      ? ''
+      : `${orderWaitingMinutes} min`
+  const orderOriginLabel = (() => {
+    if (isFood99Order) {
+      const suffix = food99Identifiers?.order_index
+        ? ` #${food99Identifiers.order_index}`
+        : ''
+      return `99Food${suffix}`
+    }
+
+    return String(item?.app || 'Origem local')
+  })()
+  const localStatusRaw = String(item?.status?.status || item?.status?.realStatus || '').trim()
+  const localStatusLower = localStatusRaw.toLowerCase()
+  const isLocallyCanceledOrder =
+    localStatusLower.includes('cancel') ||
+    localStatusLower.includes('canceled') ||
+    localStatusLower.includes('cancelled')
+  const orderStatusBadgeLabel = isFood99Order && !isLocallyCanceledOrder
+    ? isOrderPaidForCompletion
+      ? 'PAID'
+      : 'PENDENTE'
+    : String(localStatusRaw || '-').toUpperCase()
+  const orderStatusBadgeColor = isFood99Order && !isLocallyCanceledOrder
+    ? isOrderPaidForCompletion
+      ? '#16A34A'
+      : '#D97706'
+    : item?.status?.color || ppcColors.accentInfo
+  const orderCustomerName = resolvePreferredText(
+    food99Customer?.name,
+    item?.client?.name,
+    item?.person?.name,
+    item?.customer?.name,
+    item?.customerName,
+  )
+  const orderCustomerPhone = resolvePreferredText(
+    food99Customer?.phone,
+    item?.client?.phone?.[0]?.phone,
+    item?.client?.phone,
+  )
+  const fallbackOrderAddressPrimary = resolvePreferredText(
+    item?.addressDestination?.display,
+    item?.addressDestination?.street,
+    item?.addressDestination?.address,
+    item?.deliveryContact?.address,
+    item?.retrieveContact?.address,
+    orderParam?.addressDestination?.display,
+    orderParam?.addressDestination?.street,
+    orderParam?.addressDestination?.address,
+    orderParam?.deliveryContact?.address,
+    orderParam?.retrieveContact?.address,
+  )
+  const fallbackOrderAddressSecondary = resolvePreferredText(
+    item?.addressDestination?.district,
+    item?.addressDestination?.city,
+    orderParam?.addressDestination?.district,
+    orderParam?.addressDestination?.city,
+  )
+  const orderAddressPrimary = resolvePreferredText(
+    food99AddressPrimaryLine,
+    food99AddressStreetLine,
+    fallbackOrderAddressPrimary,
+  )
+  const orderAddressSecondary = resolvePreferredText(
+    food99Address?.district,
+    food99AddressCityStateLine,
+    fallbackOrderAddressSecondary,
+  )
+  const orderObservationText = resolvePreferredText(
+    food99RemarkText,
+    food99ItemRemarksText,
+    item?.comments,
+    item?.remark,
+    orderParam?.comments,
+    orderParam?.remark,
+    orderParam?.description,
+  ) || 'Sem observacoes informadas pela 99Food.'
+  const orderDiscountTotal = Number(food99Financial?.discount_total || 0)
+  const orderDisplayTotal = Number(
+    food99Financial?.customer_total ||
+      food99CashCollectionAmount ||
+      localOrderTotal ||
+      0,
+  )
+  const orderPaymentMethodText = resolvePreferredText(
+    food99SelectedPaymentLabel,
+    food99Payment?.pay_channel_label,
+    food99Payment?.pay_type_label,
+    food99Payment?.pay_method_label,
+  ) || 'Nao informado'
+  const shouldShowKdsCancel = isFood99Order ? canCancelFood99Order : false
 
   const closeFood99DeliveryFlow = useCallback(() => {
     if (food99ActionLoading) {
@@ -1268,11 +1436,356 @@ const OrderDetails = ({ route, navigation }) => {
     runFood99OrderAction,
   ])
 
+  const handlePrintOrder = useCallback(async () => {
+    if (!item?.id) return
+
+    if (!printer) {
+      showError('Selecione uma impressora antes de imprimir.')
+      return
+    }
+
+    try {
+      await printActions.addToPrint({
+        printType: 'order',
+        id:
+          item?.['@id'] && String(item['@id']).includes('/')
+            ? String(item['@id']).split('/').pop()
+            : String(item.id),
+      })
+      showSuccess('Pedido enviado para impressao.')
+    } catch (printError) {
+      showError(formatApiError(printError))
+    }
+  }, [item, printActions, printer, showError, showSuccess])
+
+  const primaryKdsAction = useMemo(() => {
+    if (!isFood99Order) return null
+
+    if (canReadyFood99Order) {
+      return {
+        label: 'Pedido Pronto',
+        icon: 'check-circle',
+        loadingKey: 'ready',
+        disabled: !!food99ActionLoading,
+        onPress: () => runFood99OrderAction('ready'),
+      }
+    }
+
+    if (shouldShowFood99DeliveryAction) {
+      return {
+        label: 'Entregar Pedido',
+        icon: 'local-shipping',
+        loadingKey: 'delivered',
+        disabled: !!food99ActionLoading || !isOrderPaidForCompletion,
+        onPress: handleFood99DeliveredPress,
+      }
+    }
+
+    return null
+  }, [
+    canReadyFood99Order,
+    food99ActionLoading,
+    handleFood99DeliveredPress,
+    isFood99Order,
+    isOrderPaidForCompletion,
+    runFood99OrderAction,
+    shouldShowFood99DeliveryAction,
+  ])
+
+  const kdsOrderProductsStyles = useMemo(
+    () => ({
+      itemRow: localStyles.mobileProductItemRow,
+      text: localStyles.mobileProductText,
+      subText: localStyles.mobileProductSubText,
+      qtyText: localStyles.mobileProductQtyText,
+      statusMarker: localStyles.mobileProductStatusMarker,
+    }),
+    [
+      localStyles.mobileProductItemRow,
+      localStyles.mobileProductQtyText,
+      localStyles.mobileProductStatusMarker,
+      localStyles.mobileProductSubText,
+      localStyles.mobileProductText,
+    ],
+  )
+
+  const resolvedPrimaryKdsAction = primaryKdsAction || (canMarkOrderAsPaid
+    ? {
+        label: 'Marcar como Pago',
+        icon: 'payments',
+        loadingKey: 'mark_paid',
+        disabled: !!markPaidLoading,
+        onPress: handleMarkOrderAsPaid,
+      }
+    : null)
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: `Pedido #${orderDisplayId}`,
+      headerTitle: () => (
+        <View style={localStyles.topBarTitleWrap}>
+          <Text style={localStyles.topBarTitleText}>Pedido #{orderDisplayId}</Text>
+          {!!orderDateLabel && (
+            <Text style={localStyles.topBarTitleSubText}>{orderDateLabel}</Text>
+          )}
+        </View>
+      ),
+      headerRight: () => (
+        <View style={localStyles.topBarActions}>
+          <TouchableOpacity
+            onPress={handlePrintOrder}
+            disabled={printerLoading || !item?.id}
+            style={[
+              localStyles.topBarIconButton,
+              (printerLoading || !item?.id) && localStyles.topBarIconButtonDisabled,
+            ]}
+          >
+            {printerLoading ? (
+              <ActivityIndicator size="small" color={ppcColors.accentInfo} />
+            ) : (
+              <Icon name="print" size={19} color={ppcColors.accentInfo} />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleOrderTools}
+            style={localStyles.topBarIconButton}
+          >
+            <Icon name="view-list" size={20} color={ppcColors.accentInfo} />
+          </TouchableOpacity>
+        </View>
+      ),
+    })
+  }, [
+    handleOrderTools,
+    handlePrintOrder,
+    item?.id,
+    localStyles.topBarActions,
+    localStyles.topBarIconButton,
+    localStyles.topBarIconButtonDisabled,
+    localStyles.topBarTitleSubText,
+    localStyles.topBarTitleText,
+    localStyles.topBarTitleWrap,
+    navigation,
+    orderDateLabel,
+    orderDisplayId,
+    ppcColors.accentInfo,
+    printerLoading,
+  ])
+
+  const renderKdsMobileContent = () => (
+    <ScrollView
+      contentContainerStyle={localStyles.mobileOrderScrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={localStyles.mobileOrderLayout}>
+      <View style={localStyles.mobileSummaryCard}>
+        <View style={localStyles.mobileSummaryHeader}>
+          <View style={localStyles.mobileSummaryOriginWrap}>
+            <View style={localStyles.mobileSummaryOriginIcon}>
+              <Icon
+                name={isFood99Order ? 'two-wheeler' : 'store'}
+                size={16}
+                color={ppcColors.accent}
+              />
+            </View>
+            <View>
+              <Text style={localStyles.mobileSummaryLabel}>Origem</Text>
+              <Text style={localStyles.mobileSummaryValue}>{orderOriginLabel}</Text>
+            </View>
+          </View>
+
+          <View
+            style={[
+              localStyles.mobileStatusBadge,
+              { borderColor: orderStatusBadgeColor },
+            ]}
+          >
+            <View
+              style={[
+                localStyles.mobileStatusDot,
+                { backgroundColor: orderStatusBadgeColor },
+              ]}
+            />
+            <Text style={localStyles.mobileStatusText}>{orderStatusBadgeLabel}</Text>
+          </View>
+        </View>
+
+        <View style={localStyles.mobileSummaryMetricsRow}>
+          <View style={localStyles.mobileDiscountPill}>
+            <Icon name="local-offer" size={14} color={ppcColors.accent} />
+            <Text style={localStyles.mobileDiscountText}>
+              Desconto: {Formatter.formatMoney(orderDiscountTotal)}
+            </Text>
+          </View>
+
+          {!!orderWaitingLabel && (
+            <View style={localStyles.mobileWaitingPill}>
+              <Icon name="schedule" size={13} color={ppcColors.dangerText} />
+              <Text style={localStyles.mobileWaitingText}>{orderWaitingLabel}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={localStyles.mobileSummaryFooter}>
+          <Text style={localStyles.mobileTotalLabel}>Total a cobrar</Text>
+          <Text style={localStyles.mobileTotalValue}>
+            {Formatter.formatMoney(orderDisplayTotal)}
+          </Text>
+        </View>
+
+        {isFood99Order && (
+          <View style={localStyles.mobileSummaryMetaList}>
+            {!!remoteOrderStateLabel && (
+              <Text style={localStyles.mobileSummaryMetaText}>
+                Estado remoto: {remoteOrderStateLabel}
+              </Text>
+            )}
+            {!!food99Delivery?.delivery_label && (
+              <Text style={localStyles.mobileSummaryMetaText}>
+                Entrega: {food99Delivery.delivery_label}
+              </Text>
+            )}
+            {!!formattedFood99Eta && (
+              <Text style={localStyles.mobileSummaryMetaText}>
+                ETA previsto: {formattedFood99Eta}
+              </Text>
+            )}
+          </View>
+        )}
+      </View>
+
+      <View style={localStyles.mobileInfoCard}>
+        <View style={localStyles.mobileInfoHeader}>
+          <View style={localStyles.mobileInfoIconWrap}>
+            <Icon name="person" size={16} color={ppcColors.accentInfo} />
+          </View>
+          <View style={localStyles.mobileInfoTextWrap}>
+            <Text style={localStyles.mobileInfoLabel}>Cliente</Text>
+            <Text style={localStyles.mobileInfoTitle}>
+              {orderCustomerName || 'Cliente nao identificado'}
+            </Text>
+            {!!orderCustomerPhone && (
+              <Text style={localStyles.mobileInfoSubtitle}>{orderCustomerPhone}</Text>
+            )}
+          </View>
+        </View>
+
+        <View style={localStyles.mobileAddressCard}>
+          <Icon name="place" size={15} color={ppcColors.accentInfo} />
+          <View style={localStyles.mobileAddressTextWrap}>
+            <Text style={localStyles.mobileAddressPrimary}>
+              {orderAddressPrimary || 'Endereco nao informado'}
+            </Text>
+            {!!orderAddressSecondary && (
+              <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
+            )}
+          </View>
+        </View>
+
+        <View style={localStyles.mobileNoteCard}>
+          <View style={localStyles.mobileNoteHeader}>
+            <Icon name="info" size={14} color={ppcColors.accent} />
+            <Text style={localStyles.mobileNoteLabel}>Observacao do cliente</Text>
+          </View>
+          <Text style={localStyles.mobileNoteText}>{orderObservationText}</Text>
+        </View>
+      </View>
+
+      <View style={localStyles.mobilePaymentGrid}>
+        <View style={localStyles.mobilePaymentMetricCard}>
+          <Text style={localStyles.mobilePaymentMetricLabel}>Pago</Text>
+          <Text style={localStyles.mobilePaymentMetricValue}>
+            {Formatter.formatMoney(food99Payment?.amount_paid || localPaidAmount || 0)}
+          </Text>
+        </View>
+        <View style={localStyles.mobilePaymentMetricCard}>
+          <Text style={localStyles.mobilePaymentMetricLabel}>Pendente</Text>
+          <Text style={[localStyles.mobilePaymentMetricValue, localStyles.mobilePaymentPendingValue]}>
+            {Formatter.formatMoney(food99Payment?.amount_pending || localPendingAmount || 0)}
+          </Text>
+          {!food99Payment?.is_paid_online && (
+            <Text style={localStyles.mobilePaymentMetricHint}>
+              Cobrar cliente: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <View style={localStyles.mobileInfoCard}>
+        <Text style={localStyles.mobileInfoLabel}>Pagamento</Text>
+        <Text style={localStyles.mobileInfoTitle}>{orderPaymentMethodText}</Text>
+        {!!food99PaymentChannelValue && (
+          <Text style={localStyles.mobileInfoSubtitle}>Canal: {food99PaymentChannelValue}</Text>
+        )}
+        {food99ChangeFor > 0 ? (
+          <Text style={localStyles.mobileInfoSubtitle}>
+            Troco para: {Formatter.formatMoney(food99ChangeFor)}
+          </Text>
+        ) : isCashPaymentSelection ? (
+          <Text style={localStyles.mobileInfoSubtitle}>Troco: nao solicitado</Text>
+        ) : null}
+        {food99NeedsChange ? (
+          <Text style={localStyles.mobileInfoSubtitle}>
+            Troco a devolver: {Formatter.formatMoney(food99ChangeAmount)}
+          </Text>
+        ) : null}
+      </View>
+
+      {(isFood99CourierToStore ||
+        isFood99Delivering ||
+        shouldHideReadyFood99Action ||
+        hasFood99SyncIssue ||
+        (!isOrderPaidForCompletion && shouldShowFood99DeliveryAction)) && (
+        <View style={localStyles.mobileWarningCard}>
+          {isFood99CourierToStore ? (
+            <Text style={localStyles.mobileWarningText}>
+              Entregador designado e a caminho da loja.
+            </Text>
+          ) : null}
+          {isFood99Delivering && !isFood99CourierToStore ? (
+            <Text style={localStyles.mobileWarningText}>Pedido em entrega.</Text>
+          ) : null}
+          {shouldHideReadyFood99Action ? (
+            <Text style={localStyles.mobileWarningText}>
+              Pedido pronto aguardando atualizacao da plataforma 99.
+            </Text>
+          ) : null}
+          {hasFood99SyncIssue ? (
+            <Text style={localStyles.mobileWarningText}>
+              Integracao com divergencia. Use detalhes para sincronizar.
+            </Text>
+          ) : null}
+          {!isOrderPaidForCompletion && shouldShowFood99DeliveryAction ? (
+            <Text style={localStyles.mobileWarningText}>
+              Marque como pago antes de finalizar a entrega.
+            </Text>
+          ) : null}
+        </View>
+      )}
+
+      <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
+        <Text style={localStyles.mobileProductsTitle}>Itens do pedido</Text>
+        <OrderProducts
+          order={item}
+          scale={scale}
+          styles={kdsOrderProductsStyles}
+          indentStep={18}
+        />
+      </View>
+      </View>
+    </ScrollView>
+  )
+
   return (
     <SafeAreaView
       style={[
         cssStyles.container,
-        { flex: 1, paddingBottom: 120 },
+        {
+          flex: 1,
+          paddingBottom: isKds ? 0 : 120,
+          backgroundColor: isKds ? ppcColors.appBg : undefined,
+        },
         isKds && localStyles.kdsContainer,
       ]}
     >
@@ -1282,12 +1795,19 @@ const OrderDetails = ({ route, navigation }) => {
 
       <Modal
         transparent
-        animationType="fade"
+        animationType="slide"
         visible={detailsModalVisible}
         onRequestClose={closeDetailsModal}
+        statusBarTranslucent
       >
-        <View style={localStyles.deliveryCodeOverlay}>
-          <View style={localStyles.detailsModal}>
+        <View style={localStyles.modalSheetRoot}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={localStyles.modalSheetBackdrop}
+            onPress={closeDetailsModal}
+          />
+          <View style={localStyles.modalSheetWrap}>
+            <View style={localStyles.detailsModal}>
             <View style={localStyles.detailsModalHeader}>
               <View>
                 <Text style={localStyles.detailsModalEyebrow}>Resumo do pedido</Text>
@@ -1299,7 +1819,7 @@ const OrderDetails = ({ route, navigation }) => {
                 onPress={closeDetailsModal}
                 style={localStyles.detailsModalCloseButton}
               >
-                <Icon name="close" size={22} color="#E2E8F0" />
+                <Icon name="close" size={22} color={ppcColors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -1658,6 +2178,7 @@ const OrderDetails = ({ route, navigation }) => {
                 </>
               ) : null}
             </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1672,8 +2193,18 @@ const OrderDetails = ({ route, navigation }) => {
           }
         }}
       >
-        <View style={localStyles.deliveryCodeOverlay}>
-          <View style={localStyles.cancelReasonModal}>
+        <View style={localStyles.modalSheetRoot}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={localStyles.modalSheetBackdrop}
+            onPress={() => {
+              if (!food99ActionLoading && !food99CancelReasonsLoading) {
+                closeFood99CancelReasonFlow()
+              }
+            }}
+          />
+          <View style={localStyles.modalSheetWrap}>
+            <View style={localStyles.cancelReasonModal}>
             <Text style={localStyles.cancelReasonBadge}>Cancelamento 99Food</Text>
             <Text style={localStyles.cancelReasonTitle}>Escolha o motivo oficial</Text>
             <Text style={localStyles.cancelReasonDescription}>
@@ -1738,7 +2269,7 @@ const OrderDetails = ({ route, navigation }) => {
                   multiline
                   numberOfLines={3}
                   placeholder="Explique brevemente o motivo do cancelamento."
-                  placeholderTextColor="#64748B"
+                  placeholderTextColor={ppcColors.textSecondary}
                   style={localStyles.cancelReasonInput}
                 />
               </View>
@@ -1781,6 +2312,7 @@ const OrderDetails = ({ route, navigation }) => {
                 )}
               </TouchableOpacity>
             </View>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1795,8 +2327,18 @@ const OrderDetails = ({ route, navigation }) => {
           }
         }}
       >
-        <View style={localStyles.deliveryCodeOverlay}>
-          <View style={localStyles.deliveryCodeModal}>
+        <View style={localStyles.modalSheetRoot}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={localStyles.modalSheetBackdrop}
+            onPress={() => {
+              if (!food99ActionLoading) {
+                closeFood99DeliveryFlow()
+              }
+            }}
+          />
+          <View style={localStyles.modalSheetWrap}>
+            <View style={localStyles.deliveryCodeModal}>
             <Text style={localStyles.deliveryCodeStepBadge}>
               {deliveryFlowStep === 'locator' ? 'Passo 1 de 2' : 'Passo 2 de 2'}
             </Text>
@@ -1905,7 +2447,7 @@ const OrderDetails = ({ route, navigation }) => {
                 }
               }}
               placeholder={deliveryFlowStep === 'locator' ? '00000000' : '0000'}
-              placeholderTextColor="#64748B"
+              placeholderTextColor={ppcColors.textSecondary}
               keyboardType="number-pad"
               maxLength={
                 deliveryFlowStep === 'locator'
@@ -1967,6 +2509,7 @@ const OrderDetails = ({ route, navigation }) => {
                 )}
               </TouchableOpacity>
             </View>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1974,6 +2517,7 @@ const OrderDetails = ({ route, navigation }) => {
       {!isLoading && item && !error && (
         <View style={{ flex: 1 }}>
           {isKds ? (
+            renderKdsMobileContent() || (
             <>
               <OrderHeader order={item} showCustomer />
 
@@ -2429,7 +2973,7 @@ const OrderDetails = ({ route, navigation }) => {
                 </TouchableOpacity>
               </View>
             </>
-          ) : (
+          )) : (
             <>
               <OrderHeader key={item.id} order={item} />
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -2458,36 +3002,512 @@ const OrderDetails = ({ route, navigation }) => {
             </>
           )}
 
-          <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-            <View
-              style={[
-                cssStyles.itemsSection,
-                {
-                  flex: 1,
-                  flexDirection: 'column',
-                  width: '100%',
-                  backgroundColor: isKds ? '#060A11' : undefined,
-                  borderRadius: isKds ? 12 : 0,
-                  padding: isKds ? 8 : 0,
-                },
-              ]}
-            >
-              <OrderProducts
-                order={item}
-                scale={scale}
-                styles={localStyles}
-                indentStep={22}
-              />
+          {isKds ? null : (
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+              <View
+                style={[
+                  cssStyles.itemsSection,
+                  {
+                    flex: 1,
+                    flexDirection: 'column',
+                    width: '100%',
+                  },
+                ]}
+              >
+                <OrderProducts
+                  order={item}
+                  scale={scale}
+                  styles={localStyles}
+                  indentStep={22}
+                />
+              </View>
+            </ScrollView>
+          )}
+
+          {isKds && (
+            <View style={localStyles.mobileBottomActionsWrap}>
+              <TouchableOpacity
+                onPress={handleFood99CancelPress}
+                disabled={!shouldShowKdsCancel || !!food99ActionLoading || !!food99CancelReasonsLoading}
+                style={[
+                  localStyles.mobileCancelActionButton,
+                  (!shouldShowKdsCancel || !!food99ActionLoading || !!food99CancelReasonsLoading) &&
+                    localStyles.mobileActionButtonDisabled,
+                ]}
+              >
+                {food99ActionLoading === 'cancel' || food99CancelReasonsLoading ? (
+                  <ActivityIndicator size="small" color={ppcColors.dangerText} />
+                ) : (
+                  <Icon name="close" size={22} color={ppcColors.dangerText} />
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={resolvedPrimaryKdsAction?.onPress}
+                disabled={!resolvedPrimaryKdsAction || resolvedPrimaryKdsAction.disabled}
+                style={[
+                  localStyles.mobilePrimaryActionButton,
+                  (!resolvedPrimaryKdsAction || resolvedPrimaryKdsAction.disabled) &&
+                    localStyles.mobileActionButtonDisabled,
+                ]}
+              >
+                {resolvedPrimaryKdsAction &&
+                ((resolvedPrimaryKdsAction.loadingKey === 'mark_paid' && markPaidLoading) ||
+                  (resolvedPrimaryKdsAction.loadingKey !== 'mark_paid' &&
+                    food99ActionLoading === resolvedPrimaryKdsAction.loadingKey)) ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Icon
+                      name={resolvedPrimaryKdsAction?.icon || 'check-circle'}
+                      size={19}
+                      color="#FFFFFF"
+                    />
+                    <Text style={localStyles.mobilePrimaryActionText}>
+                      {resolvedPrimaryKdsAction?.label || 'Sem acao disponivel'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
-          </ScrollView>
+          )}
         </View>
       )}
     </SafeAreaView>
   )
 }
 
-const createStyles = scale =>
+const createStyles = (scale, palette) =>
   StyleSheet.create({
+    topBarActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginRight: 6,
+    },
+    topBarIconButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    topBarIconButtonDisabled: {
+      opacity: 0.5,
+    },
+    topBarTitleWrap: {
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      minWidth: 180,
+      marginTop: 1,
+    },
+    topBarTitleText: {
+      color: palette.textPrimary,
+      fontSize: 23 * scale,
+      fontWeight: '900',
+      lineHeight: 24 * scale,
+    },
+    topBarTitleSubText: {
+      marginTop: 1,
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+      lineHeight: 14,
+    },
+    mobileOrderScrollContent: {
+      paddingBottom: 126,
+    },
+    mobileOrderLayout: {
+      gap: 10,
+    },
+    mobileSummaryCard: {
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBg,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 2,
+    },
+    mobileSummaryHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+      gap: 10,
+    },
+    mobileSummaryOriginWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      gap: 8,
+    },
+    mobileSummaryOriginIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mobileSummaryLabel: {
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    mobileSummaryValue: {
+      color: palette.textPrimary,
+      fontSize: 16,
+      fontWeight: '900',
+    },
+    mobileStatusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      backgroundColor: palette.cardBgSoft,
+    },
+    mobileStatusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      marginRight: 6,
+    },
+    mobileStatusText: {
+      color: palette.textPrimary,
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    mobileSummaryMetricsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 10,
+    },
+    mobileDiscountPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+    },
+    mobileDiscountText: {
+      color: palette.accent,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    mobileWaitingPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.danger,
+      backgroundColor: palette.dangerBg,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+    },
+    mobileWaitingText: {
+      color: palette.dangerText,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    mobileSummaryFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: palette.border,
+      paddingTop: 8,
+      marginTop: 2,
+      marginBottom: 6,
+    },
+    mobileTotalLabel: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+    },
+    mobileTotalValue: {
+      color: palette.accentInfo,
+      fontSize: 34 * scale,
+      fontWeight: '900',
+      lineHeight: 36 * scale,
+    },
+    mobileSummaryMetaList: {
+      marginTop: 2,
+      gap: 3,
+    },
+    mobileSummaryMetaText: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    mobileInfoCard: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBg,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      gap: 10,
+    },
+    mobileInfoHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    mobileInfoIconWrap: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mobileInfoTextWrap: {
+      flex: 1,
+    },
+    mobileInfoLabel: {
+      color: palette.textSecondary,
+      fontSize: 10,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+      marginBottom: 1,
+    },
+    mobileInfoTitle: {
+      color: palette.textPrimary,
+      fontSize: 21 * scale,
+      fontWeight: '900',
+    },
+    mobileInfoSubtitle: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 18,
+      marginTop: 2,
+    },
+    mobileAddressCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      flexDirection: 'row',
+      gap: 8,
+    },
+    mobileAddressTextWrap: {
+      flex: 1,
+    },
+    mobileAddressPrimary: {
+      color: palette.textPrimary,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 19,
+    },
+    mobileAddressSecondary: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '600',
+      lineHeight: 18,
+      marginTop: 2,
+    },
+    mobileNoteCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.accent,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+    },
+    mobileNoteHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 4,
+    },
+    mobileNoteLabel: {
+      color: palette.accent,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    mobileNoteText: {
+      color: palette.textPrimary,
+      fontSize: 13,
+      fontWeight: '700',
+      lineHeight: 18,
+    },
+    mobilePaymentGrid: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    mobilePaymentMetricCard: {
+      flex: 1,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBg,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    mobilePaymentMetricLabel: {
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      marginBottom: 4,
+      letterSpacing: 0.6,
+    },
+    mobilePaymentMetricValue: {
+      color: palette.textPrimary,
+      fontSize: 30 * scale,
+      fontWeight: '900',
+      lineHeight: 32 * scale,
+    },
+    mobilePaymentPendingValue: {
+      color: '#D97706',
+    },
+    mobilePaymentMetricHint: {
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+      marginTop: 4,
+    },
+    mobileWarningCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.danger,
+      backgroundColor: palette.dangerBg,
+      paddingHorizontal: 11,
+      paddingVertical: 9,
+      gap: 4,
+    },
+    mobileWarningText: {
+      color: palette.dangerText,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
+    },
+    mobileProductsCard: {
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBg,
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      marginTop: 4,
+      marginBottom: 6,
+    },
+    mobileProductsTitle: {
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 8,
+    },
+    mobileProductItemRow: {
+      marginTop: 4,
+      paddingVertical: 9,
+      paddingHorizontal: 10,
+      borderLeftWidth: 4,
+      borderRadius: 10,
+      backgroundColor: palette.cardBgSoft,
+    },
+    mobileProductText: {
+      color: palette.textPrimary,
+      fontSize: 16 * scale,
+      fontWeight: '800',
+    },
+    mobileProductSubText: {
+      color: palette.textSecondary,
+      fontSize: 13 * scale,
+      fontWeight: '700',
+    },
+    mobileProductQtyText: {
+      color: palette.accentInfo,
+      fontWeight: '900',
+    },
+    mobileProductStatusMarker: {
+      fontWeight: '900',
+    },
+    mobileBottomActionsWrap: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: palette.panelBg,
+      paddingTop: 8,
+      paddingBottom: 10,
+      paddingHorizontal: 12,
+      borderTopWidth: 1,
+      borderTopColor: palette.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      elevation: 10,
+    },
+    mobileCancelActionButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.danger,
+      backgroundColor: palette.dangerBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mobilePrimaryActionButton: {
+      flex: 1,
+      minHeight: 48,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.primary,
+      backgroundColor: palette.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.16,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    mobilePrimaryActionText: {
+      color: '#FFFFFF',
+      fontSize: 17 * scale,
+      fontWeight: '900',
+      letterSpacing: 0.2,
+    },
+    mobileActionButtonDisabled: {
+      opacity: 0.55,
+    },
     itemRow: {
       marginTop: 6 * scale,
       paddingVertical: 6 * scale,
@@ -2514,7 +3534,7 @@ const createStyles = scale =>
       fontWeight: '900',
     },
     kdsContainer: {
-      backgroundColor: '#060A11',
+      backgroundColor: palette.appBg,
     },
     food99InfoCard: {
       borderRadius: 12,
@@ -2620,19 +3640,16 @@ const createStyles = scale =>
       marginBottom: 4,
     },
     cancelReasonModal: {
-      width: '92%',
-      maxWidth: 520,
-      maxHeight: '84%',
-      borderRadius: 18,
+      width: '100%',
+      maxHeight: '88%',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
       borderWidth: 1,
-      borderColor: '#1E3A5F',
-      backgroundColor: '#0A1420',
-      padding: 16,
-      shadowColor: '#020617',
-      shadowOffset: { width: 0, height: 14 },
-      shadowOpacity: 0.35,
-      shadowRadius: 18,
-      elevation: 12,
+      borderColor: palette.border,
+      backgroundColor: palette.modalBg,
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 14,
     },
     cancelReasonBadge: {
       alignSelf: 'flex-start',
@@ -2640,22 +3657,22 @@ const createStyles = scale =>
       paddingVertical: 5,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: '#1D4ED8',
-      backgroundColor: '#0F172A',
-      color: '#93C5FD',
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      color: palette.accentInfo,
       fontSize: 11,
       fontWeight: '800',
       textTransform: 'uppercase',
       marginBottom: 10,
     },
     cancelReasonTitle: {
-      color: '#F8FAFC',
-      fontSize: 24,
+      color: palette.textPrimary,
+      fontSize: 22,
       fontWeight: '900',
       marginBottom: 6,
     },
     cancelReasonDescription: {
-      color: '#CBD5E1',
+      color: palette.textSecondary,
       fontSize: 13,
       lineHeight: 19,
       marginBottom: 14,
@@ -2667,7 +3684,7 @@ const createStyles = scale =>
       gap: 10,
     },
     cancelReasonLoadingText: {
-      color: '#CBD5E1',
+      color: palette.textSecondary,
       fontSize: 13,
       fontWeight: '600',
     },
@@ -2681,14 +3698,14 @@ const createStyles = scale =>
     cancelReasonOption: {
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: '#1E293B',
-      backgroundColor: '#0B1220',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       paddingHorizontal: 12,
       paddingVertical: 11,
     },
     cancelReasonOptionSelected: {
-      borderColor: '#38BDF8',
-      backgroundColor: '#0C1A2A',
+      borderColor: palette.accentInfo,
+      backgroundColor: palette.cardBg,
     },
     cancelReasonOptionHeader: {
       flexDirection: 'row',
@@ -2697,18 +3714,18 @@ const createStyles = scale =>
       marginBottom: 4,
     },
     cancelReasonOptionCode: {
-      color: '#93C5FD',
+      color: palette.accentInfo,
       fontSize: 11,
       fontWeight: '800',
     },
     cancelReasonOptionBadge: {
-      color: '#FCD34D',
+      color: palette.accent,
       fontSize: 10,
       fontWeight: '800',
       textTransform: 'uppercase',
     },
     cancelReasonOptionText: {
-      color: '#F8FAFC',
+      color: palette.textPrimary,
       fontSize: 13,
       fontWeight: '700',
       lineHeight: 18,
@@ -2718,7 +3735,7 @@ const createStyles = scale =>
       marginBottom: 2,
     },
     cancelReasonInputLabel: {
-      color: '#93C5FD',
+      color: palette.accentInfo,
       fontSize: 12,
       fontWeight: '800',
       textTransform: 'uppercase',
@@ -2728,9 +3745,9 @@ const createStyles = scale =>
       minHeight: 82,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: '#1E3A5F',
-      backgroundColor: '#020617',
-      color: '#F8FAFC',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
+      color: palette.textPrimary,
       fontSize: 16,
       fontWeight: '700',
       paddingHorizontal: 12,
@@ -2738,23 +3755,21 @@ const createStyles = scale =>
       textAlignVertical: 'top',
     },
     cancelReasonButtonDanger: {
-      borderColor: '#991B1B',
-      backgroundColor: '#7F1D1D',
+      borderColor: palette.danger,
+      backgroundColor: palette.danger,
     },
     detailsModal: {
-      width: '94%',
-      maxWidth: 860,
-      maxHeight: '88%',
-      borderRadius: 20,
+      width: '100%',
+      height: '84%',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
       borderWidth: 1,
-      borderColor: '#163047',
-      backgroundColor: '#0A1420',
-      padding: 18,
-      shadowColor: '#020617',
-      shadowOffset: { width: 0, height: 16 },
-      shadowOpacity: 0.35,
-      shadowRadius: 18,
-      elevation: 14,
+      borderColor: palette.border,
+      backgroundColor: palette.modalBg,
+      paddingHorizontal: 18,
+      paddingTop: 16,
+      paddingBottom: 14,
+      overflow: 'hidden',
     },
     detailsModalHeader: {
       flexDirection: 'row',
@@ -2764,40 +3779,40 @@ const createStyles = scale =>
       marginBottom: 14,
     },
     detailsModalEyebrow: {
-      color: '#93C5FD',
+      color: palette.accentInfo,
       fontSize: 11,
       fontWeight: '800',
       textTransform: 'uppercase',
       marginBottom: 4,
     },
     detailsModalTitle: {
-      color: '#F8FAFC',
-      fontSize: 28,
+      color: palette.textPrimary,
+      fontSize: 26,
       fontWeight: '900',
     },
     detailsModalCloseButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       borderWidth: 1,
-      borderColor: '#1E3A5F',
-      backgroundColor: '#0F172A',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       alignItems: 'center',
       justifyContent: 'center',
     },
     detailsModalScroll: {
-      flexGrow: 0,
+      flex: 1,
     },
     detailsModalScrollContent: {
-      paddingBottom: 6,
+      paddingBottom: 20,
       gap: 12,
     },
     detailsMarkPaidButton: {
       minHeight: 44,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: '#166534',
-      backgroundColor: '#102617',
+      borderColor: palette.accentInfo,
+      backgroundColor: palette.accentInfo,
       alignItems: 'center',
       justifyContent: 'center',
       flexDirection: 'row',
@@ -2805,7 +3820,7 @@ const createStyles = scale =>
       marginBottom: 14,
     },
     detailsMarkPaidButtonText: {
-      color: '#F8FAFC',
+      color: '#FFFFFF',
       fontSize: 14,
       fontWeight: '800',
     },
@@ -2819,47 +3834,47 @@ const createStyles = scale =>
       minWidth: 180,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: '#1E293B',
-      backgroundColor: '#0B1220',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       paddingHorizontal: 12,
       paddingVertical: 11,
     },
     detailsCardLabel: {
-      color: '#93C5FD',
+      color: palette.accentInfo,
       fontSize: 11,
       fontWeight: '800',
       textTransform: 'uppercase',
       marginBottom: 4,
     },
     detailsCardValue: {
-      color: '#F8FAFC',
+      color: palette.textPrimary,
       fontSize: 17,
       fontWeight: '800',
     },
     detailsSection: {
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: '#1E293B',
-      backgroundColor: '#0B1220',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       paddingHorizontal: 12,
       paddingVertical: 11,
     },
     detailsSectionTitle: {
-      color: '#93C5FD',
+      color: palette.accentInfo,
       fontSize: 12,
       fontWeight: '800',
       textTransform: 'uppercase',
       marginBottom: 6,
     },
     detailsInfoText: {
-      color: '#CBD5E1',
+      color: palette.textSecondary,
       fontSize: 13,
       fontWeight: '600',
       lineHeight: 19,
       marginBottom: 4,
     },
     detailsInfoTextStrong: {
-      color: '#F8FAFC',
+      color: palette.textPrimary,
       fontSize: 13,
       fontWeight: '800',
       lineHeight: 19,
@@ -2869,14 +3884,14 @@ const createStyles = scale =>
       minHeight: 120,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: '#1E293B',
-      backgroundColor: '#0B1220',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       alignItems: 'center',
       justifyContent: 'center',
       gap: 10,
     },
     detailsLoadingText: {
-      color: '#CBD5E1',
+      color: palette.textSecondary,
       fontSize: 13,
       fontWeight: '600',
     },
@@ -2919,34 +3934,43 @@ const createStyles = scale =>
       opacity: 0.6,
     },
     food99InfoWarning: {
-      color: '#FDBA74',
+      color: palette.dangerText,
       fontSize: 12,
       fontWeight: '700',
       marginTop: 6,
     },
-    deliveryCodeOverlay: {
+    modalSheetRoot: {
       flex: 1,
-      backgroundColor: 'rgba(2, 6, 23, 0.78)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 20,
+      justifyContent: 'flex-end',
+      backgroundColor: palette.overlay,
+    },
+    modalSheetBackdrop: {
+      flex: 1,
+    },
+    modalSheetWrap: {
+      width: '100%',
+      maxHeight: '100%',
+      justifyContent: 'flex-end',
     },
     deliveryCodeModal: {
       width: '100%',
-      maxWidth: 380,
-      borderRadius: 18,
+      maxHeight: '88%',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
       borderWidth: 1,
-      borderColor: '#163047',
-      backgroundColor: '#0A1420',
-      padding: 18,
+      borderColor: palette.border,
+      backgroundColor: palette.modalBg,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 14,
     },
     deliveryCodeStepBadge: {
       alignSelf: 'flex-start',
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: '#1D4ED8',
-      backgroundColor: '#0F172A',
-      color: '#93C5FD',
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      color: palette.accentInfo,
       fontSize: 11,
       fontWeight: '800',
       paddingHorizontal: 10,
@@ -2956,13 +3980,13 @@ const createStyles = scale =>
       textTransform: 'uppercase',
     },
     deliveryCodeTitle: {
-      color: '#F8FAFC',
+      color: palette.textPrimary,
       fontSize: 20,
       fontWeight: '800',
       marginBottom: 8,
     },
     deliveryCodeDescription: {
-      color: '#CBD5E1',
+      color: palette.textSecondary,
       fontSize: 13,
       lineHeight: 20,
       marginBottom: 14,
@@ -2970,9 +3994,9 @@ const createStyles = scale =>
     deliveryCodeInput: {
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: '#1E3A5F',
-      backgroundColor: '#020617',
-      color: '#F8FAFC',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
+      color: palette.textPrimary,
       minHeight: 52,
       paddingHorizontal: 16,
       fontSize: 24,
@@ -2982,7 +4006,7 @@ const createStyles = scale =>
       marginBottom: 10,
     },
     deliveryCodeHelper: {
-      color: '#94A3B8',
+      color: palette.textSecondary,
       fontSize: 12,
       fontWeight: '600',
       marginBottom: 14,
@@ -2994,8 +4018,8 @@ const createStyles = scale =>
     deliveryCodeMetaCard: {
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: '#1E293B',
-      backgroundColor: '#020617',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       paddingHorizontal: 14,
       paddingVertical: 12,
       marginBottom: 12,
@@ -3009,26 +4033,26 @@ const createStyles = scale =>
       flex: 1,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: '#1E293B',
-      backgroundColor: '#020617',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       paddingHorizontal: 12,
       paddingVertical: 10,
     },
     deliveryCodeMetaLabel: {
-      color: '#94A3B8',
+      color: palette.textSecondary,
       fontSize: 11,
       fontWeight: '700',
       marginBottom: 4,
       textTransform: 'uppercase',
     },
     deliveryCodeMetaValue: {
-      color: '#F8FAFC',
+      color: palette.textPrimary,
       fontSize: 20,
       fontWeight: '800',
       letterSpacing: 2,
     },
     deliveryCodeMetaValueCompact: {
-      color: '#F8FAFC',
+      color: palette.textPrimary,
       fontSize: 18,
       fontWeight: '800',
       letterSpacing: 1.5,
@@ -3036,21 +4060,21 @@ const createStyles = scale =>
     deliveryLocatorHero: {
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: '#2B4A62',
-      backgroundColor: '#08111D',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       paddingHorizontal: 16,
       paddingVertical: 14,
       marginBottom: 12,
     },
     deliveryLocatorHeroValue: {
-      color: '#F8FAFC',
+      color: palette.textPrimary,
       fontSize: 28,
       fontWeight: '900',
       letterSpacing: 4,
       marginBottom: 8,
     },
     deliveryLocatorHeroHelper: {
-      color: '#CBD5E1',
+      color: palette.textSecondary,
       fontSize: 12,
       lineHeight: 18,
       marginBottom: 10,
@@ -3058,14 +4082,14 @@ const createStyles = scale =>
     deliveryLinkCard: {
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: '#23405A',
-      backgroundColor: '#09131F',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
       paddingHorizontal: 14,
       paddingVertical: 12,
       marginBottom: 12,
     },
     deliveryLinkUrl: {
-      color: '#7DD3FC',
+      color: palette.accentInfo,
       fontSize: 12,
       lineHeight: 18,
       marginBottom: 10,
@@ -3078,13 +4102,13 @@ const createStyles = scale =>
     deliveryLinkActionButton: {
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: '#2B4A62',
-      backgroundColor: '#0F172A',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBg,
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
     deliveryLinkActionText: {
-      color: '#E2E8F0',
+      color: palette.textPrimary,
       fontSize: 12,
       fontWeight: '700',
     },
@@ -3092,13 +4116,13 @@ const createStyles = scale =>
       alignSelf: 'flex-start',
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: '#1D4ED8',
-      backgroundColor: '#0F172A',
+      borderColor: palette.accentInfo,
+      backgroundColor: palette.cardBg,
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
     deliveryLinkPrimaryButtonText: {
-      color: '#DBEAFE',
+      color: palette.accentInfo,
       fontSize: 12,
       fontWeight: '700',
     },
@@ -3111,15 +4135,15 @@ const createStyles = scale =>
       borderWidth: 1,
     },
     deliveryCodeButtonSecondary: {
-      borderColor: '#475569',
-      backgroundColor: '#0F172A',
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
     },
     deliveryCodeButtonPrimary: {
-      borderColor: '#166534',
-      backgroundColor: '#102617',
+      borderColor: palette.primary,
+      backgroundColor: palette.primary,
     },
     deliveryCodeButtonSecondaryText: {
-      color: '#E2E8F0',
+      color: palette.textPrimary,
       fontSize: 14,
       fontWeight: '700',
     },

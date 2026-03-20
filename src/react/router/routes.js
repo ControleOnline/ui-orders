@@ -134,7 +134,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       headerBackVisible: false,
-      showBottomToolBar: true,
+      showBottomToolBar: false,
       title: 'Pedido',
     },
     initialParams: { store: 'orders' },

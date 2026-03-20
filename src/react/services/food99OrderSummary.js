@@ -110,6 +110,19 @@ const extractPromotionList = payload => {
     .filter(isObject)
 }
 
+const extractOrderItems = payload => {
+  const data = isObject(payload?.data) ? payload.data : {}
+  const orderInfo = isObject(data?.order_info) ? data.order_info : {}
+
+  const items = Array.isArray(orderInfo?.order_items)
+    ? orderInfo.order_items
+    : Array.isArray(data?.order_items)
+      ? data.order_items
+      : []
+
+  return items.filter(isObject)
+}
+
 const resolveFood99PaymentMethodLabel = payMethod => {
   switch (normalizeText(payMethod)) {
     case '1':
@@ -249,6 +262,47 @@ const resolveFood99SelectedPaymentLabel = ({
   return preferredLabel || candidates[0] || ''
 }
 
+const getPayloadScore = payload => {
+  const data = isObject(payload?.data) ? payload.data : {}
+  const orderInfo = isObject(data?.order_info) ? data.order_info : {}
+
+  const hasData = Object.keys(data).length > 0
+  const hasOrderInfo = Object.keys(orderInfo).length > 0
+  const hasPrice = isObject(orderInfo?.price) || isObject(data?.price)
+  const hasAddress = isObject(orderInfo?.receive_address) || isObject(data?.receive_address)
+  const hasItems =
+    (Array.isArray(orderInfo?.order_items) && orderInfo.order_items.length > 0) ||
+    (Array.isArray(data?.order_items) && data.order_items.length > 0)
+  const hasPromotions =
+    (Array.isArray(orderInfo?.promotions) && orderInfo.promotions.length > 0) ||
+    (Array.isArray(data?.promotions) && data.promotions.length > 0)
+
+  let score = 0
+  if (hasData) score += 1
+  if (hasOrderInfo) score += 8
+  if (hasPrice) score += 10
+  if (hasAddress) score += 10
+  if (hasItems) score += 8
+  if (hasPromotions) score += 2
+  if (normalizeText(orderInfo?.order_index ?? data?.order_index)) score += 2
+  if (normalizeText(orderInfo?.delivery_type ?? data?.delivery_type)) score += 1
+  if (normalizeText(orderInfo?.pay_type ?? data?.pay_type)) score += 1
+  if (normalizeText(orderInfo?.remark ?? data?.remark)) score += 3
+  if (
+    normalizeText(
+      data?.handover_code ??
+        orderInfo?.handover_code ??
+        data?.pickup_code ??
+        orderInfo?.pickup_code,
+    )
+  ) {
+    score += 1
+  }
+  if (normalizeText(data?.order_id ?? orderInfo?.order_id)) score += 1
+
+  return score
+}
+
 const getBestPayload = order => {
   const otherInformations = decodeJson(order?.otherInformations)
   const latestEventType = normalizeText(otherInformations?.latest_event_type)
@@ -260,23 +314,44 @@ const getBestPayload = order => {
     '99Food',
   ].filter(Boolean)
 
-  for (const key of candidateKeys) {
+  const priorityMap = new Map(
+    candidateKeys.map((key, index) => [key, index]),
+  )
+  const discoveredKeys = Object.keys(otherInformations || {})
+  const allCandidateKeys = [...new Set([...candidateKeys, ...discoveredKeys])]
+  const rankedCandidates = []
+
+  for (const key of allCandidateKeys) {
     const candidate = decodeJson(otherInformations?.[key])
     const payload = unwrapPayload(candidate)
-    const data = isObject(payload?.data) ? payload.data : {}
-    const orderInfo = isObject(data?.order_info) ? data.order_info : {}
+    if (!Object.keys(payload).length) continue
 
-    if (Object.keys(orderInfo).length || Object.keys(data).length) {
-      return payload
-    }
+    rankedCandidates.push({
+      payload,
+      score: getPayloadScore(payload),
+      priority: priorityMap.has(key) ? priorityMap.get(key) : candidateKeys.length + 10,
+    })
   }
 
   const directPayload = unwrapPayload(otherInformations)
   if (Object.keys(directPayload).length) {
-    return directPayload
+    rankedCandidates.push({
+      payload: directPayload,
+      score: getPayloadScore(directPayload),
+      priority: candidateKeys.length + 20,
+    })
   }
 
-  return null
+  if (!rankedCandidates.length) {
+    return null
+  }
+
+  rankedCandidates.sort((left, right) => {
+    if (right.score !== left.score) return right.score - left.score
+    return left.priority - right.priority
+  })
+
+  return rankedCandidates[0]?.payload || null
 }
 
 export const isFood99Order = order =>
@@ -300,7 +375,17 @@ export const buildFood99OrderSummary = order => {
       ? data.price
       : {}
   const otherFees = isObject(price?.others_fees) ? price.others_fees : {}
-  const receiveAddress = isObject(data?.receive_address) ? data.receive_address : {}
+  const receiveAddress = isObject(orderInfo?.receive_address)
+    ? orderInfo.receive_address
+    : isObject(data?.receive_address)
+      ? data.receive_address
+      : {}
+  const orderItems = extractOrderItems(payload)
+  const itemRemarks = orderItems
+    .map(item => normalizeText(item?.remark))
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index)
+    .join(' | ')
   const promotions = extractPromotionList(payload)
   const deliveryType = normalizeText(orderInfo?.delivery_type ?? data?.delivery_type)
   const payType = normalizeText(orderInfo?.pay_type ?? data?.pay_type)
@@ -446,6 +531,7 @@ export const buildFood99OrderSummary = order => {
     },
     notes: {
       remark: normalizeText(orderInfo?.remark ?? data?.remark),
+      itemRemarks,
       needCutlery: orderInfo?.need_cutlery ?? data?.need_cutlery ?? null,
     },
     identifiers: {
