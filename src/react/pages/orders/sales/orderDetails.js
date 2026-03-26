@@ -423,13 +423,18 @@ const OrderDetails = ({ route, navigation }) => {
       if (
         (action === 'ready' && caps.can_ready === false) ||
         (action === 'cancel' && caps.can_cancel === false) ||
-        (action === 'delivered' && caps.can_delivered === false)
+        (action === 'delivered' && caps.can_delivered === false) ||
+        (action === 'confirm' && caps.can_confirm === false)
       ) {
         return
       }
 
       const actionMap = isIfoodOrder
         ? {
+            confirm: {
+              path: `/marketplace/integrations/ifood/orders/${item.id}/confirm`,
+              success: 'Pedido confirmado.',
+            },
             ready: {
               path: `/marketplace/integrations/ifood/orders/${item.id}/ready`,
               success: 'Pedido marcado como pronto.',
@@ -1601,7 +1606,7 @@ const OrderDetails = ({ route, navigation }) => {
   const handleFood99CancelConfirm = useCallback(async () => {
     const reasonId = normalizeFood99CancelReasonId(selectedFood99CancelReasonId)
     if (!reasonId) {
-      showError('Selecione um motivo oficial da 99Food para cancelar.')
+      showError('Selecione um motivo de cancelamento para continuar.')
       return
     }
 
@@ -1626,7 +1631,7 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   const primaryKdsAction = useMemo(() => {
-    const hasActions = isFood99Order || platformCapabilities.canReady || platformCapabilities.canDeliver
+    const hasActions = isFood99Order || isIfoodOrder || platformCapabilities.canReady || platformCapabilities.canDeliver
     if (!hasActions) return null
 
     if (canReadyFood99Order) {
@@ -2054,19 +2059,21 @@ const OrderDetails = ({ route, navigation }) => {
                 </Text>
               </View>
 
-              {isFood99Order && food99StateLoading && !food99State ? (
+              {(isFood99Order || isIfoodOrder) && food99StateLoading && !food99State ? (
                 <View style={localStyles.detailsLoadingState}>
                   <ActivityIndicator size="small" color="#38BDF8" />
                   <Text style={localStyles.detailsLoadingText}>
-                    Carregando dados da integracao 99Food...
+                    Carregando dados da integracao {isIfoodOrder ? 'iFood' : '99Food'}...
                   </Text>
                 </View>
               ) : null}
 
-              {isFood99Order && hasFood99VisualData ? (
+              {(isFood99Order || isIfoodOrder) && hasFood99VisualData ? (
                 <>
                   <View style={localStyles.detailsSection}>
-                    <Text style={localStyles.detailsSectionTitle}>Operacao 99Food</Text>
+                    <Text style={localStyles.detailsSectionTitle}>
+                      {isIfoodOrder ? 'Operacao iFood' : 'Operacao 99Food'}
+                    </Text>
                     {!!food99Identifiers?.order_index && (
                       <Text style={localStyles.detailsInfoText}>
                         Numero 99Food: #{food99Identifiers.order_index}
@@ -2124,7 +2131,9 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Entregador 99</Text>
+                      <Text style={localStyles.detailsSectionTitle}>
+                        {isIfoodOrder ? 'Entregador iFood' : 'Entregador 99'}
+                      </Text>
                       {!!food99RiderName && (
                         <Text style={localStyles.detailsInfoText}>Nome: {food99RiderName}</Text>
                       )}
@@ -2141,7 +2150,9 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {food99Financial && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Financeiro 99Food</Text>
+                      <Text style={localStyles.detailsSectionTitle}>
+                        {isIfoodOrder ? 'Financeiro iFood' : 'Financeiro 99Food'}
+                      </Text>
                       <Text style={localStyles.detailsInfoText}>
                         Itens: {Formatter.formatMoney(food99Financial.items_total || 0)}
                       </Text>
@@ -2160,6 +2171,26 @@ const OrderDetails = ({ route, navigation }) => {
                       <Text style={localStyles.detailsInfoText}>
                         Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
                       </Text>
+                      {isIfoodOrder && food99Financial.ifood_subsidy > 0 && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Subsidio iFood: {Formatter.formatMoney(food99Financial.ifood_subsidy)}
+                        </Text>
+                      )}
+                      {isIfoodOrder && food99Financial.merchant_subsidy > 0 && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Subsidio loja: {Formatter.formatMoney(food99Financial.merchant_subsidy)}
+                        </Text>
+                      )}
+                      {isIfoodOrder && !!food99Financial.payment_brand && (
+                        <Text style={localStyles.detailsInfoText}>
+                          Bandeira: {food99Financial.payment_brand}
+                        </Text>
+                      )}
+                      {isIfoodOrder && food99Financial.change_for > 0 && (
+                        <Text style={localStyles.detailsInfoTextStrong}>
+                          Troco para: {Formatter.formatMoney(food99Financial.change_for)}
+                        </Text>
+                      )}
                       <Text style={localStyles.detailsInfoText}>
                         Desconto nos itens: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
                       </Text>
@@ -2338,6 +2369,19 @@ const OrderDetails = ({ route, navigation }) => {
                       </Text>
                     ) : null}
                   </View>
+
+                  {isIfoodOrder &&
+                    Array.isArray(food99State?.notes?.item_remarks) &&
+                    food99State.notes.item_remarks.length > 0 && (
+                      <View style={localStyles.detailsSection}>
+                        <Text style={localStyles.detailsSectionTitle}>Observacoes por item</Text>
+                        {food99State.notes.item_remarks.map((r, idx) => (
+                          <Text key={idx} style={localStyles.detailsInfoText}>
+                            {r.name}: {r.observation}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
                 </>
               ) : null}
             </ScrollView>
@@ -3062,8 +3106,25 @@ const OrderDetails = ({ route, navigation }) => {
                 </View>
               )}
 
-              {isFood99Order ? (
+              {isFood99Order || isIfoodOrder ? (
                 <View style={localStyles.kdsActionRow}>
+                  {isIfoodOrder && effectiveCaps?.can_confirm && (
+                    <TouchableOpacity
+                      onPress={() => runOrderAction('confirm')}
+                      disabled={!!food99ActionLoading}
+                      style={[
+                        localStyles.kdsActionButton,
+                        localStyles.kdsActionPrimary,
+                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                      ]}
+                    >
+                      {food99ActionLoading === 'confirm' ? (
+                        <ActivityIndicator size="small" color="#F8FAFC" />
+                      ) : (
+                        <Text style={localStyles.kdsActionText}>Confirmar</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
                   {canCancelFood99Order && (
                     <TouchableOpacity
                       onPress={handleFood99CancelPress}
