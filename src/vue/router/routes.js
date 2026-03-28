@@ -5,7 +5,7 @@ export const routes = [
       import("@controleonline/ui-layout/src/vue/layouts/AdminLayout.vue"),
     children: [
       {
-        name: "SalesOrderIndex",
+        name: "SalesOrdersIndex",
         path: "sales",
         component: () => import("../pages/Orders"),
       },

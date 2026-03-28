@@ -40,7 +40,7 @@ export default function HomePage({navigation}) {
     } else {
       // checkType === 'manual' ou qualquer outro valor
       console.log('📋 [MANUAL] Abrindo lista de comandas manualmente...');
-      navigation.navigate('SalesOrderIndex');
+      navigation.navigate('SalesOrdersIndex');
     }
   };
 
