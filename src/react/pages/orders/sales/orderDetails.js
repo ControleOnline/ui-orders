@@ -1268,6 +1268,7 @@ const OrderDetails = ({ route, navigation }) => {
     !isTerminalFood99Order
   const canGenericDeliveredOrder =
     !isFood99Order &&
+    !isIfoodOrder &&
     (typeof effectiveCaps?.can_delivered === 'boolean'
       ? effectiveCaps.can_delivered
       : platformCapabilities.canDeliver) &&
