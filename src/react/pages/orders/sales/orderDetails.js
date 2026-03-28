@@ -200,8 +200,8 @@ const copyTextToClipboard = async text => {
   return false
 }
 
-const buildFood99LocatorShareMessage = ({ locator, url }) => {
-  const parts = ['Confirmacao de entrega 99Food']
+const buildFood99LocatorShareMessage = ({ locator, url, platformLabel = '99Food' }) => {
+  const parts = [`Confirmacao de entrega ${platformLabel}`]
 
   if (locator) {
     parts.push(`Localizador: ${locator}`)
@@ -942,6 +942,11 @@ const OrderDetails = ({ route, navigation }) => {
     typeof effectiveCaps?.can_delivered === 'boolean'
       ? effectiveCaps.can_delivered
       : platformCapabilities.canDeliver && !!food99Delivery?.allows_manual_delivery_completion
+  const canOpenFood99HandoverFlow =
+    typeof effectiveCaps?.can_open_handover_flow === 'boolean'
+      ? effectiveCaps.can_open_handover_flow
+      : false
+  const isIfoodHandoverFlow = isIfoodOrder && canOpenFood99HandoverFlow
   const requiresFood99DeliveryLocator =
     isFood99Order &&
     (typeof effectiveCaps?.requires_delivery_locator === 'boolean'
@@ -955,7 +960,7 @@ const OrderDetails = ({ route, navigation }) => {
     Number(effectiveCaps?.delivery_code_length) > 0
       ? Number(effectiveCaps.delivery_code_length)
       : 4
-  const shouldShowFood99DeliveryAction = canManualCompleteFood99Order
+  const shouldShowFood99DeliveryAction = canManualCompleteFood99Order || canOpenFood99HandoverFlow
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
@@ -1432,7 +1437,9 @@ const OrderDetails = ({ route, navigation }) => {
 
   const handleFood99OpenHandoverLink = useCallback(async () => {
     if (!food99HandoverLink) {
-      showError('A 99Food nao enviou o link de confirmacao deste pedido.')
+      showError(isIfoodOrder
+        ? 'O iFood nao enviou o link de confirmacao deste pedido.'
+        : 'A 99Food nao enviou o link de confirmacao deste pedido.')
       return
     }
 
@@ -1446,11 +1453,13 @@ const OrderDetails = ({ route, navigation }) => {
     } catch (linkError) {
       showError(formatApiError(linkError))
     }
-  }, [food99HandoverLink, showError])
+  }, [food99HandoverLink, isIfoodOrder, showError])
 
   const handleFood99CopyHandoverLink = useCallback(async () => {
     if (!food99HandoverLink) {
-      showError('A 99Food nao enviou o link de confirmacao deste pedido.')
+      showError(isIfoodOrder
+        ? 'O iFood nao enviou o link de confirmacao deste pedido.'
+        : 'A 99Food nao enviou o link de confirmacao deste pedido.')
       return
     }
 
@@ -1466,17 +1475,20 @@ const OrderDetails = ({ route, navigation }) => {
     } catch (copyError) {
       showError(formatApiError(copyError))
     }
-  }, [food99HandoverLink, showError, showSuccess])
+  }, [food99HandoverLink, isIfoodOrder, showError, showSuccess])
 
   const handleFood99ShareHandoverWhatsapp = useCallback(async () => {
     if (!food99HandoverLink) {
-      showError('A 99Food nao enviou o link de confirmacao deste pedido.')
+      showError(isIfoodOrder
+        ? 'O iFood nao enviou o link de confirmacao deste pedido.'
+        : 'A 99Food nao enviou o link de confirmacao deste pedido.')
       return
     }
 
     const message = buildFood99LocatorShareMessage({
       locator: activeFood99Locator,
       url: food99HandoverLink,
+      platformLabel: isIfoodOrder ? 'iFood' : '99Food',
     })
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
 
@@ -1490,7 +1502,7 @@ const OrderDetails = ({ route, navigation }) => {
     } catch (shareError) {
       showError(formatApiError(shareError))
     }
-  }, [food99HandoverLink, activeFood99Locator, showError])
+  }, [food99HandoverLink, activeFood99Locator, isIfoodOrder, showError])
 
   const handleFood99LocatorVerify = useCallback(async () => {
     if (!item?.id || !isFood99Order || food99ActionLoading) {
@@ -1600,7 +1612,7 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   const handleFood99DeliveredPress = useCallback(() => {
-    if (requiresFood99DeliveryLocator) {
+    if (requiresFood99DeliveryLocator || isIfoodHandoverFlow) {
       openFood99DeliveryFlow()
       return
     }
@@ -1608,6 +1620,7 @@ const OrderDetails = ({ route, navigation }) => {
     runFood99OrderAction('delivered')
   }, [
     requiresFood99DeliveryLocator,
+    isIfoodHandoverFlow,
     openFood99DeliveryFlow,
     runFood99OrderAction,
   ])
@@ -2563,7 +2576,9 @@ const OrderDetails = ({ route, navigation }) => {
             >
               <View style={localStyles.deliveryCodeHeader}>
                 <Text style={localStyles.deliveryCodeStepBadge}>
-                  {deliveryFlowStep === 'locator' ? 'Passo 1 de 2' : 'Passo 2 de 2'}
+                  {isIfoodHandoverFlow
+                    ? 'Fluxo iFood'
+                    : (deliveryFlowStep === 'locator' ? 'Passo 1 de 2' : 'Passo 2 de 2')}
                 </Text>
                 <TouchableOpacity
                   onPress={closeFood99DeliveryFlow}
@@ -2574,7 +2589,9 @@ const OrderDetails = ({ route, navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              <Text style={localStyles.deliveryCodeModalTitle}>Concluir entrega 99Food</Text>
+              <Text style={localStyles.deliveryCodeModalTitle}>
+                {isIfoodHandoverFlow ? 'Entrega propria iFood' : 'Concluir entrega 99Food'}
+              </Text>
 
               <ScrollView
                 style={localStyles.deliveryCodeScroll}
@@ -2582,20 +2599,28 @@ const OrderDetails = ({ route, navigation }) => {
                 showsVerticalScrollIndicator={false}
               >
                 <Text style={localStyles.deliveryCodeDescription}>
-                  {deliveryFlowStep === 'locator'
+                  {isIfoodHandoverFlow
+                    ? 'Use o localizador e o link oficial para compartilhar com o entregador e acompanhar a confirmacao da entrega.'
+                    : (deliveryFlowStep === 'locator'
                     ? 'Confirme o localizador oficial da 99Food e envie o link de confirmacao ao entregador quando necessario.'
-                    : 'Depois de encontrar o cliente, informe o codigo de confirmacao de 4 digitos para concluir a entrega.'}
+                    : 'Depois de encontrar o cliente, informe o codigo de confirmacao de 4 digitos para concluir a entrega.')}
                 </Text>
 
                 <View style={localStyles.deliveryLocatorHero}>
-                  <Text style={localStyles.deliveryCodeMetaLabel}>Localizador 99</Text>
+                  <Text style={localStyles.deliveryCodeMetaLabel}>
+                    {isIfoodHandoverFlow ? 'Localizador iFood' : 'Localizador 99'}
+                  </Text>
                   <Text style={localStyles.deliveryLocatorHeroValue}>
                     {activeFood99Locator || 'Nao informado'}
                   </Text>
                   <Text style={localStyles.deliveryLocatorHeroHelper}>
-                    {food99Locator
-                      ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial da 99.'
-                      : 'Se a 99 nao enviar o localizador no payload, use o numero do recibo e informe manualmente abaixo.'}
+                    {isIfoodHandoverFlow
+                      ? (food99Locator
+                        ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial do iFood.'
+                        : 'Sem localizador no payload. Use o ID de suporte e o link oficial do iFood.')
+                      : (food99Locator
+                        ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial da 99.'
+                        : 'Se a 99 nao enviar o localizador no payload, use o numero do recibo e informe manualmente abaixo.')}
                   </Text>
 
                   {!!activeFood99Locator && (
@@ -2665,43 +2690,47 @@ const OrderDetails = ({ route, navigation }) => {
                   </View>
                 )}
 
-                <Text style={localStyles.deliveryCodeTitle}>
-                  {deliveryFlowStep === 'locator' ? 'Validar localizador' : 'Confirmar codigo do cliente'}
-                </Text>
+                {!isIfoodHandoverFlow && (
+                  <>
+                    <Text style={localStyles.deliveryCodeTitle}>
+                      {deliveryFlowStep === 'locator' ? 'Validar localizador' : 'Confirmar codigo do cliente'}
+                    </Text>
 
-                <TextInput
-                  value={deliveryFlowStep === 'locator' ? deliveryLocator : deliveryCustomerCode}
-                  onChangeText={value => {
-                    const normalizedValue = normalizeDigits(
-                      value,
-                      deliveryFlowStep === 'locator'
-                        ? food99LocatorLength
-                        : food99DeliveryCodeLength,
-                    )
+                    <TextInput
+                      value={deliveryFlowStep === 'locator' ? deliveryLocator : deliveryCustomerCode}
+                      onChangeText={value => {
+                        const normalizedValue = normalizeDigits(
+                          value,
+                          deliveryFlowStep === 'locator'
+                            ? food99LocatorLength
+                            : food99DeliveryCodeLength,
+                        )
 
-                    if (deliveryFlowStep === 'locator') {
-                      setDeliveryLocator(normalizedValue)
-                    } else {
-                      setDeliveryCustomerCode(normalizedValue)
-                    }
-                  }}
-                  placeholder={deliveryFlowStep === 'locator' ? '00000000' : '0000'}
-                  placeholderTextColor={ppcColors.textSecondary}
-                  keyboardType="number-pad"
-                  maxLength={
-                    deliveryFlowStep === 'locator'
-                      ? food99LocatorLength
-                      : food99DeliveryCodeLength
-                  }
-                  editable={!food99ActionLoading}
-                  style={localStyles.deliveryCodeInput}
-                />
+                        if (deliveryFlowStep === 'locator') {
+                          setDeliveryLocator(normalizedValue)
+                        } else {
+                          setDeliveryCustomerCode(normalizedValue)
+                        }
+                      }}
+                      placeholder={deliveryFlowStep === 'locator' ? '00000000' : '0000'}
+                      placeholderTextColor={ppcColors.textSecondary}
+                      keyboardType="number-pad"
+                      maxLength={
+                        deliveryFlowStep === 'locator'
+                          ? food99LocatorLength
+                          : food99DeliveryCodeLength
+                      }
+                      editable={!food99ActionLoading}
+                      style={localStyles.deliveryCodeInput}
+                    />
 
-                <Text style={localStyles.deliveryCodeHelper}>
-                  {deliveryFlowStep === 'locator'
-                    ? `O localizador oficial da 99Food tem ${food99LocatorLength} digitos.`
-                    : `O codigo do cliente tem ${food99DeliveryCodeLength} digitos.`}
-                </Text>
+                    <Text style={localStyles.deliveryCodeHelper}>
+                      {deliveryFlowStep === 'locator'
+                        ? `O localizador oficial da 99Food tem ${food99LocatorLength} digitos.`
+                        : `O codigo do cliente tem ${food99DeliveryCodeLength} digitos.`}
+                    </Text>
+                  </>
+                )}
               </ScrollView>
 
               <View style={localStyles.deliveryCodeActions}>
@@ -2726,11 +2755,11 @@ const OrderDetails = ({ route, navigation }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={
-                  deliveryFlowStep === 'locator'
+                onPress={isIfoodHandoverFlow
+                  ? handleFood99OpenHandoverLink
+                  : (deliveryFlowStep === 'locator'
                     ? handleFood99LocatorVerify
-                    : handleFood99DeliveryCodeConfirm
-                }
+                    : handleFood99DeliveryCodeConfirm)}
                 disabled={!!food99ActionLoading}
                 style={[
                   localStyles.deliveryCodeButton,
@@ -2742,9 +2771,11 @@ const OrderDetails = ({ route, navigation }) => {
                   <ActivityIndicator size="small" color="#F8FAFC" />
                 ) : (
                   <Text style={localStyles.deliveryCodeButtonPrimaryText}>
-                    {deliveryFlowStep === 'locator'
-                      ? 'Verificar e continuar'
-                      : 'Concluir entrega'}
+                    {isIfoodHandoverFlow
+                      ? 'Abrir fluxo iFood'
+                      : (deliveryFlowStep === 'locator'
+                        ? 'Verificar e continuar'
+                        : 'Concluir entrega')}
                   </Text>
                 )}
               </TouchableOpacity>
