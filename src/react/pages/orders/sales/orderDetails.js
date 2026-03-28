@@ -231,8 +231,15 @@ const formatAgeMinutes = value => {
 }
 
 const normalizeFood99CancelReasonId = value => {
-  const normalized = Number(value)
-  return Number.isFinite(normalized) && normalized > 0 ? normalized : null
+  const normalizedText = resolvePreferredText(value)
+  if (!normalizedText) return null
+
+  const normalizedNumber = Number(normalizedText)
+  if (Number.isFinite(normalizedNumber) && normalizedNumber > 0) {
+    return String(Math.trunc(normalizedNumber))
+  }
+
+  return String(normalizedText).trim()
 }
 
 const formatFood99CodeLabel = (label, code) => {
@@ -320,6 +327,7 @@ const OrderDetails = ({ route, navigation }) => {
     : isIfoodOrder
       ? 'iFood'
       : String(channelLabel || 'Marketplace')
+  const cancelReasonChannelLabel = isIfoodOrder ? 'iFood' : '99Food'
   const [orderCapabilities, setOrderCapabilities] = useState(null)
   const [orderActionLoading, setOrderActionLoading] = useState('')
 
@@ -1379,7 +1387,7 @@ const OrderDetails = ({ route, navigation }) => {
 
       const applicableReasons = reasons.filter(reason => reason?.applicable !== false)
       const defaultReason =
-        applicableReasons.find(reason => normalizeFood99CancelReasonId(reason?.reason_id) === 1080) ||
+        applicableReasons.find(reason => normalizeFood99CancelReasonId(reason?.reason_id) === '1080') ||
         applicableReasons[0] ||
         reasons[0]
 
@@ -2413,11 +2421,10 @@ const OrderDetails = ({ route, navigation }) => {
           />
           <View style={localStyles.modalSheetWrap}>
             <View style={localStyles.cancelReasonModal}>
-            <Text style={localStyles.cancelReasonBadge}>Cancelamento 99Food</Text>
+            <Text style={localStyles.cancelReasonBadge}>Cancelamento {cancelReasonChannelLabel}</Text>
             <Text style={localStyles.cancelReasonTitle}>Escolha o motivo oficial</Text>
             <Text style={localStyles.cancelReasonDescription}>
-              A 99 exige um motivo padrao para cancelar pedidos. Selecionamos abaixo
-              apenas os motivos validos para este tipo de entrega.
+              Selecione um motivo oficial para cancelar este pedido no {cancelReasonChannelLabel}.
             </Text>
 
             {food99CancelReasonsLoading ? (
@@ -3317,7 +3324,7 @@ const OrderDetails = ({ route, navigation }) => {
 
                 return (
               <TouchableOpacity
-                onPress={isFood99Order ? handleFood99CancelPress : () => runOrderAction('cancel')}
+                onPress={(isFood99Order || isIfoodOrder) ? handleFood99CancelPress : () => runOrderAction('cancel')}
                 disabled={!shouldShowKdsCancel || cancelLoading}
                 style={[
                   localStyles.mobileCancelActionButton,
