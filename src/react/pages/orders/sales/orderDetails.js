@@ -327,6 +327,7 @@ const OrderDetails = ({ route, navigation }) => {
     : isIfoodOrder
       ? 'iFood'
       : String(channelLabel || 'Marketplace')
+  const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
   const cancelReasonChannelLabel = isIfoodOrder ? 'iFood' : '99Food'
   const [orderCapabilities, setOrderCapabilities] = useState(null)
   const [orderActionLoading, setOrderActionLoading] = useState('')
@@ -1799,6 +1800,7 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         </View>
 
+        {!isPurchaseOrder && (
         <View style={localStyles.mobileSummaryMetricsRow}>
           <View style={localStyles.mobileDiscountPill}>
             <Icon name="local-offer" size={14} color={ppcColors.accent} />
@@ -1814,9 +1816,10 @@ const OrderDetails = ({ route, navigation }) => {
             </View>
           )}
         </View>
+        )}
 
         <View style={localStyles.mobileSummaryFooter}>
-          <Text style={localStyles.mobileTotalLabel}>Total a cobrar</Text>
+          <Text style={localStyles.mobileTotalLabel}>{isPurchaseOrder ? 'Total a pagar' : 'Total a cobrar'}</Text>
           <Text style={localStyles.mobileTotalValue}>
             {Formatter.formatMoney(orderDisplayTotal)}
           </Text>
@@ -1846,38 +1849,45 @@ const OrderDetails = ({ route, navigation }) => {
       <View style={localStyles.mobileInfoCard}>
         <View style={localStyles.mobileInfoHeader}>
           <View style={localStyles.mobileInfoIconWrap}>
-            <Icon name="person" size={16} color={ppcColors.accentInfo} />
+            <Icon name={isPurchaseOrder ? 'local-shipping' : 'person'} size={16} color={ppcColors.accentInfo} />
           </View>
           <View style={localStyles.mobileInfoTextWrap}>
-            <Text style={localStyles.mobileInfoLabel}>Cliente</Text>
+            <Text style={localStyles.mobileInfoLabel}>{isPurchaseOrder ? 'Fornecedor' : 'Cliente'}</Text>
             <Text style={localStyles.mobileInfoTitle}>
-              {orderCustomerName || 'Cliente nao identificado'}
+              {isPurchaseOrder
+                ? (item?.client?.alias || item?.client?.name || orderParam?.client?.alias || orderParam?.client?.name || 'Fornecedor nao informado')
+                : (orderCustomerName || 'Cliente nao identificado')
+              }
             </Text>
-            {!!orderCustomerPhone && (
+            {!isPurchaseOrder && !!orderCustomerPhone && (
               <Text style={localStyles.mobileInfoSubtitle}>{orderCustomerPhone}</Text>
             )}
           </View>
         </View>
 
-        <View style={localStyles.mobileAddressCard}>
-          <Icon name="place" size={15} color={ppcColors.accentInfo} />
-          <View style={localStyles.mobileAddressTextWrap}>
-            <Text style={localStyles.mobileAddressPrimary}>
-              {orderAddressPrimary || 'Endereco nao informado'}
-            </Text>
-            {!!orderAddressSecondary && (
-              <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
-            )}
+        {!isPurchaseOrder && (
+          <View style={localStyles.mobileAddressCard}>
+            <Icon name="place" size={15} color={ppcColors.accentInfo} />
+            <View style={localStyles.mobileAddressTextWrap}>
+              <Text style={localStyles.mobileAddressPrimary}>
+                {orderAddressPrimary || 'Endereco nao informado'}
+              </Text>
+              {!!orderAddressSecondary && (
+                <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
-        <View style={localStyles.mobileNoteCard}>
-          <View style={localStyles.mobileNoteHeader}>
-            <Icon name="info" size={14} color={ppcColors.accent} />
-            <Text style={localStyles.mobileNoteLabel}>Observacao do cliente</Text>
+        {!isPurchaseOrder && (
+          <View style={localStyles.mobileNoteCard}>
+            <View style={localStyles.mobileNoteHeader}>
+              <Icon name="info" size={14} color={ppcColors.accent} />
+              <Text style={localStyles.mobileNoteLabel}>Observacao do cliente</Text>
+            </View>
+            <Text style={localStyles.mobileNoteText}>{orderObservationText}</Text>
           </View>
-          <Text style={localStyles.mobileNoteText}>{orderObservationText}</Text>
-        </View>
+        )}
       </View>
 
       <View style={localStyles.mobilePaymentGrid}>
@@ -1948,12 +1958,48 @@ const OrderDetails = ({ route, navigation }) => {
 
       <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
         <Text style={localStyles.mobileProductsTitle}>Itens do pedido</Text>
-        <OrderProducts
-          order={item}
-          scale={scale}
-          styles={kdsOrderProductsStyles}
-          indentStep={18}
-        />
+        {isPurchaseOrder
+          ? (item?.orderProducts || orderParam?.orderProducts || []).map((op, idx) => {
+              const prodName = op?.product?.product || op?.product?.name || `Produto #${idx + 1}`
+              const prodDesc = op?.product?.description || ''
+              const qty      = Number(op?.quantity || 0)
+              const price    = Number(op?.unitPrice || op?.price || 0)
+              const total    = qty * price
+              const comment  = String(op?.comments || '').trim()
+              return (
+                <View key={op?.id || idx} style={localStyles.purchaseItemRow}>
+                  <View style={localStyles.purchaseItemTop}>
+                    <Text style={localStyles.purchaseItemName} numberOfLines={2}>{prodName}</Text>
+                    <Text style={localStyles.purchaseItemQty}>{qty}×</Text>
+                  </View>
+                  {!!prodDesc && (
+                    <Text style={localStyles.purchaseItemDesc} numberOfLines={2}>{prodDesc}</Text>
+                  )}
+                  {!!comment && (
+                    <Text style={localStyles.purchaseItemComment}>Obs: {comment}</Text>
+                  )}
+                  <View style={localStyles.purchaseItemPriceRow}>
+                    {price > 0 && (
+                      <Text style={localStyles.purchaseItemUnit}>
+                        {Formatter.formatMoney(price)} / un
+                      </Text>
+                    )}
+                    {price > 0 && (
+                      <Text style={localStyles.purchaseItemTotal}>{Formatter.formatMoney(total)}</Text>
+                    )}
+                  </View>
+                </View>
+              )
+            })
+          : (
+            <OrderProducts
+              order={item}
+              scale={scale}
+              styles={kdsOrderProductsStyles}
+              indentStep={18}
+            />
+          )
+        }
       </View>
       </View>
     </ScrollView>
@@ -3756,6 +3802,39 @@ const createStyles = (scale, palette) =>
       textTransform: 'uppercase',
       letterSpacing: 0.8,
       marginBottom: 8,
+    },
+    purchaseItemRow: {
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      backgroundColor: palette.cardBgSoft,
+      marginBottom: 6,
+      borderLeftWidth: 3,
+      borderLeftColor: '#D97706',
+    },
+    purchaseItemTop: {
+      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8,
+    },
+    purchaseItemName: {
+      flex: 1, fontSize: 14 * scale, fontWeight: '700', color: palette.textPrimary,
+    },
+    purchaseItemQty: {
+      fontSize: 14 * scale, fontWeight: '800', color: '#D97706',
+    },
+    purchaseItemDesc: {
+      fontSize: 12 * scale, color: palette.textSecondary, marginTop: 2,
+    },
+    purchaseItemComment: {
+      fontSize: 12 * scale, color: palette.textSecondary, fontStyle: 'italic', marginTop: 4,
+    },
+    purchaseItemPriceRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6,
+    },
+    purchaseItemUnit: {
+      fontSize: 12 * scale, color: palette.textSecondary,
+    },
+    purchaseItemTotal: {
+      fontSize: 14 * scale, fontWeight: '800', color: '#D97706',
     },
     mobileProductItemRow: {
       marginTop: 4,
