@@ -58,7 +58,7 @@ const Orders = ({ navigation, route }) => {
     { label: 'Todos', value: 'ALL' },
     { label: '99Food', value: 'Food99' },
     { label: 'iFood', value: 'iFood' },
-    { label: 'PDV', value: 'PDV' },
+    { label: 'PDV', value: 'POS' },
   ];
 
   // Carregar status
