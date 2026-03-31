@@ -934,7 +934,7 @@ const OrderDetails = ({ route, navigation }) => {
   const isTerminalFood99Order =
     typeof effectiveCaps?.is_terminal === 'boolean'
       ? effectiveCaps.is_terminal
-      : ['closed', 'cancelled', 'canceled'].includes(normalizedOrderRealStatus)
+      : ['closed', 'canceled'].includes(normalizedOrderRealStatus)
   const canCancelFood99Order =
     typeof effectiveCaps?.can_cancel === 'boolean'
       ? effectiveCaps.can_cancel
@@ -1080,7 +1080,7 @@ const OrderDetails = ({ route, navigation }) => {
     food99ChangeFor > 0 ||
     food99ShopPaidMoney > 0
   const hasFood99CancellationInfo =
-    ['cancel_requested', 'partial_cancel', 'cancelled', 'canceled'].includes(remoteOrderStateKey) ||
+    ['cancel_requested', 'partial_cancel', 'canceled'].includes(remoteOrderStateKey) ||
     !!food99Integration?.cancel_code ||
     !!food99Integration?.cancel_reason
   const food99CancellationSourceLabel =
@@ -1174,9 +1174,7 @@ const OrderDetails = ({ route, navigation }) => {
   const localStatusRaw = String(item?.status?.status || item?.status?.realStatus || '').trim()
   const localStatusLower = localStatusRaw.toLowerCase()
   const isLocallyCanceledOrder =
-    localStatusLower.includes('cancel') ||
-    localStatusLower.includes('canceled') ||
-    localStatusLower.includes('cancelled')
+    localStatusLower.includes('canceled')
   const pendingAmountForBadge = Number(
     isFood99Order
       ? (food99Payment?.amount_pending || localPendingAmount || 0)
