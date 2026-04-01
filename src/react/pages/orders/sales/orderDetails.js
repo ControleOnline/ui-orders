@@ -264,9 +264,14 @@ const formatOrderDateTime = value => {
   return String(value)
 }
 
+const resolveOrderDateValue = order =>
+  resolvePreferredText(order?.alterDate, order?.alter_date, order?.orderDate)
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
+  const isTvDisplay = String(route.params?.displayType || '').toLowerCase() === 'tv'
+  const shouldHideBottomToolBar = Boolean(route.params?.hideBottomToolBar || isTvDisplay)
   const { showError, showSuccess } = useMessage()
   const [food99ActionLoading, setFood99ActionLoading] = useState('')
   const [food99State, setFood99State] = useState(null)
@@ -1140,9 +1145,10 @@ const OrderDetails = ({ route, navigation }) => {
     hasErrnoError(food99Integration?.confirm_errno) ||
     hasErrnoError(food99Integration?.reconcile_errno)
   const orderDisplayId = item?.id || orderParam?.id || '--'
-  const orderDateLabel = formatOrderDateTime(item?.orderDate)
-  const orderWaitingMinutes = item?.orderDate
-    ? Math.max(0, Math.floor((Date.now() - new Date(item.orderDate).getTime()) / 60000))
+  const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
+  const orderDateLabel = formatOrderDateTime(resolvedOrderDateValue)
+  const orderWaitingMinutes = resolvedOrderDateValue
+    ? Math.max(0, Math.floor((Date.now() - new Date(resolvedOrderDateValue).getTime()) / 60000))
     : null
   const orderWaitingLabel =
     orderWaitingMinutes === null
@@ -1717,6 +1723,7 @@ const OrderDetails = ({ route, navigation }) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       title: `Pedido #${orderDisplayId}`,
+      showBottomToolBar: !shouldHideBottomToolBar,
       headerTitle: () => (
         <View style={localStyles.topBarTitleWrap}>
           <Text style={localStyles.topBarTitleText}>Pedido #{orderDisplayId}</Text>
@@ -1758,6 +1765,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderDateLabel,
     orderDisplayId,
     ppcColors.accentInfo,
+    shouldHideBottomToolBar,
   ])
 
   const renderKdsMobileContent = () => (
@@ -2109,10 +2117,10 @@ const OrderDetails = ({ route, navigation }) => {
               <View style={localStyles.detailsSection}>
                 <Text style={localStyles.detailsSectionTitle}>Dados do pedido</Text>
                 <Text style={localStyles.detailsInfoText}>
-                  Criado em: {formatOrderDateTime(item?.orderDate)}
+                  Criado em: {formatOrderDateTime(resolvedOrderDateValue)}
                 </Text>
                 <Text style={localStyles.detailsInfoText}>
-                  Alterado em: {formatOrderDateTime(item?.alterDate)}
+                  Alterado em: {formatOrderDateTime(item?.alterDate || resolvedOrderDateValue)}
                 </Text>
                 <Text style={localStyles.detailsInfoText}>
                   Total local: {Formatter.formatMoney(localOrderTotal || 0)}

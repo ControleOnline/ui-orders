@@ -30,6 +30,9 @@ const getWaitingMinutes = orderDate => {
   return Math.max(0, Math.floor(diff / 60000))
 }
 
+const resolveOrderDateValue = order =>
+  normalizeText(order?.alterDate || order?.alter_date || order?.orderDate)
+
 const getWaitingConfig = minutes =>
   WAITING_RULES.find(rule => minutes <= rule.max)
 
@@ -119,9 +122,10 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
   const isOpen = order?.status?.realStatus === 'open'
   const headerPalette = useMemo(() => resolveHeaderPalette(palette), [palette])
   const styles = useMemo(() => createStyles(headerPalette), [headerPalette])
+  const orderDateValue = useMemo(() => resolveOrderDateValue(order), [order?.alterDate, order?.alter_date, order?.orderDate])
 
   const [waitingMinutes, setWaitingMinutes] = useState(
-    getWaitingMinutes(order?.orderDate),
+    getWaitingMinutes(orderDateValue),
   )
 
   const blinkAnim = useRef(new Animated.Value(1)).current
@@ -129,10 +133,10 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
   useEffect(() => {
     if (!isOpen) return
     const interval = setInterval(() => {
-      setWaitingMinutes(getWaitingMinutes(order?.orderDate))
+      setWaitingMinutes(getWaitingMinutes(orderDateValue))
     }, 60000)
     return () => clearInterval(interval)
-  }, [order?.orderDate, isOpen])
+  }, [orderDateValue, isOpen])
 
   const waitingConfig = getWaitingConfig(waitingMinutes)
 
@@ -183,7 +187,7 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
             <Text style={styles.orderId}>Pedido #{order?.id}</Text>
             <View style={styles.timeRow}>
               <Text style={styles.orderTime}>
-                {Formatter.formatDateYmdTodmY(order?.orderDate, true)}
+                {Formatter.formatDateYmdTodmY(orderDateValue, true)}
               </Text>
 
               {isOpen && (
