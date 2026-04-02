@@ -1064,6 +1064,28 @@ const OrderDetails = ({ route, navigation }) => {
   const food99Capabilities = food99State?.capabilities || {}
   // capabilities efetivas: Food99 tem prioridade (dados em tempo real), generic como fallback
   const effectiveCaps = Object.keys(food99Capabilities).length > 0 ? food99Capabilities : (orderCapabilities || {})
+
+  const food99Scheduling = food99State?.scheduling || null
+  const isScheduledOrder = food99Scheduling?.is_scheduled === true
+  const scheduledStartRaw = food99Scheduling?.scheduled_start || null
+  const scheduledEndRaw = food99Scheduling?.scheduled_end || null
+  const scheduledDateLabel = useMemo(() => {
+    if (!scheduledStartRaw) return null
+    try {
+      const start = new Date(scheduledStartRaw)
+      const pad = n => String(n).padStart(2, '0')
+      const datePart = `${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()}`
+      const timePart = `${pad(start.getHours())}:${pad(start.getMinutes())}`
+      if (scheduledEndRaw) {
+        const end = new Date(scheduledEndRaw)
+        const endTime = `${pad(end.getHours())}:${pad(end.getMinutes())}`
+        return `${datePart} das ${timePart} ate ${endTime}`
+      }
+      return `${datePart} as ${timePart}`
+    } catch {
+      return scheduledStartRaw
+    }
+  }, [scheduledStartRaw, scheduledEndRaw])
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
   const normalizedFood99LastEventType = String(food99Integration?.last_event_type || '').toLowerCase()
@@ -2558,6 +2580,15 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
+                  {isScheduledOrder && (
+                    <View style={localStyles.scheduledDeliveryBanner}>
+                      <Text style={localStyles.scheduledDeliveryLabel}>ENTREGA AGENDADA</Text>
+                      {!!scheduledDateLabel && (
+                        <Text style={localStyles.scheduledDeliveryDate}>{scheduledDateLabel}</Text>
+                      )}
+                    </View>
+                  )}
+
                   {(food99Customer?.name || food99Customer?.phone) && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>Cliente</Text>
@@ -3347,6 +3378,15 @@ const OrderDetails = ({ route, navigation }) => {
                         <Text style={localStyles.food99InfoText}>
                           Complemento: {food99Address.complement}
                         </Text>
+                      )}
+                    </View>
+                  )}
+
+                  {isScheduledOrder && (
+                    <View style={localStyles.scheduledDeliveryBanner}>
+                      <Text style={localStyles.scheduledDeliveryLabel}>ENTREGA AGENDADA</Text>
+                      {!!scheduledDateLabel && (
+                        <Text style={localStyles.scheduledDeliveryDate}>{scheduledDateLabel}</Text>
                       )}
                     </View>
                   )}
@@ -4267,6 +4307,30 @@ const createStyles = (scale, palette) =>
       fontWeight: '800',
       textTransform: 'uppercase',
       marginBottom: 4,
+    },
+    scheduledDeliveryBanner: {
+      marginTop: 8,
+      marginBottom: 4,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: '#F59E0B',
+      backgroundColor: '#451A03',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    scheduledDeliveryLabel: {
+      color: '#FCD34D',
+      fontSize: 14,
+      fontWeight: '900',
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+    },
+    scheduledDeliveryDate: {
+      color: '#FDE68A',
+      fontSize: 13,
+      fontWeight: '700',
+      marginTop: 3,
     },
     cancelReasonModal: {
       width: '100%',
