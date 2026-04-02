@@ -976,6 +976,7 @@ const OrderDetails = ({ route, navigation }) => {
       ...stateCustomer,
       name: resolvePreferredText(stateCustomer.name, fallbackFood99Customer.name),
       phone: resolvePreferredText(stateCustomer.phone, fallbackFood99Customer.phone),
+      document_number: resolvePreferredText(stateCustomer.document_number, fallbackFood99Customer.document_number),
     }
   }, [food99State?.customer, fallbackFood99Customer])
   const food99Address = useMemo(() => {
@@ -1069,7 +1070,21 @@ const OrderDetails = ({ route, navigation }) => {
   const isScheduledOrder = food99Scheduling?.is_scheduled === true
   const scheduledStartRaw = food99Scheduling?.scheduled_start || null
   const scheduledEndRaw = food99Scheduling?.scheduled_end || null
-  const scheduledDateLabel = useMemo(() => {
+  const scheduledDeliveryDateTimeRaw = food99Scheduling?.delivery_date_time || null
+  const scheduledPreparationStartRaw = food99Scheduling?.preparation_start || null
+
+  const formatScheduledDate = raw => {
+    if (!raw) return null
+    try {
+      const d = new Date(raw)
+      const pad = n => String(n).padStart(2, '0')
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    } catch {
+      return raw
+    }
+  }
+
+  const scheduledWindowLabel = useMemo(() => {
     if (!scheduledStartRaw) return null
     try {
       const start = new Date(scheduledStartRaw)
@@ -1086,6 +1101,8 @@ const OrderDetails = ({ route, navigation }) => {
       return scheduledStartRaw
     }
   }, [scheduledStartRaw, scheduledEndRaw])
+
+  const scheduledDateLabel = scheduledWindowLabel
   const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
   const normalizedFood99LastEventType = String(food99Integration?.last_event_type || '').toLowerCase()
@@ -2582,14 +2599,24 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {isScheduledOrder && (
                     <View style={localStyles.scheduledDeliveryBanner}>
-                      <Text style={localStyles.scheduledDeliveryLabel}>ENTREGA AGENDADA</Text>
-                      {!!scheduledDateLabel && (
-                        <Text style={localStyles.scheduledDeliveryDate}>{scheduledDateLabel}</Text>
+                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ ENTREGA AGENDADA</Text>
+                      {!!scheduledWindowLabel && (
+                        <Text style={localStyles.scheduledDeliveryDate}>Janela: {scheduledWindowLabel}</Text>
+                      )}
+                      {!!scheduledDeliveryDateTimeRaw && (
+                        <Text style={localStyles.scheduledDeliveryDate}>
+                          Entrega: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
+                        </Text>
+                      )}
+                      {!!scheduledPreparationStartRaw && (
+                        <Text style={localStyles.scheduledDeliveryDate}>
+                          Iniciar preparo: {formatScheduledDate(scheduledPreparationStartRaw)}
+                        </Text>
                       )}
                     </View>
                   )}
 
-                  {(food99Customer?.name || food99Customer?.phone) && (
+                  {(food99Customer?.name || food99Customer?.phone || food99Customer?.document_number) && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>Cliente</Text>
                       {!!food99Customer?.name && (
@@ -2597,6 +2624,9 @@ const OrderDetails = ({ route, navigation }) => {
                       )}
                       {!!food99Customer?.phone && (
                         <Text style={localStyles.detailsInfoText}>{food99Customer.phone}</Text>
+                      )}
+                      {!!food99Customer?.document_number && (
+                        <Text style={localStyles.detailsInfoText}>CPF: {food99Customer.document_number}</Text>
                       )}
                     </View>
                   )}
@@ -3384,14 +3414,24 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {isScheduledOrder && (
                     <View style={localStyles.scheduledDeliveryBanner}>
-                      <Text style={localStyles.scheduledDeliveryLabel}>ENTREGA AGENDADA</Text>
-                      {!!scheduledDateLabel && (
-                        <Text style={localStyles.scheduledDeliveryDate}>{scheduledDateLabel}</Text>
+                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ ENTREGA AGENDADA</Text>
+                      {!!scheduledWindowLabel && (
+                        <Text style={localStyles.scheduledDeliveryDate}>Janela: {scheduledWindowLabel}</Text>
+                      )}
+                      {!!scheduledDeliveryDateTimeRaw && (
+                        <Text style={localStyles.scheduledDeliveryDate}>
+                          Entrega: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
+                        </Text>
+                      )}
+                      {!!scheduledPreparationStartRaw && (
+                        <Text style={localStyles.scheduledDeliveryDate}>
+                          Iniciar preparo: {formatScheduledDate(scheduledPreparationStartRaw)}
+                        </Text>
                       )}
                     </View>
                   )}
 
-                  {(food99Customer?.name || food99Customer?.phone) && (
+                  {(food99Customer?.name || food99Customer?.phone || food99Customer?.document_number) && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>Cliente</Text>
                       {!!food99Customer?.name && (
@@ -3399,6 +3439,9 @@ const OrderDetails = ({ route, navigation }) => {
                       )}
                       {!!food99Customer?.phone && (
                         <Text style={localStyles.food99InfoText}>{food99Customer.phone}</Text>
+                      )}
+                      {!!food99Customer?.document_number && (
+                        <Text style={localStyles.food99InfoText}>CPF: {food99Customer.document_number}</Text>
                       )}
                     </View>
                   )}
