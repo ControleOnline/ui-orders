@@ -465,11 +465,11 @@ const OrderDetails = ({ route, navigation }) => {
       const currentIfoodLastEventType = String(
         food99State?.integration?.last_event_type || '',
       ).toLowerCase()
+      const currentIfoodLifecycleKey = currentIfoodLastEventType || currentRemoteOrderStateKey
       const currentIfoodReadyLifecycle =
         isIfoodOrder &&
         (
-          ['new', 'open', 'placed', 'confirmed'].includes(currentRemoteOrderStateKey) ||
-          ['placed', 'confirmed'].includes(currentIfoodLastEventType)
+          ['new', 'open', 'placed', 'confirmed', 'ready', 'delivery_drop_code_requested', 'delivery_drop_code_validating'].includes(currentIfoodLifecycleKey)
         )
       const currentIfoodMerchantDelivery =
         isIfoodOrder &&
@@ -478,12 +478,18 @@ const OrderDetails = ({ route, navigation }) => {
           food99State?.delivery?.is_store_delivery === true ||
           normalizeText(food99State?.delivery?.delivery_label || '').toLowerCase().includes('loja')
         )
+      const currentIfoodRiderAssigned =
+        isIfoodOrder &&
+        !!(
+          normalizeText(food99State?.delivery?.rider_name || '').trim() ||
+          normalizeText(food99State?.delivery?.rider_phone || '').trim() ||
+          Number(food99State?.delivery?.rider_to_store_eta || 0) > 0
+        )
       const currentIfoodDeliveryActionState =
         isIfoodOrder &&
-        ['dispatching', 'delivery_drop_code_requested', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(
-          currentRemoteOrderStateKey,
-        ) &&
-        !currentIfoodReadyLifecycle
+        ['dispatching', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(currentIfoodLifecycleKey) &&
+        !currentIfoodReadyLifecycle &&
+        currentIfoodRiderAssigned
 
       const caps = orderCapabilities || {}
       if (
@@ -1066,18 +1072,19 @@ const OrderDetails = ({ route, navigation }) => {
       food99Integration?.last_event_type ||
       '',
   ).toLowerCase()
+  const effectiveIfoodLifecycleKey = isIfoodOrder
+    ? (normalizedIfoodLatestEventType || remoteOrderStateKey)
+    : remoteOrderStateKey
   const normalizedFood99LastAction = String(food99Integration?.last_action || '').toLowerCase()
   const isIfoodReadyLifecycle =
     isIfoodOrder &&
     (
-      ['new', 'open', 'placed', 'confirmed'].includes(remoteOrderStateKey) ||
-      ['placed', 'confirmed'].includes(normalizedIfoodLatestEventType)
+      ['new', 'open', 'placed', 'confirmed', 'ready', 'delivery_drop_code_requested', 'delivery_drop_code_validating'].includes(effectiveIfoodLifecycleKey)
     )
   const isIfoodDispatchLifecycle =
     isIfoodOrder &&
     (
-      ['dispatching', 'delivery_drop_code_requested', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(remoteOrderStateKey) ||
-      ['dispatching', 'delivery_drop_code_requested', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(normalizedIfoodLatestEventType)
+      ['dispatching', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(effectiveIfoodLifecycleKey)
     ) &&
     !isIfoodReadyLifecycle
   const normalizedOrderRealStatus = String(
@@ -1092,11 +1099,18 @@ const OrderDetails = ({ route, navigation }) => {
     food99Delivery?.is_store_delivery === true ||
     normalizeText(food99Delivery?.delivery_label).toLowerCase().includes('loja')
   )
-  const isIfoodDeliveryActionState = isIfoodDispatchLifecycle
+  const isIfoodRiderAssigned = isIfoodOrder && !!(
+    normalizeText(food99Delivery?.rider_name || '').trim() ||
+    normalizeText(food99Delivery?.rider_phone || '').trim() ||
+    Number(food99Delivery?.rider_to_store_eta || 0) > 0
+  )
+  const isIfoodDeliveryActionState = isIfoodDispatchLifecycle && isIfoodRiderAssigned
   const canCancelFood99Order =
-    typeof effectiveCaps?.can_cancel === 'boolean'
-      ? effectiveCaps.can_cancel
-      : platformCapabilities.canCancel && !isTerminalFood99Order
+    isIfoodOrder
+      ? !isTerminalFood99Order && !isIfoodDispatchLifecycle
+      : typeof effectiveCaps?.can_cancel === 'boolean'
+        ? effectiveCaps.can_cancel
+        : platformCapabilities.canCancel && !isTerminalFood99Order
   const canManualCompleteFood99Order =
     isIfoodOrder
       ? isIfoodMerchantDelivery && isIfoodDeliveryActionState
@@ -1108,7 +1122,7 @@ const OrderDetails = ({ route, navigation }) => {
       ? effectiveCaps.can_open_handover_flow
       : isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
   const isIfoodHandoverFlow =
-    isIfoodOrder && (canOpenFood99HandoverFlow || (isIfoodMerchantDelivery && isIfoodDeliveryActionState))
+    isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
   const requiresFood99DeliveryLocator =
     isFood99Order &&
     (typeof effectiveCaps?.requires_delivery_locator === 'boolean'
@@ -1123,7 +1137,9 @@ const OrderDetails = ({ route, navigation }) => {
       ? Number(effectiveCaps.delivery_code_length)
       : 4
   const shouldShowFood99DeliveryAction =
-    canManualCompleteFood99Order || canOpenFood99HandoverFlow || isIfoodHandoverFlow
+    isIfoodOrder
+      ? canManualCompleteFood99Order
+      : canManualCompleteFood99Order || canOpenFood99HandoverFlow || isIfoodHandoverFlow
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const food99Locator = String(food99Delivery?.locator || '').trim()
   const food99PickupCode = String(
@@ -1162,9 +1178,11 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const requiresFood99CancelReasonText = !!selectedFood99CancelReason?.requires_description
   const isFood99Delivering =
-    typeof food99Capabilities?.is_delivering === 'boolean'
-      ? food99Capabilities.is_delivering
-      : ['courier_to_store', 'picked_up', 'delivering', 'arriving', 'dispatching', 'delivery_drop_code_requested'].includes(remoteOrderStateKey)
+    isIfoodOrder
+      ? isIfoodDispatchLifecycle && isIfoodRiderAssigned
+      : typeof food99Capabilities?.is_delivering === 'boolean'
+        ? food99Capabilities.is_delivering
+        : ['courier_to_store', 'picked_up', 'delivering', 'arriving', 'dispatching'].includes(remoteOrderStateKey)
   const hasFood99VisualData = !!(food99State || fallbackFood99Summary)
   const food99PaymentMethodValue = isIfoodOrder
     ? resolvePreferredMeaningfulText(
