@@ -24,8 +24,6 @@ const CheckoutContent = ({navigation}) => {
     route.params?.forceCreate || false,
   );
 
-  // ALEMAC // @todo: tem que remover o TOTEM. não usamos mais no APP_TYPE
-  // pegar o settings do banco para fazer seleção única ou múltipla de produtos ou categorias
   const Component = env.APP_TYPE === 'TOTEM' ? TotemProducts : Categories;
 
   useFocusEffect(
