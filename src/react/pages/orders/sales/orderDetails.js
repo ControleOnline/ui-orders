@@ -1139,6 +1139,8 @@ const OrderDetails = ({ route, navigation }) => {
     : isStatusMarkedPaid || isFinanciallyPaid
   const canMarkOrderAsPaid =
     !!item?.id && !!paidStatusId && !isStatusMarkedPaid
+  const canMarkOrderAsPaidStandalone =
+    canMarkOrderAsPaid && !isFood99Order && !isIfoodOrder
   const hasFood99SyncIssue =
     food99Observability?.is_healthy === false ||
     hasErrnoError(food99Integration?.last_action_errno) ||
@@ -1710,7 +1712,7 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
-  const resolvedPrimaryKdsAction = primaryKdsAction || (canMarkOrderAsPaid
+  const resolvedPrimaryKdsAction = primaryKdsAction || (canMarkOrderAsPaidStandalone
     ? {
         label: 'Marcar como Pago',
         icon: 'payments',
@@ -2003,6 +2005,7 @@ const OrderDetails = ({ route, navigation }) => {
               scale={scale}
               styles={kdsOrderProductsStyles}
               indentStep={18}
+              showDetails
             />
           )
         }
@@ -2065,7 +2068,7 @@ const OrderDetails = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {canMarkOrderAsPaid && (
+            {canMarkOrderAsPaidStandalone && (
               <TouchableOpacity
                 onPress={handleMarkOrderAsPaid}
                 disabled={markPaidLoading}
@@ -2150,7 +2153,7 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                     {!!food99Identifiers?.order_index && (
                       <Text style={localStyles.detailsInfoText}>
-                        Numero 99Food: #{food99Identifiers.order_index}
+                        {isIfoodOrder ? 'Numero iFood' : 'Numero 99Food'}: #{food99Identifiers.order_index}
                       </Text>
                     )}
                     <Text style={localStyles.detailsInfoText}>
@@ -2917,7 +2920,9 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
                     <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>Entregador 99</Text>
+                      <Text style={localStyles.food99SummaryTitle}>
+                        {isIfoodOrder ? 'Entregador iFood' : 'Entregador 99'}
+                      </Text>
                       {!!food99RiderName && (
                         <Text style={localStyles.food99InfoText}>{food99RiderName}</Text>
                       )}
@@ -2932,7 +2937,7 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {!!food99Identifiers?.order_index && (
                     <Text style={localStyles.food99InfoText}>
-                      Numero 99Food: #{food99Identifiers.order_index}
+                      {isIfoodOrder ? 'Numero iFood' : 'Numero 99Food'}: #{food99Identifiers.order_index}
                     </Text>
                   )}
 
@@ -3392,6 +3397,7 @@ const OrderDetails = ({ route, navigation }) => {
                   scale={scale}
                   styles={localStyles}
                   indentStep={22}
+                  showDetails
                 />
               </View>
             </ScrollView>
