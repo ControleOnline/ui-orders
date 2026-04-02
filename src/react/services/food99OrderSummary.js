@@ -1,4 +1,4 @@
-const normalizeText = value => String(value ?? '').trim()
+﻿const normalizeText = value => String(value ?? '').trim()
 
 const isPrivacyPlaceholder = value => {
   const normalized = normalizeText(value).toLowerCase()
@@ -27,6 +27,12 @@ const resolveCustomerName = receiveAddress =>
 const isObject = value =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
+const normalizeKey = value =>
+  normalizeText(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
 const decodeJson = value => {
   if (Array.isArray(value)) {
     return value
@@ -52,18 +58,58 @@ const decodeJson = value => {
   }
 }
 
+const decodeOrderOtherInformations = order =>
+  decodeJson(
+    order?.otherInformations ??
+      order?.other_information ??
+      order?.otherInformation ??
+      order?.otherInformationsJson ??
+      order?.other_information_json,
+  )
+
 const unwrapPayload = payload => {
   let current = payload
 
-  for (let depth = 0; depth < 5; depth += 1) {
-    if (!isObject(current?.Food99)) {
+  for (let depth = 0; depth < 10; depth += 1) {
+    if (!isObject(current)) {
       break
     }
 
-    current = current.Food99
+    const keys = Object.keys(current)
+    const wrapperKey =
+      keys.find(key => ['food99', '99food', 'ifood'].includes(normalizeKey(key))) ||
+      (keys.length === 1 ? keys[0] : null)
+
+    if (!wrapperKey || !isObject(current[wrapperKey])) {
+      break
+    }
+
+    current = current[wrapperKey]
   }
 
   return isObject(current) ? current : {}
+}
+
+const resolveEventPayload = payload => {
+  const current = unwrapPayload(payload)
+  const latestEventType = normalizeText(
+    current?.latest_event_type ||
+      current?.latestEventType ||
+      current?.event_type ||
+      current?.eventType,
+  )
+
+  if (latestEventType) {
+    const eventKey = Object.keys(current).find(
+      key => normalizeKey(key) === normalizeKey(latestEventType) && isObject(current[key]),
+    )
+
+    if (eventKey) {
+      return current[eventKey]
+    }
+  }
+
+  return current
 }
 
 const toMoney = value => {
@@ -72,6 +118,15 @@ const toMoney = value => {
   }
 
   return Math.round((Number(value) / 100) * 100) / 100
+}
+
+const toIfoodMoney = value => {
+  if (value === null || value === undefined || value === '') {
+    return 0
+  }
+
+  const normalized = Number(String(value).replace(',', '.'))
+  return Number.isFinite(normalized) ? normalized : 0
 }
 
 const sumStoreSubsidy = promotions =>
@@ -262,6 +317,73 @@ const resolveFood99SelectedPaymentLabel = ({
   return preferredLabel || candidates[0] || ''
 }
 
+const resolveIfoodPaymentMethodLabel = method => {
+  switch (normalizeKey(method)) {
+    case 'cash':
+      return 'Pagamento em Dinheiro'
+    case 'credit':
+      return 'Pagamento Cartão de Crédito'
+    case 'debit':
+      return 'Pagamento Cartão de Débito'
+    case 'pix':
+      return 'Pagamento PIX'
+    default:
+      return normalizeText(method) || 'Metodo nao mapeado'
+  }
+}
+
+const resolveIfoodPaymentChannelLabel = method => {
+  switch (normalizeKey(method)) {
+    case 'cash':
+      return 'Dinheiro'
+    case 'credit':
+      return 'Cartão de Crédito'
+    case 'debit':
+      return 'Cartão de Débito'
+    case 'pix':
+      return 'PIX'
+    default:
+      return normalizeText(method) || 'Metodo nao mapeado'
+  }
+}
+
+const resolveIfoodPaymentTypeLabel = type => {
+  switch (normalizeKey(type)) {
+    case 'online':
+      return 'Pagamento online'
+    case 'offline':
+      return 'Pagamento na entrega'
+    default:
+      return normalizeText(type) || 'Pagamento nao mapeado'
+  }
+}
+
+const resolveIfoodSelectedPaymentLabel = ({ methodLabel, typeLabel, brand, prepaid }) => {
+  const normalizedBrand = normalizeText(brand)
+  const normalizedMethod = normalizeText(methodLabel)
+  const normalizedType = normalizeText(typeLabel)
+  const methodKey = normalizeKey(methodLabel)
+  const candidates = []
+
+  if (normalizedMethod) {
+    if ((methodKey.includes('cartao de credito') || methodKey.includes('cartao de debito')) && normalizedBrand) {
+      candidates.push(`${normalizedMethod} (${normalizedBrand.toUpperCase()})`)
+    } else {
+      candidates.push(normalizedMethod)
+    }
+  }
+
+  if (prepaid && normalizedType) {
+    candidates.push(normalizedType)
+  }
+
+  if (normalizedBrand && !(methodKey.includes('cartao de credito') || methodKey.includes('cartao de debito'))) {
+    candidates.push(normalizedBrand)
+  }
+
+  return candidates.find(Boolean) || ''
+}
+
 const getPayloadScore = payload => {
   const data = isObject(payload?.data) ? payload.data : {}
   const orderInfo = isObject(data?.order_info) ? data.order_info : {}
@@ -304,7 +426,7 @@ const getPayloadScore = payload => {
 }
 
 const getBestPayload = order => {
-  const otherInformations = decodeJson(order?.otherInformations)
+  const otherInformations = decodeOrderOtherInformations(order)
   const latestEventType = normalizeText(otherInformations?.latest_event_type)
   const candidateKeys = [
     latestEventType,
@@ -318,12 +440,12 @@ const getBestPayload = order => {
     candidateKeys.map((key, index) => [key, index]),
   )
   const discoveredKeys = Object.keys(otherInformations || {})
-  const allCandidateKeys = [...new Set([...candidateKeys, ...discoveredKeys])]
+  const allCandidateKeys = [...new Set([...candidateKeys, ...discoveredKeys, 'iFood', 'ifood'])]
   const rankedCandidates = []
 
   for (const key of allCandidateKeys) {
     const candidate = decodeJson(otherInformations?.[key])
-    const payload = unwrapPayload(candidate)
+    const payload = resolveEventPayload(candidate)
     if (!Object.keys(payload).length) continue
 
     rankedCandidates.push({
@@ -333,7 +455,7 @@ const getBestPayload = order => {
     })
   }
 
-  const directPayload = unwrapPayload(otherInformations)
+  const directPayload = resolveEventPayload(otherInformations)
   if (Object.keys(directPayload).length) {
     rankedCandidates.push({
       payload: directPayload,
@@ -355,11 +477,199 @@ const getBestPayload = order => {
 }
 
 export const isFood99Order = order =>
-  /food99|99food/i.test(normalizeText(order?.app))
+  /food99|99food|ifood/i.test(normalizeText(order?.app))
+
+const buildIfoodOrderSummary = order => {
+  const payload = getBestPayload(order)
+  if (!payload) {
+    return null
+  }
+
+  const ifoodOrder = isObject(payload?.order)
+    ? payload.order
+    : isObject(payload?.data?.order)
+      ? payload.data.order
+      : isObject(payload?.order_info)
+        ? payload.order_info
+        : payload
+
+  const delivery = isObject(ifoodOrder?.delivery) ? ifoodOrder.delivery : {}
+  const deliveryAddress = isObject(delivery?.deliveryAddress) ? delivery.deliveryAddress : {}
+  const customer = isObject(ifoodOrder?.customer) ? ifoodOrder.customer : {}
+  const phone = isObject(customer?.phone) ? customer.phone : {}
+  const payments = isObject(ifoodOrder?.payments) ? ifoodOrder.payments : {}
+  const paymentMethod = Array.isArray(payments?.methods) && payments.methods.length
+    ? payments.methods[0]
+    : {}
+  const total = isObject(ifoodOrder?.total) ? ifoodOrder.total : {}
+  const additionalFees = Array.isArray(ifoodOrder?.additionalFees)
+    ? ifoodOrder.additionalFees.filter(isObject)
+    : []
+  const items = Array.isArray(ifoodOrder?.items)
+    ? ifoodOrder.items.filter(isObject)
+    : []
+
+  const itemRemarks = items
+    .map(item => normalizeText(item?.observations))
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index)
+    .join(' | ')
+
+  const itemsTotal = toIfoodMoney(total?.subTotal)
+  const deliveryFee = toIfoodMoney(total?.deliveryFee)
+  const serviceFee = additionalFees.reduce((sum, fee) => sum + toIfoodMoney(fee?.value), 0)
+  const discountTotal = toIfoodMoney(total?.benefits)
+  const customerTotal = toIfoodMoney(total?.orderAmount)
+  const amountPaid = toIfoodMoney(payments?.prepaid)
+  const amountPending = toIfoodMoney(payments?.pending)
+  const isPaidOnline = amountPaid > 0 && amountPending <= 0.009
+  const methodType = normalizeText(paymentMethod?.method)
+  const paymentMethodLabel = resolveIfoodPaymentMethodLabel(methodType)
+  const paymentTypeLabel = resolveIfoodPaymentTypeLabel(paymentMethod?.type)
+  const paymentBrand = normalizeText(paymentMethod?.card?.brand)
+  const paymentChannelLabel = resolveIfoodPaymentChannelLabel(methodType)
+  const selectedPaymentLabel = resolveIfoodSelectedPaymentLabel({
+    methodLabel: paymentMethodLabel,
+    typeLabel: paymentTypeLabel,
+    brand: paymentBrand,
+    prepaid: paymentMethod?.prepaid === true,
+  })
+  const changeFor = toIfoodMoney(paymentMethod?.cash?.changeFor)
+  const changeAmount = changeFor > customerTotal ? Math.max(0, Math.round((changeFor - customerTotal) * 100) / 100) : 0
+  const customerNeedPayingMoney = amountPending > 0 ? amountPending : customerTotal
+  const deliveryLabel = delivery?.deliveredBy === 'MERCHANT' ? 'Entrega da loja' : 'Entrega pela plataforma'
+  const deliveryMode = normalizeText(delivery?.mode)
+  const localizer = normalizeText(phone?.localizer)
+  const pickupCode = normalizeText(delivery?.pickupCode)
+  const handoverCode = normalizeText(delivery?.handoverCode || delivery?.pickupCode || pickupCode)
+  const observations = normalizeText(delivery?.observations)
+
+  return {
+    integration: {
+      latestEventType: normalizeText(payload?.latest_event_type || payload?.latestEventType),
+    },
+    financial: {
+      itemsTotal,
+      deliveryFee,
+      serviceFee,
+      smallOrderFee: 0,
+      mealTopUpFee: 0,
+      tipTotal: 0,
+      subtotalBeforeDiscounts: Math.max(0, Math.round((itemsTotal + deliveryFee + serviceFee) * 100) / 100),
+      discountTotal,
+      storeDiscountTotal: 0,
+      platformDiscountTotal: 0,
+      customerTotal,
+      promotionsTotal: discountTotal,
+      itemsDiscountTotal: 0,
+      deliveryDiscountTotal: 0,
+      couponDiscountTotal: 0,
+      customerNeedPayingMoney,
+      realPayTotal: amountPaid,
+      refundTotal: 0,
+      shopPaidMoney: 0,
+      storeChargedDeliveryPrice: deliveryFee,
+      storeReceivableTotal: customerTotal,
+      ifoodSubsidy: 0,
+      merchantSubsidy: 0,
+      paymentBrand,
+    },
+    payment: {
+      payType: paymentMethod?.type || '',
+      payTypeLabel: paymentTypeLabel,
+      payMethod: methodType,
+      payMethodLabel: paymentMethodLabel,
+      payChannel: paymentMethod?.card?.brand || methodType,
+      payChannelLabel: paymentChannelLabel || paymentBrand || paymentMethodLabel,
+      selectedPaymentLabel,
+      amountPaid,
+      amountPending,
+      collectOnDeliveryAmount: amountPending,
+      customerNeedPayingMoney,
+      shopPaidMoney: 0,
+      changeFor,
+      changeAmount,
+      needsChange: changeAmount > 0.009,
+      isPaidOnline,
+      isFullyPaid: amountPending <= 0.009,
+      paymentBrand,
+    },
+    customer: {
+      name: sanitizeIdentityValue(customer?.name) || normalizeText(order?.customerName) || '',
+      phone: normalizeText(phone?.number),
+      localizer,
+    },
+    delivery: {
+      deliveryLabel,
+      deliveredBy: normalizeText(delivery?.deliveredBy),
+      deliveryMode,
+      expectedArrivedEta: normalizeText(delivery?.deliveryDateTime),
+      pickupCode,
+      handoverCode,
+      localizer,
+      handoverPageUrl: 'https://confirmacao-entrega-propria.ifood.com.br/',
+      handoverConfirmationUrl: 'https://confirmacao-entrega-propria.ifood.com.br/',
+      virtualPhoneNumber: normalizeText(phone?.number),
+      riderName: '',
+      riderPhone: normalizeText(phone?.number),
+      riderToStoreEta: '',
+      isStoreDelivery: delivery?.deliveredBy === 'MERCHANT',
+      isPlatformDelivery: delivery?.deliveredBy !== 'MERCHANT',
+      allowsManualDeliveryCompletion: delivery?.deliveredBy === 'MERCHANT',
+    },
+    address: {
+      display: [
+        deliveryAddress?.formattedAddress,
+        deliveryAddress?.neighborhood,
+        deliveryAddress?.city,
+        deliveryAddress?.state,
+        deliveryAddress?.reference,
+      ]
+        .map(normalizeText)
+        .filter(Boolean)
+        .filter((value, index, list) => list.indexOf(value) === index)
+        .join(', '),
+      streetName: normalizeText(deliveryAddress?.streetName),
+      streetNumber: normalizeText(deliveryAddress?.streetNumber),
+      district: normalizeText(deliveryAddress?.neighborhood),
+      city: normalizeText(deliveryAddress?.city),
+      state: normalizeText(deliveryAddress?.state),
+      postalCode: normalizeText(deliveryAddress?.postalCode),
+      reference: normalizeText(deliveryAddress?.reference),
+      complement: normalizeText(deliveryAddress?.complement),
+      poiAddress: normalizeText(deliveryAddress?.formattedAddress),
+    },
+    notes: {
+      remark: observations,
+      itemRemarks,
+      needCutlery: ifoodOrder?.needCutlery ?? null,
+    },
+    identifiers: {
+      orderIndex: normalizeText(ifoodOrder?.displayId || ifoodOrder?.display_id || ifoodOrder?.id || order?.id),
+      pickupCode,
+      handoverCode,
+      localizer,
+      handoverPageUrl: 'https://confirmacao-entrega-propria.ifood.com.br/',
+    },
+    items: items.map(item => ({
+      name: normalizeText(item?.name),
+      quantity: Number(item?.quantity || 0),
+      unitPrice: toIfoodMoney(item?.unitPrice ?? item?.price),
+      totalPrice: toIfoodMoney(item?.totalPrice ?? item?.price),
+      description: normalizeText(item?.externalCode || item?.unit || item?.type),
+      observation: normalizeText(item?.observations),
+      type: normalizeText(item?.type),
+    })),
+  }
+}
 
 export const buildFood99OrderSummary = order => {
   if (!isFood99Order(order)) {
     return null
+  }
+
+  if (/ifood/i.test(normalizeText(order?.app))) {
+    return buildIfoodOrderSummary(order)
   }
 
   const payload = getBestPayload(order)
@@ -539,5 +849,14 @@ export const buildFood99OrderSummary = order => {
       pickupCode: normalizeText(data?.pickup_code ?? orderInfo?.pickup_code),
       handoverCode: normalizeText(data?.handover_code ?? orderInfo?.handover_code),
     },
+    items: orderItems.map(item => ({
+      name: normalizeText(item?.name),
+      quantity: Number(item?.amount || item?.quantity || 0),
+      unitPrice: toMoney(item?.sku_price ?? item?.price ?? item?.total_price),
+      totalPrice: toMoney(item?.total_price ?? item?.real_price ?? item?.price),
+      description: normalizeText(item?.remark || item?.short_desc),
+      observation: normalizeText(item?.remark),
+      type: normalizeText(item?.sales_type),
+    })),
   }
 }
