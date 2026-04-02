@@ -673,6 +673,7 @@ const OrderDetails = ({ route, navigation }) => {
       ...(item || orderParam || {}),
       orderProducts: fallbackFood99Summary.items.map((entry, idx) => ({
         id: `ifood-item-${idx}-${normalizeText(entry?.name || 'item')}`,
+        name: normalizeText(entry?.name),
         quantity: Number(entry?.quantity || 0),
         value: Number(entry?.unitPrice || 0),
         price: Number(entry?.unitPrice || 0),
@@ -682,6 +683,7 @@ const OrderDetails = ({ route, navigation }) => {
         note: normalizeText(entry?.observation),
         description: normalizeText(entry?.description),
         product: {
+          name: normalizeText(entry?.name),
           product: normalizeText(entry?.name) || `Item #${idx + 1}`,
           description: normalizeText(entry?.description),
           type: normalizeText(entry?.type || 'product'),
