@@ -53,16 +53,16 @@ export default function HomePage({navigation}) {
 
   const getCheckButtonConfig = () => {
     let icon = 'shopping-cart';
-    let title = 'Pedidos de Venda';
+    let title = global.t?.t('orders', 'title', 'salesOrders');
     let iconLibrary = 'fontawesome';
 
     if (checkType === 'barcode') {
       icon = 'camera-alt';
-      title = 'Abrir Comanda';
+      title = global.t?.t('orders', 'button', 'openTab');
       iconLibrary = 'material';
     } else if (checkType === 'rfid') {
       icon = 'nfc';
-      title = 'Abrir Comanda';
+      title = global.t?.t('orders', 'button', 'openTab');
       iconLibrary = 'material';
     }
 
@@ -80,7 +80,7 @@ export default function HomePage({navigation}) {
     getCheckButtonConfig(),
     {
       id: '2',
-      title: 'Caixa',
+      title: global.t?.t('orders', 'title', 'cashRegister'),
       icon: 'money',
       iconLibrary: 'fontawesome',
       backgroundColor: '#4682b4',
@@ -114,7 +114,7 @@ export default function HomePage({navigation}) {
           size="large"
           color={colors['primary'] || '#0000ff'}
         />
-        <Text style={styles.loadingText}>Carregando...</Text>
+        <Text style={styles.loadingText}>{global.t?.t('orders', 'message', 'loading')}</Text>
       </View>
     );
   }

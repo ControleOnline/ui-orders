@@ -51,8 +51,7 @@ const BarcodeCheckReader = () => {
         .catch(error => {
           console.log(error);
           showToast(
-            'Erro ao selecionar comanda. Verifique o código. Mensagem:' +
-              error?.message,
+            `${global.t?.t('orders', 'message', 'errorSelectingCheckVerifyCodeMessage')} ${error?.message}`,
             {
               position: 'center',
             },
@@ -70,13 +69,13 @@ const BarcodeCheckReader = () => {
     <View style={styles.inputRow}>
       <TouchableOpacity onPress={handleReadButton} style={styles.readButton}>
         <Icon name="camera-alt" size={24} color="#fff" />
-        <Text style={styles.readButtonText}>{t.t('default', 'button', 'ReadBarcode')}</Text>
+        <Text style={styles.readButtonText}>{global.t?.t('orders', 'button', 'readBarcode')}</Text>
       </TouchableOpacity>
 
       <TextInput
         ref={inputRef}
         style={styles.input}
-        placeholder={t.t('default', 'title', 'BarcodeCheckReader')}
+        placeholder={global.t?.t('orders', 'placeholder', 'barcodeCheckReader')}
         placeholderTextColor="#999"
         value={value}
         onChangeText={setValue}

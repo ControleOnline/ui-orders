@@ -55,21 +55,21 @@ const CloseCashRegister = ({navigation}) => {
     if (Platform.OS === 'web') {
       if (window.confirm(message)) callback();
     } else {
-      Alert.alert('Confirmação', message, [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: callback },
+      Alert.alert(global.t?.t('orders', 'title', 'confirmation'), message, [
+        { text: global.t?.t('orders', 'button', 'cancel'), style: 'cancel' },
+        { text: global.t?.t('orders', 'button', 'confirm'), onPress: callback },
       ]);
     }
   };
 
   const handleConfirmClose = () => {
-    confirm('Deseja realmente fechar o caixa?', () =>
+    confirm(global.t?.t('orders', 'message', 'confirmCloseCashRegister'), () =>
       handleCashRegister(false),
     );
   };
 
   const handleConfirmOpen = () => {
-    confirm('Deseja realmente abrir o caixa?', () =>
+    confirm(global.t?.t('orders', 'message', 'confirmOpenCashRegister'), () =>
       handleCashRegister(true),
     );
   };
@@ -159,7 +159,7 @@ const CloseCashRegister = ({navigation}) => {
 
           <View style={styles.CloseCashRegister.footerContainer}>
             <View style={styles.CloseCashRegister.totalContainer}>
-              <Text style={styles.CloseCashRegister.total}>TOTAL</Text>
+              <Text style={styles.CloseCashRegister.total}>{global.t?.t('orders', 'label', 'total').toUpperCase()}</Text>
               <Text style={styles.CloseCashRegister.total}>
                 {Formatter.formatMoney(total)}
               </Text>
@@ -180,7 +180,7 @@ const CloseCashRegister = ({navigation}) => {
                   style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
                   <Text style={{color: '#fff', marginLeft: 8}}>
-                    Fechar Caixa
+                    {global.t?.t('orders', 'button', 'closeCashRegister')}
                   </Text>
                 </TouchableOpacity>
               ) : (
@@ -189,7 +189,7 @@ const CloseCashRegister = ({navigation}) => {
                   style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
                   <Text style={{color: '#fff', marginLeft: 8}}>
-                    Abrir Caixa
+                    {global.t?.t('orders', 'button', 'openCashRegister')}
                   </Text>
                 </TouchableOpacity>
               )}

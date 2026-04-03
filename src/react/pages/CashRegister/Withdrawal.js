@@ -79,7 +79,7 @@ export default function BleedScreen() {
   const handleSave = () => {
     if (!selectedPaymentType || !bleedValue) {
       paymentTypeActions.setError(
-        'Por favor, selecione um tipo de pagamento e insira um valor',
+        global.t?.t('orders', 'message', 'selectPaymentTypeAndEnterAmount'),
       );
       return;
     }
@@ -125,7 +125,7 @@ export default function BleedScreen() {
             <Text style={{color: '#666'}}>
               {selectedPaymentType
                 ? selectedPaymentType.paymentType.paymentType
-                : 'Selecione um tipo de pagamento'}
+                : global.t?.t('orders', 'message', 'selectPaymentType')}
             </Text>
             <Icon
               name={dropdownVisible ? 'arrow-drop-up' : 'arrow-drop-down'}
@@ -166,7 +166,7 @@ export default function BleedScreen() {
 
         {/* Input de valor */}
         <View style={{marginBottom: 20}}>
-          <Text style={{marginBottom: 5}}>Valor da sangria:</Text>
+          <Text style={{marginBottom: 5}}>{global.t?.t('orders', 'label', 'withdrawalAmount')}:</Text>
           <TextInput
             placeholderTextColor="#666"
             style={{
@@ -179,7 +179,7 @@ export default function BleedScreen() {
             keyboardType="numeric"
             value={bleedValue}
             onChangeText={handleValueChange}
-            placeholder="Digite o valor (ex: 100,00)"
+            placeholder={global.t?.t('orders', 'placeholder', 'enterWithdrawalValue')}
           />
         </View>
 
@@ -206,7 +206,7 @@ export default function BleedScreen() {
                 alignItems: 'center',
               }, // Tamanho normal ajustado
             ]}>
-            <Text style={globalStyles.btnText}>SALVAR</Text>
+            <Text style={globalStyles.btnText}>{global.t?.t('orders', 'button', 'save').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -18,7 +18,7 @@ const WrappedCloseCashRegister = ({ navigation, route }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: 'Caixa',
+      title: global.t?.t('orders', 'title', 'cashRegister'),
     });
   }, [navigation]);
 
@@ -35,7 +35,7 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+      title: order?.id ? `${global.t?.t('orders', 'title', 'order')} #${order.id}` : global.t?.t('orders', 'title', 'order'),
       headerBackVisible: true,
     });
   }, [navigation, order]);
@@ -50,7 +50,7 @@ const WrappedOrderTools = ({ navigation, route }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+      title: order?.id ? `${global.t?.t('orders', 'title', 'order')} #${order.id}` : global.t?.t('orders', 'title', 'order'),
       headerBackVisible: true,
     });
   }, [navigation, order]);
@@ -65,7 +65,7 @@ const WrappedOrderDetails = ({ navigation, route }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: order?.id ? `Pedido #${order.id}` : 'Pedido',
+      title: order?.id ? `${global.t?.t('orders', 'title', 'order')} #${order.id}` : global.t?.t('orders', 'title', 'order'),
       headerBackVisible: true,
     });
   }, [navigation, order]);
@@ -85,7 +85,7 @@ const ordersRoutes = [
       showBottomCart: true,
       headerShown: true,
       headerBackVisible: false,
-      title: 'Pedido',
+      title: global.t?.t('orders', 'title', 'order'),
     },
     initialParams: { store: 'orders' },
   },
@@ -95,7 +95,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       headerBackVisible: true,
-      title: 'Caixa',
+      title: global.t?.t('orders', 'title', 'cashRegister'),
     },
   },
   {
@@ -104,7 +104,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       headerBackVisible: false,
-      title: 'Caixa',
+      title: global.t?.t('orders', 'title', 'cashRegister'),
     },
   },
   {
@@ -113,7 +113,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       headerBackVisible: false,
-      title: 'Sangria',
+      title: global.t?.t('orders', 'title', 'withdrawal'),
     },
   },
   {
@@ -124,7 +124,7 @@ const ordersRoutes = [
       headerBackVisible: false,
       showBottomCart: true,
       showBottomToolBar: true,
-      title: 'Escolher Categoria',
+      title: global.t?.t('orders', 'title', 'chooseCategory'),
     },
     initialParams: { store: 'categories' },
   },
@@ -135,7 +135,7 @@ const ordersRoutes = [
       headerShown: true,
       headerBackVisible: false,
       showBottomToolBar: false,
-      title: 'Pedido',
+      title: global.t?.t('orders', 'title', 'order'),
     },
     initialParams: { store: 'orders' },
   },

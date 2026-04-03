@@ -29,7 +29,7 @@ import { useDisplayTheme } from '@controleonline/ui-ppc/src/react/theme/displayT
 import { getPlatformCapabilities, getOrderChannelKey, getOrderChannelLabel } from '@assets/ppc/channels'
 
 const formatApiError = error => {
-  if (!error) return 'Nao foi possivel concluir a operacao.'
+  if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')
   if (typeof error === 'string') return error
   if (Array.isArray(error?.message)) {
     return error.message
@@ -38,7 +38,7 @@ const formatApiError = error => {
       .join('\n')
   }
 
-  return error?.message || error?.description || error?.errmsg || 'Nao foi possivel concluir a operacao.'
+  return error?.message || error?.description || error?.errmsg || global.t?.t('orders', 'message', 'unableCompleteOperation')
 }
 
 const normalizeKey = value =>
@@ -72,9 +72,9 @@ const formatFood99RiderEta = value => {
     return String(value).trim()
   }
 
-  if (minutes === 0) return 'Chegando agora'
-  if (minutes === 1) return 'Chega em 1 min'
-  return `Chega em ${minutes} min`
+  if (minutes === 0) return global.t?.t('orders', 'message', 'arrivingNow')
+  if (minutes === 1) return global.t?.t('orders', 'message', 'arrivesInOneMinute')
+  return `${global.t?.t('orders', 'message', 'arrivesIn')} ${minutes} min`
 }
 
 const normalizeErrno = value => String(value ?? '').trim()
@@ -159,11 +159,17 @@ const resolvePreferredText = (...values) => {
 
 const weakPaymentLabels = new Set([
   'nao informado',
+  'não informado',
   'nao informado pela 99',
+  'não informado pela 99',
   'nao informado pelo ifood',
+  'não informado pelo ifood',
   'canal nao mapeado',
+  'canal não mapeado',
   'metodo nao mapeado',
+  'método não mapeado',
   'pagamento nao mapeado',
+  'pagamento não mapeado',
 ])
 
 const isWeakPaymentLabel = value => weakPaymentLabels.has(normalizeText(value).toLowerCase())
@@ -227,14 +233,14 @@ const copyTextToClipboard = async text => {
 }
 
 const buildFood99LocatorShareMessage = ({ locator, url, platformLabel = '99Food' }) => {
-  const parts = [`Confirmacao de entrega ${platformLabel}`]
+  const parts = [`${global.t?.t('orders', 'message', 'deliveryConfirmation')} ${platformLabel}`]
 
   if (locator) {
-    parts.push(`Localizador: ${locator}`)
+    parts.push(`${global.t?.t('orders', 'label', 'locator')}: ${locator}`)
   }
 
   if (url) {
-    parts.push(`Link oficial: ${url}`)
+    parts.push(`${global.t?.t('orders', 'label', 'officialLink')}: ${url}`)
   }
 
   return parts.join('\n')
@@ -251,9 +257,9 @@ const formatAgeMinutes = value => {
 
   const minutes = Number(value)
   if (!Number.isFinite(minutes) || minutes < 0) return ''
-  if (minutes === 0) return 'agora'
-  if (minutes === 1) return 'ha 1 min'
-  return `ha ${minutes} min`
+  if (minutes === 0) return global.t?.t('orders', 'message', 'now')
+  if (minutes === 1) return global.t?.t('orders', 'message', 'oneMinuteAgo')
+  return `${global.t?.t('orders', 'message', 'minutesAgo')} ${minutes} min`
 }
 
 const normalizeFood99CancelReasonId = value => {
@@ -352,7 +358,7 @@ const OrderDetails = ({ route, navigation }) => {
   const channelKey = getOrderChannelKey(item || orderParam)
   const isFood99Order = channelKey === '99food'
   const isIfoodOrder = channelKey === 'ifood'
-  const channelLabel = getOrderChannelLabel(item || orderParam) || 'pedido'
+  const channelLabel = getOrderChannelLabel(item || orderParam) || global.t?.t('orders', 'label', 'order')
   const integrationChannelLabel = isFood99Order
     ? '99Food'
     : isIfoodOrder
@@ -509,25 +515,25 @@ const OrderDetails = ({ route, navigation }) => {
         ? {
             confirm: {
               path: `/marketplace/integrations/ifood/orders/${item.id}/confirm`,
-              success: 'Pedido confirmado.',
+              success: global.t?.t('orders', 'message', 'orderConfirmed'),
             },
             ready: {
               path: `/marketplace/integrations/ifood/orders/${item.id}/ready`,
-              success: 'Pedido marcado como pronto.',
+              success: global.t?.t('orders', 'message', 'orderReady'),
             },
             cancel: {
               path: `/marketplace/integrations/ifood/orders/${item.id}/cancel`,
-              success: 'Pedido cancelado.',
+              success: global.t?.t('orders', 'message', 'orderCanceled'),
             },
             delivered: {
               path: `/marketplace/integrations/ifood/orders/${item.id}/delivered`,
-              success: 'Pedido finalizado.',
+              success: global.t?.t('orders', 'message', 'orderDelivered'),
             },
           }
         : {
-            ready: { path: `/orders/${item.id}/ready`, success: 'Pedido marcado como pronto.' },
-            cancel: { path: `/orders/${item.id}/cancel`, success: 'Pedido cancelado.' },
-            delivered: { path: `/orders/${item.id}/delivered`, success: 'Pedido finalizado.' },
+            ready: { path: `/orders/${item.id}/ready`, success: global.t?.t('orders', 'message', 'orderReady') },
+            cancel: { path: `/orders/${item.id}/cancel`, success: global.t?.t('orders', 'message', 'orderCanceled') },
+            delivered: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
           }
 
       const actionConfig = actionMap[action]
@@ -1308,8 +1314,8 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldShowCollectOnDelivery =
     !food99Payment?.is_paid_online && food99CashCollectionAmount > 0.009
   const collectOnDeliveryLabel = isCashPaymentSelection
-    ? 'Receber em dinheiro na entrega'
-    : 'Receber na entrega'
+    ? global.t?.t('orders', 'label', 'collectCashOnDelivery')
+    : global.t?.t('orders', 'label', 'collectOnDelivery')
   const shouldShowDeliveryPaymentSection =
     shouldShowCollectOnDelivery ||
     isCashPaymentSelection ||
@@ -1323,13 +1329,13 @@ const OrderDetails = ({ route, navigation }) => {
   const food99CancellationSourceLabel =
     normalizedFood99LastAction === 'cancel' &&
     !hasErrnoError(food99Integration?.last_action_errno)
-      ? 'Loja'
+      ? global.t?.t('orders', 'label', 'store')
       : /(ordercancelapply|ordercancelrequest|cancelapply|cancelrequest)/.test(
             normalizedFood99LastEventType,
           )
-        ? 'Cliente'
+        ? global.t?.t('orders', 'label', 'customer')
           : hasFood99CancellationInfo
-          ? `Cliente / ${integrationChannelLabel}`
+          ? `${global.t?.t('orders', 'label', 'customer')} / ${integrationChannelLabel}`
           : ''
   const remoteStateAgeLabel = formatAgeMinutes(food99Observability?.remote_state_age_minutes)
   const lastActionAgeLabel = formatAgeMinutes(food99Observability?.last_action_age_minutes)
@@ -1409,7 +1415,7 @@ const OrderDetails = ({ route, navigation }) => {
       return externalRef ? `iFood #${externalRef}` : 'iFood'
     }
 
-    return String(item?.app || 'Origem local')
+    return String(item?.app || global.t?.t('orders', 'label', 'localOrigin'))
   })()
   const localStatusRaw = String(item?.status?.status || item?.status?.realStatus || '').trim()
   const localStatusLower = localStatusRaw.toLowerCase()
@@ -1424,8 +1430,8 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldUseMarketplaceFinancialBadge = (isFood99Order || isIfoodOrder) && !isLocallyCanceledOrder
   const orderStatusBadgeLabel = shouldUseMarketplaceFinancialBadge
     ? isPendingForBadge
-      ? 'PENDENTE'
-      : 'PAID'
+      ? global.t?.t('orders', 'label', 'pending').toUpperCase()
+      : global.t?.t('orders', 'label', 'paid').toUpperCase()
     : String(localStatusRaw || '-').toUpperCase()
   const orderStatusBadgeColor = shouldUseMarketplaceFinancialBadge
     ? isPendingForBadge
@@ -1433,10 +1439,10 @@ const OrderDetails = ({ route, navigation }) => {
       : '#16A34A'
     : item?.status?.color || ppcColors.accentInfo
   const fallbackNoObservationText = isFood99Order
-    ? 'Sem observacoes informadas pela 99Food.'
+    ? global.t?.t('orders', 'message', 'noObservations99Food')
     : isIfoodOrder
-      ? 'Sem observacoes informadas pelo iFood.'
-      : `Sem observacoes informadas para este ${integrationChannelLabel}.`
+      ? global.t?.t('orders', 'message', 'noObservationsIfood')
+      : `${global.t?.t('orders', 'message', 'noObservationsFor')} ${integrationChannelLabel}.`
   const showOrderObservationCard = !isIfoodOrder
   const orderCustomerName = resolvePreferredText(
     food99Customer?.name,
@@ -1511,8 +1517,10 @@ const OrderDetails = ({ route, navigation }) => {
     food99PaymentChannelValue,
   ) || (
     isIfoodOrder
-      ? (localPendingAmount > 0.009 ? 'Pagamento na entrega' : 'Pagamento online')
-      : 'Nao informado'
+      ? (localPendingAmount > 0.009
+        ? global.t?.t('orders', 'label', 'paymentOnDelivery')
+        : global.t?.t('orders', 'label', 'onlinePayment'))
+      : global.t?.t('orders', 'label', 'notInformed')
   )
   const shouldShowKdsCancel =
     typeof effectiveCaps?.can_cancel === 'boolean'
@@ -1571,7 +1579,7 @@ const OrderDetails = ({ route, navigation }) => {
       }
 
       await refreshCurrentOrder()
-      showSuccess('Pedido marcado como pago.')
+      showSuccess(global.t?.t('orders', 'message', 'orderMarkedAsPaid'))
     } catch (saveError) {
       showError(formatApiError(saveError))
     } finally {
@@ -1631,7 +1639,7 @@ const OrderDetails = ({ route, navigation }) => {
           await runOrderAction('cancel')
           return
         }
-        showError('Nenhum motivo de cancelamento disponivel para este pedido.')
+        showError(global.t?.t('orders', 'message', 'noCancelReasonAvailable'))
         return
       }
 
@@ -1662,7 +1670,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const handleFood99CopyLocator = useCallback(async () => {
     if (!activeFood99Locator) {
-      showError('Nenhum localizador disponivel para copiar.')
+      showError(global.t?.t('orders', 'message', 'noLocatorAvailable'))
       return
     }
 
@@ -1670,11 +1678,11 @@ const OrderDetails = ({ route, navigation }) => {
       const copied = await copyTextToClipboard(activeFood99Locator)
 
       if (!copied) {
-        showError('Copia nao suportada neste dispositivo. Use o codigo exibido no modal.')
+        showError(global.t?.t('orders', 'message', 'copyNotSupportedUseCode'))
         return
       }
 
-      showSuccess('Localizador copiado.')
+      showSuccess(global.t?.t('orders', 'message', 'locatorCopied'))
     } catch (copyError) {
       showError(formatApiError(copyError))
     }
@@ -1683,15 +1691,15 @@ const OrderDetails = ({ route, navigation }) => {
   const handleFood99OpenHandoverLink = useCallback(async () => {
     if (!food99HandoverLink) {
       showError(isIfoodOrder
-        ? 'O iFood nao enviou o link de confirmacao deste pedido.'
-        : 'A 99Food nao enviou o link de confirmacao deste pedido.')
+        ? global.t?.t('orders', 'message', 'ifoodDidNotSendConfirmationLink')
+        : global.t?.t('orders', 'message', 'food99DidNotSendConfirmationLink'))
       return
     }
 
     try {
       const supported = await Linking.canOpenURL(food99HandoverLink)
       if (!supported) {
-        throw new Error('Nao foi possivel abrir o link de confirmacao.')
+        throw new Error(global.t?.t('orders', 'message', 'unableOpenConfirmationLink'))
       }
 
       await Linking.openURL(food99HandoverLink)
@@ -1703,8 +1711,8 @@ const OrderDetails = ({ route, navigation }) => {
   const handleFood99CopyHandoverLink = useCallback(async () => {
     if (!food99HandoverLink) {
       showError(isIfoodOrder
-        ? 'O iFood nao enviou o link de confirmacao deste pedido.'
-        : 'A 99Food nao enviou o link de confirmacao deste pedido.')
+        ? global.t?.t('orders', 'message', 'ifoodDidNotSendConfirmationLink')
+        : global.t?.t('orders', 'message', 'food99DidNotSendConfirmationLink'))
       return
     }
 
@@ -1712,11 +1720,11 @@ const OrderDetails = ({ route, navigation }) => {
       const copied = await copyTextToClipboard(food99HandoverLink)
 
       if (!copied) {
-        showError('Copia nao suportada neste dispositivo. Abra o link direto no navegador.')
+        showError(global.t?.t('orders', 'message', 'copyNotSupportedOpenInBrowser'))
         return
       }
 
-      showSuccess('Link de confirmacao copiado.')
+      showSuccess(global.t?.t('orders', 'message', 'confirmationLinkCopied'))
     } catch (copyError) {
       showError(formatApiError(copyError))
     }
@@ -1725,8 +1733,8 @@ const OrderDetails = ({ route, navigation }) => {
   const handleFood99ShareHandoverWhatsapp = useCallback(async () => {
     if (!food99HandoverLink) {
       showError(isIfoodOrder
-        ? 'O iFood nao enviou o link de confirmacao deste pedido.'
-        : 'A 99Food nao enviou o link de confirmacao deste pedido.')
+        ? global.t?.t('orders', 'message', 'ifoodDidNotSendConfirmationLink')
+        : global.t?.t('orders', 'message', 'food99DidNotSendConfirmationLink'))
       return
     }
 
@@ -1740,7 +1748,7 @@ const OrderDetails = ({ route, navigation }) => {
     try {
       const supported = await Linking.canOpenURL(whatsappUrl)
       if (!supported) {
-        throw new Error('WhatsApp indisponivel neste dispositivo.')
+        throw new Error(global.t?.t('orders', 'message', 'whatsAppUnavailable'))
       }
 
       await Linking.openURL(whatsappUrl)
@@ -1756,7 +1764,7 @@ const OrderDetails = ({ route, navigation }) => {
 
     const normalizedLocator = normalizeDigits(deliveryLocator, food99LocatorLength)
     if (normalizedLocator.length !== food99LocatorLength) {
-      showError(`Informe o localizador de ${food99LocatorLength} digitos.`)
+      showError(`${global.t?.t('orders', 'message', 'enterLocatorWith')} ${food99LocatorLength} ${global.t?.t('orders', 'label', 'digits')}.`)
       return
     }
 
@@ -1791,7 +1799,7 @@ const OrderDetails = ({ route, navigation }) => {
       if (nextStep === 'completed') {
         setDeliveryCodeModalVisible(false)
         setDeliveryFlowStep('locator')
-        showSuccess('Entrega confirmada na 99Food.')
+        showSuccess(global.t?.t('orders', 'message', 'deliveryConfirmed99Food'))
 
         if (isKds) {
           navigation.goBack()
@@ -1801,11 +1809,11 @@ const OrderDetails = ({ route, navigation }) => {
 
       if (nextStep === 'delivery_code') {
         setDeliveryFlowStep('delivery_code')
-        showSuccess('Localizador validado. Agora confirme o codigo do cliente.')
+        showSuccess(global.t?.t('orders', 'message', 'locatorValidatedNowConfirmCustomerCode'))
         return
       }
 
-      throw response?.result || { message: 'A 99Food retornou um fluxo inesperado para o localizador.' }
+      throw response?.result || { message: global.t?.t('orders', 'message', 'unexpectedLocatorFlow99Food') }
     } catch (actionError) {
       showError(formatApiError(actionError))
     } finally {
@@ -1829,7 +1837,7 @@ const OrderDetails = ({ route, navigation }) => {
     const normalizedLocator = normalizeDigits(deliveryLocator, food99LocatorLength)
 
     if (normalizedLocator.length !== food99LocatorLength) {
-      showError(`Informe o localizador de ${food99LocatorLength} digitos.`)
+      showError(`${global.t?.t('orders', 'message', 'enterLocatorWith')} ${food99LocatorLength} ${global.t?.t('orders', 'label', 'digits')}.`)
       setDeliveryFlowStep('locator')
       return
     }
@@ -1847,7 +1855,7 @@ const OrderDetails = ({ route, navigation }) => {
     )
 
     if (normalizedDeliveryCode.length !== food99DeliveryCodeLength) {
-      showError(`Informe o codigo do cliente com ${food99DeliveryCodeLength} digitos.`)
+      showError(`${global.t?.t('orders', 'message', 'enterCustomerCodeWith')} ${food99DeliveryCodeLength} ${global.t?.t('orders', 'label', 'digits')}.`)
       return
     }
 
@@ -1882,13 +1890,13 @@ const OrderDetails = ({ route, navigation }) => {
   const handleFood99CancelConfirm = useCallback(async () => {
     const reasonId = normalizeFood99CancelReasonId(selectedFood99CancelReasonId)
     if (!reasonId) {
-      showError('Selecione um motivo de cancelamento para continuar.')
+      showError(global.t?.t('orders', 'message', 'selectCancelReasonToContinue'))
       return
     }
 
     const reasonText = String(food99CancelReasonText || '').trim()
     if (requiresFood99CancelReasonText && !reasonText) {
-      showError('Descreva o motivo do cancelamento para continuar.')
+      showError(global.t?.t('orders', 'message', 'describeCancelReasonToContinue'))
       return
     }
 
@@ -1912,7 +1920,7 @@ const OrderDetails = ({ route, navigation }) => {
 
     if (canReadyFood99Order) {
       return {
-        label: 'Pedido Pronto',
+        label: global.t?.t('orders', 'button', 'orderReady'),
         icon: 'check-circle',
         loadingKey: 'ready',
         disabled: !!(food99ActionLoading || orderActionLoading),
@@ -1922,7 +1930,7 @@ const OrderDetails = ({ route, navigation }) => {
 
     if (shouldShowFood99DeliveryAction) {
       return {
-        label: 'Entregar Pedido',
+        label: global.t?.t('orders', 'button', 'deliverOrder'),
         icon: 'local-shipping',
         loadingKey: 'delivered',
         disabled: !!(food99ActionLoading || orderActionLoading),
@@ -1961,7 +1969,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const resolvedPrimaryKdsAction = primaryKdsAction || (canMarkOrderAsPaidStandalone
     ? {
-        label: 'Marcar como Pago',
+        label: global.t?.t('orders', 'button', 'markAsPaid'),
         icon: 'payments',
         loadingKey: 'mark_paid',
         disabled: !!markPaidLoading,
@@ -1971,11 +1979,11 @@ const OrderDetails = ({ route, navigation }) => {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: `Pedido #${orderDisplayId}`,
+      title: `${global.t?.t('orders', 'title', 'order')} #${orderDisplayId}`,
       showBottomToolBar: !shouldHideBottomToolBar,
       headerTitle: () => (
         <View style={localStyles.topBarTitleWrap}>
-          <Text style={localStyles.topBarTitleText}>Pedido #{orderDisplayId}</Text>
+          <Text style={localStyles.topBarTitleText}>{global.t?.t('orders', 'title', 'order')} #{orderDisplayId}</Text>
           {!!orderDateLabel && (
             <Text style={localStyles.topBarTitleSubText}>{orderDateLabel}</Text>
           )}
@@ -2034,7 +2042,7 @@ const OrderDetails = ({ route, navigation }) => {
               />
             </View>
             <View>
-              <Text style={localStyles.mobileSummaryLabel}>Origem</Text>
+              <Text style={localStyles.mobileSummaryLabel}>{global.t?.t('orders', 'label', 'origin')}</Text>
               <Text style={localStyles.mobileSummaryValue}>{orderOriginLabel}</Text>
             </View>
           </View>
@@ -2060,7 +2068,7 @@ const OrderDetails = ({ route, navigation }) => {
           <View style={localStyles.mobileDiscountPill}>
             <Icon name="local-offer" size={14} color={ppcColors.accent} />
             <Text style={localStyles.mobileDiscountText}>
-              Desconto: {Formatter.formatMoney(orderDiscountTotal)}
+              {global.t?.t('orders', 'label', 'discount')}: {Formatter.formatMoney(orderDiscountTotal)}
             </Text>
           </View>
 
@@ -2074,7 +2082,7 @@ const OrderDetails = ({ route, navigation }) => {
         )}
 
         <View style={localStyles.mobileSummaryFooter}>
-          <Text style={localStyles.mobileTotalLabel}>{isPurchaseOrder ? 'Total a pagar' : 'Total a cobrar'}</Text>
+          <Text style={localStyles.mobileTotalLabel}>{isPurchaseOrder ? global.t?.t('orders', 'label', 'totalToPay') : global.t?.t('orders', 'label', 'totalToCharge')}</Text>
           <Text style={localStyles.mobileTotalValue}>
             {Formatter.formatMoney(orderDisplayTotal)}
           </Text>
@@ -2084,17 +2092,17 @@ const OrderDetails = ({ route, navigation }) => {
           <View style={localStyles.mobileSummaryMetaList}>
             {!!remoteOrderStateLabel && (
               <Text style={localStyles.mobileSummaryMetaText}>
-                Estado remoto: {remoteOrderStateLabel}
+                {global.t?.t('orders', 'label', 'remoteState')}: {remoteOrderStateLabel}
               </Text>
             )}
             {!!food99Delivery?.delivery_label && (
               <Text style={localStyles.mobileSummaryMetaText}>
-                Entrega: {food99Delivery.delivery_label}
+                {global.t?.t('orders', 'label', 'delivery')}: {food99Delivery.delivery_label}
               </Text>
             )}
             {!!formattedFood99Eta && (
               <Text style={localStyles.mobileSummaryMetaText}>
-                ETA previsto: {formattedFood99Eta}
+                {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
               </Text>
             )}
           </View>
@@ -2107,11 +2115,11 @@ const OrderDetails = ({ route, navigation }) => {
             <Icon name={isPurchaseOrder ? 'local-shipping' : 'person'} size={16} color={ppcColors.accentInfo} />
           </View>
           <View style={localStyles.mobileInfoTextWrap}>
-            <Text style={localStyles.mobileInfoLabel}>{isPurchaseOrder ? 'Fornecedor' : 'Cliente'}</Text>
+            <Text style={localStyles.mobileInfoLabel}>{isPurchaseOrder ? global.t?.t('orders', 'label', 'supplier') : global.t?.t('orders', 'label', 'customer')}</Text>
             <Text style={localStyles.mobileInfoTitle}>
               {isPurchaseOrder
-                ? (item?.client?.alias || item?.client?.name || orderParam?.client?.alias || orderParam?.client?.name || 'Fornecedor nao informado')
-                : (orderCustomerName || 'Cliente nao identificado')
+                ? (item?.client?.alias || item?.client?.name || orderParam?.client?.alias || orderParam?.client?.name || global.t?.t('orders', 'message', 'supplierNotInformed'))
+                : (orderCustomerName || global.t?.t('orders', 'message', 'customerNotIdentified'))
               }
             </Text>
             {!isPurchaseOrder && !!orderCustomerPhone && (
@@ -2125,7 +2133,7 @@ const OrderDetails = ({ route, navigation }) => {
             <Icon name="place" size={15} color={ppcColors.accentInfo} />
             <View style={localStyles.mobileAddressTextWrap}>
               <Text style={localStyles.mobileAddressPrimary}>
-                {orderAddressPrimary || 'Endereco nao informado'}
+                {orderAddressPrimary || global.t?.t('orders', 'message', 'addressNotInformed')}
               </Text>
               {!!orderAddressSecondary && (
                 <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
@@ -2138,7 +2146,7 @@ const OrderDetails = ({ route, navigation }) => {
           <View style={localStyles.mobileNoteCard}>
             <View style={localStyles.mobileNoteHeader}>
               <Icon name="info" size={14} color={ppcColors.accent} />
-              <Text style={localStyles.mobileNoteLabel}>Observacao do cliente</Text>
+              <Text style={localStyles.mobileNoteLabel}>{global.t?.t('orders', 'label', 'customerObservation')}</Text>
             </View>
             <Text style={localStyles.mobileNoteText}>{orderObservationText}</Text>
           </View>
@@ -2147,40 +2155,40 @@ const OrderDetails = ({ route, navigation }) => {
 
       <View style={localStyles.mobilePaymentGrid}>
         <View style={localStyles.mobilePaymentMetricCard}>
-          <Text style={localStyles.mobilePaymentMetricLabel}>Pago</Text>
+          <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
           <Text style={localStyles.mobilePaymentMetricValue}>
             {Formatter.formatMoney(food99Payment?.amount_paid || localPaidAmount || 0)}
           </Text>
         </View>
         <View style={localStyles.mobilePaymentMetricCard}>
-          <Text style={localStyles.mobilePaymentMetricLabel}>Pendente</Text>
+          <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
           <Text style={[localStyles.mobilePaymentMetricValue, localStyles.mobilePaymentPendingValue]}>
             {Formatter.formatMoney(food99Payment?.amount_pending || localPendingAmount || 0)}
           </Text>
           {shouldShowCollectOnDelivery && (
             <Text style={localStyles.mobilePaymentMetricHint}>
-              Cobrar cliente: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+              {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
             </Text>
           )}
         </View>
       </View>
 
       <View style={localStyles.mobileInfoCard}>
-        <Text style={localStyles.mobileInfoLabel}>Pagamento</Text>
+        <Text style={localStyles.mobileInfoLabel}>{global.t?.t('orders', 'label', 'payment')}</Text>
         <Text style={localStyles.mobileInfoTitle}>{orderPaymentMethodText}</Text>
         {!!food99PaymentChannelValue && (
-          <Text style={localStyles.mobileInfoSubtitle}>Canal: {food99PaymentChannelValue}</Text>
+          <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'channel')}: {food99PaymentChannelValue}</Text>
         )}
         {food99ChangeFor > 0 ? (
           <Text style={localStyles.mobileInfoSubtitle}>
-            Troco para: {Formatter.formatMoney(food99ChangeFor)}
+            {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
           </Text>
         ) : isCashPaymentSelection ? (
-          <Text style={localStyles.mobileInfoSubtitle}>Troco: nao solicitado</Text>
+          <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'change')}: {global.t?.t('orders', 'message', 'notRequested')}</Text>
         ) : null}
         {food99NeedsChange ? (
           <Text style={localStyles.mobileInfoSubtitle}>
-            Troco a devolver: {Formatter.formatMoney(food99ChangeAmount)}
+            {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
           </Text>
         ) : null}
       </View>
@@ -2192,27 +2200,27 @@ const OrderDetails = ({ route, navigation }) => {
         <View style={localStyles.mobileWarningCard}>
           {isFood99CourierToStore ? (
             <Text style={localStyles.mobileWarningText}>
-              Entregador designado e a caminho da loja.
+              {global.t?.t('orders', 'message', 'courierAssignedAndComingToStore')}
             </Text>
           ) : null}
           {isFood99Delivering && !isFood99CourierToStore ? (
-            <Text style={localStyles.mobileWarningText}>Pedido em entrega.</Text>
+            <Text style={localStyles.mobileWarningText}>{global.t?.t('orders', 'message', 'orderInDelivery')}</Text>
           ) : null}
           {shouldHideReadyFood99Action ? (
             <Text style={localStyles.mobileWarningText}>
-              Pedido pronto aguardando atualizacao da plataforma 99.
+              {global.t?.t('orders', 'message', 'orderReadyWaitingPlatform99Update')}
             </Text>
           ) : null}
           {hasFood99SyncIssue ? (
             <Text style={localStyles.mobileWarningText}>
-              Integracao com divergencia. Use detalhes para sincronizar.
+              {global.t?.t('orders', 'message', 'integrationDivergenceUseDetailsToSync')}
             </Text>
           ) : null}
         </View>
       )}
 
       <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
-        <Text style={localStyles.mobileProductsTitle}>Itens do pedido</Text>
+        <Text style={localStyles.mobileProductsTitle}>{global.t?.t('orders', 'title', 'orderItems')}</Text>
         {isPurchaseOrder
           ? (item?.orderProducts || orderParam?.orderProducts || []).map((op, idx) => {
               const prodName = op?.product?.product || op?.product?.name || `Produto #${idx + 1}`
@@ -2231,7 +2239,7 @@ const OrderDetails = ({ route, navigation }) => {
                     <Text style={localStyles.purchaseItemDesc} numberOfLines={2}>{prodDesc}</Text>
                   )}
                   {!!comment && (
-                    <Text style={localStyles.purchaseItemComment}>Obs: {comment}</Text>
+                    <Text style={localStyles.purchaseItemComment}>{global.t?.t('orders', 'label', 'obs')}: {comment}</Text>
                   )}
                   <View style={localStyles.purchaseItemPriceRow}>
                     {price > 0 && (
@@ -2302,9 +2310,9 @@ const OrderDetails = ({ route, navigation }) => {
             >
             <View style={localStyles.detailsModalHeader}>
               <View>
-                <Text style={localStyles.detailsModalEyebrow}>Resumo do pedido</Text>
+                <Text style={localStyles.detailsModalEyebrow}>{global.t?.t('orders', 'title', 'orderSummary')}</Text>
                 <Text style={localStyles.detailsModalTitle}>
-                  Pedido #{item?.id || orderParam?.id || '--'}
+                  {global.t?.t('orders', 'title', 'order')} #{item?.id || orderParam?.id || '--'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -2330,7 +2338,7 @@ const OrderDetails = ({ route, navigation }) => {
                   <>
                     <Icon name="payments" size={18} color="#F8FAFC" />
                     <Text style={localStyles.detailsMarkPaidButtonText}>
-                      Marcar como pago
+                      {global.t?.t('orders', 'button', 'markAsPaid')}
                     </Text>
                   </>
                 )}
@@ -2347,39 +2355,39 @@ const OrderDetails = ({ route, navigation }) => {
             >
               <View style={localStyles.detailsGrid}>
                 <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>Aplicativo</Text>
+                  <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'application')}</Text>
                   <Text style={localStyles.detailsCardValue}>{item?.app || '-'}</Text>
                 </View>
                 <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>Status local</Text>
+                  <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'localStatus')}</Text>
                   <Text style={localStyles.detailsCardValue}>
                     {item?.status?.status || item?.status?.realStatus || '-'}
                   </Text>
                 </View>
                 <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>Pagamento local</Text>
+                  <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'localPayment')}</Text>
                   <Text style={localStyles.detailsCardValue}>
-                    {isOrderPaidForCompletion ? 'Pago' : 'Pendente'}
+                    {isOrderPaidForCompletion ? global.t?.t('orders', 'label', 'paid') : global.t?.t('orders', 'label', 'pending')}
                   </Text>
                 </View>
               </View>
 
               <View style={localStyles.detailsSection}>
-                <Text style={localStyles.detailsSectionTitle}>Dados do pedido</Text>
+                <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'orderData')}</Text>
                 <Text style={localStyles.detailsInfoText}>
-                  Criado em: {formatOrderDateTime(resolvedOrderDateValue)}
+                  {global.t?.t('orders', 'label', 'createdAt')}: {formatOrderDateTime(resolvedOrderDateValue)}
                 </Text>
                 <Text style={localStyles.detailsInfoText}>
-                  Alterado em: {formatOrderDateTime(item?.alterDate || resolvedOrderDateValue)}
+                  {global.t?.t('orders', 'label', 'updatedAt')}: {formatOrderDateTime(item?.alterDate || resolvedOrderDateValue)}
                 </Text>
                 <Text style={localStyles.detailsInfoText}>
-                  Total local: {Formatter.formatMoney(localOrderTotal || 0)}
+                  {global.t?.t('orders', 'label', 'localTotal')}: {Formatter.formatMoney(localOrderTotal || 0)}
                 </Text>
                 <Text style={localStyles.detailsInfoText}>
-                  Pago local: {Formatter.formatMoney(localPaidAmount || 0)}
+                  {global.t?.t('orders', 'label', 'localPaid')}: {Formatter.formatMoney(localPaidAmount || 0)}
                 </Text>
                 <Text style={localStyles.detailsInfoText}>
-                  Pendente local: {Formatter.formatMoney(localPendingAmount || 0)}
+                  {global.t?.t('orders', 'label', 'localPending')}: {Formatter.formatMoney(localPendingAmount || 0)}
                 </Text>
               </View>
 
@@ -2387,7 +2395,7 @@ const OrderDetails = ({ route, navigation }) => {
                 <View style={localStyles.detailsLoadingState}>
                   <ActivityIndicator size="small" color="#38BDF8" />
                   <Text style={localStyles.detailsLoadingText}>
-                    Carregando dados da integracao {isIfoodOrder ? 'iFood' : '99Food'}...
+                    {global.t?.t('orders', 'message', 'loadingIntegrationData')} {isIfoodOrder ? 'iFood' : '99Food'}...
                   </Text>
                 </View>
               ) : null}
@@ -2396,57 +2404,57 @@ const OrderDetails = ({ route, navigation }) => {
                 <>
                   <View style={localStyles.detailsSection}>
                     <Text style={localStyles.detailsSectionTitle}>
-                      {isIfoodOrder ? 'Operacao iFood' : 'Operacao 99Food'}
+                      {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodOperation') : global.t?.t('orders', 'title', 'food99Operation')}
                     </Text>
                     {!!food99Identifiers?.order_index && (
                       <Text style={localStyles.detailsInfoText}>
-                        {isIfoodOrder ? 'Numero iFood' : 'Numero 99Food'}: #{food99Identifiers.order_index}
+                        {isIfoodOrder ? global.t?.t('orders', 'label', 'ifoodNumber') : global.t?.t('orders', 'label', 'food99Number')}: #{food99Identifiers.order_index}
                       </Text>
                     )}
                     <Text style={localStyles.detailsInfoText}>
-                      Entrega: {food99Delivery?.delivery_label || '-'}
+                      {global.t?.t('orders', 'label', 'delivery')}: {food99Delivery?.delivery_label || '-'}
                     </Text>
                     <Text style={localStyles.detailsInfoText}>
-                      Estado remoto: {remoteOrderStateLabel || '-'}
+                      {global.t?.t('orders', 'label', 'remoteState')}: {remoteOrderStateLabel || '-'}
                     </Text>
                     <Text style={localStyles.detailsInfoText}>
-                      Status remoto: {food99Delivery?.remote_delivery_status || '-'}
+                      {global.t?.t('orders', 'label', 'remoteStatus')}: {food99Delivery?.remote_delivery_status || '-'}
                     </Text>
                     {!!formattedFood99Eta && (
                       <Text style={localStyles.detailsInfoText}>
-                        ETA previsto: {formattedFood99Eta}
+                        {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
                       </Text>
                     )}
                     {!!food99SelectedPaymentLabel && (
                       <Text style={localStyles.detailsInfoTextStrong}>
-                        Forma de pagamento selecionada: {food99SelectedPaymentLabel}
+                        {global.t?.t('orders', 'label', 'selectedPaymentMethod')}: {food99SelectedPaymentLabel}
                       </Text>
                     )}
                     {!!food99PaymentMethodValue && (
                       <Text style={localStyles.detailsInfoText}>
-                        Metodo de pagamento (pay_method): {food99PaymentMethodValue}
+                        {global.t?.t('orders', 'label', 'paymentMethod')}: {food99PaymentMethodValue}
                       </Text>
                     )}
                     {!!food99PaymentChannelValue && (
                       <Text style={localStyles.detailsInfoText}>
-                        Canal de pagamento (pay_channel): {food99PaymentChannelValue}
+                        {global.t?.t('orders', 'label', 'paymentChannel')}: {food99PaymentChannelValue}
                       </Text>
                     )}
                     {hasFood99CancellationInfo && (
                       <>
                         {!!food99CancellationSourceLabel && (
                           <Text style={localStyles.detailsInfoText}>
-                            Origem do cancelamento: {food99CancellationSourceLabel}
+                            {global.t?.t('orders', 'label', 'cancellationOrigin')}: {food99CancellationSourceLabel}
                           </Text>
                         )}
                         {!!food99Integration?.cancel_code && (
                           <Text style={localStyles.detailsInfoText}>
-                            Codigo de cancelamento: {food99Integration.cancel_code}
+                            {global.t?.t('orders', 'label', 'cancellationCode')}: {food99Integration.cancel_code}
                           </Text>
                         )}
                         {!!food99Integration?.cancel_reason && (
                           <Text style={localStyles.detailsInfoText}>
-                            Motivo do cancelamento: {food99Integration.cancel_reason}
+                            {global.t?.t('orders', 'label', 'cancellationReason')}: {food99Integration.cancel_reason}
                           </Text>
                         )}
                       </>
@@ -2456,17 +2464,17 @@ const OrderDetails = ({ route, navigation }) => {
                   {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>
-                        {isIfoodOrder ? 'Entregador iFood' : 'Entregador 99'}
+                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodCourier') : global.t?.t('orders', 'title', 'food99Courier')}
                       </Text>
                       {!!food99RiderName && (
-                        <Text style={localStyles.detailsInfoText}>Nome: {food99RiderName}</Text>
+                        <Text style={localStyles.detailsInfoText}>{global.t?.t('orders', 'label', 'name')}: {food99RiderName}</Text>
                       )}
                       {!!food99RiderPhone && (
-                        <Text style={localStyles.detailsInfoText}>Telefone: {food99RiderPhone}</Text>
+                        <Text style={localStyles.detailsInfoText}>{global.t?.t('orders', 'label', 'phone')}: {food99RiderPhone}</Text>
                       )}
                       {!!food99RiderToStoreEta && (
                         <Text style={localStyles.detailsInfoText}>
-                          ETA ate a loja: {food99RiderToStoreEta}
+                          {global.t?.t('orders', 'label', 'etaToStore')}: {food99RiderToStoreEta}
                         </Text>
                       )}
                     </View>
@@ -2475,70 +2483,70 @@ const OrderDetails = ({ route, navigation }) => {
                   {food99Financial && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>
-                        {isIfoodOrder ? 'Financeiro iFood' : 'Financeiro 99Food'}
+                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodFinance') : global.t?.t('orders', 'title', 'food99Finance')}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Itens: {Formatter.formatMoney(food99Financial.items_total || 0)}
+                        {global.t?.t('orders', 'label', 'items')}: {Formatter.formatMoney(food99Financial.items_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Entrega: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
+                        {global.t?.t('orders', 'label', 'delivery')}: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Taxa de servico: {Formatter.formatMoney(food99Financial.service_fee || 0)}
+                        {global.t?.t('orders', 'label', 'serviceFee')}: {Formatter.formatMoney(food99Financial.service_fee || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Taxa de pedido minimo: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
+                        {global.t?.t('orders', 'label', 'minimumOrderFee')}: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Adicional/reforco: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
+                        {global.t?.t('orders', 'label', 'topUpFee')}: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
+                        {global.t?.t('orders', 'label', 'totalDiscounts')}: {Formatter.formatMoney(food99Financial.discount_total || 0)}
                       </Text>
                       {isIfoodOrder && food99Financial.ifood_subsidy > 0 && (
                         <Text style={localStyles.detailsInfoText}>
-                          Subsidio iFood: {Formatter.formatMoney(food99Financial.ifood_subsidy)}
+                          {global.t?.t('orders', 'label', 'ifoodSubsidy')}: {Formatter.formatMoney(food99Financial.ifood_subsidy)}
                         </Text>
                       )}
                       {isIfoodOrder && food99Financial.merchant_subsidy > 0 && (
                         <Text style={localStyles.detailsInfoText}>
-                          Subsidio loja: {Formatter.formatMoney(food99Financial.merchant_subsidy)}
+                          {global.t?.t('orders', 'label', 'storeSubsidy')}: {Formatter.formatMoney(food99Financial.merchant_subsidy)}
                         </Text>
                       )}
                       {isIfoodOrder && !!food99Financial.payment_brand && (
                         <Text style={localStyles.detailsInfoText}>
-                          Bandeira: {food99Financial.payment_brand}
+                          {global.t?.t('orders', 'label', 'brand')}: {food99Financial.payment_brand}
                         </Text>
                       )}
                       {isIfoodOrder && food99Financial.change_for > 0 && (
                         <Text style={localStyles.detailsInfoTextStrong}>
-                          Troco para: {Formatter.formatMoney(food99Financial.change_for)}
+                          {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99Financial.change_for)}
                         </Text>
                       )}
                       <Text style={localStyles.detailsInfoText}>
-                        Desconto nos itens: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
+                        {global.t?.t('orders', 'label', 'itemDiscount')}: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Desconto na entrega: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
+                        {global.t?.t('orders', 'label', 'deliveryDiscount')}: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Cupom/desconto informado: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
+                        {global.t?.t('orders', 'label', 'couponDiscount')}: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Cupom/desconto subsidiado pela loja: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
+                        {global.t?.t('orders', 'label', 'storeCouponDiscount')}: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Cupom/desconto subsidiado pela 99: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
+                        {global.t?.t('orders', 'label', 'platformCouponDiscount')}: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoText}>
-                        Taxa original de entrega: {Formatter.formatMoney(food99Financial.store_charged_delivery_price || 0)}
+                        {global.t?.t('orders', 'label', 'originalDeliveryFee')}: {Formatter.formatMoney(food99Financial.store_charged_delivery_price || 0)}
                       </Text>
                       <Text style={localStyles.detailsInfoTextStrong}>
-                        Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
+                        {global.t?.t('orders', 'label', 'customerTotal')}: {Formatter.formatMoney(food99Financial.customer_total || 0)}
                       </Text>
                       {shouldShowCollectOnDelivery && (
                         <Text style={localStyles.detailsInfoTextStrong}>
-                          Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                          {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                         </Text>
                       )}
                     </View>
@@ -2547,20 +2555,20 @@ const OrderDetails = ({ route, navigation }) => {
                   {food99Payment && (
                     <View style={localStyles.detailsGrid}>
                       <View style={localStyles.detailsCard}>
-                        <Text style={localStyles.detailsCardLabel}>Pago</Text>
+                        <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
                         <Text style={localStyles.detailsCardValue}>
                           {Formatter.formatMoney(food99Payment.amount_paid || 0)}
                         </Text>
                       </View>
                       <View style={localStyles.detailsCard}>
-                        <Text style={localStyles.detailsCardLabel}>Pendente</Text>
+                        <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
                         <Text style={localStyles.detailsCardValue}>
                           {Formatter.formatMoney(food99Payment.amount_pending || 0)}
                         </Text>
                       </View>
                       {shouldShowCollectOnDelivery && (
                         <View style={localStyles.detailsCard}>
-                          <Text style={localStyles.detailsCardLabel}>Cobrar cliente</Text>
+                          <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'collectCustomer')}</Text>
                           <Text style={localStyles.detailsCardValue}>
                             {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                           </Text>
@@ -2571,7 +2579,7 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {food99Payment && shouldShowDeliveryPaymentSection && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Pagamento na entrega</Text>
+                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'paymentOnDelivery')}</Text>
                       {shouldShowCollectOnDelivery && (
                         <Text style={localStyles.detailsInfoTextStrong}>
                           {collectOnDeliveryLabel}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
@@ -2579,19 +2587,19 @@ const OrderDetails = ({ route, navigation }) => {
                       )}
                       {food99ChangeFor > 0 ? (
                         <Text style={localStyles.detailsInfoText}>
-                          Troco para: {Formatter.formatMoney(food99ChangeFor)}
+                          {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
                         </Text>
                       ) : isCashPaymentSelection ? (
-                        <Text style={localStyles.detailsInfoText}>Troco: nao solicitado</Text>
+                        <Text style={localStyles.detailsInfoText}>{global.t?.t('orders', 'message', 'changeNotRequested')}</Text>
                       ) : null}
                       {food99NeedsChange ? (
                         <Text style={localStyles.detailsInfoText}>
-                          Troco a devolver: {Formatter.formatMoney(food99ChangeAmount)}
+                          {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
                         </Text>
                       ) : null}
                       {food99ShopPaidMoney > 0 ? (
                         <Text style={localStyles.detailsInfoText}>
-                          Repasse ao lojista pelo entregador (shop_paid_money): {Formatter.formatMoney(food99ShopPaidMoney)}
+                          {global.t?.t('orders', 'label', 'courierTransferToMerchant')}: {Formatter.formatMoney(food99ShopPaidMoney)}
                         </Text>
                       ) : null}
                     </View>
@@ -2599,18 +2607,18 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {isScheduledOrder && (
                     <View style={localStyles.scheduledDeliveryBanner}>
-                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ ENTREGA AGENDADA</Text>
+                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ {global.t?.t('orders', 'title', 'scheduledDelivery')}</Text>
                       {!!scheduledWindowLabel && (
-                        <Text style={localStyles.scheduledDeliveryDate}>Janela: {scheduledWindowLabel}</Text>
+                        <Text style={localStyles.scheduledDeliveryDate}>{global.t?.t('orders', 'label', 'window')}: {scheduledWindowLabel}</Text>
                       )}
                       {!!scheduledDeliveryDateTimeRaw && (
                         <Text style={localStyles.scheduledDeliveryDate}>
-                          Entrega: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
+                          {global.t?.t('orders', 'label', 'delivery')}: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
                         </Text>
                       )}
                       {!!scheduledPreparationStartRaw && (
                         <Text style={localStyles.scheduledDeliveryDate}>
-                          Iniciar preparo: {formatScheduledDate(scheduledPreparationStartRaw)}
+                          {global.t?.t('orders', 'label', 'startPreparation')}: {formatScheduledDate(scheduledPreparationStartRaw)}
                         </Text>
                       )}
                     </View>
@@ -2618,7 +2626,7 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {(food99Customer?.name || food99Customer?.phone || food99Customer?.document_number) && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Cliente</Text>
+                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
                       {!!food99Customer?.name && (
                         <Text style={localStyles.detailsInfoText}>{food99Customer.name}</Text>
                       )}
@@ -2639,38 +2647,38 @@ const OrderDetails = ({ route, navigation }) => {
                     food99Address?.reference ||
                     food99Address?.complement) && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Endereco do cliente</Text>
+                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'customerAddress')}</Text>
                       {!!food99AddressPrimaryLine && (
                         <Text style={localStyles.detailsInfoText}>{food99AddressPrimaryLine}</Text>
                       )}
                       {!!food99AddressStreetLine && (
                         <Text style={localStyles.detailsInfoText}>
-                          Rua/numero: {food99AddressStreetLine}
+                          {global.t?.t('orders', 'label', 'streetNumber')}: {food99AddressStreetLine}
                         </Text>
                       )}
                       {!!food99Address?.district && (
                         <Text style={localStyles.detailsInfoText}>
-                          Bairro: {food99Address.district}
+                          {global.t?.t('orders', 'label', 'district')}: {food99Address.district}
                         </Text>
                       )}
                       {!!food99AddressCityStateLine && (
                         <Text style={localStyles.detailsInfoText}>
-                          Cidade/UF: {food99AddressCityStateLine}
+                          {global.t?.t('orders', 'label', 'cityState')}: {food99AddressCityStateLine}
                         </Text>
                       )}
                       {!!food99Address?.postal_code && (
                         <Text style={localStyles.detailsInfoText}>
-                          CEP: {food99Address.postal_code}
+                          {global.t?.t('orders', 'label', 'zipCode')}: {food99Address.postal_code}
                         </Text>
                       )}
                       {!!food99Address?.reference && (
                         <Text style={localStyles.detailsInfoText}>
-                          Referencia: {food99Address.reference}
+                          {global.t?.t('orders', 'label', 'reference')}: {food99Address.reference}
                         </Text>
                       )}
                       {!!food99Address?.complement && (
                         <Text style={localStyles.detailsInfoText}>
-                          Complemento: {food99Address.complement}
+                          {global.t?.t('orders', 'label', 'complement')}: {food99Address.complement}
                         </Text>
                       )}
                     </View>
@@ -2681,25 +2689,25 @@ const OrderDetails = ({ route, navigation }) => {
                     food99Delivery?.locator ||
                     food99Delivery?.virtual_phone_number) && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Codigos e suporte</Text>
+                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'codesAndSupport')}</Text>
                       {!!food99PickupCode && (
                         <Text style={localStyles.detailsInfoText}>
-                          Pickup code: {food99PickupCode}
+                          {global.t?.t('orders', 'label', 'pickupCode')}: {food99PickupCode}
                         </Text>
                       )}
                       {!!food99HandoverCode && (
                         <Text style={localStyles.detailsInfoText}>
-                          Handover code: {food99HandoverCode}
+                          {global.t?.t('orders', 'label', 'handoverCode')}: {food99HandoverCode}
                         </Text>
                       )}
                       {!!food99Delivery?.locator && (
                         <Text style={localStyles.detailsInfoText}>
-                          Localizador: {food99Delivery.locator}
+                          {global.t?.t('orders', 'label', 'locator')}: {food99Delivery.locator}
                         </Text>
                       )}
                       {!!food99Delivery?.virtual_phone_number && (
                         <Text style={localStyles.detailsInfoText}>
-                          Telefone virtual: {food99Delivery.virtual_phone_number}
+                          {global.t?.t('orders', 'label', 'virtualPhone')}: {food99Delivery.virtual_phone_number}
                         </Text>
                       )}
                     </View>
@@ -2707,12 +2715,12 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {showOrderObservationCard && (
                     <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>Observacoes</Text>
+                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'observations')}</Text>
                       <Text style={localStyles.detailsInfoText}>{orderObservationText}</Text>
                       {food99Notes?.need_cutlery !== null &&
                       food99Notes?.need_cutlery !== undefined ? (
                         <Text style={localStyles.detailsInfoText}>
-                          Precisa de talheres: {food99Notes.need_cutlery ? 'Sim' : 'Nao'}
+                          {global.t?.t('orders', 'label', 'needCutlery')}: {food99Notes.need_cutlery ? global.t?.t('orders', 'label', 'yes') : global.t?.t('orders', 'label', 'no')}
                         </Text>
                       ) : null}
                     </View>
@@ -2747,17 +2755,17 @@ const OrderDetails = ({ route, navigation }) => {
           />
           <View style={localStyles.modalSheetWrap}>
             <View style={localStyles.cancelReasonModal}>
-            <Text style={localStyles.cancelReasonBadge}>Cancelamento {cancelReasonChannelLabel}</Text>
-            <Text style={localStyles.cancelReasonTitle}>Escolha o motivo oficial</Text>
+            <Text style={localStyles.cancelReasonBadge}>{global.t?.t('orders', 'title', 'cancellation')} {cancelReasonChannelLabel}</Text>
+            <Text style={localStyles.cancelReasonTitle}>{global.t?.t('orders', 'title', 'chooseOfficialReason')}</Text>
             <Text style={localStyles.cancelReasonDescription}>
-              Selecione um motivo oficial para cancelar este pedido no {cancelReasonChannelLabel}.
+              {global.t?.t('orders', 'message', 'selectOfficialReasonFor')} {cancelReasonChannelLabel}.
             </Text>
 
             {food99CancelReasonsLoading ? (
               <View style={localStyles.cancelReasonLoadingState}>
                 <ActivityIndicator size="small" color="#38BDF8" />
                 <Text style={localStyles.cancelReasonLoadingText}>
-                  Carregando motivos oficiais...
+                  {global.t?.t('orders', 'message', 'loadingOfficialReasons')}
                 </Text>
               </View>
             ) : (
@@ -2787,12 +2795,12 @@ const OrderDetails = ({ route, navigation }) => {
                         </Text>
                         {reason?.requires_description ? (
                           <Text style={localStyles.cancelReasonOptionBadge}>
-                            Requer descricao
+                            {global.t?.t('orders', 'label', 'requiresDescription')}
                           </Text>
                         ) : null}
                       </View>
                       <Text style={localStyles.cancelReasonOptionText}>
-                        {reason?.description || 'Motivo sem descricao'}
+                        {reason?.description || global.t?.t('orders', 'message', 'reasonWithoutDescription')}
                       </Text>
                     </TouchableOpacity>
                   )
@@ -2802,14 +2810,14 @@ const OrderDetails = ({ route, navigation }) => {
 
             {requiresFood99CancelReasonText && (
               <View style={localStyles.cancelReasonInputBlock}>
-                <Text style={localStyles.cancelReasonInputLabel}>Descricao do motivo</Text>
+                <Text style={localStyles.cancelReasonInputLabel}>{global.t?.t('orders', 'label', 'reasonDescription')}</Text>
                 <TextInput
                   value={food99CancelReasonText}
                   onChangeText={setFood99CancelReasonText}
                   editable={!food99ActionLoading}
                   multiline
                   numberOfLines={3}
-                  placeholder="Explique brevemente o motivo do cancelamento."
+                  placeholder={global.t?.t('orders', 'placeholder', 'explainCancellationReason')}
                   placeholderTextColor={ppcColors.textSecondary}
                   style={localStyles.cancelReasonInput}
                 />
@@ -2825,7 +2833,7 @@ const OrderDetails = ({ route, navigation }) => {
                   localStyles.deliveryCodeButtonSecondary,
                 ]}
               >
-                <Text style={localStyles.deliveryCodeButtonSecondaryText}>Fechar</Text>
+                <Text style={localStyles.deliveryCodeButtonSecondaryText}>{global.t?.t('orders', 'button', 'close')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -2848,7 +2856,7 @@ const OrderDetails = ({ route, navigation }) => {
                   <ActivityIndicator size="small" color="#F8FAFC" />
                 ) : (
                   <Text style={localStyles.deliveryCodeButtonPrimaryText}>
-                    Cancelar pedido
+                    {global.t?.t('orders', 'button', 'cancelOrder')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -2890,8 +2898,10 @@ const OrderDetails = ({ route, navigation }) => {
               <View style={localStyles.deliveryCodeHeader}>
                 <Text style={localStyles.deliveryCodeStepBadge}>
                   {isIfoodHandoverFlow
-                    ? 'Fluxo iFood'
-                    : (deliveryFlowStep === 'locator' ? 'Passo 1 de 2' : 'Passo 2 de 2')}
+                    ? global.t?.t('orders', 'title', 'ifoodFlow')
+                    : (deliveryFlowStep === 'locator'
+                      ? global.t?.t('orders', 'title', 'stepOneOfTwo')
+                      : global.t?.t('orders', 'title', 'stepTwoOfTwo'))}
                 </Text>
                 <TouchableOpacity
                   onPress={closeFood99DeliveryFlow}
@@ -2903,7 +2913,7 @@ const OrderDetails = ({ route, navigation }) => {
               </View>
 
               <Text style={localStyles.deliveryCodeModalTitle}>
-                {isIfoodHandoverFlow ? 'Entrega propria iFood' : 'Concluir entrega 99Food'}
+                {isIfoodHandoverFlow ? global.t?.t('orders', 'title', 'ifoodOwnDelivery') : global.t?.t('orders', 'title', 'complete99FoodDelivery')}
               </Text>
 
               <ScrollView
@@ -2913,27 +2923,27 @@ const OrderDetails = ({ route, navigation }) => {
               >
                 <Text style={localStyles.deliveryCodeDescription}>
                   {isIfoodHandoverFlow
-                    ? 'Use o localizador e o link oficial do iFood para compartilhar com o entregador e acompanhar a confirmacao da entrega.'
+                    ? global.t?.t('orders', 'message', 'useLocatorAndOfficialIfoodLink')
                     : (deliveryFlowStep === 'locator'
-                    ? 'Confirme o localizador oficial da 99Food e envie o link de confirmacao ao entregador quando necessario.'
-                    : 'Depois de encontrar o cliente, informe o codigo de confirmacao de 4 digitos para concluir a entrega.')}
+                    ? global.t?.t('orders', 'message', 'confirmOfficial99FoodLocatorAndShareLink')
+                    : global.t?.t('orders', 'message', 'enterCustomerConfirmationCodeToFinishDelivery'))}
                 </Text>
 
                 <View style={localStyles.deliveryLocatorHero}>
                   <Text style={localStyles.deliveryCodeMetaLabel}>
-                    {isIfoodHandoverFlow ? 'Localizador iFood' : 'Localizador 99'}
+                    {isIfoodHandoverFlow ? global.t?.t('orders', 'label', 'ifoodLocator') : global.t?.t('orders', 'label', 'food99Locator')}
                   </Text>
                   <Text style={localStyles.deliveryLocatorHeroValue}>
-                    {activeFood99Locator || 'Nao informado'}
+                    {activeFood99Locator || global.t?.t('orders', 'label', 'notInformed')}
                   </Text>
                   <Text style={localStyles.deliveryLocatorHeroHelper}>
                     {isIfoodHandoverFlow
                       ? (food99Locator
-                        ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial do iFood.'
-                        : 'Sem localizador no payload. Use o ID de suporte e o link oficial do iFood.')
+                        ? global.t?.t('orders', 'message', 'shareThisLocatorWithCourierIfood')
+                        : global.t?.t('orders', 'message', 'noLocatorInPayloadUseSupportIdIfood'))
                       : (food99Locator
-                        ? 'Passe este localizador ao entregador para confirmar a entrega no fluxo oficial da 99.'
-                        : 'Se a 99 nao enviar o localizador no payload, use o numero do recibo e informe manualmente abaixo.')}
+                        ? global.t?.t('orders', 'message', 'shareThisLocatorWithCourier99')
+                        : global.t?.t('orders', 'message', 'if99DoesNotSendLocatorUseReceiptNumber'))}
                   </Text>
 
                   {!!activeFood99Locator && (
@@ -2943,7 +2953,7 @@ const OrderDetails = ({ route, navigation }) => {
                       style={localStyles.deliveryLinkPrimaryButton}
                     >
                       <Text style={localStyles.deliveryLinkPrimaryButtonText}>
-                        Copiar localizador
+                        {global.t?.t('orders', 'button', 'copyLocator')}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -2951,7 +2961,7 @@ const OrderDetails = ({ route, navigation }) => {
 
                 {!!food99HandoverLink && (
                   <View style={localStyles.deliveryLinkCard}>
-                    <Text style={localStyles.deliveryCodeMetaLabel}>Link para confirmar</Text>
+                    <Text style={localStyles.deliveryCodeMetaLabel}>{global.t?.t('orders', 'label', 'confirmationLink')}</Text>
                     <Text style={localStyles.deliveryLinkUrl} selectable>
                       {food99HandoverLink}
                     </Text>
@@ -2961,7 +2971,7 @@ const OrderDetails = ({ route, navigation }) => {
                         disabled={!!food99ActionLoading}
                         style={localStyles.deliveryLinkActionButton}
                       >
-                        <Text style={localStyles.deliveryLinkActionText}>Abrir link</Text>
+                        <Text style={localStyles.deliveryLinkActionText}>{global.t?.t('orders', 'button', 'openLink')}</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -2969,7 +2979,7 @@ const OrderDetails = ({ route, navigation }) => {
                         disabled={!!food99ActionLoading}
                         style={localStyles.deliveryLinkActionButton}
                       >
-                        <Text style={localStyles.deliveryLinkActionText}>Copiar link</Text>
+                        <Text style={localStyles.deliveryLinkActionText}>{global.t?.t('orders', 'button', 'copyLink')}</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -2978,7 +2988,7 @@ const OrderDetails = ({ route, navigation }) => {
                         style={localStyles.deliveryLinkActionButton}
                       >
                         <Text style={localStyles.deliveryLinkActionText}>
-                          Enviar via WhatsApp
+                          {global.t?.t('orders', 'button', 'sendViaWhatsApp')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -2991,14 +3001,14 @@ const OrderDetails = ({ route, navigation }) => {
                       <View style={localStyles.deliveryCodeMetaRow}>
                         {!!food99PickupCode && (
                           <View style={localStyles.deliveryCodeMetaCardCompact}>
-                            <Text style={localStyles.deliveryCodeMetaLabel}>Pickup code</Text>
+                            <Text style={localStyles.deliveryCodeMetaLabel}>{global.t?.t('orders', 'label', 'pickupCode')}</Text>
                             <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99PickupCode}</Text>
                           </View>
                         )}
 
                         {!!food99HandoverCode && food99HandoverCode !== food99PickupCode && (
                           <View style={localStyles.deliveryCodeMetaCardCompact}>
-                            <Text style={localStyles.deliveryCodeMetaLabel}>Handover code</Text>
+                            <Text style={localStyles.deliveryCodeMetaLabel}>{global.t?.t('orders', 'label', 'handoverCode')}</Text>
                             <Text style={localStyles.deliveryCodeMetaValueCompact}>{food99HandoverCode}</Text>
                           </View>
                         )}
@@ -3007,8 +3017,8 @@ const OrderDetails = ({ route, navigation }) => {
 
                     <Text style={localStyles.deliveryCodeTitle}>
                       {deliveryFlowStep === 'locator'
-                        ? 'Validar localizador'
-                        : 'Confirmar codigo do cliente'}
+                        ? global.t?.t('orders', 'title', 'validateLocator')
+                        : global.t?.t('orders', 'title', 'confirmCustomerCode')}
                     </Text>
 
                     <TextInput
@@ -3043,8 +3053,8 @@ const OrderDetails = ({ route, navigation }) => {
 
                     <Text style={localStyles.deliveryCodeHelper}>
                       {deliveryFlowStep === 'locator'
-                        ? `O localizador oficial da 99Food tem ${food99LocatorLength} digitos.`
-                        : `O codigo do cliente tem ${food99DeliveryCodeLength} digitos.`}
+                        ? `${global.t?.t('orders', 'message', 'official99FoodLocatorHas')} ${food99LocatorLength} ${global.t?.t('orders', 'label', 'digits')}.`
+                        : `${global.t?.t('orders', 'message', 'customerCodeHas')} ${food99DeliveryCodeLength} ${global.t?.t('orders', 'label', 'digits')}.`}
                     </Text>
                   </>
                 )}
@@ -3068,7 +3078,7 @@ const OrderDetails = ({ route, navigation }) => {
                     ]}
                   >
                     <Text style={localStyles.deliveryCodeButtonSecondaryText}>
-                      {deliveryFlowStep === 'delivery_code' ? 'Voltar' : 'Cancelar'}
+                      {deliveryFlowStep === 'delivery_code' ? global.t?.t('orders', 'button', 'back') : global.t?.t('orders', 'button', 'cancel')}
                     </Text>
                   </TouchableOpacity>
 
@@ -3088,8 +3098,8 @@ const OrderDetails = ({ route, navigation }) => {
                     ) : (
                       <Text style={localStyles.deliveryCodeButtonPrimaryText}>
                         {deliveryFlowStep === 'locator'
-                          ? 'Verificar e continuar'
-                          : 'Concluir entrega'}
+                          ? global.t?.t('orders', 'button', 'verifyAndContinue')
+                          : global.t?.t('orders', 'button', 'completeDelivery')}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -3111,14 +3121,14 @@ const OrderDetails = ({ route, navigation }) => {
                 <View style={localStyles.food99InfoCard}>
                   <View style={localStyles.food99InfoHeader}>
                     <Text style={localStyles.food99InfoTitle}>
-                      {isIfoodOrder ? 'Operacao iFood' : 'Operacao 99Food'}
+                      {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodOperation') : global.t?.t('orders', 'title', 'food99Operation')}
                     </Text>
                     <View style={localStyles.food99InfoHeaderRight}>
                       {food99StateLoading ? (
                         <ActivityIndicator size="small" color="#38BDF8" />
                       ) : (
                         <Text style={localStyles.food99InfoBadge}>
-                          {food99Delivery?.delivery_label || 'Entrega indefinida'}
+                          {food99Delivery?.delivery_label || global.t?.t('orders', 'label', 'undefinedDelivery')}
                         </Text>
                       )}
                       <TouchableOpacity
@@ -3139,53 +3149,53 @@ const OrderDetails = ({ route, navigation }) => {
                   </View>
 
                   <Text style={localStyles.food99InfoText}>
-                    Status remoto: {food99Delivery?.remote_delivery_status || food99Integration?.remote_order_state || 'Sem retorno'}
+                    {global.t?.t('orders', 'label', 'remoteStatus')}: {food99Delivery?.remote_delivery_status || food99Integration?.remote_order_state || global.t?.t('orders', 'label', 'noReturn')}
                   </Text>
 
                   {!!remoteOrderStateLabel && (
                     <Text style={localStyles.food99InfoText}>
-                      Estado remoto: {remoteOrderStateLabel}
+                      {global.t?.t('orders', 'label', 'remoteState')}: {remoteOrderStateLabel}
                     </Text>
                   )}
 
                   {isFood99CourierToStore ? (
                     <Text style={localStyles.food99InfoHint}>
-                      Entregador designado pela 99 e a caminho da loja. O proximo avancao depende dos webhooks logisticos da plataforma.
+                      {global.t?.t('orders', 'message', 'courierAssignedBy99AndComingToStore')}
                     </Text>
                   ) : null}
 
                   {isFood99Delivering && !isFood99CourierToStore ? (
                     <Text style={localStyles.food99InfoHint}>
                       {requiresFood99DeliveryLocator
-                        ? `Pedido em entrega. Use Entregue para validar o localizador e concluir no app ${isIfoodOrder ? 'iFood' : '99Food'}.`
-                        : `Pedido em entrega. Conclua em Entregue quando a loja finalizar no app ${isIfoodOrder ? 'iFood' : '99Food'}.`}
+                        ? `${global.t?.t('orders', 'message', 'orderInDeliveryUseDeliveredToValidate')} ${isIfoodOrder ? 'iFood' : '99Food'}.`
+                        : `${global.t?.t('orders', 'message', 'orderInDeliveryCompleteWhenStoreFinishes')} ${isIfoodOrder ? 'iFood' : '99Food'}.`}
                     </Text>
                   ) : null}
 
                   {food99Delivery?.is_store_delivery && !food99Delivery?.locator ? (
                     <Text style={localStyles.food99InfoWarning}>
                       {isIfoodOrder
-                        ? 'O iFood nao enviou o localizador neste payload. Use o numero do recibo manualmente e valide com o link oficial.'
-                        : 'A 99 nao enviou o localizador neste payload. Pelo roteiro oficial, isso depende da lista de envio do localizador; use o numero do recibo manualmente e solicite habilitacao ao time da 99.'}
+                        ? global.t?.t('orders', 'message', 'ifoodDidNotSendLocatorInPayload')
+                        : global.t?.t('orders', 'message', 'food99DidNotSendLocatorInPayload')}
                     </Text>
                   ) : null}
 
                   {!!remoteStateAgeLabel && (
                     <Text style={localStyles.food99InfoText}>
-                      Atualizacao remota: {remoteStateAgeLabel}
+                      {global.t?.t('orders', 'label', 'remoteUpdate')}: {remoteStateAgeLabel}
                     </Text>
                   )}
 
                   {!!formattedFood99Eta && (
                     <Text style={localStyles.food99InfoText}>
-                      ETA previsto: {formattedFood99Eta}
+                      {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
                     </Text>
                   )}
 
                   {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>
-                        {isIfoodOrder ? 'Entregador iFood' : 'Entregador 99'}
+                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodCourier') : global.t?.t('orders', 'title', 'food99Courier')}
                       </Text>
                       {!!food99RiderName && (
                         <Text style={localStyles.food99InfoText}>{food99RiderName}</Text>
@@ -3201,87 +3211,87 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {!!food99Identifiers?.order_index && (
                     <Text style={localStyles.food99InfoText}>
-                      {isIfoodOrder ? 'Numero iFood' : 'Numero 99Food'}: #{food99Identifiers.order_index}
+                      {isIfoodOrder ? global.t?.t('orders', 'label', 'ifoodNumber') : global.t?.t('orders', 'label', 'food99Number')}: #{food99Identifiers.order_index}
                     </Text>
                   )}
 
                   {!!food99HandoverCode && (
                     <Text style={localStyles.food99InfoText}>
-                      Handover code: {food99HandoverCode}
+                      {global.t?.t('orders', 'label', 'handoverCode')}: {food99HandoverCode}
                     </Text>
                   )}
 
                   {!!food99PickupCode && (
                     <Text style={localStyles.food99InfoText}>
-                      Pickup code: {food99PickupCode}
+                      {global.t?.t('orders', 'label', 'pickupCode')}: {food99PickupCode}
                     </Text>
                   )}
 
                   {!!food99Delivery?.locator && (
                     <Text style={localStyles.food99InfoText}>
-                      Localizador: {food99Delivery.locator}
+                      {global.t?.t('orders', 'label', 'locator')}: {food99Delivery.locator}
                     </Text>
                   )}
 
                   {!!food99Delivery?.virtual_phone_number && (
                     <Text style={localStyles.food99InfoText}>
-                      Telefone virtual: {food99Delivery.virtual_phone_number}
+                      {global.t?.t('orders', 'label', 'virtualPhone')}: {food99Delivery.virtual_phone_number}
                     </Text>
                   )}
 
                   {!!food99SelectedPaymentLabel && (
                     <Text style={localStyles.food99InfoTextStrong}>
-                      Forma de pagamento selecionada: {food99SelectedPaymentLabel}
+                      {global.t?.t('orders', 'label', 'selectedPaymentMethod')}: {food99SelectedPaymentLabel}
                     </Text>
                   )}
                   {!!food99PaymentMethodValue && (
                     <Text style={localStyles.food99InfoText}>
-                      Metodo de pagamento (pay_method): {food99PaymentMethodValue}
+                      {global.t?.t('orders', 'label', 'paymentMethod')}: {food99PaymentMethodValue}
                     </Text>
                   )}
                   {!!food99PaymentChannelValue && (
                     <Text style={localStyles.food99InfoText}>
-                      Canal de pagamento (pay_channel): {food99PaymentChannelValue}
+                      {global.t?.t('orders', 'label', 'paymentChannel')}: {food99PaymentChannelValue}
                     </Text>
                   )}
                   {shouldShowCollectOnDelivery && (
                     <Text style={localStyles.food99InfoTextStrong}>
-                      Cobrar do cliente (customer_need_paying_money): {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                      {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
                     </Text>
                   )}
                   {food99ChangeFor > 0 ? (
                     <Text style={localStyles.food99InfoText}>
-                      Troco para: {Formatter.formatMoney(food99ChangeFor)}
+                      {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
                     </Text>
                   ) : isCashPaymentSelection ? (
-                    <Text style={localStyles.food99InfoText}>Troco: nao solicitado</Text>
+                    <Text style={localStyles.food99InfoText}>{global.t?.t('orders', 'message', 'changeNotRequested')}</Text>
                   ) : null}
                   {food99NeedsChange ? (
                     <Text style={localStyles.food99InfoText}>
-                      Troco a devolver: {Formatter.formatMoney(food99ChangeAmount)}
+                      {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
                     </Text>
                   ) : null}
                   {food99ShopPaidMoney > 0 ? (
                     <Text style={localStyles.food99InfoText}>
-                      Repasse ao lojista pelo entregador (shop_paid_money): {Formatter.formatMoney(food99ShopPaidMoney)}
+                      {global.t?.t('orders', 'label', 'courierTransferToMerchant')}: {Formatter.formatMoney(food99ShopPaidMoney)}
                     </Text>
                   ) : null}
                   {hasFood99CancellationInfo && (
                     <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>Cancelamento</Text>
+                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'cancellation')}</Text>
                       {!!food99CancellationSourceLabel && (
                         <Text style={localStyles.food99InfoText}>
-                          Origem: {food99CancellationSourceLabel}
+                          {global.t?.t('orders', 'label', 'origin')}: {food99CancellationSourceLabel}
                         </Text>
                       )}
                       {!!food99Integration?.cancel_code && (
                         <Text style={localStyles.food99InfoText}>
-                          Codigo: {food99Integration.cancel_code}
+                          {global.t?.t('orders', 'label', 'code')}: {food99Integration.cancel_code}
                         </Text>
                       )}
                       {!!food99Integration?.cancel_reason && (
                         <Text style={localStyles.food99InfoText}>
-                          Motivo: {food99Integration.cancel_reason}
+                          {global.t?.t('orders', 'label', 'reason')}: {food99Integration.cancel_reason}
                         </Text>
                       )}
                     </View>
@@ -3290,13 +3300,13 @@ const OrderDetails = ({ route, navigation }) => {
                   {food99Payment && (
                     <View style={localStyles.food99SummaryRow}>
                       <View style={localStyles.food99SummaryPill}>
-                        <Text style={localStyles.food99SummaryLabel}>Pago</Text>
+                        <Text style={localStyles.food99SummaryLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
                         <Text style={localStyles.food99SummaryValue}>
                           {Formatter.formatMoney(food99Payment.amount_paid || 0)}
                         </Text>
                       </View>
                       <View style={localStyles.food99SummaryPill}>
-                        <Text style={localStyles.food99SummaryLabel}>Pendente</Text>
+                        <Text style={localStyles.food99SummaryLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
                         <Text style={localStyles.food99SummaryValue}>
                           {Formatter.formatMoney(food99Payment.amount_pending || 0)}
                         </Text>
@@ -3307,57 +3317,57 @@ const OrderDetails = ({ route, navigation }) => {
                   {food99Financial && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>
-                        {isIfoodOrder ? 'Resumo financeiro iFood' : 'Resumo financeiro 99Food'}
+                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodFinancialSummary') : global.t?.t('orders', 'title', 'food99FinancialSummary')}
                       </Text>
                       <Text style={localStyles.food99InfoText}>
-                        Itens: {Formatter.formatMoney(food99Financial.items_total || 0)}
+                        {global.t?.t('orders', 'label', 'items')}: {Formatter.formatMoney(food99Financial.items_total || 0)}
                       </Text>
                       <Text style={localStyles.food99InfoText}>
-                        Entrega: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
+                        {global.t?.t('orders', 'label', 'delivery')}: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
                       </Text>
                       {!!Number(food99Financial.service_fee || 0) && (
                         <Text style={localStyles.food99InfoText}>
-                          Taxa de servico: {Formatter.formatMoney(food99Financial.service_fee || 0)}
+                          {global.t?.t('orders', 'label', 'serviceFee')}: {Formatter.formatMoney(food99Financial.service_fee || 0)}
                         </Text>
                       )}
                       {!!Number(food99Financial.small_order_fee || 0) && (
                         <Text style={localStyles.food99InfoText}>
-                          Taxa de pedido minimo: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
+                          {global.t?.t('orders', 'label', 'minimumOrderFee')}: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
                         </Text>
                       )}
                       {!!Number(food99Financial.meal_top_up_fee || 0) && (
                         <Text style={localStyles.food99InfoText}>
-                          Adicional/reforco: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
+                          {global.t?.t('orders', 'label', 'topUpFee')}: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
                         </Text>
                       )}
                       {!!Number(food99Financial.discount_total || 0) && (
                         <>
                           <Text style={localStyles.food99InfoText}>
-                            Descontos totais: {Formatter.formatMoney(food99Financial.discount_total || 0)}
+                            {global.t?.t('orders', 'label', 'totalDiscounts')}: {Formatter.formatMoney(food99Financial.discount_total || 0)}
                           </Text>
                           <Text style={localStyles.food99InfoText}>
-                            Desconto nos itens: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
+                            {global.t?.t('orders', 'label', 'itemDiscount')}: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
                           </Text>
                           <Text style={localStyles.food99InfoText}>
-                            Desconto na entrega: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
+                            {global.t?.t('orders', 'label', 'deliveryDiscount')}: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
                           </Text>
                           <Text style={localStyles.food99InfoText}>
-                            Cupom/desconto informado: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
+                            {global.t?.t('orders', 'label', 'couponDiscount')}: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
                           </Text>
                         </>
                       )}
                       {!!Number(food99Financial.store_discount_total || 0) && (
                         <Text style={localStyles.food99InfoText}>
-                          Desconto subsidiado pela loja: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
+                          {global.t?.t('orders', 'label', 'storeSubsidizedDiscount')}: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
                         </Text>
                       )}
                       {!!Number(food99Financial.platform_discount_total || 0) && (
                         <Text style={localStyles.food99InfoText}>
-                          Desconto subsidiado pela 99: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
+                          {global.t?.t('orders', 'label', 'platformSubsidizedDiscount')}: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
                         </Text>
                       )}
                       <Text style={localStyles.food99InfoTextStrong}>
-                        Total do cliente: {Formatter.formatMoney(food99Financial.customer_total || 0)}
+                        {global.t?.t('orders', 'label', 'customerTotal')}: {Formatter.formatMoney(food99Financial.customer_total || 0)}
                       </Text>
                       {shouldShowCollectOnDelivery && (
                         <Text style={localStyles.food99InfoTextStrong}>
@@ -3375,7 +3385,7 @@ const OrderDetails = ({ route, navigation }) => {
                     food99Address?.reference ||
                     food99Address?.complement) && (
                     <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>Endereco do cliente</Text>
+                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'customerAddress')}</Text>
                       {!!food99AddressPrimaryLine && (
                         <Text style={localStyles.food99InfoText}>{food99AddressPrimaryLine}</Text>
                       )}
@@ -3414,18 +3424,18 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {isScheduledOrder && (
                     <View style={localStyles.scheduledDeliveryBanner}>
-                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ ENTREGA AGENDADA</Text>
+                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ {global.t?.t('orders', 'title', 'scheduledDelivery')}</Text>
                       {!!scheduledWindowLabel && (
-                        <Text style={localStyles.scheduledDeliveryDate}>Janela: {scheduledWindowLabel}</Text>
+                        <Text style={localStyles.scheduledDeliveryDate}>{global.t?.t('orders', 'label', 'window')}: {scheduledWindowLabel}</Text>
                       )}
                       {!!scheduledDeliveryDateTimeRaw && (
                         <Text style={localStyles.scheduledDeliveryDate}>
-                          Entrega: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
+                          {global.t?.t('orders', 'label', 'delivery')}: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
                         </Text>
                       )}
                       {!!scheduledPreparationStartRaw && (
                         <Text style={localStyles.scheduledDeliveryDate}>
-                          Iniciar preparo: {formatScheduledDate(scheduledPreparationStartRaw)}
+                          {global.t?.t('orders', 'label', 'startPreparation')}: {formatScheduledDate(scheduledPreparationStartRaw)}
                         </Text>
                       )}
                     </View>
@@ -3433,7 +3443,7 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {(food99Customer?.name || food99Customer?.phone || food99Customer?.document_number) && (
                     <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>Cliente</Text>
+                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
                       {!!food99Customer?.name && (
                         <Text style={localStyles.food99InfoText}>{food99Customer.name}</Text>
                       )}
@@ -3448,12 +3458,12 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {showOrderObservationCard && (
                     <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>Observacoes</Text>
+                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'observations')}</Text>
                       <Text style={localStyles.food99InfoText}>{orderObservationText}</Text>
                       {food99Notes?.need_cutlery !== null &&
                         food99Notes?.need_cutlery !== undefined && (
                           <Text style={localStyles.food99InfoText}>
-                            Precisa de talheres: {food99Notes?.need_cutlery ? 'Sim' : 'Nao'}
+                            {global.t?.t('orders', 'label', 'needCutlery')}: {food99Notes?.need_cutlery ? global.t?.t('orders', 'label', 'yes') : global.t?.t('orders', 'label', 'no')}
                           </Text>
                         )}
                     </View>
@@ -3461,32 +3471,32 @@ const OrderDetails = ({ route, navigation }) => {
 
                   {food99Delivery?.is_platform_delivery ? (
                     <Text style={localStyles.food99InfoHint}>
-                      Entrega 99: a loja conclui no status Pronto. A plataforma finaliza a entrega.
+                      {global.t?.t('orders', 'message', 'platformHandlesDeliveryAfterReady')}
                     </Text>
                   ) : null}
 
 
                   {!!lastActionAgeLabel && (
                     <Text style={localStyles.food99InfoText}>
-                      Ultima acao: {lastActionAgeLabel}
+                      {global.t?.t('orders', 'label', 'lastAction')}: {lastActionAgeLabel}
                     </Text>
                   )}
 
                   {!!lastReconcileAgeLabel && (
                     <Text style={localStyles.food99InfoText}>
-                      Ultima conciliacao: {lastReconcileAgeLabel}
+                      {global.t?.t('orders', 'label', 'lastReconciliation')}: {lastReconcileAgeLabel}
                     </Text>
                   )}
 
                   {shouldHideReadyFood99Action ? (
                     <Text style={localStyles.food99InfoHint}>
-              Pedido pronto aguardando plataforma. O cliente sera atualizado pela {isIfoodOrder ? 'iFood' : '99Food'}.
+                      {global.t?.t('orders', 'message', 'orderReadyWaitingPlatform')} {isIfoodOrder ? 'iFood' : '99Food'}.
                     </Text>
                   ) : null}
 
                   {hasFood99SyncIssue ? (
                     <Text style={localStyles.food99InfoWarning}>
-                      Integracao com divergencia. Toque no refresh para atualizar o estado.
+                      {global.t?.t('orders', 'message', 'integrationDivergenceTapRefresh')}
                     </Text>
                   ) : null}
 
@@ -3508,7 +3518,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {food99ActionLoading === 'confirm' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Confirmar</Text>
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'confirm')}</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -3526,7 +3536,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {food99ActionLoading === 'cancel' || food99CancelReasonsLoading ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Cancelar</Text>
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -3543,7 +3553,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {food99ActionLoading === 'ready' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Pronto</Text>
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -3561,7 +3571,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {food99ActionLoading === 'delivered' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Entregue</Text>
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -3581,7 +3591,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {orderActionLoading === 'cancel' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Cancelar</Text>
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -3598,7 +3608,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {orderActionLoading === 'ready' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Pronto</Text>
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -3615,7 +3625,7 @@ const OrderDetails = ({ route, navigation }) => {
                       {orderActionLoading === 'delivered' ? (
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
-                        <Text style={localStyles.kdsActionText}>Entregue</Text>
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
                       )}
                     </TouchableOpacity>
                   )}
@@ -3629,7 +3639,7 @@ const OrderDetails = ({ route, navigation }) => {
                     style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
                   >
                     <Icon name="add-circle" size={18} color="#fff" />
-                    <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>Adicionar Item</Text>
+                    <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>{global.t?.t('orders', 'button', 'addItem')}</Text>
                   </TouchableOpacity>
                 )}
 
@@ -3638,7 +3648,7 @@ const OrderDetails = ({ route, navigation }) => {
                   style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
                 >
                   <Icon name="settings" size={18} color="#fff" />
-                  <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>Detalhes</Text>
+                  <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>{global.t?.t('orders', 'button', 'details')}</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -3653,7 +3663,7 @@ const OrderDetails = ({ route, navigation }) => {
                   >
                     <Icon name="add-circle" size={24} color="#fff" />
                     <Text style={{ color: '#fff', marginLeft: 8 }}>
-                      Adicionar Item
+                      {global.t?.t('orders', 'button', 'addItem')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -3664,7 +3674,7 @@ const OrderDetails = ({ route, navigation }) => {
                 >
                   <Icon name="settings" size={24} color="#fff" />
                   <Text style={{ color: '#fff', marginLeft: 8 }}>
-                    Detalhes
+                    {global.t?.t('orders', 'button', 'details')}
                   </Text>
                 </TouchableOpacity>
               </View>

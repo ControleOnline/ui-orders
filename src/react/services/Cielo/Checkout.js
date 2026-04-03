@@ -83,7 +83,7 @@ const Checkout = ({
       !selectedPayment.wallet ||
       !selectedPayment.paymentType
     ) {
-      invoiceActions.setError('Selecione uma forma de pagamento');
+      invoiceActions.setError(global.t?.t('orders', 'message', 'selectPaymentMethod'));
       return;
     }
 
@@ -114,7 +114,7 @@ const Checkout = ({
 
         createInvoice(selectedPayment, inputValue);
       } catch (error) {
-        invoiceActions.setError('Erro inesperado: ' + error.message);
+        invoiceActions.setError(`${global.t?.t('orders', 'message', 'unexpectedError')}: ${error.message}`);
         console.error('Erro na chamada ao serviço:', error);
         cancelOperation();
         setModalVisible(false);
@@ -190,7 +190,7 @@ const Checkout = ({
             onPress={() => handlePay()}
             disabled={!selectedPayment}
             style={[globalStyles.button]}>
-            <Text style={globalStyles.btnText}>PAGAR</Text>
+            <Text style={globalStyles.btnText}>{global.t?.t('orders', 'button', 'pay').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

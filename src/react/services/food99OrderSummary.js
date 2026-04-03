@@ -181,34 +181,34 @@ const extractOrderItems = payload => {
 const resolveFood99PaymentMethodLabel = payMethod => {
   switch (normalizeText(payMethod)) {
     case '1':
-      return 'Pagamento online'
+      return global.t?.t('orders', 'label', 'paymentOnline')
     case '2':
-      return 'Pagamento offline'
+      return global.t?.t('orders', 'label', 'paymentOffline')
     case '0':
-      return 'Nao informado pela 99'
+      return global.t?.t('orders', 'label', 'notInformedBy99')
     default:
-      return 'Metodo nao mapeado'
+      return global.t?.t('orders', 'label', 'methodNotMapped')
   }
 }
 
 const resolveFood99PaymentTypeLabel = ({ payType, deliveryType }) => {
   switch (normalizeText(payType)) {
     case '1':
-      return 'Pagamento online'
+      return global.t?.t('orders', 'label', 'paymentOnline')
     case '2':
-      return 'Dinheiro'
+      return global.t?.t('orders', 'label', 'cash')
     case '3':
-      return 'POS'
+      return global.t?.t('orders', 'label', 'pos')
     case '4':
-      return 'Carteira / 99Pay'
+      return global.t?.t('orders', 'label', 'wallet99Pay')
     case '5':
-      return 'PayPay sem senha'
+      return global.t?.t('orders', 'label', 'payPayWithoutPassword')
     case '6':
-      return 'PayPay com senha'
+      return global.t?.t('orders', 'label', 'payPayWithPassword')
     default:
       return normalizeText(deliveryType) === '1'
-        ? 'Pagamento processado pela 99Food'
-        : 'Pagamento nao mapeado'
+        ? global.t?.t('orders', 'label', 'paymentProcessedBy99Food')
+        : global.t?.t('orders', 'label', 'paymentNotMapped')
   }
 }
 
@@ -227,71 +227,71 @@ const resolveFood99PaymentChannelLabel = ({
 
   switch (normalizedPayChannel) {
     case '0':
-      return 'Nao informado pela 99'
+      return global.t?.t('orders', 'label', 'notInformedBy99')
     case '110':
-      return 'Cupom'
+      return global.t?.t('orders', 'label', 'coupon')
     case '120':
-      return '99Food Wallet'
+      return global.t?.t('orders', 'label', 'wallet99Food')
     case '150':
-      return 'Cartao de credito / debito'
+      return global.t?.t('orders', 'label', 'creditDebitCard')
     case '153':
-      return 'Dinheiro'
+      return global.t?.t('orders', 'label', 'cash')
     case '154':
-      return 'POS'
+      return global.t?.t('orders', 'label', 'pos')
     case '167':
-      return 'Preauth'
+      return global.t?.t('orders', 'label', 'preAuth')
     case '182':
-      return 'PayPay sem senha'
+      return global.t?.t('orders', 'label', 'payPayWithoutPassword')
     case '184':
-      return 'PayPay com senha'
+      return global.t?.t('orders', 'label', 'payPayWithPassword')
     case '190':
-      return '99Pay'
+      return global.t?.t('orders', 'label', 'pay99')
     case '212':
-      return 'PIX'
+      return global.t?.t('orders', 'label', 'pix')
     case '219':
-      return '99Food Cuenta'
+      return global.t?.t('orders', 'label', 'account99Food')
     case '229':
-      return 'NuPay'
+      return global.t?.t('orders', 'label', 'nuPay')
     case '234':
-      return 'Apple Pay (pre-auth)'
+      return global.t?.t('orders', 'label', 'applePayPreAuth')
     case '235':
-      return 'Apple Pay'
+      return global.t?.t('orders', 'label', 'applePay')
     case '257':
-      return 'Vale Refeicao Pluxee'
+      return global.t?.t('orders', 'label', 'pluxeeMealVoucher')
     case '258':
-      return 'Vale Refeicao Ticket'
+      return global.t?.t('orders', 'label', 'ticketMealVoucher')
     case '259':
-      return 'Vale Refeicao VR'
+      return global.t?.t('orders', 'label', 'vrMealVoucher')
     case '260':
-      return 'Vale Refeicao Alelo'
+      return global.t?.t('orders', 'label', 'aleloMealVoucher')
     case '261':
       return 'NEQUI'
     case '262':
-      return 'POS cartao de credito'
+      return `${global.t?.t('orders', 'label', 'pos')} ${global.t?.t('orders', 'label', 'creditCard').toLowerCase()}`
     case '263':
-      return 'POS cartao de debito'
+      return `${global.t?.t('orders', 'label', 'pos')} ${global.t?.t('orders', 'label', 'debitCard').toLowerCase()}`
     case '264':
-      return 'POS vale refeicao'
+      return `${global.t?.t('orders', 'label', 'pos')} ${global.t?.t('orders', 'label', 'mealVoucher').toLowerCase()}`
     case '272':
-      return 'Google Pay'
+      return global.t?.t('orders', 'label', 'googlePay')
     case '273':
-      return 'Google Pay (pre-auth)'
+      return global.t?.t('orders', 'label', 'googlePayPreAuth')
     case '310':
       return 'Yape'
     case '311':
       return 'Plin'
     case '901':
-      return 'Beneficio'
+      return global.t?.t('orders', 'label', 'benefit')
     case '2008':
-      return 'Marketing'
+      return global.t?.t('orders', 'label', 'marketing')
     default:
       if (normalizedPayMethod === '1') {
         return normalizedDeliveryType === '1'
-          ? 'Pagamento online'
-          : 'Pagamento online selecionado pelo cliente'
+          ? global.t?.t('orders', 'label', 'paymentOnline')
+          : global.t?.t('orders', 'label', 'paymentOnlineSelectedByCustomer')
       }
-      if (normalizedPayMethod === '2') return 'Pagamento offline'
-      return 'Canal nao mapeado'
+      if (normalizedPayMethod === '2') return global.t?.t('orders', 'label', 'paymentOffline')
+      return global.t?.t('orders', 'label', 'channelNotMapped')
   }
 }
 
@@ -307,10 +307,10 @@ const resolveFood99SelectedPaymentLabel = ({
   const preferredLabel = candidates.find(
     label =>
       ![
-        'Nao informado pela 99',
-        'Canal nao mapeado',
-        'Metodo nao mapeado',
-        'Pagamento nao mapeado',
+        global.t?.t('orders', 'label', 'notInformedBy99'),
+        global.t?.t('orders', 'label', 'channelNotMapped'),
+        global.t?.t('orders', 'label', 'methodNotMapped'),
+        global.t?.t('orders', 'label', 'paymentNotMapped'),
       ].includes(label),
   )
 
@@ -320,41 +320,41 @@ const resolveFood99SelectedPaymentLabel = ({
 const resolveIfoodPaymentMethodLabel = method => {
   switch (normalizeKey(method)) {
     case 'cash':
-      return 'Pagamento em Dinheiro'
+      return global.t?.t('orders', 'label', 'cashPayment')
     case 'credit':
-      return 'Pagamento Cartão de Crédito'
+      return global.t?.t('orders', 'label', 'creditCardPayment')
     case 'debit':
-      return 'Pagamento Cartão de Débito'
+      return global.t?.t('orders', 'label', 'debitCardPayment')
     case 'pix':
-      return 'Pagamento PIX'
+      return global.t?.t('orders', 'label', 'pixPayment')
     default:
-      return normalizeText(method) || 'Metodo nao mapeado'
+      return normalizeText(method) || global.t?.t('orders', 'label', 'methodNotMapped')
   }
 }
 
 const resolveIfoodPaymentChannelLabel = method => {
   switch (normalizeKey(method)) {
     case 'cash':
-      return 'Dinheiro'
+      return global.t?.t('orders', 'label', 'cash')
     case 'credit':
-      return 'Cartão de Crédito'
+      return global.t?.t('orders', 'label', 'creditCard')
     case 'debit':
-      return 'Cartão de Débito'
+      return global.t?.t('orders', 'label', 'debitCard')
     case 'pix':
-      return 'PIX'
+      return global.t?.t('orders', 'label', 'pix')
     default:
-      return normalizeText(method) || 'Metodo nao mapeado'
+      return normalizeText(method) || global.t?.t('orders', 'label', 'methodNotMapped')
   }
 }
 
 const resolveIfoodPaymentTypeLabel = type => {
   switch (normalizeKey(type)) {
     case 'online':
-      return 'Pagamento online'
+      return global.t?.t('orders', 'label', 'paymentOnline')
     case 'offline':
-      return 'Pagamento na entrega'
+      return global.t?.t('orders', 'label', 'paymentOnDelivery')
     default:
-      return normalizeText(type) || 'Pagamento nao mapeado'
+      return normalizeText(type) || global.t?.t('orders', 'label', 'paymentNotMapped')
   }
 }
 

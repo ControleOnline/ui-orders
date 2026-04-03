@@ -117,7 +117,7 @@ const ShopToolbar = ({ navigation }) => {
               styles.buttonText,
               activeTab === 'HomePage' && styles.activeText,
             ]}>
-            Home
+            {global.t?.t('orders', 'label', 'home')}
           </Text>
         </TouchableOpacity>
       )}
@@ -140,7 +140,7 @@ const ShopToolbar = ({ navigation }) => {
             styles.buttonText,
             activeTab === 'OrderHistoryPage' && styles.activeText,
           ]}>
-          Pedidos
+          {global.t?.t('orders', 'label', 'orders')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -161,7 +161,7 @@ const ShopToolbar = ({ navigation }) => {
             styles.buttonText,
             activeTab === 'ProfilePage' && styles.activeText,
           ]}>
-          Perfil
+          {global.t?.t('orders', 'label', 'profile')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -182,7 +182,7 @@ const ShopToolbar = ({ navigation }) => {
             styles.buttonText,
             activeTab === 'SettingsPage' && styles.activeText,
           ]}>
-          Configurações
+          {global.t?.t('orders', 'label', 'settings')}
         </Text>
       </TouchableOpacity>
     </View>

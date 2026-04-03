@@ -80,7 +80,7 @@ const PrinterButton = ({
             : null,
       });
     } catch (err) {
-      storeActions.setError(err.message || 'Erro ao processar impressão');
+      storeActions.setError(err.message || global.t?.t('orders', 'message', 'printProcessingError'));
     }
   };
 
@@ -120,10 +120,10 @@ const PrinterButton = ({
         {!compact && (
           <Text style={{color: iconColor, marginLeft: 8}}>
             {isLoading
-              ? 'Imprimindo...'
+              ? global.t?.t('orders', 'button', 'printing')
               : printer && printer.alias
-              ? `Imprimir (${printer?.alias})`
-              : 'Selecionar Impressora'}
+              ? `${global.t?.t('orders', 'button', 'print')} (${printer?.alias})`
+              : global.t?.t('orders', 'title', 'selectPrinter')}
           </Text>
         )}
       </TouchableOpacity>
@@ -147,7 +147,7 @@ const PrinterButton = ({
         <View style={styles.printButton.modalContainer}>
           <View style={styles.printButton.modalContent}>
             <Text style={styles.printButton.modalTitle}>
-              Selecionar Impressora
+              {global.t?.t('orders', 'title', 'selectPrinter')}
             </Text>
             <FlatList
               data={printers}
@@ -157,7 +157,7 @@ const PrinterButton = ({
             <TouchableOpacity
               style={styles.printButton.closeButton}
               onPress={() => setIsModalVisible(false)}>
-              <Text style={styles.printButton.closeButtonText}>Fechar</Text>
+              <Text style={styles.printButton.closeButtonText}>{global.t?.t('orders', 'button', 'close')}</Text>
             </TouchableOpacity>
           </View>
         </View>

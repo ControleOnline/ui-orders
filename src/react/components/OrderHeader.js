@@ -184,7 +184,7 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
         <View style={styles.leftInfo}>
           <Image source={BRAND_LOGO} style={styles.brandLogo} resizeMode="contain" />
           <View>
-            <Text style={styles.orderId}>Pedido #{order?.id}</Text>
+            <Text style={styles.orderId}>{global.t?.t('orders', 'title', 'order')} #{order?.id}</Text>
             <View style={styles.timeRow}>
               <Text style={styles.orderTime}>
                 {Formatter.formatDateYmdTodmY(orderDateValue, true)}

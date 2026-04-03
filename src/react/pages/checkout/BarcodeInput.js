@@ -37,9 +37,9 @@ const BarcodeInput = () => {
 
   const getPlaceholder = () => {
     if (productInputType === 'rfid') {
-      return t.t('default', 'title', 'RFIDInput');
+      return global.t?.t('orders', 'placeholder', 'rfidInput');
     }
-    return t.t('default', 'title', 'BarcodeInput');
+    return global.t?.t('orders', 'placeholder', 'barcodeInput');
   };
 
   useEffect(() => {
@@ -72,8 +72,7 @@ const BarcodeInput = () => {
         .catch(error => {
           console.log(error);
           showToast(
-            'Erro ao adicionar produto. Verifique o código. Mensagem:' +
-              error?.message,
+            `${global.t?.t('orders', 'message', 'errorAddingProductVerifyCodeMessage')} ${error?.message}`,
             {
               position: 'center',
             },

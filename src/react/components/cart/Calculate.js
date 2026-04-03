@@ -24,7 +24,7 @@ const Calculate = ({handleConfirmValue, handleCancel}) => {
   const handleConfirm = () => {
     const numericValue = parseFloat(inputValue.replace(/\D/g, ''));
     if (isNaN(numericValue) || numericValue <= 0) {
-      paymentTypeActions.setError('Por favor, insira um valor válido!');
+      paymentTypeActions.setError(global.t?.t('orders', 'message', 'enterValidAmount'));
       handleCancel();
       return;
     } else handleConfirmValue(numericValue / 100);
@@ -55,7 +55,7 @@ const Calculate = ({handleConfirmValue, handleCancel}) => {
           borderRadius: 10,
           width: '80%',
         }}>
-        <Text style={{marginBottom: 10}}>Valor a pagar:</Text>
+        <Text style={{marginBottom: 10}}>{global.t?.t('orders', 'label', 'amountToPay')}:</Text>
         <TextInput
           placeholderTextColor="#666"
           style={{
@@ -68,11 +68,11 @@ const Calculate = ({handleConfirmValue, handleCancel}) => {
           keyboardType="numeric"
           value={inputValue}
           onChangeText={handleInputChange}
-          placeholder="Digite o valor"
+          placeholder={global.t?.t('orders', 'placeholder', 'enterValue')}
         />
         <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-          <Button title="Cancelar" onPress={handleCancel} />
-          <Button title="Confirmar" onPress={handleConfirm} />
+          <Button title={global.t?.t('orders', 'button', 'cancel')} onPress={handleCancel} />
+          <Button title={global.t?.t('orders', 'button', 'confirm')} onPress={handleConfirm} />
         </View>
       </View>
     </View>

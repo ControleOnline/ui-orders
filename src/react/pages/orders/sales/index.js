@@ -55,7 +55,7 @@ const Orders = ({ navigation, route }) => {
 
   // Opções de APP
   const APP_OPTIONS = [
-    { label: 'Todos', value: 'ALL' },
+    { label: global.t?.t('orders', 'label', 'all'), value: 'ALL' },
     { label: '99Food', value: 'Food99' },
     { label: 'iFood', value: 'iFood' },
     { label: 'PDV', value: 'POS' },
@@ -130,9 +130,9 @@ const Orders = ({ navigation, route }) => {
   };
 
   const handleConfirm = () => {
-    Alert.alert('Confirmação', 'Deseja criar um novo pedido?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Confirmar', onPress: () => handleAddOrder(true) },
+    Alert.alert(global.t?.t('orders', 'title', 'confirmation'), global.t?.t('orders', 'message', 'createNewOrderPrompt'), [
+      { text: global.t?.t('orders', 'button', 'cancel'), style: 'cancel' },
+      { text: global.t?.t('orders', 'button', 'confirm'), onPress: () => handleAddOrder(true) },
     ]);
   };
 
@@ -189,7 +189,7 @@ const Orders = ({ navigation, route }) => {
                 selectedStatus === 'ALL' ? '#007bff' : '#ccc',
             }}
           >
-            <Text style={{ color: '#fff' }}>Todos</Text>
+            <Text style={{ color: '#fff' }}>{global.t?.t('orders', 'label', 'all')}</Text>
           </TouchableOpacity>
 
           {/* STATUS DINÂMICOS */}
@@ -232,7 +232,7 @@ const Orders = ({ navigation, route }) => {
         >
           <Icon name="add-circle" size={24} color="#fff" />
           <Text style={{ color: '#fff', marginLeft: 8 }}>
-            Adicionar Pedido
+            {global.t?.t('orders', 'button', 'addOrder')}
           </Text>
         </TouchableOpacity>
       </View>

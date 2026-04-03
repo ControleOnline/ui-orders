@@ -191,7 +191,7 @@ const CashRegister = ({ navigation }) => {
                   }}>
                   <Text
                     style={[styles.CashRegister.paymentText, { color: 'red' }]}>
-                    Sangria {group['withdrawal-wallet']}
+                    {global.t?.t('orders', 'title', 'withdrawal')} {group['withdrawal-wallet']}
                   </Text>
                   <Text
                     style={[styles.CashRegister.paymentText, { color: 'red' }]}>
@@ -211,7 +211,7 @@ const CashRegister = ({ navigation }) => {
               },
             ]}>
             <Text style={[styles.CashRegister.walletTotal, styles.primary]}>
-              Total
+              {global.t?.t('orders', 'label', 'total')}
             </Text>
             <Text
               style={[
@@ -239,7 +239,7 @@ const CashRegister = ({ navigation }) => {
           </ScrollView>
           <View style={styles.CloseCashRegister.footerContainer}>
             <View style={styles.CloseCashRegister.totalContainer}>
-              <Text style={styles.CloseCashRegister.total}>TOTAL</Text>
+              <Text style={styles.CloseCashRegister.total}>{global.t?.t('orders', 'label', 'total').toUpperCase()}</Text>
               <Text style={styles.CloseCashRegister.total}>
                 {Formatter.formatMoney(processedData.total)}
               </Text>
@@ -249,13 +249,13 @@ const CashRegister = ({ navigation }) => {
                 style={[globalStyles.button]}
                 onPress={handleWithdrawal}>
                 <Icon name="print" size={24} color="#fff" />
-                <Text style={{ color: '#fff', marginLeft: 8 }}>Sangria</Text>
+                <Text style={{ color: '#fff', marginLeft: 8 }}>{global.t?.t('orders', 'title', 'withdrawal')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[globalStyles.button]}
                 onPress={handleCloseCashRegister}>
                 <Icon name="print" size={24} color="#fff" />
-                <Text style={{ color: '#fff', marginLeft: 8 }}>Detalhar</Text>
+                <Text style={{ color: '#fff', marginLeft: 8 }}>{global.t?.t('orders', 'button', 'viewDetails')}</Text>
               </TouchableOpacity>
             </View>
           </View>

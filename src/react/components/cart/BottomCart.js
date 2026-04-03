@@ -48,7 +48,7 @@ const BottomCart = ({bottomOffset = 0}) => {
       />
       <View style={[styles.toolbar, {bottom: bottomOffset + 8, minHeight: cartHeight}]}>
         <View style={styles.totalWrap}>
-          <Text style={styles.totalLabel}>Total do pedido</Text>
+          <Text style={styles.totalLabel}>{global.t?.t('orders', 'label', 'orderTotal')}</Text>
           <OrderTotalToolbar />
         </View>
         <TouchableOpacity
@@ -59,7 +59,7 @@ const BottomCart = ({bottomOffset = 0}) => {
             !canPay && styles.checkoutButtonDisabled,
           ]}>
           <Icon color="#fff" name="check-circle" size={16} />
-          <Text style={styles.checkoutButtonText}>Fechar pedido</Text>
+          <Text style={styles.checkoutButtonText}>{global.t?.t('orders', 'button', 'closeOrder')}</Text>
         </TouchableOpacity>
       </View>
     </>

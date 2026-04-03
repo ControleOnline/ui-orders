@@ -64,7 +64,7 @@ const Checkout = ({
       !selectedPayment.wallet ||
       !selectedPayment.paymentType
     ) {
-      invoiceActions.setError('Selecione uma forma de pagamento');
+      invoiceActions.setError(global.t?.t('orders', 'message', 'selectPaymentMethod'));
       return;
     }
 
@@ -192,7 +192,7 @@ const Checkout = ({
             onPress={() => handlePay()}
             disabled={!selectedPayment}
             style={[globalStyles.button]}>
-            <Text style={globalStyles.btnText}>PAGAR</Text>
+            <Text style={globalStyles.btnText}>{global.t?.t('orders', 'button', 'pay').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -228,7 +228,7 @@ const Checkout = ({
               width: '80%',
             }}>
             <Text style={{marginBottom: 10}}>
-              Escolha o número de parcelas:
+              {global.t?.t('orders', 'title', 'chooseInstallments')}:
             </Text>
             <ScrollView>
               {Array.from({length: 9}, (_, i) => i + 2).map(num => (
@@ -247,7 +247,7 @@ const Checkout = ({
               ))}
             </ScrollView>
             <Button
-              title="Cancelar"
+              title={global.t?.t('orders', 'button', 'cancel')}
               onPress={() => setInstallmentsModalVisible(false)}
             />
           </View>
