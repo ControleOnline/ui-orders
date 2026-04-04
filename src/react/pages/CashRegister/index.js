@@ -37,18 +37,6 @@ const CashRegister = ({ navigation }) => {
 
   const [defaultWallets, setDefaultWallets] = useState(null);
 
-  // ===== ALTERAÇÃO: NOVO useEffect PARA REDIRECIONAR PARA SETTINGS =====
-  useFocusEffect(
-    useCallback(() => {
-      if (storagedDevice && device?.configs) {
-        if (device.configs['config-version'] !== storagedDevice.appVersion) {
-          navigation.navigate('SettingsPage');
-        }
-      }
-    }, [device, storagedDevice, navigation]),
-  );
-  // ===== FIM DA ALTERAÇÃO =====
-
   useFocusEffect(
     useCallback(() => {
       if (
@@ -91,14 +79,14 @@ const CashRegister = ({ navigation }) => {
     useCallback(() => {
       if (
         device?.configs &&
-        storagedDevice &&
-        device.configs['config-version'] == storagedDevice.appVersion
+        storagedDevice?.id &&
+        currentCompany?.id
       )
         invoiceActions.getInflow({
           receiver: currentCompany.id,
           'device.device': storagedDevice.id,
         });
-    }, []),
+    }, [device?.configs, storagedDevice?.id, currentCompany?.id, invoiceActions]),
   );
 
   useFocusEffect(

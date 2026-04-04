@@ -68,7 +68,7 @@ const Checkout = () => {
           invoiceActions.setItems([]);
           ordersActions.setPayable(0);
           printActions.setReload(true); // Impressão local
-          navigation.navigate('SalesOrdersIndex');
+          navigation.navigate('OrderHistoryPage');
         }
       } else {
         let i = [...invoices];
