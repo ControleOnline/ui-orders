@@ -2091,12 +2091,30 @@ const OrderDetails = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {isFood99Order && (
+        {(isFood99Order || isIfoodOrder) && (!!remoteOrderStateLabel || !!food99Delivery?.delivery_label || !!formattedFood99Eta) && (
           <View style={localStyles.mobileSummaryMetaList}>
             {!!remoteOrderStateLabel && (
-              <Text style={localStyles.mobileSummaryMetaText}>
-                {global.t?.t('orders', 'label', 'remoteState')}: {remoteOrderStateLabel}
-              </Text>
+              <View style={[
+                localStyles.remoteStateBadge,
+                remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { borderColor: '#0EA5E9', backgroundColor: '#0EA5E922' }
+                : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' ? { borderColor: '#10B981', backgroundColor: '#10B98122' }
+                : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
+                : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { borderColor: '#22C55E', backgroundColor: '#22C55E22' }
+                : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { borderColor: '#EF4444', backgroundColor: '#EF444422' }
+                : { borderColor: '#8B5CF6', backgroundColor: '#8B5CF622' }
+              ]}>
+                <Text style={[
+                  localStyles.remoteStateBadgeText,
+                  remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { color: '#0EA5E9' }
+                  : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' ? { color: '#10B981' }
+                  : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { color: '#F59E0B' }
+                  : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { color: '#22C55E' }
+                  : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { color: '#EF4444' }
+                  : { color: '#8B5CF6' }
+                ]}>
+                  {remoteOrderStateLabel}
+                </Text>
+              </View>
             )}
             {!!food99Delivery?.delivery_label && (
               <Text style={localStyles.mobileSummaryMetaText}>
@@ -3949,6 +3967,19 @@ const createStyles = (scale, palette) =>
       color: palette.textSecondary,
       fontSize: 12,
       fontWeight: '700',
+    },
+    remoteStateBadge: {
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+    },
+    remoteStateBadgeText: {
+      fontSize: 12,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     mobileInfoCard: {
       borderRadius: 16,

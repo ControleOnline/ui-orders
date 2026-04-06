@@ -15,6 +15,31 @@ const WAITING_RULES = [
 
 const normalizeText = value => String(value || '').trim()
 
+const REMOTE_STATE_MAP = {
+  new: { label: 'Novo', color: '#3B82F6' },
+  placed: { label: 'Novo', color: '#3B82F6' },
+  confirmed: { label: 'Confirmado', color: '#8B5CF6' },
+  preparing: { label: 'Preparando', color: '#F59E0B' },
+  started: { label: 'Preparando', color: '#F59E0B' },
+  ready: { label: 'Pronto', color: '#10B981' },
+  delivery_drop_code_requested: { label: 'Pronto', color: '#10B981' },
+  delivery_drop_code_validating: { label: 'Pronto', color: '#10B981' },
+  dispatching: { label: 'Em entrega', color: '#0EA5E9' },
+  dispatched: { label: 'Em entrega', color: '#0EA5E9' },
+  order_dispatched: { label: 'Em entrega', color: '#0EA5E9' },
+  order_in_transit: { label: 'Em transito', color: '#0EA5E9' },
+  concluded: { label: 'Concluido', color: '#22C55E' },
+  closed: { label: 'Concluido', color: '#22C55E' },
+  cancelled: { label: 'Cancelado', color: '#EF4444' },
+  canceled: { label: 'Cancelado', color: '#EF4444' },
+  cancellation_requested: { label: 'Cancelamento solicitado', color: '#F97316' },
+}
+
+const resolveRemoteState = eventType => {
+  const key = normalizeText(eventType).toLowerCase().replace(/[.\-\s]/g, '_')
+  return REMOTE_STATE_MAP[key] || null
+}
+
 const isPrivacyPlaceholder = value => {
   const normalized = normalizeText(value).toLowerCase()
   if (!normalized) return false
@@ -177,6 +202,14 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
   const customerName = getCustomerName(order) || normalizeText(food99Summary?.customer?.name)
   const customerContact =
     getCustomerContact(order) || normalizeText(food99Summary?.customer?.phone)
+  const remoteState = resolveRemoteState(food99Summary?.integration?.latestEventType)
+  const isPaidOnline = food99Summary?.payment?.isPaidOnline === true
+  const amountPending = Number(food99Summary?.payment?.amountPending || 0)
+  const paymentChipLabel = isPaidOnline
+    ? 'Pago online'
+    : amountPending > 0.009
+      ? `Pagar na entrega`
+      : null
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
@@ -235,6 +268,27 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
           </View>
         )}
       </View>
+
+      {(!!remoteState || !!paymentChipLabel) && (
+        <View style={styles.chipsRow}>
+          {!!remoteState && (
+            <View style={[styles.chip, { borderColor: remoteState.color, backgroundColor: remoteState.color + '22' }]}>
+              <View style={[styles.chipDot, { backgroundColor: remoteState.color }]} />
+              <Text style={[styles.chipText, { color: remoteState.color }]}>{remoteState.label}</Text>
+            </View>
+          )}
+          {!!paymentChipLabel && (
+            <View style={[styles.chip, {
+              borderColor: isPaidOnline ? '#22C55E' : '#F59E0B',
+              backgroundColor: isPaidOnline ? '#22C55E22' : '#F59E0B22',
+            }]}>
+              <Text style={[styles.chipText, { color: isPaidOnline ? '#22C55E' : '#F59E0B' }]}>
+                {paymentChipLabel}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
 
       {showCustomer && !!customerName && (
@@ -363,6 +417,30 @@ const createStyles = palette =>
       color: palette.textSecondary,
       fontSize: 12,
       fontWeight: '600',
+    },
+    chipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 8,
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      gap: 4,
+    },
+    chipDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 999,
+    },
+    chipText: {
+      fontSize: 11,
+      fontWeight: '700',
     },
   })
 
