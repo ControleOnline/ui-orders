@@ -471,7 +471,7 @@ const OrderDetails = ({ route, navigation }) => {
       const currentIfoodLastEventType = String(
         food99State?.integration?.last_event_type || '',
       ).toLowerCase()
-      const currentIfoodLifecycleKey = currentIfoodLastEventType || currentRemoteOrderStateKey
+      const currentIfoodLifecycleKey = currentRemoteOrderStateKey || currentIfoodLastEventType
       const currentIfoodReadyLifecycle =
         isIfoodOrder &&
         (
@@ -1118,7 +1118,7 @@ const OrderDetails = ({ route, navigation }) => {
       '',
   ).toLowerCase()
   const effectiveIfoodLifecycleKey = isIfoodOrder
-    ? (normalizedIfoodLatestEventType || remoteOrderStateKey)
+    ? (remoteOrderStateKey || normalizedIfoodLatestEventType)
     : remoteOrderStateKey
   const normalizedFood99LastAction = String(food99Integration?.last_action || '').toLowerCase()
   const isIfoodReadyLifecycle =
