@@ -21,7 +21,7 @@ const REMOTE_STATE_MAP = {
   confirmed: { label: 'Confirmado', color: '#8B5CF6' },
   preparing: { label: 'Preparando', color: '#F59E0B' },
   started: { label: 'Preparando', color: '#F59E0B' },
-  ready: { label: 'Pronto', color: '#10B981' },
+  ready: { label: 'Preparando', color: '#F59E0B' },
   delivery_drop_code_requested: { label: 'Pronto', color: '#10B981' },
   delivery_drop_code_validating: { label: 'Pronto', color: '#10B981' },
   dispatching: { label: 'Em entrega', color: '#0EA5E9' },

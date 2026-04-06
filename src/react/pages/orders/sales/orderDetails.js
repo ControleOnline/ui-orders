@@ -1409,8 +1409,8 @@ const OrderDetails = ({ route, navigation }) => {
         food99Integration?.ifood_code,
         food99Integration?.ifood_id,
       )
-      const externalRef = externalRefRaw.length > 28
-        ? `${externalRefRaw.slice(0, 14)}...${externalRefRaw.slice(-8)}`
+      const externalRef = externalRefRaw.length > 16
+        ? `${externalRefRaw.slice(0, 14)}...`
         : externalRefRaw
 
       return externalRef ? `iFood #${externalRef}` : 'iFood'
@@ -2097,8 +2097,8 @@ const OrderDetails = ({ route, navigation }) => {
               <View style={[
                 localStyles.remoteStateBadge,
                 remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { borderColor: '#0EA5E9', backgroundColor: '#0EA5E922' }
-                : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' ? { borderColor: '#10B981', backgroundColor: '#10B98122' }
-                : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
+                : remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { borderColor: '#10B981', backgroundColor: '#10B98122' }
+                : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
                 : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { borderColor: '#22C55E', backgroundColor: '#22C55E22' }
                 : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { borderColor: '#EF4444', backgroundColor: '#EF444422' }
                 : { borderColor: '#8B5CF6', backgroundColor: '#8B5CF622' }
@@ -2106,13 +2106,13 @@ const OrderDetails = ({ route, navigation }) => {
                 <Text style={[
                   localStyles.remoteStateBadgeText,
                   remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { color: '#0EA5E9' }
-                  : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' ? { color: '#10B981' }
-                  : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { color: '#F59E0B' }
+                  : remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { color: '#10B981' }
+                  : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { color: '#F59E0B' }
                   : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { color: '#22C55E' }
                   : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { color: '#EF4444' }
                   : { color: '#8B5CF6' }
                 ]}>
-                  {remoteOrderStateLabel}
+                  {remoteOrderStateKey === 'ready' ? 'Preparando' : remoteOrderStateLabel}
                 </Text>
               </View>
             )}
