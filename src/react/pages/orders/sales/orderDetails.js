@@ -495,7 +495,7 @@ const OrderDetails = ({ route, navigation }) => {
         isIfoodOrder &&
         ['dispatching', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(currentIfoodLifecycleKey) &&
         !currentIfoodReadyLifecycle &&
-        currentIfoodRiderAssigned
+        (currentIfoodMerchantDelivery || currentIfoodRiderAssigned)
 
       const caps = orderCapabilities || {}
       if (
@@ -1149,7 +1149,8 @@ const OrderDetails = ({ route, navigation }) => {
     normalizeText(food99Delivery?.rider_phone || '').trim() ||
     Number(food99Delivery?.rider_to_store_eta || 0) > 0
   )
-  const isIfoodDeliveryActionState = isIfoodDispatchLifecycle && isIfoodRiderAssigned
+  // entrega da propria loja nao tem entregador — o rider nao e exigido para liberar a acao
+  const isIfoodDeliveryActionState = isIfoodDispatchLifecycle && (isIfoodMerchantDelivery || isIfoodRiderAssigned)
   const canCancelFood99Order =
     isIfoodOrder
       ? !isTerminalFood99Order && !isIfoodDispatchLifecycle
