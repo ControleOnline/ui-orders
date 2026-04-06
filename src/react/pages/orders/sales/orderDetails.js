@@ -1443,7 +1443,9 @@ const OrderDetails = ({ route, navigation }) => {
     : isIfoodOrder
       ? global.t?.t('orders', 'message', 'noObservationsIfood')
       : `${global.t?.t('orders', 'message', 'noObservationsFor')} ${integrationChannelLabel}.`
-  const showOrderObservationCard = !isIfoodOrder
+  const showOrderObservationCard = isIfoodOrder
+    ? !!food99Notes?.remark
+    : true
   const orderCustomerName = resolvePreferredText(
     food99Customer?.name,
     item?.client?.name,
