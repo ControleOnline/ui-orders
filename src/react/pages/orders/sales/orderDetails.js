@@ -369,6 +369,11 @@ const OrderDetails = ({ route, navigation }) => {
   const [orderCapabilities, setOrderCapabilities] = useState(null)
   const [orderActionLoading, setOrderActionLoading] = useState('')
 
+  const orderProductsStore = useStore('order_products')
+  const [editMode, setEditMode] = useState(false)
+  const [opLoadingId, setOpLoadingId] = useState(null)
+  const [confirmRemoveItemId, setConfirmRemoveItemId] = useState(null)
+
   useFocusEffect(
     useCallback(() => {
       if (
@@ -400,6 +405,39 @@ const OrderDetails = ({ route, navigation }) => {
       await ordersActions.get(orderParam['@id'])
     }
   }, [orderParam, ordersActions])
+
+  const canEditItems = !isFood99Order && !isIfoodOrder
+
+  const handleUpdateOpQuantity = useCallback(async (op, newQty) => {
+    if (opLoadingId) return
+    const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
+    if (!id) return
+    setOpLoadingId(id)
+    try {
+      await orderProductsStore.actions.save({ '@id': op['@id'], id: Number(id), quantity: newQty })
+      await refreshCurrentOrder()
+    } catch (e) {
+      showError(formatApiError(e))
+    } finally {
+      setOpLoadingId(null)
+    }
+  }, [opLoadingId, orderProductsStore.actions, refreshCurrentOrder, showError])
+
+  const handleRemoveOp = useCallback(async (op) => {
+    if (opLoadingId) return
+    const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
+    if (!id) return
+    setOpLoadingId(id)
+    setConfirmRemoveItemId(null)
+    try {
+      await orderProductsStore.actions.remove(id)
+      await refreshCurrentOrder()
+    } catch (e) {
+      showError(formatApiError(e))
+    } finally {
+      setOpLoadingId(null)
+    }
+  }, [opLoadingId, orderProductsStore.actions, refreshCurrentOrder, showError])
 
   const loadOrderCapabilities = useCallback(async () => {
     if (!item?.id) return
@@ -2241,7 +2279,24 @@ const OrderDetails = ({ route, navigation }) => {
       )}
 
       <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
-        <Text style={localStyles.mobileProductsTitle}>{global.t?.t('orders', 'title', 'orderItems')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+          <Text style={[localStyles.mobileProductsTitle, { flex: 1 }]}>{global.t?.t('orders', 'title', 'orderItems')}</Text>
+          {canEditItems && (
+            <TouchableOpacity
+              onPress={() => { setEditMode(m => !m); setConfirmRemoveItemId(null) }}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 4,
+                paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8,
+                backgroundColor: editMode ? '#F59E0B' : ppcColors.primary,
+              }}
+            >
+              <Icon name={editMode ? 'check' : 'edit'} size={14} color="#fff" />
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                {editMode ? 'Concluir' : 'Editar'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         {isPurchaseOrder
           ? (item?.orderProducts || orderParam?.orderProducts || []).map((op, idx) => {
               const prodName = op?.product?.product || op?.product?.name || `Produto #${idx + 1}`
@@ -2275,15 +2330,81 @@ const OrderDetails = ({ route, navigation }) => {
                 </View>
               )
             })
-          : (
-            <OrderProducts
-              order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
-              scale={scale}
-              styles={kdsOrderProductsStyles}
-              indentStep={18}
-              showDetails
-            />
-          )
+          : (canEditItems && editMode
+              ? (item?.orderProducts || []).map(op => {
+                  const opId = String(op?.id || '')
+                  const name = op?.product?.product || op?.product?.name || 'Item'
+                  const qty = Number(op?.quantity || 0)
+                  const price = Number(op?.unitPrice || op?.price || 0)
+                  const isOpLoading = opLoadingId === opId
+                  const isConfirming = confirmRemoveItemId === opId
+                  return (
+                    <View key={opId || op['@id']} style={localStyles.editItemRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
+                        {price > 0 && (
+                          <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+                        )}
+                      </View>
+                      {isConfirming ? (
+                        <View style={localStyles.editConfirmRow}>
+                          <Text style={localStyles.editConfirmText}>Remover?</Text>
+                          <TouchableOpacity
+                            onPress={() => handleRemoveOp(op)}
+                            style={localStyles.editConfirmYes}
+                            disabled={!!opLoadingId}
+                          >
+                            {isOpLoading
+                              ? <ActivityIndicator size="small" color="#fff" />
+                              : <Icon name="check" size={15} color="#fff" />}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => setConfirmRemoveItemId(null)}
+                            style={localStyles.editConfirmNo}
+                            disabled={!!opLoadingId}
+                          >
+                            <Icon name="close" size={15} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View style={localStyles.editQtyRow}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              if (qty <= 1) setConfirmRemoveItemId(opId)
+                              else handleUpdateOpQuantity(op, qty - 1)
+                            }}
+                            disabled={!!opLoadingId}
+                            style={localStyles.editQtyBtn}
+                          >
+                            <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
+                          </TouchableOpacity>
+                          <View style={localStyles.editQtyBox}>
+                            {isOpLoading
+                              ? <ActivityIndicator size="small" color={ppcColors.primary} />
+                              : <Text style={localStyles.editQtyText}>{qty}</Text>}
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => handleUpdateOpQuantity(op, qty + 1)}
+                            disabled={!!opLoadingId}
+                            style={localStyles.editQtyBtn}
+                          >
+                            <Icon name="add" size={18} color={ppcColors.textPrimary} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  )
+                })
+              : (
+                <OrderProducts
+                  order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
+                  scale={scale}
+                  styles={kdsOrderProductsStyles}
+                  indentStep={18}
+                  showDetails
+                />
+              )
+            )
         }
       </View>
       </View>
@@ -3689,6 +3810,18 @@ const OrderDetails = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
 
+                {canEditItems && (
+                  <TouchableOpacity
+                    onPress={() => { setEditMode(m => !m); setConfirmRemoveItemId(null) }}
+                    style={[globalStyles.button, { marginRight: 5, backgroundColor: editMode ? '#F59E0B' : undefined }]}
+                  >
+                    <Icon name={editMode ? 'check' : 'edit'} size={24} color="#fff" />
+                    <Text style={{ color: '#fff', marginLeft: 8 }}>
+                      {editMode ? 'Concluir edição' : 'Editar itens'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
                   onPress={handleOrderTools}
                   style={[globalStyles.button, { marginLeft: 5 }]}
@@ -3714,13 +3847,81 @@ const OrderDetails = ({ route, navigation }) => {
                   },
                 ]}
               >
-                <OrderProducts
-                  order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
-                  scale={scale}
-                  styles={localStyles}
-                  indentStep={22}
-                  showDetails
-                />
+                {canEditItems && editMode
+                  ? (item?.orderProducts || []).map(op => {
+                      const opId = String(op?.id || '')
+                      const name = op?.product?.product || op?.product?.name || 'Item'
+                      const qty = Number(op?.quantity || 0)
+                      const price = Number(op?.unitPrice || op?.price || 0)
+                      const isOpLoading = opLoadingId === opId
+                      const isConfirming = confirmRemoveItemId === opId
+                      return (
+                        <View key={opId || op['@id']} style={localStyles.editItemRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
+                            {price > 0 && (
+                              <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+                            )}
+                          </View>
+                          {isConfirming ? (
+                            <View style={localStyles.editConfirmRow}>
+                              <Text style={localStyles.editConfirmText}>Remover?</Text>
+                              <TouchableOpacity
+                                onPress={() => handleRemoveOp(op)}
+                                style={localStyles.editConfirmYes}
+                                disabled={!!opLoadingId}
+                              >
+                                {isOpLoading
+                                  ? <ActivityIndicator size="small" color="#fff" />
+                                  : <Icon name="check" size={15} color="#fff" />}
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={() => setConfirmRemoveItemId(null)}
+                                style={localStyles.editConfirmNo}
+                                disabled={!!opLoadingId}
+                              >
+                                <Icon name="close" size={15} color="#fff" />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <View style={localStyles.editQtyRow}>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  if (qty <= 1) setConfirmRemoveItemId(opId)
+                                  else handleUpdateOpQuantity(op, qty - 1)
+                                }}
+                                disabled={!!opLoadingId}
+                                style={localStyles.editQtyBtn}
+                              >
+                                <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
+                              </TouchableOpacity>
+                              <View style={localStyles.editQtyBox}>
+                                {isOpLoading
+                                  ? <ActivityIndicator size="small" color={ppcColors.primary} />
+                                  : <Text style={localStyles.editQtyText}>{qty}</Text>}
+                              </View>
+                              <TouchableOpacity
+                                onPress={() => handleUpdateOpQuantity(op, qty + 1)}
+                                disabled={!!opLoadingId}
+                                style={localStyles.editQtyBtn}
+                              >
+                                <Icon name="add" size={18} color={ppcColors.textPrimary} />
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
+                      )
+                    })
+                  : (
+                    <OrderProducts
+                      order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
+                      scale={scale}
+                      styles={localStyles}
+                      indentStep={22}
+                      showDetails
+                    />
+                  )
+                }
               </View>
             </ScrollView>
           )}
@@ -4183,6 +4384,84 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     purchaseItemTotal: {
       fontSize: 14 * scale, fontWeight: '800', color: '#D97706',
     },
+
+    /* edição inline de itens */
+    editItemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.borderSoft,
+      gap: 8,
+    },
+    editItemName: {
+      fontSize: 14 * scale,
+      fontWeight: '700',
+      color: palette.textPrimary,
+    },
+    editItemPrice: {
+      fontSize: 12 * scale,
+      color: palette.textSecondary,
+      marginTop: 2,
+    },
+    editQtyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    editQtyBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: palette.cardBgSoft,
+    },
+    editQtyBox: {
+      minWidth: 38,
+      height: 32,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: palette.cardBg,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+    },
+    editQtyText: {
+      fontSize: 15 * scale,
+      fontWeight: '900',
+      color: palette.textPrimary,
+    },
+    editConfirmRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    editConfirmText: {
+      fontSize: 12 * scale,
+      color: '#EF4444',
+      fontWeight: '700',
+    },
+    editConfirmYes: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: '#EF4444',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    editConfirmNo: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: palette.textSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
     mobileProductItemRow: {
       marginTop: 4,
       paddingVertical: 9,
