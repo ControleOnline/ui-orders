@@ -370,9 +370,14 @@ const OrderDetails = ({ route, navigation }) => {
   const [orderActionLoading, setOrderActionLoading] = useState('')
 
   const orderProductsStore = useStore('order_products')
+  const productsStore = useStore('products')
+  const { items: productSearchResults, isLoading: productSearchLoading } = productsStore.getters
+
   const [editMode, setEditMode] = useState(false)
   const [opLoadingId, setOpLoadingId] = useState(null)
   const [confirmRemoveItemId, setConfirmRemoveItemId] = useState(null)
+  const [addProductQuery, setAddProductQuery] = useState('')
+  const [addingProductId, setAddingProductId] = useState(null)
 
   useFocusEffect(
     useCallback(() => {
@@ -407,6 +412,40 @@ const OrderDetails = ({ route, navigation }) => {
   }, [orderParam, ordersActions])
 
   const canEditItems = !isFood99Order && !isIfoodOrder
+
+  const searchProducts = useCallback((query) => {
+    if (!query.trim()) {
+      productsStore.actions.setItems([])
+      return
+    }
+    const companyId = String(
+      item?.provider?.id ||
+      String(item?.provider?.['@id'] || '').replace(/\D/g, '') ||
+      defaultCompany?.id || ''
+    )
+    productsStore.actions.getItems({
+      ...(companyId ? { 'productCompany.company': '/people/' + companyId } : {}),
+      product: query.trim(),
+      itemsPerPage: 8,
+    })
+  }, [item?.provider, defaultCompany?.id, productsStore.actions])
+
+  const handleAddProductInline = useCallback(async (product) => {
+    if (!item?.id || addingProductId) return
+    const pid = String(product?.id || String(product?.['@id'] || '').replace(/\D/g, ''))
+    if (!pid) return
+    setAddingProductId(pid)
+    try {
+      await ordersActions.addProducts(item.id, [{ product: pid, quantity: 1 }])
+      await refreshCurrentOrder()
+      setAddProductQuery('')
+      productsStore.actions.setItems([])
+    } catch (e) {
+      showError(formatApiError(e))
+    } finally {
+      setAddingProductId(null)
+    }
+  }, [item?.id, addingProductId, ordersActions, refreshCurrentOrder, showError, productsStore.actions])
 
   const handleUpdateOpQuantity = useCallback(async (op, newQty) => {
     if (opLoadingId) return
@@ -1552,10 +1591,14 @@ const OrderDetails = ({ route, navigation }) => {
     && (food99PaymentMethodKey.includes('cartao de credito') || food99PaymentMethodKey.includes('cartao de debito'))
       ? `${food99PaymentMethodValue} (${normalizeText(food99PaymentBrandValue).toUpperCase()})`
       : food99PaymentMethodValue
+  const invoicePaymentText = (!isFood99Order && !isIfoodOrder)
+    ? (invoices || []).map(inv => inv?.paymentType?.paymentType).filter(Boolean).join(', ')
+    : ''
   const orderPaymentMethodText = resolvePreferredText(
     ifoodPaymentMethodWithBrand,
     food99SelectedPaymentLabel,
     food99PaymentChannelValue,
+    invoicePaymentText,
   ) || (
     isIfoodOrder
       ? (localPendingAmount > 0.009
@@ -2331,70 +2374,110 @@ const OrderDetails = ({ route, navigation }) => {
               )
             })
           : (canEditItems && editMode
-              ? (item?.orderProducts || []).map(op => {
-                  const opId = String(op?.id || '')
-                  const name = op?.product?.product || op?.product?.name || 'Item'
-                  const qty = Number(op?.quantity || 0)
-                  const price = Number(op?.unitPrice || op?.price || 0)
-                  const isOpLoading = opLoadingId === opId
-                  const isConfirming = confirmRemoveItemId === opId
-                  return (
-                    <View key={opId || op['@id']} style={localStyles.editItemRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
-                        {price > 0 && (
-                          <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+              ? (
+                <React.Fragment>
+                  {(item?.orderProducts || []).map(op => {
+                    const opId = String(op?.id || '')
+                    const name = op?.product?.product || op?.product?.name || 'Item'
+                    const qty = Number(op?.quantity || 0)
+                    const price = Number(op?.unitPrice || op?.price || 0)
+                    const isOpLoading = opLoadingId === opId
+                    const isConfirming = confirmRemoveItemId === opId
+                    return (
+                      <View key={opId || op['@id']} style={localStyles.editItemRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
+                          {price > 0 && (
+                            <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+                          )}
+                        </View>
+                        {isConfirming ? (
+                          <View style={localStyles.editConfirmRow}>
+                            <Text style={localStyles.editConfirmText}>Remover?</Text>
+                            <TouchableOpacity
+                              onPress={() => handleRemoveOp(op)}
+                              style={localStyles.editConfirmYes}
+                              disabled={!!opLoadingId}
+                            >
+                              {isOpLoading
+                                ? <ActivityIndicator size="small" color="#fff" />
+                                : <Icon name="check" size={15} color="#fff" />}
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => setConfirmRemoveItemId(null)}
+                              style={localStyles.editConfirmNo}
+                              disabled={!!opLoadingId}
+                            >
+                              <Icon name="close" size={15} color="#fff" />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <View style={localStyles.editQtyRow}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                if (qty <= 1) setConfirmRemoveItemId(opId)
+                                else handleUpdateOpQuantity(op, qty - 1)
+                              }}
+                              disabled={!!opLoadingId}
+                              style={localStyles.editQtyBtn}
+                            >
+                              <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
+                            </TouchableOpacity>
+                            <View style={localStyles.editQtyBox}>
+                              {isOpLoading
+                                ? <ActivityIndicator size="small" color={ppcColors.primary} />
+                                : <Text style={localStyles.editQtyText}>{qty}</Text>}
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => handleUpdateOpQuantity(op, qty + 1)}
+                              disabled={!!opLoadingId}
+                              style={localStyles.editQtyBtn}
+                            >
+                              <Icon name="add" size={18} color={ppcColors.textPrimary} />
+                            </TouchableOpacity>
+                          </View>
                         )}
                       </View>
-                      {isConfirming ? (
-                        <View style={localStyles.editConfirmRow}>
-                          <Text style={localStyles.editConfirmText}>Remover?</Text>
-                          <TouchableOpacity
-                            onPress={() => handleRemoveOp(op)}
-                            style={localStyles.editConfirmYes}
-                            disabled={!!opLoadingId}
-                          >
-                            {isOpLoading
-                              ? <ActivityIndicator size="small" color="#fff" />
-                              : <Icon name="check" size={15} color="#fff" />}
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={() => setConfirmRemoveItemId(null)}
-                            style={localStyles.editConfirmNo}
-                            disabled={!!opLoadingId}
-                          >
-                            <Icon name="close" size={15} color="#fff" />
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <View style={localStyles.editQtyRow}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              if (qty <= 1) setConfirmRemoveItemId(opId)
-                              else handleUpdateOpQuantity(op, qty - 1)
-                            }}
-                            disabled={!!opLoadingId}
-                            style={localStyles.editQtyBtn}
-                          >
-                            <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
-                          </TouchableOpacity>
-                          <View style={localStyles.editQtyBox}>
-                            {isOpLoading
-                              ? <ActivityIndicator size="small" color={ppcColors.primary} />
-                              : <Text style={localStyles.editQtyText}>{qty}</Text>}
-                          </View>
-                          <TouchableOpacity
-                            onPress={() => handleUpdateOpQuantity(op, qty + 1)}
-                            disabled={!!opLoadingId}
-                            style={localStyles.editQtyBtn}
-                          >
-                            <Icon name="add" size={18} color={ppcColors.textPrimary} />
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                    )
+                  })}
+                  <View style={localStyles.editAddWrap}>
+                    <View style={[localStyles.editAddSearch, { borderColor: ppcColors.border, backgroundColor: ppcColors.cardBg }]}>
+                      <Icon name="search" size={16} color={ppcColors.textSecondary} />
+                      <TextInput
+                        value={addProductQuery}
+                        onChangeText={v => { setAddProductQuery(v); searchProducts(v) }}
+                        placeholder="Buscar produto para adicionar..."
+                        placeholderTextColor={ppcColors.textSecondary}
+                        style={{ flex: 1, color: ppcColors.textPrimary, fontSize: 14, paddingVertical: 0 }}
+                      />
+                      {productSearchLoading && <ActivityIndicator size="small" color={ppcColors.primary} />}
                     </View>
-                  )
-                })
+                    {addProductQuery.trim().length > 0 && (productSearchResults || []).map(p => {
+                      const pid = String(p?.id || '')
+                      const pname = p?.product || p?.name || 'Produto'
+                      const pprice = Number(p?.price || 0)
+                      const isAdding = addingProductId === pid
+                      return (
+                        <TouchableOpacity
+                          key={pid || p['@id']}
+                          onPress={() => handleAddProductInline(p)}
+                          disabled={!!addingProductId}
+                          style={[localStyles.editAddResult, { borderColor: ppcColors.borderSoft }]}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[localStyles.editAddResultName, { color: ppcColors.textPrimary }]} numberOfLines={1}>{pname}</Text>
+                            {pprice > 0 && <Text style={[localStyles.editAddResultPrice, { color: ppcColors.textSecondary }]}>{Formatter.formatMoney(pprice)}</Text>}
+                          </View>
+                          {isAdding
+                            ? <ActivityIndicator size="small" color={ppcColors.primary} />
+                            : <Icon name="add-circle" size={22} color={ppcColors.primary} />}
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                </React.Fragment>
+              )
               : (
                 <OrderProducts
                   order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
@@ -3848,70 +3931,110 @@ const OrderDetails = ({ route, navigation }) => {
                 ]}
               >
                 {canEditItems && editMode
-                  ? (item?.orderProducts || []).map(op => {
-                      const opId = String(op?.id || '')
-                      const name = op?.product?.product || op?.product?.name || 'Item'
-                      const qty = Number(op?.quantity || 0)
-                      const price = Number(op?.unitPrice || op?.price || 0)
-                      const isOpLoading = opLoadingId === opId
-                      const isConfirming = confirmRemoveItemId === opId
-                      return (
-                        <View key={opId || op['@id']} style={localStyles.editItemRow}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
-                            {price > 0 && (
-                              <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+                  ? (
+                    <React.Fragment>
+                      {(item?.orderProducts || []).map(op => {
+                        const opId = String(op?.id || '')
+                        const name = op?.product?.product || op?.product?.name || 'Item'
+                        const qty = Number(op?.quantity || 0)
+                        const price = Number(op?.unitPrice || op?.price || 0)
+                        const isOpLoading = opLoadingId === opId
+                        const isConfirming = confirmRemoveItemId === opId
+                        return (
+                          <View key={opId || op['@id']} style={localStyles.editItemRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
+                              {price > 0 && (
+                                <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+                              )}
+                            </View>
+                            {isConfirming ? (
+                              <View style={localStyles.editConfirmRow}>
+                                <Text style={localStyles.editConfirmText}>Remover?</Text>
+                                <TouchableOpacity
+                                  onPress={() => handleRemoveOp(op)}
+                                  style={localStyles.editConfirmYes}
+                                  disabled={!!opLoadingId}
+                                >
+                                  {isOpLoading
+                                    ? <ActivityIndicator size="small" color="#fff" />
+                                    : <Icon name="check" size={15} color="#fff" />}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  onPress={() => setConfirmRemoveItemId(null)}
+                                  style={localStyles.editConfirmNo}
+                                  disabled={!!opLoadingId}
+                                >
+                                  <Icon name="close" size={15} color="#fff" />
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
+                              <View style={localStyles.editQtyRow}>
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    if (qty <= 1) setConfirmRemoveItemId(opId)
+                                    else handleUpdateOpQuantity(op, qty - 1)
+                                  }}
+                                  disabled={!!opLoadingId}
+                                  style={localStyles.editQtyBtn}
+                                >
+                                  <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
+                                </TouchableOpacity>
+                                <View style={localStyles.editQtyBox}>
+                                  {isOpLoading
+                                    ? <ActivityIndicator size="small" color={ppcColors.primary} />
+                                    : <Text style={localStyles.editQtyText}>{qty}</Text>}
+                                </View>
+                                <TouchableOpacity
+                                  onPress={() => handleUpdateOpQuantity(op, qty + 1)}
+                                  disabled={!!opLoadingId}
+                                  style={localStyles.editQtyBtn}
+                                >
+                                  <Icon name="add" size={18} color={ppcColors.textPrimary} />
+                                </TouchableOpacity>
+                              </View>
                             )}
                           </View>
-                          {isConfirming ? (
-                            <View style={localStyles.editConfirmRow}>
-                              <Text style={localStyles.editConfirmText}>Remover?</Text>
-                              <TouchableOpacity
-                                onPress={() => handleRemoveOp(op)}
-                                style={localStyles.editConfirmYes}
-                                disabled={!!opLoadingId}
-                              >
-                                {isOpLoading
-                                  ? <ActivityIndicator size="small" color="#fff" />
-                                  : <Icon name="check" size={15} color="#fff" />}
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                onPress={() => setConfirmRemoveItemId(null)}
-                                style={localStyles.editConfirmNo}
-                                disabled={!!opLoadingId}
-                              >
-                                <Icon name="close" size={15} color="#fff" />
-                              </TouchableOpacity>
-                            </View>
-                          ) : (
-                            <View style={localStyles.editQtyRow}>
-                              <TouchableOpacity
-                                onPress={() => {
-                                  if (qty <= 1) setConfirmRemoveItemId(opId)
-                                  else handleUpdateOpQuantity(op, qty - 1)
-                                }}
-                                disabled={!!opLoadingId}
-                                style={localStyles.editQtyBtn}
-                              >
-                                <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
-                              </TouchableOpacity>
-                              <View style={localStyles.editQtyBox}>
-                                {isOpLoading
-                                  ? <ActivityIndicator size="small" color={ppcColors.primary} />
-                                  : <Text style={localStyles.editQtyText}>{qty}</Text>}
-                              </View>
-                              <TouchableOpacity
-                                onPress={() => handleUpdateOpQuantity(op, qty + 1)}
-                                disabled={!!opLoadingId}
-                                style={localStyles.editQtyBtn}
-                              >
-                                <Icon name="add" size={18} color={ppcColors.textPrimary} />
-                              </TouchableOpacity>
-                            </View>
-                          )}
+                        )
+                      })}
+                      <View style={localStyles.editAddWrap}>
+                        <View style={[localStyles.editAddSearch, { borderColor: ppcColors.border, backgroundColor: ppcColors.cardBg }]}>
+                          <Icon name="search" size={16} color={ppcColors.textSecondary} />
+                          <TextInput
+                            value={addProductQuery}
+                            onChangeText={v => { setAddProductQuery(v); searchProducts(v) }}
+                            placeholder="Buscar produto para adicionar..."
+                            placeholderTextColor={ppcColors.textSecondary}
+                            style={{ flex: 1, color: ppcColors.textPrimary, fontSize: 14, paddingVertical: 0 }}
+                          />
+                          {productSearchLoading && <ActivityIndicator size="small" color={ppcColors.primary} />}
                         </View>
-                      )
-                    })
+                        {addProductQuery.trim().length > 0 && (productSearchResults || []).map(p => {
+                          const pid = String(p?.id || '')
+                          const pname = p?.product || p?.name || 'Produto'
+                          const pprice = Number(p?.price || 0)
+                          const isAdding = addingProductId === pid
+                          return (
+                            <TouchableOpacity
+                              key={pid || p['@id']}
+                              onPress={() => handleAddProductInline(p)}
+                              disabled={!!addingProductId}
+                              style={[localStyles.editAddResult, { borderColor: ppcColors.borderSoft }]}
+                              activeOpacity={0.7}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <Text style={[localStyles.editAddResultName, { color: ppcColors.textPrimary }]} numberOfLines={1}>{pname}</Text>
+                                {pprice > 0 && <Text style={[localStyles.editAddResultPrice, { color: ppcColors.textSecondary }]}>{Formatter.formatMoney(pprice)}</Text>}
+                              </View>
+                              {isAdding
+                                ? <ActivityIndicator size="small" color={ppcColors.primary} />
+                                : <Icon name="add-circle" size={22} color={ppcColors.primary} />}
+                            </TouchableOpacity>
+                          )
+                        })}
+                      </View>
+                    </React.Fragment>
+                  )
                   : (
                     <OrderProducts
                       order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
@@ -4460,6 +4583,37 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       backgroundColor: palette.textSecondary,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    editAddWrap: {
+      marginTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: palette.borderSoft,
+      paddingTop: 8,
+    },
+    editAddSearch: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    editAddResult: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      gap: 8,
+    },
+    editAddResultName: {
+      fontSize: 14 * scale,
+      fontWeight: '700',
+    },
+    editAddResultPrice: {
+      fontSize: 12 * scale,
+      marginTop: 1,
     },
 
     mobileProductItemRow: {
