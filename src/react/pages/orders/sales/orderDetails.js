@@ -334,7 +334,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const { styles: cssStyles, globalStyles } = css()
   const { ppcColors } = useDisplayTheme()
-  const { width } = useWindowDimensions()
+  const { width, height: windowHeight } = useWindowDimensions()
 
   const scale = useMemo(() => {
     if (width >= 2200) return 1.15
@@ -343,7 +343,7 @@ const OrderDetails = ({ route, navigation }) => {
     return 0.92
   }, [width])
 
-  const localStyles = useMemo(() => createStyles(scale, ppcColors), [scale, ppcColors])
+  const localStyles = useMemo(() => createStyles(scale, ppcColors, windowHeight), [scale, ppcColors, windowHeight])
 
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
@@ -3787,7 +3787,7 @@ const OrderDetails = ({ route, navigation }) => {
   )
 }
 
-const createStyles = (scale, palette) =>
+const createStyles = (scale, palette, windowHeight = 800) =>
   StyleSheet.create({
     topBarActions: {
       flexDirection: 'row',
@@ -4421,7 +4421,7 @@ const createStyles = (scale, palette) =>
     },
     cancelReasonModal: {
       width: '100%',
-      maxHeight: '88%',
+      maxHeight: windowHeight * 0.88,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       borderWidth: 1,
@@ -4540,7 +4540,7 @@ const createStyles = (scale, palette) =>
     },
     detailsModal: {
       width: '100%',
-      maxHeight: '84%',
+      maxHeight: windowHeight * 0.84,
       minHeight: 320,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
@@ -4550,7 +4550,6 @@ const createStyles = (scale, palette) =>
       paddingHorizontal: 18,
       paddingTop: 16,
       paddingBottom: 14,
-      overflow: 'hidden',
     },
     detailsModalHeader: {
       flexDirection: 'row',
@@ -4731,13 +4730,12 @@ const createStyles = (scale, palette) =>
     },
     modalSheetWrap: {
       width: '100%',
-      maxHeight: '100%',
+      maxHeight: windowHeight,
       justifyContent: 'flex-end',
-      marginTop: 'auto',
     },
     deliveryCodeModal: {
       width: '100%',
-      maxHeight: '92%',
+      maxHeight: windowHeight * 0.92,
       minHeight: 360,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
@@ -4747,7 +4745,6 @@ const createStyles = (scale, palette) =>
       paddingHorizontal: 16,
       paddingTop: 12,
       paddingBottom: 14,
-      overflow: 'hidden',
     },
     deliveryCodeHeader: {
       flexDirection: 'row',
