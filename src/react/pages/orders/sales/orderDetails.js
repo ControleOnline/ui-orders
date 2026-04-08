@@ -1505,12 +1505,7 @@ const OrderDetails = ({ route, navigation }) => {
       : (localPendingAmount || 0),
   )
   const isPendingForBadge = Number.isFinite(pendingAmountForBadge) && pendingAmountForBadge > 0.009
-  // Chip principal mostra o status do ciclo do pedido; se for status financeiro (paid/pago),
-  // usa realStatus para não poluir o chip com informação de pagamento
-  const isFinanceStatusLabel = /paid|pago|payment|pagamento/i.test(localStatusLower)
-  const orderStatusBadgeLabel = String(
-    isFinanceStatusLabel ? (item?.status?.realStatus || localStatusRaw) : localStatusRaw || '-'
-  ).toUpperCase()
+  const orderStatusBadgeLabel = String(localStatusRaw || '-').toUpperCase()
   const orderStatusBadgeColor = item?.status?.color || ppcColors.accentInfo
   // Chip de pagamento (PAGO / PENDENTE) exibido na seção de pagamento
   const paymentStatusLabel = isPendingForBadge
