@@ -1,7 +1,6 @@
 import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
-import OrderTools from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderTools';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
@@ -45,21 +44,6 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
   );
 };
 
-const WrappedOrderTools = ({ navigation, route }) => {
-  const order = route.params?.order;
-
-  React.useEffect(() => {
-    navigation.setOptions({
-      title: order?.id ? `${global.t?.t('orders', 'title', 'order')} #${order.id}` : global.t?.t('orders', 'title', 'order'),
-      headerBackVisible: true,
-    });
-  }, [navigation, order]);
-
-  return (
-    <OrderTools navigation={navigation} route={route} />
-  );
-};
-
 const WrappedOrderDetails = ({ navigation, route }) => {
   const order = route.params?.order;
 
@@ -78,17 +62,6 @@ const WrappedOrderDetails = ({ navigation, route }) => {
 const ordersRoutes = [
 
   menuStorefrontRoute,
-  {
-    name: 'OrderTools',
-    component: WrappedOrderTools,
-    options: {
-      showBottomCart: true,
-      headerShown: true,
-      headerBackVisible: false,
-      title: global.t?.t('orders', 'title', 'order'),
-    },
-    initialParams: { store: 'orders' },
-  },
   {
     name: 'CashRegisterIndex',
     component: CashRegister,

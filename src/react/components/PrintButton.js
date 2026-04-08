@@ -72,12 +72,14 @@ const PrinterButton = ({
     }
 
     try {
+      const targetDevice = printer?.device || device_config?.configs?.printer || null;
       printActions.addToPrint({
         printType: printType,
         id:
           storeGetters.item && storeGetters.item['@id']
             ? storeGetters.item['@id'].split('/').pop()
             : null,
+        device: targetDevice,
       });
     } catch (err) {
       storeActions.setError(err.message || global.t?.t('orders', 'message', 'printProcessingError'));

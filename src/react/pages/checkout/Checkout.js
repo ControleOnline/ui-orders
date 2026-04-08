@@ -62,7 +62,7 @@ const Checkout = () => {
           i.push(data);
           invoiceActions.setItems(i);
           ordersActions.setPayable(p);
-          navigation.navigate('OrderTools');
+          navigation.navigate('OrderDetails', {order});
         } else {
           ordersActions.setItem(null);
           invoiceActions.setItems([]);
@@ -74,7 +74,7 @@ const Checkout = () => {
         let i = [...invoices];
         i.push(data);
         invoiceActions.setItems(i);
-        navigation.navigate('OrderTools');
+        navigation.navigate('OrderDetails', {order});
       }
     });
   };
