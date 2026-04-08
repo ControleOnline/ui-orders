@@ -1431,6 +1431,16 @@ const OrderDetails = ({ route, navigation }) => {
     : 0
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
+  const invoicePaidTotal = Array.isArray(invoices)
+    ? invoices
+        .filter(inv => String(inv?.status?.realStatus || '').toLowerCase() === 'closed')
+        .reduce((sum, inv) => sum + Number(inv?.price || 0), 0)
+    : 0
+  const invoicePendingTotal = Array.isArray(invoices)
+    ? invoices
+        .filter(inv => String(inv?.status?.realStatus || '').toLowerCase() !== 'closed')
+        .reduce((sum, inv) => sum + Number(inv?.price || 0), 0)
+    : 0
   const food99AmountPending = resolvePreferredMoney(
     food99Payment?.amount_pending,
     food99CashCollectionAmount,
@@ -2276,55 +2286,87 @@ const OrderDetails = ({ route, navigation }) => {
         )}
       </View>
 
-      <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-        <View style={[localStyles.mobileStatusBadge, {
-          borderColor: paymentStatusColor,
-          backgroundColor: paymentStatusColor + '14',
-        }]}>
-          <View style={[localStyles.mobileStatusDot, { backgroundColor: paymentStatusColor }]} />
-          <Text style={[localStyles.mobileStatusText, { color: paymentStatusColor }]}>
-            {paymentStatusLabel}
-          </Text>
-        </View>
-      </View>
+      <View style={localStyles.mobilePaymentSection}>
+        <Text style={localStyles.mobilePaymentSectionTitle}>Pagamento</Text>
 
-      <View style={localStyles.mobilePaymentGrid}>
-        <View style={localStyles.mobilePaymentMetricCard}>
-          <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
-          <Text style={localStyles.mobilePaymentMetricValue}>
-            {Formatter.formatMoney(food99Payment?.amount_paid || localPaidAmount || 0)}
-          </Text>
-        </View>
-        <View style={localStyles.mobilePaymentMetricCard}>
-          <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
-          <Text style={[localStyles.mobilePaymentMetricValue, localStyles.mobilePaymentPendingValue]}>
-            {Formatter.formatMoney(food99Payment?.amount_pending || localPendingAmount || 0)}
-          </Text>
-          {shouldShowCollectOnDelivery && (
-            <Text style={localStyles.mobilePaymentMetricHint}>
-              {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+        <View style={localStyles.mobilePaymentGrid}>
+          <View style={localStyles.mobilePaymentMetricCard}>
+            <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'paid') || 'Recebido'}</Text>
+            <Text style={localStyles.mobilePaymentMetricValue}>
+              {Formatter.formatMoney(
+                (isFood99Order || isIfoodOrder)
+                  ? (food99Payment?.amount_paid || localPaidAmount || 0)
+                  : invoicePaidTotal
+              )}
             </Text>
-          )}
+          </View>
+          <View style={localStyles.mobilePaymentMetricCard}>
+            <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'pending') || 'Pendente'}</Text>
+            <Text style={[localStyles.mobilePaymentMetricValue, localStyles.mobilePaymentPendingValue]}>
+              {Formatter.formatMoney(
+                (isFood99Order || isIfoodOrder)
+                  ? (food99Payment?.amount_pending ?? localPendingAmount)
+                  : invoicePendingTotal
+              )}
+            </Text>
+            {shouldShowCollectOnDelivery && (
+              <Text style={localStyles.mobilePaymentMetricHint}>
+                {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
 
-      <View style={localStyles.mobileInfoCard}>
-        <Text style={localStyles.mobileInfoLabel}>{global.t?.t('orders', 'label', 'payment')}</Text>
-        <Text style={localStyles.mobileInfoTitle}>{orderPaymentMethodText}</Text>
-        {!!food99PaymentChannelValue && (
-          <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'channel')}: {food99PaymentChannelValue}</Text>
-        )}
-        {food99ChangeFor > 0 ? (
-          <Text style={localStyles.mobileInfoSubtitle}>
-            {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
-          </Text>
-        ) : isCashPaymentSelection ? (
-          <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'change')}: {global.t?.t('orders', 'message', 'notRequested')}</Text>
-        ) : null}
-        {food99NeedsChange ? (
-          <Text style={localStyles.mobileInfoSubtitle}>
-            {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
-          </Text>
+        {/* Invoices listadas como cards para pedidos POS */}
+        {!isFood99Order && !isIfoodOrder && Array.isArray(invoices) && invoices.length > 0 ? (
+          <View style={localStyles.invoiceList}>
+            {invoices.map((inv) => {
+              const invId = inv?.id || String(inv?.['@id'] || '').replace(/\D/g, '')
+              const payMethod = inv?.paymentType?.paymentType || '-'
+              const amount = Number(inv?.price || 0)
+              const statusLabel = String(inv?.status?.status || '-').toUpperCase()
+              const statusColor = inv?.status?.color || '#6B7280'
+              return (
+                <TouchableOpacity
+                  key={String(invId)}
+                  style={localStyles.invoiceCard}
+                  activeOpacity={0.7}
+                  onPress={() => {}}
+                >
+                  <View style={localStyles.invoiceCardRow}>
+                    <Text style={localStyles.invoiceCardId}>#{invId}</Text>
+                    <View style={[localStyles.invoiceStatusChip, { borderColor: statusColor, backgroundColor: statusColor + '22' }]}>
+                      <Text style={[localStyles.invoiceStatusText, { color: statusColor }]}>{statusLabel}</Text>
+                    </View>
+                  </View>
+                  <View style={localStyles.invoiceCardRow}>
+                    <Text style={localStyles.invoiceCardMethod}>{payMethod}</Text>
+                    <Text style={localStyles.invoiceCardAmount}>{Formatter.formatMoney(amount)}</Text>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        ) : (isFood99Order || isIfoodOrder) ? (
+          /* Marketplace: mantém exibição de método de pagamento da plataforma */
+          <View style={localStyles.invoiceMarketplacePayment}>
+            <Text style={localStyles.invoiceCardMethod}>{orderPaymentMethodText}</Text>
+            {!!food99PaymentChannelValue && (
+              <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'channel')}: {food99PaymentChannelValue}</Text>
+            )}
+            {food99ChangeFor > 0 ? (
+              <Text style={localStyles.mobileInfoSubtitle}>
+                {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
+              </Text>
+            ) : isCashPaymentSelection ? (
+              <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'change')}: {global.t?.t('orders', 'message', 'notRequested')}</Text>
+            ) : null}
+            {food99NeedsChange ? (
+              <Text style={localStyles.mobileInfoSubtitle}>
+                {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
       </View>
 
@@ -4472,9 +4514,72 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontWeight: '700',
       lineHeight: 18,
     },
+    mobilePaymentSection: {
+      gap: 8,
+    },
+    mobilePaymentSectionTitle: {
+      color: palette.textSecondary,
+      fontSize: 10,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+    },
     mobilePaymentGrid: {
       flexDirection: 'row',
       gap: 8,
+    },
+    invoiceList: {
+      gap: 6,
+    },
+    invoiceCard: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      gap: 4,
+    },
+    invoiceCardRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    invoiceCardId: {
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    invoiceStatusChip: {
+      borderRadius: 6,
+      borderWidth: 1,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    invoiceStatusText: {
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.4,
+    },
+    invoiceCardMethod: {
+      color: palette.textPrimary,
+      fontSize: 13,
+      fontWeight: '700',
+      flex: 1,
+    },
+    invoiceCardAmount: {
+      color: palette.textPrimary,
+      fontSize: 13,
+      fontWeight: '900',
+    },
+    invoiceMarketplacePayment: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      gap: 3,
     },
     mobilePaymentMetricCard: {
       flex: 1,
