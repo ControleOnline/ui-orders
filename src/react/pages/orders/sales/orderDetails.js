@@ -1505,17 +1505,14 @@ const OrderDetails = ({ route, navigation }) => {
       : (localPendingAmount || 0),
   )
   const isPendingForBadge = Number.isFinite(pendingAmountForBadge) && pendingAmountForBadge > 0.009
-  const shouldUseMarketplaceFinancialBadge = (isFood99Order || isIfoodOrder) && !isLocallyCanceledOrder
-  const orderStatusBadgeLabel = shouldUseMarketplaceFinancialBadge
-    ? isPendingForBadge
-      ? global.t?.t('orders', 'label', 'pending').toUpperCase()
-      : global.t?.t('orders', 'label', 'paid').toUpperCase()
-    : String(localStatusRaw || '-').toUpperCase()
-  const orderStatusBadgeColor = shouldUseMarketplaceFinancialBadge
-    ? isPendingForBadge
-      ? '#D97706'
-      : '#16A34A'
-    : item?.status?.color || ppcColors.accentInfo
+  // Chip principal mostra sempre o status do pedido (nunca o status financeiro da invoice)
+  const orderStatusBadgeLabel = String(localStatusRaw || '-').toUpperCase()
+  const orderStatusBadgeColor = item?.status?.color || ppcColors.accentInfo
+  // Chip de pagamento (PAGO / PENDENTE) exibido na seção de pagamento
+  const paymentStatusLabel = isPendingForBadge
+    ? global.t?.t('orders', 'label', 'pending').toUpperCase()
+    : global.t?.t('orders', 'label', 'paid').toUpperCase()
+  const paymentStatusColor = isPendingForBadge ? '#D97706' : '#16A34A'
   const fallbackNoObservationText = isFood99Order
     ? global.t?.t('orders', 'message', 'noObservations99Food')
     : isIfoodOrder
@@ -2253,6 +2250,18 @@ const OrderDetails = ({ route, navigation }) => {
             <Text style={localStyles.mobileNoteText}>{orderObservationText}</Text>
           </View>
         )}
+      </View>
+
+      <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+        <View style={[localStyles.mobileStatusBadge, {
+          borderColor: paymentStatusColor,
+          backgroundColor: paymentStatusColor + '14',
+        }]}>
+          <View style={[localStyles.mobileStatusDot, { backgroundColor: paymentStatusColor }]} />
+          <Text style={[localStyles.mobileStatusText, { color: paymentStatusColor }]}>
+            {paymentStatusLabel}
+          </Text>
+        </View>
       </View>
 
       <View style={localStyles.mobilePaymentGrid}>
