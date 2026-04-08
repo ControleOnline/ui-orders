@@ -1,30 +1,26 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
-  View,
+  Button,
+  Modal,
   ScrollView,
+  View,
   Text,
   TouchableOpacity,
-  Modal,
-  Button,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import InfinitePay from './InfinitePay';
-import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useStore} from '@store';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
-import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
-import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
+import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
+import Formatter from '@controleonline/ui-common/src/utils/formatter';
 
 const Checkout = ({
   createInvoice,
   cancelOperation,
   remoteCheckoutMode = false,
   paymentType = {},
+  paymentValue = 0,
 }) => {
-  const {styles, globalStyles} = css();
   const ordersStore = useStore('orders');
   const orderGetters = ordersStore.getters;
   const walletPaymentTypeStore = useStore('walletPaymentType');
@@ -57,6 +53,13 @@ const Checkout = ({
         handlePay();
     }, [selectedPayment]),
   );
+
+  useEffect(() => {
+    if (remoteCheckoutMode) {
+      setSelectedPayment(paymentType);
+      handleConfirmValue(paymentValue);
+    }
+  }, [paymentType, paymentValue, remoteCheckoutMode]);
 
   const handlePay = async () => {
     if (
@@ -128,74 +131,34 @@ const Checkout = ({
       if (!response.success || response.code === 2 || response.code === 1)
         throw response;
 
-      createInvoice(response.result.paidAmount / 100 || order.price);
+      createInvoice(
+        {
+          ...selectedPayment,
+          installments,
+        },
+        response.result.paidAmount / 100 || order.price,
+      );
     } catch (error) {
       invoiceActions.setError(error);
     }
   };
 
-  return remoteCheckoutMode ? null : (
-    <>
-      <SafeAreaView style={[styles.container]}>
-        {!invoiceIsSaving &&
-          !invoiceError &&
-          payments &&
-          payments.length > 0 &&
-          !error && (
-            <>
-              <ScrollView
-                contentContainerStyle={[
-                  styles.scrollContent,
-                  {paddingBottom: 100},
-                  {flexGrow: 1},
-                ]}>
-                <View>
-                  {payments.map(payment => (
-                    <TouchableOpacity
-                      key={payment.paymentType.id}
-                      onPress={() => selectPayment(payment)}>
-                      <View
-                        style={[
-                          styles.boxPayment,
-                          selectedPayment.paymentType?.id ===
-                            payment.paymentType.id && styles.selectedBoxPayment,
-                        ]}>
-                        <View style={styles.paymentIcon}>
-                          {selectedPayment.paymentType?.id ===
-                          payment.paymentType.id ? (
-                            <Icon name="check-box" size={24} color="black" />
-                          ) : (
-                            <Icon
-                              name="check-box-outline-blank"
-                              size={22}
-                              color="black"
-                            />
-                          )}
-                        </View>
-                        <View>
-                          <Text style={{color: '#666'}}>
-                            {payment.paymentType.paymentType}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </>
-          )}
-        <PayableToolbar />
+  if (remoteCheckoutMode) {
+    return null;
+  }
 
-        <View style={[styles.toolbar]}>
-          <OrderTotalToolbar />
-          <TouchableOpacity
-            onPress={() => handlePay()}
-            disabled={!selectedPayment}
-            style={[globalStyles.button]}>
-            <Text style={globalStyles.btnText}>{global.t?.t('orders', 'button', 'pay').toUpperCase()}</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+  return (
+    <>
+      <PaymentCheckoutPanel
+        payments={payments}
+        selectedPayment={selectedPayment}
+        onSelectPayment={selectPayment}
+        onPay={handlePay}
+        payDisabled={!selectedPayment}
+        invoiceIsSaving={invoiceIsSaving}
+        invoiceError={invoiceError}
+        error={error}
+      />
 
       <Modal
         animationType="slide"
