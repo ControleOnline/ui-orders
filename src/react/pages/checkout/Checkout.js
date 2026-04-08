@@ -13,7 +13,6 @@ import {
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-import {api} from '@controleonline/ui-common/src/api';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
@@ -22,6 +21,7 @@ import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Ch
 import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
 import {
   buildWalletIdsForGateway,
+  filterDeviceConfigsByCompany,
   getPaymentGatewayLabel,
   resolveRemotePaymentDeviceOptions,
   supportsLocalCardPayment,
@@ -208,6 +208,9 @@ const Checkout = () => {
   const printStore = useStore('print');
   const printActions = printStore.actions;
 
+  const websocketStore = useStore('websocket');
+  const websocketActions = websocketStore.actions;
+
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
 
@@ -313,7 +316,9 @@ const Checkout = () => {
           people: '/people/' + currentCompany.id,
         })
         .then(data => {
-          setCompanyDeviceConfigs(Array.isArray(data) ? data : []);
+          setCompanyDeviceConfigs(
+            filterDeviceConfigsByCompany(data, currentCompany?.id),
+          );
         })
         .catch(() => {
           setCompanyDeviceConfigs([]);
@@ -496,7 +501,7 @@ const Checkout = () => {
 
       setRemoteSubmitting(true);
       try {
-        await api.post('/websocket', {
+        await websocketActions.send({
           destination: selectedRemoteDevice.deviceId,
           store: 'invoice',
           action: 'pay',
@@ -528,6 +533,7 @@ const Checkout = () => {
       order,
       selectedRemoteDevice,
       storagedDevice?.id,
+      websocketActions,
     ],
   );
 
@@ -624,9 +630,16 @@ const Checkout = () => {
         <Text style={styles.headerTitle}>Order #{order?.id}</Text>
       </View>
 
-      <StateStore store="invoice" />
-      <StateStore store="orders" />
-      <StateStore store="order_products" />
+      <StateStore
+        stores={[
+          'invoice',
+          'orders',
+          'order_products',
+          'walletPaymentType',
+          'device_config',
+          'websocket',
+        ]}
+      />
 
       {canRenderCheckout ? (
         <>

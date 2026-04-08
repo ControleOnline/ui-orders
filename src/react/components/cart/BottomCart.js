@@ -35,7 +35,7 @@ const BottomCart = ({bottomOffset = 0}) => {
   );
 
   const handlePay = item => {
-    navigation.navigate('Checkout', {orderId: item.id});
+    navigation.navigate('OrderDetails', {order: item});
   };
 
   const canPay = !!order?.id;
@@ -58,8 +58,8 @@ const BottomCart = ({bottomOffset = 0}) => {
             styles.checkoutButton,
             !canPay && styles.checkoutButtonDisabled,
           ]}>
-          <Icon color="#fff" name="check-circle" size={16} />
-          <Text style={styles.checkoutButtonText}>{global.t?.t('orders', 'button', 'closeOrder')}</Text>
+          <Icon color="#fff" name="clipboard" size={16} />
+          <Text style={styles.checkoutButtonText}>Conferir pedido</Text>
         </TouchableOpacity>
       </View>
     </>
