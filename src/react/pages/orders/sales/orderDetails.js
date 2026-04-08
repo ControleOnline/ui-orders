@@ -575,15 +575,18 @@ const OrderDetails = ({ route, navigation }) => {
         (currentIfoodMerchantDelivery || currentIfoodRiderAssigned)
 
       const caps = orderCapabilities || {}
+      // 'finalize' bypassa verificação de capabilities — usado para concluir pedidos sem ações disponíveis
       if (
-        (action === 'ready' && caps.can_ready === false && !(isIfoodOrder && currentIfoodReadyLifecycle)) ||
-        (action === 'cancel' && caps.can_cancel === false) ||
-        (
-          action === 'delivered' &&
-          caps.can_delivered === false &&
-          !(isIfoodOrder && currentIfoodMerchantDelivery && currentIfoodDeliveryActionState)
-        ) ||
-        (action === 'confirm' && caps.can_confirm === false)
+        action !== 'finalize' && (
+          (action === 'ready' && caps.can_ready === false && !(isIfoodOrder && currentIfoodReadyLifecycle)) ||
+          (action === 'cancel' && caps.can_cancel === false) ||
+          (
+            action === 'delivered' &&
+            caps.can_delivered === false &&
+            !(isIfoodOrder && currentIfoodMerchantDelivery && currentIfoodDeliveryActionState)
+          ) ||
+          (action === 'confirm' && caps.can_confirm === false)
+        )
       ) {
         return
       }
@@ -606,11 +609,16 @@ const OrderDetails = ({ route, navigation }) => {
               path: `/marketplace/integrations/ifood/orders/${item.id}/delivered`,
               success: global.t?.t('orders', 'message', 'orderDelivered'),
             },
+            finalize: {
+              path: `/orders/${item.id}/delivered`,
+              success: global.t?.t('orders', 'message', 'orderDelivered'),
+            },
           }
         : {
             ready: { path: `/orders/${item.id}/ready`, success: global.t?.t('orders', 'message', 'orderReady') },
             cancel: { path: `/orders/${item.id}/cancel`, success: global.t?.t('orders', 'message', 'orderCanceled') },
             delivered: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
+            finalize: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
           }
 
       const actionConfig = actionMap[action]
@@ -684,7 +692,7 @@ const OrderDetails = ({ route, navigation }) => {
 
         showSuccess(actionConfig.success)
 
-        if (isKds && (action === 'cancel' || action === 'delivered')) {
+        if (isKds && (action === 'cancel' || action === 'delivered' || action === 'finalize')) {
           navigation.goBack()
         }
       } catch (actionError) {
@@ -1619,6 +1627,23 @@ const OrderDetails = ({ route, navigation }) => {
       ? effectiveCaps.can_delivered
       : platformCapabilities.canDeliver) &&
     !isTerminalFood99Order
+
+  // Finalizar: aparece quando não há mais ações disponíveis e o pedido ainda não foi encerrado
+  const canFinalizeFood99Order =
+    (isFood99Order || isIfoodOrder) &&
+    !isTerminalFood99Order &&
+    !(isIfoodOrder && effectiveCaps?.can_confirm) &&
+    !canCancelFood99Order &&
+    !canReadyFood99Order &&
+    !shouldShowFood99DeliveryAction
+
+  const canFinalizeGenericOrder =
+    !isFood99Order &&
+    !isIfoodOrder &&
+    !isTerminalFood99Order &&
+    !shouldShowKdsCancel &&
+    !canGenericReadyOrder &&
+    !canGenericDeliveredOrder
 
   const closeFood99DeliveryFlow = useCallback(() => {
     if (food99ActionLoading) {
@@ -3808,6 +3833,23 @@ const OrderDetails = ({ route, navigation }) => {
                       )}
                     </TouchableOpacity>
                   )}
+                  {canFinalizeFood99Order && (
+                    <TouchableOpacity
+                      onPress={() => runOrderAction('finalize')}
+                      disabled={!!orderActionLoading || !!food99ActionLoading}
+                      style={[
+                        localStyles.kdsActionButton,
+                        localStyles.kdsActionSuccess,
+                        (!!orderActionLoading || !!food99ActionLoading) && localStyles.kdsActionButtonDisabled,
+                      ]}
+                    >
+                      {orderActionLoading === 'finalize' ? (
+                        <ActivityIndicator size="small" color="#F8FAFC" />
+                      ) : (
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
                 </View>
               ) : (
                 <View style={localStyles.kdsActionRow}>
@@ -3859,6 +3901,23 @@ const OrderDetails = ({ route, navigation }) => {
                         <ActivityIndicator size="small" color="#F8FAFC" />
                       ) : (
                         <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  {canFinalizeGenericOrder && (
+                    <TouchableOpacity
+                      onPress={() => runOrderAction('finalize')}
+                      disabled={orderActionLoading === 'finalize'}
+                      style={[
+                        localStyles.kdsActionButton,
+                        localStyles.kdsActionSuccess,
+                        orderActionLoading === 'finalize' && localStyles.kdsActionButtonDisabled,
+                      ]}
+                    >
+                      {orderActionLoading === 'finalize' ? (
+                        <ActivityIndicator size="small" color="#F8FAFC" />
+                      ) : (
+                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
                       )}
                     </TouchableOpacity>
                   )}
