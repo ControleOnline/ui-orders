@@ -511,6 +511,9 @@ const Checkout = () => {
           'master-device': storagedDevice?.id,
         });
 
+        // Cria a invoice vinculada ao pedido após o comando de pagamento ser enviado
+        createInvoice(selectedPayment, total);
+
         Alert.alert(
           'Pagamento enviado',
           `Pedido enviado para ${selectedRemoteDevice.alias}.`,

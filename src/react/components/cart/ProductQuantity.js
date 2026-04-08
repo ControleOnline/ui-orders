@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useState, useRef} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useStore} from '@store';
@@ -21,9 +21,11 @@ const styles = {
 const ProductQuantity = ({product}) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
   const {item: order} = ordersGetters;
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(0);
+  const saveTimerRef = useRef(null);
 
   const changePrice = p => {
     setTimeout(() => {
@@ -31,19 +33,39 @@ const ProductQuantity = ({product}) => {
     }, 1);
   };
 
+  // Persiste a quantidade diretamente no order com debounce de 400ms
+  const scheduleSave = useCallback(
+    newQty => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (newQty <= 0 || !order?.['@id']) return;
+      saveTimerRef.current = setTimeout(() => {
+        ordersActions.addProducts(order['@id'].replace(/\D/g, ''), [
+          {
+            product: product['@id'].replace(/\D/g, ''),
+            quantity: newQty,
+          },
+        ]);
+        saveTimerRef.current = null;
+      }, 400);
+    },
+    [order, ordersActions, product],
+  );
+
   const increaseQuantity = useCallback(() => {
     const newQuantity = qtd + 1;
     product.quantity = newQuantity;
     setQtd(newQuantity);
     changePrice(product.price);
-  }, [qtd, product, order]);
+    scheduleSave(newQuantity);
+  }, [qtd, product, scheduleSave]);
 
   const decreaseQuantity = useCallback(() => {
     const newQuantity = qtd > 0 ? qtd - 1 : 0;
     product.quantity = newQuantity;
     setQtd(newQuantity);
     changePrice(product.price * -1);
-  }, [qtd, product, order]);
+    if (newQuantity > 0) scheduleSave(newQuantity);
+  }, [qtd, product, scheduleSave]);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,22 +74,6 @@ const ProductQuantity = ({product}) => {
       if (qtd > 1) setDecreaseIcon('remove');
     }, [qtd]),
   );
-
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        handleSave();
-      };
-    }, []),
-  );
-
-  const handleSave = useCallback(() => {
-    if (product.quantity > 0)
-      eventBus.emit('add-product', {
-        product: product['@id'].replace(/\D/g, ''),
-        quantity: product.quantity,
-      });
-  }, [product]);
 
   return (
     <View style={styles.container}>
