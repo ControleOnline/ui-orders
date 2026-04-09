@@ -511,13 +511,9 @@ const Checkout = () => {
           'master-device': storagedDevice?.id,
         });
 
-        // Cria a invoice vinculada ao pedido após o comando de pagamento ser enviado
-        // A navegação é tratada internamente pelo createInvoice após salvar
-        createInvoice(selectedPayment, total);
-
         Alert.alert(
           'Pagamento enviado',
-          `Pedido enviado para ${selectedRemoteDevice.alias}.`,
+          `Pagamento enviado para ${selectedRemoteDevice.alias}. A conclusao da fatura sera feita no device remoto.`,
         );
       } catch (error) {
         invoiceActions.setError(

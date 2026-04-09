@@ -381,16 +381,10 @@ const OrderDetails = ({ route, navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (
-        invoices &&
-        invoices.length === 0 &&
-        orderParam &&
-        orderParam['@id'] &&
-        !isLoading
-      ) {
+      if (orderParam && orderParam['@id']) {
         invoiceActions.getItems({ 'order.order': orderParam['@id'] })
       }
-    }, [invoices, orderParam, isLoading]),
+    }, [invoiceActions, orderParam]),
   )
 
   useFocusEffect(
@@ -404,6 +398,11 @@ const OrderDetails = ({ route, navigation }) => {
   const handleAddProduct = () => {
     navigation.navigate('AddProductScreen')
   }
+
+  const handleAddPayment = useCallback(() => {
+    if (!item?.id) return
+    navigation.navigate('Checkout', { order: item })
+  }, [item, navigation])
 
   const refreshCurrentOrder = useCallback(async () => {
     if (orderParam && orderParam['@id']) {
@@ -1431,6 +1430,11 @@ const OrderDetails = ({ route, navigation }) => {
     : 0
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
+  const canAddOrderPayment =
+    !isFood99Order &&
+    !isIfoodOrder &&
+    !!item?.id &&
+    localPendingAmount > 0
   const food99AmountPending = resolvePreferredMoney(
     food99Payment?.amount_pending,
     food99CashCollectionAmount,
@@ -3935,6 +3939,18 @@ const OrderDetails = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
 
+                {canAddOrderPayment && (
+                  <TouchableOpacity
+                    onPress={handleAddPayment}
+                    style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
+                  >
+                    <Icon name="payments" size={18} color="#fff" />
+                    <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>
+                      {global.t?.t('orders', 'button', 'pay') || 'Pagar'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
                   onPress={handleOrderTools}
                   style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
@@ -3968,6 +3984,18 @@ const OrderDetails = ({ route, navigation }) => {
                     <Icon name={editMode ? 'check' : 'edit'} size={24} color="#fff" />
                     <Text style={{ color: '#fff', marginLeft: 8 }}>
                       {editMode ? 'Concluir edição' : 'Editar itens'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {canAddOrderPayment && (
+                  <TouchableOpacity
+                    onPress={handleAddPayment}
+                    style={[globalStyles.button, { marginRight: 5 }]}
+                  >
+                    <Icon name="payments" size={24} color="#fff" />
+                    <Text style={{ color: '#fff', marginLeft: 8 }}>
+                      {global.t?.t('orders', 'button', 'pay') || 'Pagar'}
                     </Text>
                   </TouchableOpacity>
                 )}

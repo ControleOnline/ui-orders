@@ -36,6 +36,7 @@ const PrinterButton = ({
   const {item: device_config} = deviceConfigGetters;
 
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedPrinterDevice, setSelectedPrinterDevice] = useState('');
 
   useEffect(() => {
     if (
@@ -43,25 +44,32 @@ const PrinterButton = ({
       printers.length > 0 &&
       device_config &&
       device_config.configs
-    )
-      printerActions.setItem(
-        printers.find(p => p.device === device_config.configs.printer),
+    ) {
+      const matchedPrinter = printers.find(
+        p => p.device === device_config.configs.printer,
       );
+      printerActions.setItem(matchedPrinter || null);
+      setSelectedPrinterDevice(
+        matchedPrinter?.device || device_config.configs.printer || '',
+      );
+    }
   }, [device_config, printers]);
 
   const handleOpenPrinters = () => {
     setIsModalVisible(true);
   };
   const handleSelectPrinter = index => {
+    const nextPrinterDevice = printers[index]?.device;
     deviceConfigsActions
       .addDeviceConfigs({
         configs: JSON.stringify({
-          printer: printers[index].device,
+          printer: nextPrinterDevice,
         }),
         people: '/people/' + currentCompany.id,
       })
       .then(() => {
         setIsModalVisible(false);
+        setSelectedPrinterDevice(nextPrinterDevice || '');
         printerActions.setItem(printers[index]);
       });
   };
@@ -72,7 +80,17 @@ const PrinterButton = ({
     }
 
     try {
-      const targetDevice = printer?.device || device_config?.configs?.printer || null;
+      const targetDevice =
+        selectedPrinterDevice ||
+        printer?.device ||
+        device_config?.configs?.printer ||
+        null;
+      if (!targetDevice) {
+        storeActions.setError(
+          global.t?.t('orders', 'title', 'selectPrinter'),
+        );
+        return;
+      }
       printActions.addToPrint({
         printType: printType,
         id:
@@ -98,7 +116,12 @@ const PrinterButton = ({
     return null;
   }
 
-  const printDisabled = disabled || isLoading || !printer;
+  const resolvedPrinterDevice =
+    selectedPrinterDevice ||
+    printer?.device ||
+    device_config?.configs?.printer ||
+    '';
+  const printDisabled = disabled || isLoading || !resolvedPrinterDevice;
 
   return (
     <View
