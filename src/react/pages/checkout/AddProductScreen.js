@@ -54,15 +54,10 @@ const CheckoutContent = ({navigation}) => {
   );
   useFocusEffect(
     useCallback(() => {
-      if (
-        status &&
-        currentCompany &&
-        orders &&
-        orders.length === 0 &&
-        order === null
-      )
-        setForceCreate(true);
-    }, [currentCompany, order, orders]),
+      // Cria nova order sempre que não há uma ativa no PDV,
+      // independente de existirem outros pedidos na lista de histórico
+      if (status && currentCompany && order === null) setForceCreate(true);
+    }, [currentCompany, order, status]),
   );
 
   return <Component />;

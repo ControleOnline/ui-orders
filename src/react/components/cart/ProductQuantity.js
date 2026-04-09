@@ -1,4 +1,4 @@
-import React, {useCallback, useState, useRef} from 'react';
+import React, {useCallback, useState, useRef, useEffect} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useStore} from '@store';
@@ -26,6 +26,11 @@ const ProductQuantity = ({product}) => {
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(0);
   const saveTimerRef = useRef(null);
+  // Ref sempre atualizada com a order mais recente — usada dentro do debounce
+  const orderRef = useRef(order);
+  useEffect(() => {
+    orderRef.current = order;
+  }, [order]);
 
   const changePrice = p => {
     setTimeout(() => {
@@ -33,13 +38,17 @@ const ProductQuantity = ({product}) => {
     }, 1);
   };
 
-  // Persiste a quantidade diretamente no order com debounce de 400ms
+  // Persiste a quantidade diretamente no order com debounce de 400ms.
+  // Usa orderRef para pegar a order atual no momento do disparo,
+  // mesmo que a order ainda estivesse sendo criada quando o usuário clicou.
   const scheduleSave = useCallback(
     newQty => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      if (newQty <= 0 || !order?.['@id']) return;
+      if (newQty <= 0) return;
       saveTimerRef.current = setTimeout(() => {
-        ordersActions.addProducts(order['@id'].replace(/\D/g, ''), [
+        const currentOrder = orderRef.current;
+        if (!currentOrder?.['@id']) return;
+        ordersActions.addProducts(currentOrder['@id'].replace(/\D/g, ''), [
           {
             product: product['@id'].replace(/\D/g, ''),
             quantity: newQty,
@@ -48,7 +57,7 @@ const ProductQuantity = ({product}) => {
         saveTimerRef.current = null;
       }, 400);
     },
-    [order, ordersActions, product],
+    [ordersActions, product],
   );
 
   const increaseQuantity = useCallback(() => {
