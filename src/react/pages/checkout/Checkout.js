@@ -512,13 +512,13 @@ const Checkout = () => {
         });
 
         // Cria a invoice vinculada ao pedido após o comando de pagamento ser enviado
+        // A navegação é tratada internamente pelo createInvoice após salvar
         createInvoice(selectedPayment, total);
 
         Alert.alert(
           'Pagamento enviado',
           `Pedido enviado para ${selectedRemoteDevice.alias}.`,
         );
-        navigation.navigate('OrderDetails', {order});
       } catch (error) {
         invoiceActions.setError(
           error?.message || 'Nao foi possivel enviar o pagamento remoto.',
@@ -532,7 +532,6 @@ const Checkout = () => {
     [
       createInvoice,
       invoiceActions,
-      navigation,
       order,
       selectedRemoteDevice,
       storagedDevice?.id,
