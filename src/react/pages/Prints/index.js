@@ -112,9 +112,7 @@ const PrintQueuePage = ({navigation}) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [screenError, setScreenError] = useState('');
-  const [printingId, setPrintingId] = useState(null);
-  const [completingId, setCompletingId] = useState(null);
-  const [printedIds, setPrintedIds] = useState({});
+  const [processingId, setProcessingId] = useState(null);
   const deviceEntityIri =
     storagedDevice?.entityIri ||
     (storagedDevice?.entityId ? `/devices/${storagedDevice.entityId}` : null);
@@ -179,7 +177,7 @@ const PrintQueuePage = ({navigation}) => {
       return;
     }
 
-    setPrintingId(spoolId);
+    setProcessingId(spoolId);
 
     try {
       const spoolItem = await api.fetch(`/spools/${spoolId}`);
@@ -198,26 +196,6 @@ const PrintQueuePage = ({navigation}) => {
         );
       }
 
-      setPrintedIds(previous => ({
-        ...previous,
-        [spoolId]: true,
-      }));
-
-      Alert.alert(
-        'Impressao enviada',
-        'A Cielo recebeu a impressao localmente. Agora voce pode concluir para limpar a fila.',
-      );
-    } catch (error) {
-      Alert.alert('Falha ao imprimir', formatApiError(error));
-    } finally {
-      setPrintingId(null);
-    }
-  }, []);
-
-  const completeSpool = useCallback(async spoolId => {
-    setCompletingId(spoolId);
-
-    try {
       await api.fetch(`/print/${spoolId}/done`, {
         method: 'PUT',
       });
@@ -225,44 +203,20 @@ const PrintQueuePage = ({navigation}) => {
       setSpools(previous =>
         previous.filter(item => resolveSpoolId(item) !== spoolId),
       );
-      setPrintedIds(previous => {
-        const nextState = {...previous};
-        delete nextState[spoolId];
-        return nextState;
-      });
+
+      Alert.alert(
+        'Impressao concluida',
+        'A impressao foi enviada para a Cielo e removida da fila.',
+      );
     } catch (error) {
-      Alert.alert('Falha ao concluir', formatApiError(error));
+      Alert.alert(
+        'Falha no processamento',
+        formatApiError(error),
+      );
     } finally {
-      setCompletingId(null);
+      setProcessingId(null);
     }
   }, []);
-
-  const handleComplete = useCallback(
-    spool => {
-      const spoolId = resolveSpoolId(spool);
-      if (!spoolId) {
-        Alert.alert('Falha ao concluir', 'Nao foi possivel identificar o item.');
-        return;
-      }
-
-      const hasLocalPrintConfirmation = Boolean(printedIds[spoolId]);
-      const message = hasLocalPrintConfirmation
-        ? 'Isso remove o item da spool e apaga o arquivo vinculado. Deseja continuar?'
-        : 'Ainda nao houve confirmacao de impressao nesta tela. Concluir vai remover o item da spool e apagar o arquivo vinculado. Deseja continuar?';
-
-      Alert.alert('Concluir impressao', message, [
-        {text: 'Cancelar', style: 'cancel'},
-        {
-          text: 'Concluir',
-          style: 'destructive',
-          onPress: () => {
-            completeSpool(spoolId);
-          },
-        },
-      ]);
-    },
-    [completeSpool, printedIds],
-  );
 
   const renderEmptyState = useMemo(
     () => (
@@ -283,10 +237,7 @@ const PrintQueuePage = ({navigation}) => {
 
   const renderItem = ({item}) => {
     const spoolId = resolveSpoolId(item);
-    const isPrinting = printingId === spoolId;
-    const isCompleting = completingId === spoolId;
-    const isBusy = isPrinting || isCompleting;
-    const wasPrintedLocally = Boolean(printedIds[spoolId]);
+    const isProcessing = processingId === spoolId;
     const statusColor = getStatusColor(item, colors?.primary || '#1B5587');
 
     return (
@@ -321,11 +272,6 @@ const PrintQueuePage = ({navigation}) => {
           <Text style={localStyles.metaLine}>
             Usuario: {item?.user?.username || item?.user?.email || '--'}
           </Text>
-          {wasPrintedLocally && (
-            <Text style={[localStyles.metaLine, localStyles.localPrintedText]}>
-              Impresso localmente nesta sessao
-            </Text>
-          )}
         </View>
 
         <View style={localStyles.actionsRow}>
@@ -333,32 +279,18 @@ const PrintQueuePage = ({navigation}) => {
             style={[
               globalStyles.button,
               localStyles.primaryAction,
-              isBusy && localStyles.buttonDisabled,
+              isProcessing && localStyles.buttonDisabled,
             ]}
             onPress={() => handlePrint(item)}
-            disabled={isBusy}>
-            {isPrinting ? (
+            disabled={isProcessing}>
+            {isProcessing ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Icon name="print" size={18} color="#fff" />
             )}
-            <Text style={localStyles.buttonText}>Imprimir</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              globalStyles.button,
-              localStyles.secondaryAction,
-              isBusy && localStyles.buttonDisabled,
-            ]}
-            onPress={() => handleComplete(item)}
-            disabled={isBusy}>
-            {isCompleting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Icon name="done-all" size={18} color="#fff" />
-            )}
-            <Text style={localStyles.buttonText}>Concluir</Text>
+            <Text style={localStyles.buttonText}>
+              {isProcessing ? 'Processando...' : 'Imprimir'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -391,8 +323,9 @@ const PrintQueuePage = ({navigation}) => {
           style={localStyles.infoIcon}
         />
         <Text style={localStyles.infoText}>
-          Use esta tela quando o auto-print falhar. O botão concluir remove o
-          registro da spool e o arquivo associado no backend.
+          Use esta tela quando o auto-print falhar. O botão imprime localmente
+          na Cielo e, se der certo, remove o registro da spool e o arquivo
+          associado no backend na mesma ação.
         </Text>
       </View>
 
@@ -517,19 +450,11 @@ const localStyles = StyleSheet.create({
     color: '#334155',
     marginBottom: 6,
   },
-  localPrintedText: {
-    color: '#047857',
-    fontWeight: '600',
-  },
   actionsRow: {
-    flexDirection: 'row',
     marginTop: 16,
   },
   primaryAction: {
     backgroundColor: '#1d4ed8',
-  },
-  secondaryAction: {
-    backgroundColor: '#0f766e',
   },
   buttonDisabled: {
     opacity: 0.6,
