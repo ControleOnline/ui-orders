@@ -73,6 +73,23 @@ const decodePrintPayload = content => {
   return content;
 };
 
+const withTimeout = (promise, ms, message) =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(message));
+    }, ms);
+
+    promise
+      .then(value => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(error => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+
 const sortSpools = items =>
   [...items].sort((left, right) => {
     const leftDate = new Date(left?.registerDate || 0).getTime() || 0;
@@ -187,7 +204,11 @@ const PrintQueuePage = ({navigation}) => {
 
       const payload = decodePrintPayload(spoolItem.file.content);
       const cielo = new CieloPrint();
-      const response = await cielo.print(payload);
+      const response = await withTimeout(
+        cielo.print(payload),
+        45000,
+        'Timeout na impressao local. Verifique a Cielo e tente novamente.',
+      );
 
       if (response?.success === false) {
         throw new Error(
@@ -196,9 +217,21 @@ const PrintQueuePage = ({navigation}) => {
         );
       }
 
-      await api.fetch(`/print/${spoolId}/done`, {
-        method: 'PUT',
-      });
+      try {
+        await withTimeout(
+          api.fetch(`/print/${spoolId}/done`, {
+            method: 'PUT',
+          }),
+          15000,
+          'Timeout ao concluir no backend. Tente novamente.',
+        );
+      } catch (doneError) {
+        Alert.alert(
+          'Impressao enviada',
+          'A impressao foi enviada, mas falhou ao concluir no backend. Tente novamente para remover da fila.',
+        );
+        throw doneError;
+      }
 
       setSpools(previous =>
         previous.filter(item => resolveSpoolId(item) !== spoolId),
@@ -209,10 +242,7 @@ const PrintQueuePage = ({navigation}) => {
         'A impressao foi enviada para a Cielo e removida da fila.',
       );
     } catch (error) {
-      Alert.alert(
-        'Falha no processamento',
-        formatApiError(error),
-      );
+      Alert.alert('Falha no processamento', formatApiError(error));
     } finally {
       setProcessingId(null);
     }
