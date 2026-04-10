@@ -86,6 +86,14 @@ export default function HomePage({navigation}) {
       backgroundColor: '#4682b4',
       onPress: () => handleTo('CashRegisterIndex'),
     },
+    {
+      id: '3',
+      title: 'Impressões',
+      icon: 'print',
+      iconLibrary: 'material',
+      backgroundColor: '#0f766e',
+      onPress: () => handleTo('PrintQueuePage'),
+    },
   ];
 
   const renderButton = ({item}) => (

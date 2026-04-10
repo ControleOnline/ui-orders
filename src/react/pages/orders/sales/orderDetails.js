@@ -374,7 +374,6 @@ const OrderDetails = ({ route, navigation }) => {
       : String(channelLabel || 'Marketplace')
   const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
   const cancelReasonChannelLabel = isIfoodOrder ? 'iFood' : '99Food'
-  const [orderCapabilities, setOrderCapabilities] = useState(null)
   const [orderActionLoading, setOrderActionLoading] = useState('')
 
   const orderProductsStore = useStore('order_products')
@@ -493,17 +492,6 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [opLoadingId, orderProductsStore.actions, refreshCurrentOrder, showError])
 
-  const loadOrderCapabilities = useCallback(async () => {
-    if (!item?.id) return
-
-    try {
-      const response = await api.fetch(`/orders/${item.id}/capabilities`)
-      setOrderCapabilities(response || null)
-    } catch {
-      // silencioso: capabilities sÃ£o complementares ao estado Food99
-    }
-  }, [item?.id])
-
   const loadFood99OrderState = useCallback(async ({ silent = false } = {}) => {
     if (!item?.id || (!isFood99Order && !isIfoodOrder)) {
       setFood99State(null)
@@ -530,14 +518,6 @@ const OrderDetails = ({ route, navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (item?.id) {
-        loadOrderCapabilities()
-      }
-    }, [item?.id, loadOrderCapabilities]),
-  )
-
-  useFocusEffect(
-    useCallback(() => {
       if (item?.id && (isFood99Order || isIfoodOrder)) {
         loadFood99OrderState({ silent: true })
       }
@@ -557,9 +537,6 @@ const OrderDetails = ({ route, navigation }) => {
         return
       }
 
-      const currentRemoteOrderStateKey = String(
-        food99State?.integration?.remote_order_state || '',
-      ).toLowerCase()
       const currentLocalOrderRealStatus = String(
         food99State?.order?.status?.real_status ||
         food99State?.order?.status?.realStatus ||
@@ -567,71 +544,27 @@ const OrderDetails = ({ route, navigation }) => {
         orderParam?.status?.realStatus ||
         '',
       ).toLowerCase()
-      const currentIfoodLastEventType = String(
-        food99State?.integration?.last_event_type || '',
-      ).toLowerCase()
-      const currentIfoodLifecycleKey = currentRemoteOrderStateKey || currentIfoodLastEventType
       if (isTerminalOrderStatus(currentLocalOrderRealStatus)) {
-        return
-      }
-      const currentIfoodReadyLifecycle =
-        isIfoodOrder &&
-        (
-          ['new', 'open', 'placed', 'confirmed', 'ready', 'delivery_drop_code_requested', 'delivery_drop_code_validating'].includes(currentIfoodLifecycleKey)
-        )
-      const currentIfoodMerchantDelivery =
-        isIfoodOrder &&
-        (
-          normalizeText(food99State?.delivery?.delivered_by || '').toUpperCase() === 'MERCHANT' ||
-          food99State?.delivery?.is_store_delivery === true ||
-          normalizeText(food99State?.delivery?.delivery_label || '').toLowerCase().includes('loja')
-        )
-      const currentIfoodRiderAssigned =
-        isIfoodOrder &&
-        !!(
-          normalizeText(food99State?.delivery?.rider_name || '').trim() ||
-          normalizeText(food99State?.delivery?.rider_phone || '').trim() ||
-          Number(food99State?.delivery?.rider_to_store_eta || 0) > 0
-        )
-      const currentIfoodDeliveryActionState =
-        isIfoodOrder &&
-        ['dispatching', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(currentIfoodLifecycleKey) &&
-        !currentIfoodReadyLifecycle &&
-        (currentIfoodMerchantDelivery || currentIfoodRiderAssigned)
-
-      const caps = orderCapabilities || {}
-      // 'finalize' bypassa verificação de capabilities — usado para concluir pedidos sem ações disponíveis
-      if (
-        action !== 'finalize' && (
-          (action === 'ready' && caps.can_ready === false && !(isIfoodOrder && currentIfoodReadyLifecycle)) ||
-          (action === 'cancel' && caps.can_cancel === false) ||
-          (
-            action === 'delivered' &&
-            caps.can_delivered === false &&
-            !(isIfoodOrder && currentIfoodMerchantDelivery && currentIfoodDeliveryActionState)
-          ) ||
-          (action === 'confirm' && caps.can_confirm === false)
-        )
-      ) {
         return
       }
 
       const actionMap = isIfoodOrder
         ? {
             confirm: {
-              path: `/marketplace/integrations/ifood/orders/${item.id}/confirm`,
+              path: `/orders/${item.id}/confirm`,
               success: global.t?.t('orders', 'message', 'orderConfirmed'),
             },
             ready: {
-              path: `/marketplace/integrations/ifood/orders/${item.id}/ready`,
+              path: `/orders/${item.id}/ready`,
               success: global.t?.t('orders', 'message', 'orderReady'),
             },
             cancel: {
-              path: `/marketplace/integrations/ifood/orders/${item.id}/cancel`,
+              path: `/orders/${item.id}/cancel`,
               success: global.t?.t('orders', 'message', 'orderCanceled'),
             },
             delivered: {
-              path: `/marketplace/integrations/ifood/orders/${item.id}/delivered`,
+              path: `/orders/${item.id}/delivered`,
+              body: { defer_status_update: true },
               success: global.t?.t('orders', 'message', 'orderDelivered'),
             },
             finalize: {
@@ -659,6 +592,7 @@ const OrderDetails = ({ route, navigation }) => {
         const response = await api.fetch(actionConfig.path, {
           method: 'POST',
           body: {
+            ...(actionConfig?.body || {}),
             ...(options?.body || {}),
             ...(options?.deliveryCode ? { delivery_code: options.deliveryCode } : {}),
             ...(options?.locator ? { locator: options.locator } : {}),
@@ -668,12 +602,6 @@ const OrderDetails = ({ route, navigation }) => {
         const actionResult = response?.result || response
         if (normalizeErrno(actionResult?.errno) !== '0') {
           throw actionResult || response
-        }
-
-        if (response?.capabilities) {
-          setOrderCapabilities(response.capabilities)
-        } else if (response?.state?.capabilities) {
-          setOrderCapabilities(response.state.capabilities)
         }
 
         if (response?.state && (isActionFood99 || isIfoodOrder)) {
@@ -701,8 +629,6 @@ const OrderDetails = ({ route, navigation }) => {
 
         if (isActionFood99 || isIfoodOrder) {
           await loadFood99OrderState({ silent: true })
-        } else {
-          await loadOrderCapabilities()
         }
 
         if (action === 'delivered') {
@@ -732,7 +658,6 @@ const OrderDetails = ({ route, navigation }) => {
       orderParam,
       orderActionLoading,
       food99ActionLoading,
-      orderCapabilities,
       food99State,
       isFood99Order,
       isIfoodOrder,
@@ -743,7 +668,6 @@ const OrderDetails = ({ route, navigation }) => {
       isKds,
       navigation,
       loadFood99OrderState,
-      loadOrderCapabilities,
       resetFood99CancelReasonFlow,
     ],
   )
@@ -1179,8 +1103,6 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [food99State?.identifiers, fallbackFood99Identifiers])
   const food99Capabilities = food99State?.capabilities || {}
-  // capabilities efetivas: Food99 tem prioridade (dados em tempo real), generic como fallback
-  const effectiveCaps = Object.keys(food99Capabilities).length > 0 ? food99Capabilities : (orderCapabilities || {})
 
   const food99Scheduling = food99State?.scheduling || null
   const isScheduledOrder = food99Scheduling?.is_scheduled === true
@@ -1252,10 +1174,7 @@ const OrderDetails = ({ route, navigation }) => {
   const hasTerminalOrderState =
     isLocallyTerminalOrder ||
     isTerminalOrderStatus(normalizedOrderRealStatus)
-  const isTerminalFood99Order =
-    typeof effectiveCaps?.is_terminal === 'boolean'
-      ? effectiveCaps.is_terminal || hasTerminalOrderState
-      : hasTerminalOrderState
+  const isTerminalFood99Order = hasTerminalOrderState
   const isIfoodMerchantDelivery = isIfoodOrder && (
     normalizeText(food99Delivery?.delivered_by).toUpperCase() === 'MERCHANT' ||
     food99Delivery?.is_store_delivery === true ||
@@ -1268,46 +1187,30 @@ const OrderDetails = ({ route, navigation }) => {
   )
   // entrega da propria loja nao tem entregador — o rider nao e exigido para liberar a acao
   const isIfoodDeliveryActionState = isIfoodDispatchLifecycle && (isIfoodMerchantDelivery || isIfoodRiderAssigned)
-  const canCancelFood99Order =
-    !isTerminalFood99Order &&
-    (
-      isIfoodOrder
-        ? !isIfoodDispatchLifecycle
-        : typeof effectiveCaps?.can_cancel === 'boolean'
-          ? effectiveCaps.can_cancel
-          : platformCapabilities.canCancel
-    )
+  const canCancelFood99Order = !isTerminalFood99Order && platformCapabilities.canCancel
   const canManualCompleteFood99Order =
     !isTerminalFood99Order &&
     (
       isIfoodOrder
         ? isIfoodMerchantDelivery && isIfoodDeliveryActionState
-        : typeof effectiveCaps?.can_delivered === 'boolean'
-          ? effectiveCaps.can_delivered
-          : platformCapabilities.canDeliver && !!food99Delivery?.allows_manual_delivery_completion
+        : platformCapabilities.canDeliver && !!food99Delivery?.allows_manual_delivery_completion
     )
   const canOpenFood99HandoverFlow =
     !isTerminalFood99Order &&
     (
-      typeof effectiveCaps?.can_open_handover_flow === 'boolean'
-        ? effectiveCaps.can_open_handover_flow
-        : isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
+      !!food99Delivery?.handover_confirmation_url ||
+      !!food99Delivery?.handover_page_url ||
+      !!food99Identifiers?.handoverPageUrl ||
+      !!food99Identifiers?.handover_page_url ||
+      (isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState)
     )
   const isIfoodHandoverFlow =
     isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
   const requiresFood99DeliveryLocator =
     isFood99Order &&
-    (typeof effectiveCaps?.requires_delivery_locator === 'boolean'
-      ? effectiveCaps.requires_delivery_locator
-      : !!food99Delivery?.is_store_delivery)
-  const food99LocatorLength =
-    Number(effectiveCaps?.delivery_locator_length) > 0
-      ? Number(effectiveCaps.delivery_locator_length)
-      : 8
-  const food99DeliveryCodeLength =
-    Number(effectiveCaps?.delivery_code_length) > 0
-      ? Number(effectiveCaps.delivery_code_length)
-      : 4
+    !!food99Delivery?.is_store_delivery
+  const food99LocatorLength = 8
+  const food99DeliveryCodeLength = 4
   const shouldShowFood99DeliveryAction =
     isIfoodOrder
       ? canManualCompleteFood99Order
@@ -1338,10 +1241,8 @@ const OrderDetails = ({ route, navigation }) => {
     !isTerminalFood99Order &&
     (
       isIfoodOrder
-        ? isIfoodReadyLifecycle
-        : typeof effectiveCaps?.can_ready === 'boolean'
-          ? effectiveCaps.can_ready
-          : platformCapabilities.canReady && !shouldHideReadyFood99Action
+        ? platformCapabilities.canReady
+        : platformCapabilities.canReady && !shouldHideReadyFood99Action
     )
   const applicableFood99CancelReasons = Array.isArray(food99CancelReasons)
     ? food99CancelReasons.filter(reason => reason?.applicable !== false)
@@ -1509,8 +1410,7 @@ const OrderDetails = ({ route, navigation }) => {
     !!item?.id &&
     !isFood99Order &&
     !isIfoodOrder &&
-    !isTerminalFood99Order &&
-    localRealStatusLabel === 'open'
+    !isTerminalFood99Order
   const hasFood99SyncIssue =
     food99Observability?.is_healthy === false ||
     hasErrnoError(food99Integration?.last_action_errno) ||
@@ -1658,27 +1558,18 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const canConfirmIfoodOrder =
     isIfoodOrder &&
-    !isTerminalFood99Order &&
-    !!effectiveCaps?.can_confirm
+    !isTerminalFood99Order
   const shouldShowKdsCancel =
     !isTerminalFood99Order &&
-    (
-      typeof effectiveCaps?.can_cancel === 'boolean'
-        ? effectiveCaps.can_cancel
-        : platformCapabilities.canCancel
-    )
+    platformCapabilities.canCancel
   const canGenericReadyOrder =
     !isFood99Order &&
-    (typeof effectiveCaps?.can_ready === 'boolean'
-      ? effectiveCaps.can_ready
-      : platformCapabilities.canReady) &&
+    platformCapabilities.canReady &&
     !isTerminalFood99Order
   const canGenericDeliveredOrder =
     !isFood99Order &&
     !isIfoodOrder &&
-    (typeof effectiveCaps?.can_delivered === 'boolean'
-      ? effectiveCaps.can_delivered
-      : platformCapabilities.canDeliver) &&
+    platformCapabilities.canDeliver &&
     !isTerminalFood99Order
 
   // Finalizar: aparece quando não há mais ações disponíveis e o pedido ainda não foi encerrado
@@ -1759,42 +1650,7 @@ const OrderDetails = ({ route, navigation }) => {
 
     try {
       setFood99CancelReasonsLoading(true)
-      const response = await api.fetch(
-        `/orders/${item.id}/cancel-reasons`,
-      )
-
-      if (response?.state) {
-        setFood99State(response.state)
-      }
-
-      const reasons = Array.isArray(response?.result?.data?.reasons)
-        ? response.result.data.reasons.filter(Boolean)
-        : []
-
-      // plataformas sem reasons: cancela direto sem abrir modal
-      if (reasons.length === 0) {
-        if (!platformCapabilities.requiresCancelReasons) {
-          await runOrderAction('cancel')
-          return
-        }
-        showError(global.t?.t('orders', 'message', 'noCancelReasonAvailable'))
-        return
-      }
-
-      const applicableReasons = reasons.filter(reason => reason?.applicable !== false)
-      const defaultReason =
-        applicableReasons.find(reason => normalizeFood99CancelReasonId(reason?.reason_id) === '1080') ||
-        applicableReasons[0] ||
-        reasons[0]
-
-      setFood99CancelReasons(reasons)
-      setSelectedFood99CancelReasonId(
-        normalizeFood99CancelReasonId(defaultReason?.reason_id),
-      )
-      setFood99CancelReasonText('')
-      setCancelReasonModalVisible(true)
-    } catch (stateError) {
-      showError(formatApiError(stateError))
+      await runOrderAction('cancel')
     } finally {
       setFood99CancelReasonsLoading(false)
     }
@@ -1804,7 +1660,6 @@ const OrderDetails = ({ route, navigation }) => {
     food99ActionLoading,
     food99CancelReasonsLoading,
     platformCapabilities.canCancel,
-    showError,
     runOrderAction,
   ])
 

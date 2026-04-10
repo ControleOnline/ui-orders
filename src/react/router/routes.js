@@ -4,6 +4,7 @@ import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
+import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import { useStore } from '@store';
 
@@ -88,6 +89,16 @@ const ordersRoutes = [
       headerBackVisible: false,
       title: global.t?.t('orders', 'title', 'withdrawal'),
     },
+  },
+  {
+    name: 'PrintQueuePage',
+    component: PrintQueuePage,
+    options: {
+      headerShown: true,
+      headerBackVisible: true,
+      title: 'Impressões',
+    },
+    path: 'prints',
   },
   {
     name: 'AddProductScreen',
