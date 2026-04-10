@@ -3553,7 +3553,7 @@ const OrderDetails = ({ route, navigation }) => {
                       )}
                       {!!food99Integration?.cancel_reason && (
                         <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'reason')}: {food99Integration.cancel_reason}
+                          {global.t?.t('orders', 'label', 'leadSource')}: {food99Integration.cancel_reason}
                         </Text>
                       )}
                     </View>
