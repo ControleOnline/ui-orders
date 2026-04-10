@@ -1,8 +1,10 @@
 ﻿import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Modal,
+  Platform,
   Text,
   TextInput,
   View,
@@ -78,6 +80,10 @@ const formatFood99RiderEta = value => {
 }
 
 const normalizeErrno = value => String(value ?? '').trim()
+const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
+const isTerminalOrderStatus = value =>
+  TERMINAL_ORDER_STATUSES.includes(String(value ?? '').trim().toLowerCase())
+
 const normalizeText = value => {
   if (value === null || value === undefined) return ''
 
@@ -314,7 +320,6 @@ const OrderDetails = ({ route, navigation }) => {
   const [selectedFood99CancelReasonId, setSelectedFood99CancelReasonId] = useState(null)
   const [food99CancelReasonText, setFood99CancelReasonText] = useState('')
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
-  const [markPaidLoading, setMarkPaidLoading] = useState(false)
   const [deliveryCodeModalVisible, setDeliveryCodeModalVisible] = useState(false)
   const [deliveryFlowStep, setDeliveryFlowStep] = useState('locator')
   const [deliveryLocator, setDeliveryLocator] = useState('')
@@ -358,6 +363,9 @@ const OrderDetails = ({ route, navigation }) => {
   const channelKey = getOrderChannelKey(item || orderParam)
   const isFood99Order = channelKey === '99food'
   const isIfoodOrder = channelKey === 'ifood'
+  const isLocallyTerminalOrder =
+    isTerminalOrderStatus(item?.status?.realStatus) ||
+    isTerminalOrderStatus(orderParam?.status?.realStatus)
   const channelLabel = getOrderChannelLabel(item || orderParam) || global.t?.t('orders', 'label', 'order')
   const integrationChannelLabel = isFood99Order
     ? '99Food'
@@ -396,13 +404,14 @@ const OrderDetails = ({ route, navigation }) => {
   )
 
   const handleAddProduct = () => {
+    if (isLocallyTerminalOrder) return
     navigation.navigate('AddProductScreen')
   }
 
   const handleAddPayment = useCallback(() => {
-    if (!item?.id) return
+    if (!item?.id || isLocallyTerminalOrder) return
     navigation.navigate('Checkout', { order: item })
-  }, [item, navigation])
+  }, [item, navigation, isLocallyTerminalOrder])
 
   const refreshCurrentOrder = useCallback(async () => {
     if (orderParam && orderParam['@id']) {
@@ -410,7 +419,14 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [orderParam, ordersActions])
 
-  const canEditItems = !isFood99Order && !isIfoodOrder
+  const canEditItems = !isFood99Order && !isIfoodOrder && !isLocallyTerminalOrder
+
+  useEffect(() => {
+    if (isLocallyTerminalOrder) {
+      setEditMode(false)
+      setConfirmRemoveItemId(null)
+    }
+  }, [isLocallyTerminalOrder])
 
   const searchProducts = useCallback((query) => {
     if (!query.trim()) {
@@ -544,10 +560,20 @@ const OrderDetails = ({ route, navigation }) => {
       const currentRemoteOrderStateKey = String(
         food99State?.integration?.remote_order_state || '',
       ).toLowerCase()
+      const currentLocalOrderRealStatus = String(
+        food99State?.order?.status?.real_status ||
+        food99State?.order?.status?.realStatus ||
+        item?.status?.realStatus ||
+        orderParam?.status?.realStatus ||
+        '',
+      ).toLowerCase()
       const currentIfoodLastEventType = String(
         food99State?.integration?.last_event_type || '',
       ).toLowerCase()
       const currentIfoodLifecycleKey = currentRemoteOrderStateKey || currentIfoodLastEventType
+      if (isTerminalOrderStatus(currentLocalOrderRealStatus)) {
+        return
+      }
       const currentIfoodReadyLifecycle =
         isIfoodOrder &&
         (
@@ -1217,12 +1243,19 @@ const OrderDetails = ({ route, navigation }) => {
     ) &&
     !isIfoodReadyLifecycle
   const normalizedOrderRealStatus = String(
-    food99State?.order?.status?.real_status || item?.status?.realStatus || '',
+    food99State?.order?.status?.real_status ||
+    food99State?.order?.status?.realStatus ||
+    item?.status?.realStatus ||
+    orderParam?.status?.realStatus ||
+    '',
   ).toLowerCase()
+  const hasTerminalOrderState =
+    isLocallyTerminalOrder ||
+    isTerminalOrderStatus(normalizedOrderRealStatus)
   const isTerminalFood99Order =
     typeof effectiveCaps?.is_terminal === 'boolean'
-      ? effectiveCaps.is_terminal
-      : ['closed', 'canceled'].includes(normalizedOrderRealStatus)
+      ? effectiveCaps.is_terminal || hasTerminalOrderState
+      : hasTerminalOrderState
   const isIfoodMerchantDelivery = isIfoodOrder && (
     normalizeText(food99Delivery?.delivered_by).toUpperCase() === 'MERCHANT' ||
     food99Delivery?.is_store_delivery === true ||
@@ -1236,21 +1269,30 @@ const OrderDetails = ({ route, navigation }) => {
   // entrega da propria loja nao tem entregador — o rider nao e exigido para liberar a acao
   const isIfoodDeliveryActionState = isIfoodDispatchLifecycle && (isIfoodMerchantDelivery || isIfoodRiderAssigned)
   const canCancelFood99Order =
-    isIfoodOrder
-      ? !isTerminalFood99Order && !isIfoodDispatchLifecycle
-      : typeof effectiveCaps?.can_cancel === 'boolean'
-        ? effectiveCaps.can_cancel
-        : platformCapabilities.canCancel && !isTerminalFood99Order
+    !isTerminalFood99Order &&
+    (
+      isIfoodOrder
+        ? !isIfoodDispatchLifecycle
+        : typeof effectiveCaps?.can_cancel === 'boolean'
+          ? effectiveCaps.can_cancel
+          : platformCapabilities.canCancel
+    )
   const canManualCompleteFood99Order =
-    isIfoodOrder
-      ? isIfoodMerchantDelivery && isIfoodDeliveryActionState
-      : typeof effectiveCaps?.can_delivered === 'boolean'
-        ? effectiveCaps.can_delivered
-        : platformCapabilities.canDeliver && !!food99Delivery?.allows_manual_delivery_completion
+    !isTerminalFood99Order &&
+    (
+      isIfoodOrder
+        ? isIfoodMerchantDelivery && isIfoodDeliveryActionState
+        : typeof effectiveCaps?.can_delivered === 'boolean'
+          ? effectiveCaps.can_delivered
+          : platformCapabilities.canDeliver && !!food99Delivery?.allows_manual_delivery_completion
+    )
   const canOpenFood99HandoverFlow =
-    typeof effectiveCaps?.can_open_handover_flow === 'boolean'
-      ? effectiveCaps.can_open_handover_flow
-      : isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
+    !isTerminalFood99Order &&
+    (
+      typeof effectiveCaps?.can_open_handover_flow === 'boolean'
+        ? effectiveCaps.can_open_handover_flow
+        : isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
+    )
   const isIfoodHandoverFlow =
     isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
   const requiresFood99DeliveryLocator =
@@ -1293,11 +1335,14 @@ const OrderDetails = ({ route, navigation }) => {
   const isFood99CourierToStore = remoteOrderStateKey === 'courier_to_store'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
   const canReadyFood99Order =
-    isIfoodOrder
-      ? !isTerminalFood99Order && isIfoodReadyLifecycle
-      : typeof effectiveCaps?.can_ready === 'boolean'
-        ? effectiveCaps.can_ready
-        : platformCapabilities.canReady && !isTerminalFood99Order && !shouldHideReadyFood99Action
+    !isTerminalFood99Order &&
+    (
+      isIfoodOrder
+        ? isIfoodReadyLifecycle
+        : typeof effectiveCaps?.can_ready === 'boolean'
+          ? effectiveCaps.can_ready
+          : platformCapabilities.canReady && !shouldHideReadyFood99Action
+    )
   const applicableFood99CancelReasons = Array.isArray(food99CancelReasons)
     ? food99CancelReasons.filter(reason => reason?.applicable !== false)
     : []
@@ -1430,11 +1475,13 @@ const OrderDetails = ({ route, navigation }) => {
     : 0
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
+  const canAddProductsToOrder = isManualInput && !isTerminalFood99Order
   const canAddOrderPayment =
     !isFood99Order &&
     !isIfoodOrder &&
     !!item?.id &&
-    localPendingAmount > 0
+    localPendingAmount > 0 &&
+    !isTerminalFood99Order
   const food99AmountPending = resolvePreferredMoney(
     food99Payment?.amount_pending,
     food99CashCollectionAmount,
@@ -1444,14 +1491,7 @@ const OrderDetails = ({ route, navigation }) => {
     hasMeaningfulValue(food99Payment?.customer_need_paying_money) ||
     hasMeaningfulValue(food99Financial?.customer_need_paying_money) ||
     hasMeaningfulValue(food99Payment?.collect_on_delivery_amount)
-  const paidStatusId = String(defaultCompany?.configs?.['pos-paid-status'] || '').trim()
-  const localStatusLabel = String(item?.status?.status || '').trim().toLowerCase()
-  const localStatusId = String(item?.status?.['@id'] || item?.status?.id || '').trim()
-  const isStatusMarkedPaid =
-    localStatusLabel === 'paid' ||
-    (paidStatusId &&
-      (localStatusId === paidStatusId ||
-        localStatusId.endsWith(`/${paidStatusId}`)))
+  const localRealStatusLabel = String(item?.status?.realStatus || '').trim().toLowerCase()
   const isFood99FinanciallyPaid =
     isFood99Order &&
     (
@@ -1464,11 +1504,13 @@ const OrderDetails = ({ route, navigation }) => {
     localPendingAmount <= 0.009
   const isOrderPaidForCompletion = isFood99Order
     ? isFood99FinanciallyPaid
-    : isStatusMarkedPaid || isFinanciallyPaid
-  const canMarkOrderAsPaid =
-    !!item?.id && !!paidStatusId && !isStatusMarkedPaid
-  const canMarkOrderAsPaidStandalone =
-    canMarkOrderAsPaid && !isFood99Order && !isIfoodOrder
+    : isFinanciallyPaid
+  const canMarkOrderAsReadyStandalone =
+    !!item?.id &&
+    !isFood99Order &&
+    !isIfoodOrder &&
+    !isTerminalFood99Order &&
+    localRealStatusLabel === 'open'
   const hasFood99SyncIssue =
     food99Observability?.is_healthy === false ||
     hasErrnoError(food99Integration?.last_action_errno) ||
@@ -1614,10 +1656,17 @@ const OrderDetails = ({ route, navigation }) => {
         : global.t?.t('orders', 'label', 'onlinePayment'))
       : global.t?.t('orders', 'label', 'notInformed')
   )
+  const canConfirmIfoodOrder =
+    isIfoodOrder &&
+    !isTerminalFood99Order &&
+    !!effectiveCaps?.can_confirm
   const shouldShowKdsCancel =
-    typeof effectiveCaps?.can_cancel === 'boolean'
-      ? effectiveCaps.can_cancel
-      : platformCapabilities.canCancel && !isTerminalFood99Order
+    !isTerminalFood99Order &&
+    (
+      typeof effectiveCaps?.can_cancel === 'boolean'
+        ? effectiveCaps.can_cancel
+        : platformCapabilities.canCancel
+    )
   const canGenericReadyOrder =
     !isFood99Order &&
     (typeof effectiveCaps?.can_ready === 'boolean'
@@ -1636,7 +1685,7 @@ const OrderDetails = ({ route, navigation }) => {
   const canFinalizeFood99Order =
     (isFood99Order || isIfoodOrder) &&
     !isTerminalFood99Order &&
-    !(isIfoodOrder && effectiveCaps?.can_confirm) &&
+    !canConfirmIfoodOrder &&
     !canCancelFood99Order &&
     !canReadyFood99Order &&
     !shouldShowFood99DeliveryAction
@@ -1671,37 +1720,17 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [item?.id, isFood99Order, isIfoodOrder, food99State, food99StateLoading, loadFood99OrderState])
 
-  const handleMarkOrderAsPaid = useCallback(async () => {
-    if (!item?.id || !paidStatusId || markPaidLoading) {
+  const handleMarkOrderAsReady = useCallback(() => {
+    if (!item?.id || isTerminalFood99Order || orderActionLoading === 'ready') {
       return
     }
 
-    try {
-      setMarkPaidLoading(true)
-      const updatedOrder = await ordersActions.save({
-        id: item.id,
-        status: `/statuses/${paidStatusId}`,
-      })
-
-      if (updatedOrder) {
-        ordersActions.setItem(updatedOrder)
-      }
-
-      await refreshCurrentOrder()
-      showSuccess(global.t?.t('orders', 'message', 'orderMarkedAsPaid'))
-    } catch (saveError) {
-      showError(formatApiError(saveError))
-    } finally {
-      setMarkPaidLoading(false)
-    }
+    void runOrderAction('ready')
   }, [
     item?.id,
-    paidStatusId,
-    markPaidLoading,
-    ordersActions,
-    refreshCurrentOrder,
-    showSuccess,
-    showError,
+    isTerminalFood99Order,
+    orderActionLoading,
+    runOrderAction,
   ])
 
   const openFood99DeliveryFlow = useCallback(() => {
@@ -1720,7 +1749,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [food99ActionLoading, food99CancelReasonsLoading, resetFood99CancelReasonFlow])
 
   const handleFood99CancelPress = useCallback(async () => {
-    if (!item?.id || food99ActionLoading || food99CancelReasonsLoading) {
+    if (!item?.id || isTerminalFood99Order || food99ActionLoading || food99CancelReasonsLoading) {
       return
     }
 
@@ -1771,10 +1800,12 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [
     item?.id,
-    isFood99Order,
+    isTerminalFood99Order,
     food99ActionLoading,
     food99CancelReasonsLoading,
+    platformCapabilities.canCancel,
     showError,
+    runOrderAction,
   ])
 
   const handleFood99CopyLocator = useCallback(async () => {
@@ -2023,6 +2054,59 @@ const OrderDetails = ({ route, navigation }) => {
     runFood99OrderAction,
   ])
 
+  const confirmCancelOrder = useCallback((callback) => {
+    if (
+      typeof callback !== 'function' ||
+      isTerminalFood99Order ||
+      orderActionLoading ||
+      food99ActionLoading ||
+      food99CancelReasonsLoading
+    ) {
+      return
+    }
+
+    const title = global.t?.t('orders', 'title', 'confirmation') || 'Confirmação'
+    const message = global.t?.t('orders', 'message', 'confirmCancelOrder') || 'Confirma o cancelamento deste pedido?'
+    const cancelLabel = global.t?.t('orders', 'button', 'cancel') || 'Cancelar'
+    const confirmLabel = global.t?.t('orders', 'button', 'confirm') || 'Confirmar'
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      if (window.confirm(message)) {
+        callback()
+      }
+      return
+    }
+
+    Alert.alert(title, message, [
+      { text: cancelLabel, style: 'cancel' },
+      { text: confirmLabel, style: 'destructive', onPress: callback },
+    ])
+  }, [
+    isTerminalFood99Order,
+    orderActionLoading,
+    food99ActionLoading,
+    food99CancelReasonsLoading,
+  ])
+
+  const handleCancelOrderPress = useCallback(() => {
+    if (isFood99Order || isIfoodOrder) {
+      confirmCancelOrder(() => {
+        void handleFood99CancelPress()
+      })
+      return
+    }
+
+    confirmCancelOrder(() => {
+      void runOrderAction('cancel')
+    })
+  }, [
+    isFood99Order,
+    isIfoodOrder,
+    confirmCancelOrder,
+    handleFood99CancelPress,
+    runOrderAction,
+  ])
+
   const primaryKdsAction = useMemo(() => {
     const hasActions = isFood99Order || isIfoodOrder || platformCapabilities.canReady || platformCapabilities.canDeliver
     if (!hasActions) return null
@@ -2076,15 +2160,40 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
-  const resolvedPrimaryKdsAction = primaryKdsAction || (canMarkOrderAsPaidStandalone
+  const resolvedPrimaryKdsAction = !isTerminalFood99Order && (primaryKdsAction || (canMarkOrderAsReadyStandalone
     ? {
-        label: global.t?.t('orders', 'button', 'markAsPaid'),
-        icon: 'payments',
-        loadingKey: 'mark_paid',
-        disabled: !!markPaidLoading,
-        onPress: handleMarkOrderAsPaid,
+        label: global.t?.t('orders', 'button', 'orderReady'),
+        icon: 'check-circle',
+        loadingKey: 'ready',
+        disabled: orderActionLoading === 'ready',
+        onPress: handleMarkOrderAsReady,
       }
-    : null)
+    : null))
+  const shouldShowMarketplaceKdsActionRow =
+    canConfirmIfoodOrder ||
+    canCancelFood99Order ||
+    canReadyFood99Order ||
+    shouldShowFood99DeliveryAction ||
+    canFinalizeFood99Order
+  const shouldShowGenericKdsActionRow =
+    shouldShowKdsCancel ||
+    canGenericReadyOrder ||
+    canGenericDeliveredOrder ||
+    canFinalizeGenericOrder
+  const shouldShowMobileCancelAction =
+    isFood99Order || isIfoodOrder
+      ? canCancelFood99Order
+      : shouldShowKdsCancel
+  const shouldShowMobileBottomActions =
+    shouldShowMobileCancelAction ||
+    !!resolvedPrimaryKdsAction
+
+  const isResolvedPrimaryKdsActionLoading = !!resolvedPrimaryKdsAction &&
+    (
+      isFood99Order || isIfoodOrder
+        ? food99ActionLoading === resolvedPrimaryKdsAction.loadingKey
+        : orderActionLoading === resolvedPrimaryKdsAction.loadingKey
+    )
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -2202,9 +2311,9 @@ const OrderDetails = ({ route, navigation }) => {
             {!!remoteOrderStateLabel && (
               <View style={[
                 localStyles.remoteStateBadge,
-                remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { borderColor: '#0EA5E9', backgroundColor: '#0EA5E922' }
-                : remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { borderColor: '#10B981', backgroundColor: '#10B98122' }
-                : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
+                  remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { borderColor: '#0EA5E9', backgroundColor: '#0EA5E922' }
+                : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { borderColor: '#10B981', backgroundColor: '#10B98122' }
+                : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
                 : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { borderColor: '#22C55E', backgroundColor: '#22C55E22' }
                 : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { borderColor: '#EF4444', backgroundColor: '#EF444422' }
                 : { borderColor: '#8B5CF6', backgroundColor: '#8B5CF622' }
@@ -2212,13 +2321,13 @@ const OrderDetails = ({ route, navigation }) => {
                 <Text style={[
                   localStyles.remoteStateBadgeText,
                   remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { color: '#0EA5E9' }
-                  : remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { color: '#10B981' }
-                  : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { color: '#F59E0B' }
+                  : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { color: '#10B981' }
+                  : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { color: '#F59E0B' }
                   : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { color: '#22C55E' }
                   : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { color: '#EF4444' }
                   : { color: '#8B5CF6' }
                 ]}>
-                  {remoteOrderStateKey === 'ready' ? 'Preparando' : remoteOrderStateLabel}
+                  {remoteOrderStateLabel}
                 </Text>
               </View>
             )}
@@ -2585,22 +2694,22 @@ const OrderDetails = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {canMarkOrderAsPaidStandalone && (
+            {canMarkOrderAsReadyStandalone && (
               <TouchableOpacity
-                onPress={handleMarkOrderAsPaid}
-                disabled={markPaidLoading}
+                onPress={handleMarkOrderAsReady}
+                disabled={orderActionLoading === 'ready'}
                 style={[
                   localStyles.detailsMarkPaidButton,
-                  markPaidLoading && localStyles.kdsActionButtonDisabled,
+                  orderActionLoading === 'ready' && localStyles.kdsActionButtonDisabled,
                 ]}
               >
-                {markPaidLoading ? (
+                {orderActionLoading === 'ready' ? (
                   <ActivityIndicator size="small" color="#F8FAFC" />
                 ) : (
                   <>
-                    <Icon name="payments" size={18} color="#F8FAFC" />
+                    <Icon name="check-circle" size={18} color="#F8FAFC" />
                     <Text style={localStyles.detailsMarkPaidButtonText}>
-                      {global.t?.t('orders', 'button', 'markAsPaid')}
+                      {global.t?.t('orders', 'button', 'orderReady')}
                     </Text>
                   </>
                 )}
@@ -3766,170 +3875,174 @@ const OrderDetails = ({ route, navigation }) => {
               )}
 
               {isFood99Order || isIfoodOrder ? (
-                <View style={localStyles.kdsActionRow}>
-                  {isIfoodOrder && effectiveCaps?.can_confirm && (
-                    <TouchableOpacity
-                      onPress={() => runOrderAction('confirm')}
-                      disabled={!!food99ActionLoading}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionPrimary,
-                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {food99ActionLoading === 'confirm' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'confirm')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                  {canCancelFood99Order && (
-                    <TouchableOpacity
-                      onPress={handleFood99CancelPress}
-                      disabled={!!food99ActionLoading || !!food99CancelReasonsLoading}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionDanger,
-                        (food99ActionLoading || food99CancelReasonsLoading) &&
-                          localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {food99ActionLoading === 'cancel' || food99CancelReasonsLoading ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                  {canReadyFood99Order && (
-                    <TouchableOpacity
-                      onPress={() => runFood99OrderAction('ready')}
-                      disabled={!!food99ActionLoading}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionPrimary,
-                        food99ActionLoading && localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {food99ActionLoading === 'ready' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                  {shouldShowFood99DeliveryAction && (
-                    <TouchableOpacity
-                      onPress={handleFood99DeliveredPress}
-                      disabled={!!food99ActionLoading}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionSuccess,
-                        food99ActionLoading &&
-                          localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {food99ActionLoading === 'delivered' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                  {canFinalizeFood99Order && (
-                    <TouchableOpacity
-                      onPress={() => runOrderAction('finalize')}
-                      disabled={!!orderActionLoading || !!food99ActionLoading}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionSuccess,
-                        (!!orderActionLoading || !!food99ActionLoading) && localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {orderActionLoading === 'finalize' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                </View>
+                shouldShowMarketplaceKdsActionRow ? (
+                  <View style={localStyles.kdsActionRow}>
+                    {canConfirmIfoodOrder && (
+                      <TouchableOpacity
+                        onPress={() => runOrderAction('confirm')}
+                        disabled={!!food99ActionLoading}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionPrimary,
+                          food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {food99ActionLoading === 'confirm' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'confirm')}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {canCancelFood99Order && (
+                      <TouchableOpacity
+                        onPress={handleCancelOrderPress}
+                        disabled={!!food99ActionLoading || !!food99CancelReasonsLoading}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionDanger,
+                          (food99ActionLoading || food99CancelReasonsLoading) &&
+                            localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {food99ActionLoading === 'cancel' || food99CancelReasonsLoading ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {canReadyFood99Order && (
+                      <TouchableOpacity
+                        onPress={() => runFood99OrderAction('ready')}
+                        disabled={!!food99ActionLoading}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionPrimary,
+                          food99ActionLoading && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {food99ActionLoading === 'ready' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {shouldShowFood99DeliveryAction && (
+                      <TouchableOpacity
+                        onPress={handleFood99DeliveredPress}
+                        disabled={!!food99ActionLoading}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionSuccess,
+                          food99ActionLoading &&
+                            localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {food99ActionLoading === 'delivered' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {canFinalizeFood99Order && (
+                      <TouchableOpacity
+                        onPress={() => runOrderAction('finalize')}
+                        disabled={!!orderActionLoading || !!food99ActionLoading}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionSuccess,
+                          (!!orderActionLoading || !!food99ActionLoading) && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {orderActionLoading === 'finalize' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : null
               ) : (
-                <View style={localStyles.kdsActionRow}>
-                  {shouldShowKdsCancel && (
-                    <TouchableOpacity
-                      onPress={() => runOrderAction('cancel')}
-                      disabled={orderActionLoading === 'cancel'}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionDanger,
-                        orderActionLoading === 'cancel' && localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {orderActionLoading === 'cancel' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                  {canGenericReadyOrder && (
-                    <TouchableOpacity
-                      onPress={() => runOrderAction('ready')}
-                      disabled={orderActionLoading === 'ready'}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionPrimary,
-                        orderActionLoading === 'ready' && localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {orderActionLoading === 'ready' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                  {canGenericDeliveredOrder && (
-                    <TouchableOpacity
-                      onPress={() => runOrderAction('delivered')}
-                      disabled={orderActionLoading === 'delivered'}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionSuccess,
-                        orderActionLoading === 'delivered' && localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {orderActionLoading === 'delivered' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                  {canFinalizeGenericOrder && (
-                    <TouchableOpacity
-                      onPress={() => runOrderAction('finalize')}
-                      disabled={orderActionLoading === 'finalize'}
-                      style={[
-                        localStyles.kdsActionButton,
-                        localStyles.kdsActionSuccess,
-                        orderActionLoading === 'finalize' && localStyles.kdsActionButtonDisabled,
-                      ]}
-                    >
-                      {orderActionLoading === 'finalize' ? (
-                        <ActivityIndicator size="small" color="#F8FAFC" />
-                      ) : (
-                        <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                </View>
+                shouldShowGenericKdsActionRow ? (
+                  <View style={localStyles.kdsActionRow}>
+                    {shouldShowKdsCancel && (
+                      <TouchableOpacity
+                        onPress={handleCancelOrderPress}
+                        disabled={orderActionLoading === 'cancel'}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionDanger,
+                          orderActionLoading === 'cancel' && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {orderActionLoading === 'cancel' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {canGenericReadyOrder && (
+                      <TouchableOpacity
+                        onPress={() => runOrderAction('ready')}
+                        disabled={orderActionLoading === 'ready'}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionPrimary,
+                          orderActionLoading === 'ready' && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {orderActionLoading === 'ready' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {canGenericDeliveredOrder && (
+                      <TouchableOpacity
+                        onPress={() => runOrderAction('delivered')}
+                        disabled={orderActionLoading === 'delivered'}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionSuccess,
+                          orderActionLoading === 'delivered' && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {orderActionLoading === 'delivered' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {canFinalizeGenericOrder && (
+                      <TouchableOpacity
+                        onPress={() => runOrderAction('finalize')}
+                        disabled={orderActionLoading === 'finalize'}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionSuccess,
+                          orderActionLoading === 'finalize' && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {orderActionLoading === 'finalize' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : null
               )}
 
               <View style={localStyles.kdsActionRow}>
-                {showBarcodeInput && isManualInput && (
+                {showBarcodeInput && canAddProductsToOrder && (
                   <TouchableOpacity
                     onPress={handleAddProduct}
                     style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
@@ -3964,7 +4077,7 @@ const OrderDetails = ({ route, navigation }) => {
             <>
               <OrderHeader key={item.id} order={item} />
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {isManualInput && (
+                {canAddProductsToOrder && (
                   <TouchableOpacity
                     onPress={handleAddProduct}
                     style={[globalStyles.button, { marginRight: 5 }]}
@@ -4144,7 +4257,7 @@ const OrderDetails = ({ route, navigation }) => {
             </ScrollView>
           )}
 
-          {isKds && (
+          {isKds && shouldShowMobileBottomActions && (
             <View style={localStyles.mobileBottomActionsWrap}>
               {(() => {
                 const cancelLoading =
@@ -4152,52 +4265,50 @@ const OrderDetails = ({ route, navigation }) => {
                   food99ActionLoading === 'cancel' ||
                   food99CancelReasonsLoading
 
-                return (
-              <TouchableOpacity
-                onPress={(isFood99Order || isIfoodOrder) ? handleFood99CancelPress : () => runOrderAction('cancel')}
-                disabled={!shouldShowKdsCancel || cancelLoading}
-                style={[
-                  localStyles.mobileCancelActionButton,
-                  (!shouldShowKdsCancel || cancelLoading) &&
-                    localStyles.mobileActionButtonDisabled,
-                ]}
-              >
-                {cancelLoading ? (
-                  <ActivityIndicator size="small" color={ppcColors.dangerText} />
-                ) : (
-                  <Icon name="close" size={22} color={ppcColors.dangerText} />
-                )}
-              </TouchableOpacity>
-                )
+                return shouldShowMobileCancelAction ? (
+                  <TouchableOpacity
+                    onPress={handleCancelOrderPress}
+                    disabled={cancelLoading}
+                    style={[
+                      localStyles.mobileCancelActionButton,
+                      cancelLoading && localStyles.mobileActionButtonDisabled,
+                    ]}
+                  >
+                    {cancelLoading ? (
+                      <ActivityIndicator size="small" color={ppcColors.dangerText} />
+                    ) : (
+                      <Icon name="close" size={22} color={ppcColors.dangerText} />
+                    )}
+                  </TouchableOpacity>
+                ) : null
               })()}
 
-              <TouchableOpacity
-                onPress={resolvedPrimaryKdsAction?.onPress}
-                disabled={!resolvedPrimaryKdsAction || resolvedPrimaryKdsAction.disabled}
-                style={[
-                  localStyles.mobilePrimaryActionButton,
-                  (!resolvedPrimaryKdsAction || resolvedPrimaryKdsAction.disabled) &&
-                    localStyles.mobileActionButtonDisabled,
-                ]}
-              >
-                {resolvedPrimaryKdsAction &&
-                ((resolvedPrimaryKdsAction.loadingKey === 'mark_paid' && markPaidLoading) ||
-                  (resolvedPrimaryKdsAction.loadingKey !== 'mark_paid' &&
-                    food99ActionLoading === resolvedPrimaryKdsAction.loadingKey)) ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Icon
-                      name={resolvedPrimaryKdsAction?.icon || 'check-circle'}
-                      size={19}
-                      color="#FFFFFF"
-                    />
-                    <Text style={localStyles.mobilePrimaryActionText}>
-                      {resolvedPrimaryKdsAction?.label || 'Sem acao disponivel'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              {resolvedPrimaryKdsAction && (
+                <TouchableOpacity
+                  onPress={resolvedPrimaryKdsAction.onPress}
+                  disabled={resolvedPrimaryKdsAction.disabled}
+                  style={[
+                    localStyles.mobilePrimaryActionButton,
+                    resolvedPrimaryKdsAction.disabled &&
+                      localStyles.mobileActionButtonDisabled,
+                  ]}
+                >
+                  {isResolvedPrimaryKdsActionLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Icon
+                        name={resolvedPrimaryKdsAction.icon || 'check-circle'}
+                        size={19}
+                        color="#FFFFFF"
+                      />
+                      <Text style={localStyles.mobilePrimaryActionText}>
+                        {resolvedPrimaryKdsAction.label}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
