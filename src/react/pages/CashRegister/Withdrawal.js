@@ -8,10 +8,61 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import {api} from '@controleonline/ui-common/src/api';
 import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
+
+const normalizeStatusKey = value => String(value || '').trim().toLowerCase();
+
+const extractCollectionItems = response => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.member)) return response.member;
+  if (Array.isArray(response?.['hydra:member'])) return response['hydra:member'];
+  return [];
+};
+
+const buildStatusIriFromId = value => {
+  const normalizedId = String(value || '').replace(/\D/g, '');
+  return normalizedId ? `/statuses/${normalizedId}` : null;
+};
+
+let posPaidInvoiceStatusIriCache = null;
+
+const resolvePosPaidInvoiceStatusIri = async fallbackStatusId => {
+  if (posPaidInvoiceStatusIriCache) return posPaidInvoiceStatusIriCache;
+
+  const fallbackIri = buildStatusIriFromId(fallbackStatusId);
+
+  try {
+    const response = await api.fetch('statuses', {
+      params: {
+        context: 'invoice',
+        realStatus: 'closed',
+        status: 'paid',
+        itemsPerPage: 10,
+      },
+    });
+    const items = extractCollectionItems(response);
+    const matchedStatus =
+      items.find(
+        item =>
+          normalizeStatusKey(item?.realStatus) === 'closed' &&
+          normalizeStatusKey(item?.status) === 'paid',
+      ) || items[0];
+    const resolvedIri =
+      matchedStatus?.['@id'] || buildStatusIriFromId(matchedStatus?.id) || fallbackIri;
+
+    if (resolvedIri) {
+      posPaidInvoiceStatusIriCache = resolvedIri;
+    }
+
+    return resolvedIri;
+  } catch (error) {
+    return fallbackIri;
+  }
+};
 
 export default function BleedScreen() {
   const navigation = useNavigation();
@@ -76,7 +127,7 @@ export default function BleedScreen() {
     setBleedValue(Formatter.formatMoney(number));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedPaymentType || !bleedValue) {
       paymentTypeActions.setError(
         global.t?.t('orders', 'message', 'selectPaymentTypeAndEnterAmount'),
@@ -86,16 +137,22 @@ export default function BleedScreen() {
 
     const numericValue = parseFloat(bleedValue.replace(/\D/g, '')) / 100;
 
-    if (
-      !withdrawlWallet ||
-      !cashWallet ||
-      !defaultCompany?.configs['pos-paid-status'] ||
-      !currentCompany?.id
-    )
+    if (!withdrawlWallet || !cashWallet || !currentCompany?.id) return;
+
+    const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
+      defaultCompany?.configs['pos-paid-status'],
+    );
+
+    if (!paidStatusIri) {
+      paymentTypeActions.setError(
+        'Nao foi possivel resolver o status pago da invoice do PDV.',
+      );
       return;
+    }
+
     const payload = {
       dueDate: Formatter.getCurrentDate(),
-      status: '/statuses/' + defaultCompany?.configs['pos-paid-status'],
+      status: paidStatusIri,
       destinationWallet: '/wallets/' + withdrawlWallet,
       sourceWallet: '/wallets/' + cashWallet,
       price: numericValue,

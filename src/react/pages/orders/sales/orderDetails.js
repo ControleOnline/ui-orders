@@ -363,9 +363,32 @@ const OrderDetails = ({ route, navigation }) => {
   const channelKey = getOrderChannelKey(item || orderParam)
   const isFood99Order = channelKey === '99food'
   const isIfoodOrder = channelKey === 'ifood'
+  const isPosOrder = String(item?.app || orderParam?.app || '').trim().toUpperCase() === 'POS'
+  const localStatusNameKey = String(
+    item?.status?.status ||
+    orderParam?.status?.status ||
+    '',
+  ).trim().toLowerCase()
+  const localRealStatusKey = String(
+    item?.status?.realStatus ||
+    orderParam?.status?.realStatus ||
+    '',
+  ).trim().toLowerCase()
   const isLocallyTerminalOrder =
     isTerminalOrderStatus(item?.status?.realStatus) ||
     isTerminalOrderStatus(orderParam?.status?.realStatus)
+  const isEditablePosCartOrder =
+    isPosOrder &&
+    localRealStatusKey === 'open' &&
+    (localStatusNameKey === '' || localStatusNameKey === 'open')
+  const isPreparingPosOrder =
+    isPosOrder &&
+    localRealStatusKey === 'open' &&
+    localStatusNameKey === 'preparing'
+  const isReadyPosOrder =
+    isPosOrder &&
+    localRealStatusKey === 'pending' &&
+    localStatusNameKey === 'ready'
   const channelLabel = getOrderChannelLabel(item || orderParam) || global.t?.t('orders', 'label', 'order')
   const integrationChannelLabel = isFood99Order
     ? '99Food'
@@ -403,7 +426,7 @@ const OrderDetails = ({ route, navigation }) => {
   )
 
   const handleAddProduct = () => {
-    if (isLocallyTerminalOrder) return
+    if (isLocallyTerminalOrder || !canEditItems) return
     navigation.navigate('AddProductScreen')
   }
 
@@ -418,14 +441,18 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [orderParam, ordersActions])
 
-  const canEditItems = !isFood99Order && !isIfoodOrder && !isLocallyTerminalOrder
+  const canEditItems =
+    !isFood99Order &&
+    !isIfoodOrder &&
+    !isLocallyTerminalOrder &&
+    (!isPosOrder || isEditablePosCartOrder)
 
   useEffect(() => {
-    if (isLocallyTerminalOrder) {
+    if (!canEditItems) {
       setEditMode(false)
       setConfirmRemoveItemId(null)
     }
-  }, [isLocallyTerminalOrder])
+  }, [canEditItems])
 
   const searchProducts = useCallback((query) => {
     if (!query.trim()) {
@@ -445,7 +472,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [item?.provider, defaultCompany?.id, productsStore.actions])
 
   const handleAddProductInline = useCallback(async (product) => {
-    if (!item?.id || addingProductId) return
+    if (!canEditItems || !item?.id || addingProductId) return
     const pid = String(product?.id || String(product?.['@id'] || '').replace(/\D/g, ''))
     if (!pid) return
     setAddingProductId(pid)
@@ -459,7 +486,7 @@ const OrderDetails = ({ route, navigation }) => {
     } finally {
       setAddingProductId(null)
     }
-  }, [item?.id, addingProductId, ordersActions, refreshCurrentOrder, showError, productsStore.actions])
+  }, [canEditItems, item?.id, addingProductId, ordersActions, refreshCurrentOrder, showError, productsStore.actions])
 
   const handleUpdateOpQuantity = useCallback(async (op, newQty) => {
     if (opLoadingId) return
@@ -573,6 +600,10 @@ const OrderDetails = ({ route, navigation }) => {
             },
           }
         : {
+            confirm: {
+              path: `/orders/${item.id}/confirm`,
+              success: global.t?.t('orders', 'message', 'orderConfirmed'),
+            },
             ready: { path: `/orders/${item.id}/ready`, success: global.t?.t('orders', 'message', 'orderReady') },
             cancel: { path: `/orders/${item.id}/cancel`, success: global.t?.t('orders', 'message', 'orderCanceled') },
             delivered: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
@@ -1376,7 +1407,7 @@ const OrderDetails = ({ route, navigation }) => {
     : 0
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
-  const canAddProductsToOrder = isManualInput && !isTerminalFood99Order
+  const canAddProductsToOrder = isManualInput && canEditItems
   const canAddOrderPayment =
     !isFood99Order &&
     !isIfoodOrder &&
@@ -1406,11 +1437,19 @@ const OrderDetails = ({ route, navigation }) => {
   const isOrderPaidForCompletion = isFood99Order
     ? isFood99FinanciallyPaid
     : isFinanciallyPaid
+  const canMarkOrderAsPreparingStandalone =
+    !!item?.id &&
+    !isFood99Order &&
+    !isIfoodOrder &&
+    !isTerminalFood99Order &&
+    isPosOrder &&
+    isEditablePosCartOrder
   const canMarkOrderAsReadyStandalone =
     !!item?.id &&
     !isFood99Order &&
     !isIfoodOrder &&
-    !isTerminalFood99Order
+    !isTerminalFood99Order &&
+    (!isPosOrder || isPreparingPosOrder)
   const hasFood99SyncIssue =
     food99Observability?.is_healthy === false ||
     hasErrnoError(food99Integration?.last_action_errno) ||
@@ -1559,18 +1598,26 @@ const OrderDetails = ({ route, navigation }) => {
   const canConfirmIfoodOrder =
     isIfoodOrder &&
     !isTerminalFood99Order
+  const canGenericConfirmOrder =
+    !isFood99Order &&
+    !isIfoodOrder &&
+    !isTerminalFood99Order &&
+    isPosOrder &&
+    isEditablePosCartOrder
   const shouldShowKdsCancel =
     !isTerminalFood99Order &&
     platformCapabilities.canCancel
   const canGenericReadyOrder =
     !isFood99Order &&
     platformCapabilities.canReady &&
-    !isTerminalFood99Order
+    !isTerminalFood99Order &&
+    (!isPosOrder || isPreparingPosOrder)
   const canGenericDeliveredOrder =
     !isFood99Order &&
     !isIfoodOrder &&
     platformCapabilities.canDeliver &&
-    !isTerminalFood99Order
+    !isTerminalFood99Order &&
+    (!isPosOrder || isReadyPosOrder)
 
   // Finalizar: aparece quando não há mais ações disponíveis e o pedido ainda não foi encerrado
   const canFinalizeFood99Order =
@@ -1584,6 +1631,7 @@ const OrderDetails = ({ route, navigation }) => {
   const canFinalizeGenericOrder =
     !isFood99Order &&
     !isIfoodOrder &&
+    !isPosOrder &&
     !isTerminalFood99Order &&
     !shouldShowKdsCancel &&
     !canGenericReadyOrder &&
@@ -1610,6 +1658,19 @@ const OrderDetails = ({ route, navigation }) => {
       await loadFood99OrderState({ silent: true })
     }
   }, [item?.id, isFood99Order, isIfoodOrder, food99State, food99StateLoading, loadFood99OrderState])
+
+  const handleConfirmGenericOrder = useCallback(() => {
+    if (!item?.id || isTerminalFood99Order || orderActionLoading === 'confirm') {
+      return
+    }
+
+    void runOrderAction('confirm')
+  }, [
+    item?.id,
+    isTerminalFood99Order,
+    orderActionLoading,
+    runOrderAction,
+  ])
 
   const handleMarkOrderAsReady = useCallback(() => {
     if (!item?.id || isTerminalFood99Order || orderActionLoading === 'ready') {
@@ -2015,15 +2076,28 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
-  const resolvedPrimaryKdsAction = !isTerminalFood99Order && (primaryKdsAction || (canMarkOrderAsReadyStandalone
-    ? {
-        label: global.t?.t('orders', 'button', 'orderReady'),
-        icon: 'check-circle',
-        loadingKey: 'ready',
-        disabled: orderActionLoading === 'ready',
-        onPress: handleMarkOrderAsReady,
-      }
-    : null))
+  const resolvedPrimaryKdsAction = !isTerminalFood99Order && (
+    primaryKdsAction ||
+    (
+      canMarkOrderAsPreparingStandalone
+        ? {
+            label: global.t?.t('orders', 'label', 'startPreparation') || 'Iniciar preparo',
+            icon: 'play-arrow',
+            loadingKey: 'confirm',
+            disabled: orderActionLoading === 'confirm',
+            onPress: handleConfirmGenericOrder,
+          }
+        : canMarkOrderAsReadyStandalone
+          ? {
+              label: global.t?.t('orders', 'button', 'orderReady'),
+              icon: 'check-circle',
+              loadingKey: 'ready',
+              disabled: orderActionLoading === 'ready',
+              onPress: handleMarkOrderAsReady,
+            }
+          : null
+    )
+  )
   const shouldShowMarketplaceKdsActionRow =
     canConfirmIfoodOrder ||
     canCancelFood99Order ||
@@ -2031,6 +2105,7 @@ const OrderDetails = ({ route, navigation }) => {
     shouldShowFood99DeliveryAction ||
     canFinalizeFood99Order
   const shouldShowGenericKdsActionRow =
+    canGenericConfirmOrder ||
     shouldShowKdsCancel ||
     canGenericReadyOrder ||
     canGenericDeliveredOrder ||
@@ -2549,22 +2624,27 @@ const OrderDetails = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {canMarkOrderAsReadyStandalone && (
+            {!isFood99Order && !isIfoodOrder && resolvedPrimaryKdsAction && (
               <TouchableOpacity
-                onPress={handleMarkOrderAsReady}
-                disabled={orderActionLoading === 'ready'}
+                onPress={resolvedPrimaryKdsAction.onPress}
+                disabled={orderActionLoading === resolvedPrimaryKdsAction.loadingKey}
                 style={[
                   localStyles.detailsMarkPaidButton,
-                  orderActionLoading === 'ready' && localStyles.kdsActionButtonDisabled,
+                  orderActionLoading === resolvedPrimaryKdsAction.loadingKey &&
+                    localStyles.kdsActionButtonDisabled,
                 ]}
               >
-                {orderActionLoading === 'ready' ? (
+                {orderActionLoading === resolvedPrimaryKdsAction.loadingKey ? (
                   <ActivityIndicator size="small" color="#F8FAFC" />
                 ) : (
                   <>
-                    <Icon name="check-circle" size={18} color="#F8FAFC" />
+                    <Icon
+                      name={resolvedPrimaryKdsAction.icon}
+                      size={18}
+                      color="#F8FAFC"
+                    />
                     <Text style={localStyles.detailsMarkPaidButtonText}>
-                      {global.t?.t('orders', 'button', 'orderReady')}
+                      {resolvedPrimaryKdsAction.label}
                     </Text>
                   </>
                 )}
@@ -3824,6 +3904,25 @@ const OrderDetails = ({ route, navigation }) => {
               ) : (
                 shouldShowGenericKdsActionRow ? (
                   <View style={localStyles.kdsActionRow}>
+                    {canGenericConfirmOrder && (
+                      <TouchableOpacity
+                        onPress={handleConfirmGenericOrder}
+                        disabled={orderActionLoading === 'confirm'}
+                        style={[
+                          localStyles.kdsActionButton,
+                          localStyles.kdsActionPrimary,
+                          orderActionLoading === 'confirm' && localStyles.kdsActionButtonDisabled,
+                        ]}
+                      >
+                        {orderActionLoading === 'confirm' ? (
+                          <ActivityIndicator size="small" color="#F8FAFC" />
+                        ) : (
+                          <Text style={localStyles.kdsActionText}>
+                            {global.t?.t('orders', 'label', 'startPreparation') || 'Iniciar preparo'}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
                     {shouldShowKdsCancel && (
                       <TouchableOpacity
                         onPress={handleCancelOrderPress}
