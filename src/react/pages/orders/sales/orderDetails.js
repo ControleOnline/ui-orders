@@ -249,27 +249,9 @@ const resolvePreferredOperationalStatus = ({
     }
   }
 
-  if (!normalizedCurrentStatus && !normalizedCurrentRealStatus) {
-    return remoteOperationalStatus
-  }
-
-  const currentRank = getOperationalStatusRank(normalizedCurrentRealStatus, normalizedCurrentStatus)
-  const remoteRank = getOperationalStatusRank(
-    remoteOperationalStatus.realStatus,
-    remoteOperationalStatus.status,
-  )
-
-  if (currentRank === null) {
-    return remoteOperationalStatus
-  }
-
-  if (remoteRank !== null && remoteRank > currentRank) {
-    return remoteOperationalStatus
-  }
-
   return {
-    status: normalizedCurrentStatus,
-    realStatus: normalizedCurrentRealStatus,
+    status: normalizedCurrentStatus || remoteOperationalStatus.status,
+    realStatus: normalizedCurrentRealStatus || remoteOperationalStatus.realStatus,
   }
 }
 
@@ -1583,17 +1565,18 @@ const OrderDetails = ({ route, navigation }) => {
       effectiveLocalStatusNameKey === 'way' ||
       effectiveLocalRealStatusKey === 'pending'
     )
-  const canReadyMarketplaceByLifecycleFallback =
+  const canReadyMarketplaceByLocalFallback =
     !isTerminalFood99Order &&
-    ['accepted', 'confirmed', 'preparing'].includes(marketplaceLifecycleKey)
+    effectiveLocalRealStatusKey === 'open' &&
+    effectiveLocalStatusNameKey === 'preparing'
   const canReadyFood99Order =
     !isTerminalFood99Order &&
     isMarketplacePreparingState &&
     (
       isIfoodOrder
-        ? (marketplaceCapabilities.canReady || canReadyMarketplaceByLifecycleFallback) &&
+        ? (marketplaceCapabilities.canReady || canReadyMarketplaceByLocalFallback) &&
           !isIfoodReadyOrBeyondLocalState
-        : (marketplaceCapabilities.canReady || canReadyMarketplaceByLifecycleFallback) && !shouldHideReadyFood99Action
+        : (marketplaceCapabilities.canReady || canReadyMarketplaceByLocalFallback) && !shouldHideReadyFood99Action
     )
   const applicableFood99CancelReasons = Array.isArray(food99CancelReasons)
     ? food99CancelReasons.filter(reason => reason?.applicable !== false)
