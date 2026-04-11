@@ -147,6 +147,33 @@ const normalizeText = value => {
   return ''
 }
 
+const toCamelCase = value =>
+  String(value ?? '').replace(/_([a-z])/g, (_, char) => char.toUpperCase())
+
+const readCapabilityValue = (capabilities, ...keys) => {
+  if (!capabilities || typeof capabilities !== 'object') {
+    return undefined
+  }
+
+  for (const key of keys) {
+    const normalizedKey = String(key ?? '').trim()
+    if (!normalizedKey) continue
+
+    const candidates = [
+      normalizedKey,
+      toCamelCase(normalizedKey),
+    ]
+
+    for (const candidate of candidates) {
+      if (Object.prototype.hasOwnProperty.call(capabilities, candidate)) {
+        return capabilities[candidate]
+      }
+    }
+  }
+
+  return undefined
+}
+
 const hasMeaningfulValue = value => {
   if (value === null || value === undefined) return false
   if (typeof value === 'number') return Number.isFinite(value)
@@ -365,11 +392,14 @@ const OrderDetails = ({ route, navigation }) => {
   const isIfoodOrder = channelKey === 'ifood'
   const isPosOrder = String(item?.app || orderParam?.app || '').trim().toUpperCase() === 'POS'
   const localStatusNameKey = String(
+    food99State?.order?.status?.status ||
     item?.status?.status ||
     orderParam?.status?.status ||
     '',
   ).trim().toLowerCase()
   const localRealStatusKey = String(
+    food99State?.order?.status?.real_status ||
+    food99State?.order?.status?.realStatus ||
     item?.status?.realStatus ||
     orderParam?.status?.realStatus ||
     '',
@@ -575,45 +605,56 @@ const OrderDetails = ({ route, navigation }) => {
         return
       }
 
-      const actionMap = isIfoodOrder
+      const actionMap = isFood99Order
         ? {
-            confirm: {
-              path: `/orders/${item.id}/confirm`,
-              success: global.t?.t('orders', 'message', 'orderConfirmed'),
-            },
             ready: {
-              path: `/orders/${item.id}/ready`,
+              path: `/marketplace/integrations/99food/orders/${item.id}/ready`,
               success: global.t?.t('orders', 'message', 'orderReady'),
             },
             cancel: {
-              path: `/orders/${item.id}/cancel`,
+              path: `/marketplace/integrations/99food/orders/${item.id}/cancel`,
               success: global.t?.t('orders', 'message', 'orderCanceled'),
             },
             delivered: {
-              path: `/orders/${item.id}/delivered`,
-              body: { defer_status_update: true },
-              success: global.t?.t('orders', 'message', 'orderDelivered'),
-            },
-            finalize: {
-              path: `/orders/${item.id}/delivered`,
+              path: `/marketplace/integrations/99food/orders/${item.id}/delivered`,
               success: global.t?.t('orders', 'message', 'orderDelivered'),
             },
           }
-        : {
-            confirm: {
-              path: `/orders/${item.id}/confirm`,
-              success: global.t?.t('orders', 'message', 'orderConfirmed'),
-            },
-            ready: { path: `/orders/${item.id}/ready`, success: global.t?.t('orders', 'message', 'orderReady') },
-            cancel: { path: `/orders/${item.id}/cancel`, success: global.t?.t('orders', 'message', 'orderCanceled') },
-            delivered: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
-            finalize: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
-          }
+        : isIfoodOrder
+          ? {
+              confirm: {
+                path: `/marketplace/integrations/ifood/orders/${item.id}/confirm`,
+                success: global.t?.t('orders', 'message', 'orderConfirmed'),
+              },
+              ready: {
+                path: `/marketplace/integrations/ifood/orders/${item.id}/ready`,
+                success: global.t?.t('orders', 'message', 'orderReady'),
+              },
+              cancel: {
+                path: `/marketplace/integrations/ifood/orders/${item.id}/cancel`,
+                success: global.t?.t('orders', 'message', 'orderCanceled'),
+              },
+              delivered: {
+                path: `/marketplace/integrations/ifood/orders/${item.id}/delivered`,
+                success: global.t?.t('orders', 'message', 'orderDelivered'),
+              },
+            }
+          : {
+              confirm: {
+                path: `/orders/${item.id}/confirm`,
+                success: global.t?.t('orders', 'message', 'orderConfirmed'),
+              },
+              ready: { path: `/orders/${item.id}/ready`, success: global.t?.t('orders', 'message', 'orderReady') },
+              cancel: { path: `/orders/${item.id}/cancel`, success: global.t?.t('orders', 'message', 'orderCanceled') },
+              delivered: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
+              finalize: { path: `/orders/${item.id}/delivered`, success: global.t?.t('orders', 'message', 'orderDelivered') },
+            }
 
       const actionConfig = actionMap[action]
       if (!actionConfig) return
 
       const isActionFood99 = isFood99Order
+      const isMarketplaceAction = isFood99Order || isIfoodOrder
       const reconcilePath  = `/marketplace/integrations/99food/orders/${item.id}/reconcile`
 
       try {
@@ -635,7 +676,7 @@ const OrderDetails = ({ route, navigation }) => {
           throw actionResult || response
         }
 
-        if (response?.state && (isActionFood99 || isIfoodOrder)) {
+        if (response?.state && isMarketplaceAction) {
           setFood99State(response.state)
         }
 
@@ -686,7 +727,6 @@ const OrderDetails = ({ route, navigation }) => {
     },
     [
       item,
-      orderParam,
       orderActionLoading,
       food99ActionLoading,
       food99State,
@@ -1134,6 +1174,68 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [food99State?.identifiers, fallbackFood99Identifiers])
   const food99Capabilities = food99State?.capabilities || {}
+  const marketplaceCapabilities = useMemo(() => {
+    const canCancel = readCapabilityValue(food99Capabilities, 'can_cancel', 'canCancel')
+    const canReady = readCapabilityValue(food99Capabilities, 'can_ready', 'canReady')
+    const canDelivered = readCapabilityValue(food99Capabilities, 'can_delivered', 'canDelivered')
+    const requiresDeliveryLocator = readCapabilityValue(
+      food99Capabilities,
+      'requires_delivery_locator',
+      'requiresDeliveryLocator',
+    )
+    const requiresDeliveryCode = readCapabilityValue(
+      food99Capabilities,
+      'requires_delivery_code',
+      'requiresDeliveryCode',
+    )
+    const canOpenHandoverFlow = readCapabilityValue(
+      food99Capabilities,
+      'can_open_handover_flow',
+      'canOpenHandoverFlow',
+    )
+    const isTerminal = readCapabilityValue(food99Capabilities, 'is_terminal', 'isTerminal')
+    const isDelivering = readCapabilityValue(food99Capabilities, 'is_delivering', 'isDelivering')
+    const deliveryLocatorLength = Number(
+      readCapabilityValue(
+        food99Capabilities,
+        'delivery_locator_length',
+        'deliveryLocatorLength',
+      ) || 8,
+    )
+    const deliveryCodeLength = Number(
+      readCapabilityValue(
+        food99Capabilities,
+        'delivery_code_length',
+        'deliveryCodeLength',
+      ) || 4,
+    )
+
+    return {
+      canCancel: typeof canCancel === 'boolean' ? canCancel : !!platformCapabilities.canCancel,
+      canReady: typeof canReady === 'boolean' ? canReady : !!platformCapabilities.canReady,
+      canDelivered:
+        typeof canDelivered === 'boolean' ? canDelivered : !!platformCapabilities.canDeliver,
+      requiresDeliveryLocator: typeof requiresDeliveryLocator === 'boolean'
+        ? requiresDeliveryLocator
+        : false,
+      requiresDeliveryCode: typeof requiresDeliveryCode === 'boolean'
+        ? requiresDeliveryCode
+        : false,
+      canOpenHandoverFlow: typeof canOpenHandoverFlow === 'boolean'
+        ? canOpenHandoverFlow
+        : false,
+      isTerminal: typeof isTerminal === 'boolean' ? isTerminal : false,
+      isDelivering: typeof isDelivering === 'boolean' ? isDelivering : false,
+      deliveryLocatorLength:
+        Number.isFinite(deliveryLocatorLength) && deliveryLocatorLength > 0
+          ? deliveryLocatorLength
+          : 8,
+      deliveryCodeLength:
+        Number.isFinite(deliveryCodeLength) && deliveryCodeLength > 0
+          ? deliveryCodeLength
+          : 4,
+    }
+  }, [food99Capabilities, platformCapabilities])
 
   const food99Scheduling = food99State?.scheduling || null
   const isScheduledOrder = food99Scheduling?.is_scheduled === true
@@ -1204,6 +1306,7 @@ const OrderDetails = ({ route, navigation }) => {
   ).toLowerCase()
   const hasTerminalOrderState =
     isLocallyTerminalOrder ||
+    marketplaceCapabilities.isTerminal ||
     isTerminalOrderStatus(normalizedOrderRealStatus)
   const isTerminalFood99Order = hasTerminalOrderState
   const isIfoodMerchantDelivery = isIfoodOrder && (
@@ -1218,17 +1321,18 @@ const OrderDetails = ({ route, navigation }) => {
   )
   // entrega da propria loja nao tem entregador — o rider nao e exigido para liberar a acao
   const isIfoodDeliveryActionState = isIfoodDispatchLifecycle && (isIfoodMerchantDelivery || isIfoodRiderAssigned)
-  const canCancelFood99Order = !isTerminalFood99Order && platformCapabilities.canCancel
+  const canCancelFood99Order = !isTerminalFood99Order && marketplaceCapabilities.canCancel
   const canManualCompleteFood99Order =
     !isTerminalFood99Order &&
     (
       isIfoodOrder
-        ? isIfoodMerchantDelivery && isIfoodDeliveryActionState
-        : platformCapabilities.canDeliver && !!food99Delivery?.allows_manual_delivery_completion
+        ? marketplaceCapabilities.canDelivered && isIfoodMerchantDelivery && isIfoodDeliveryActionState
+        : marketplaceCapabilities.canDelivered && !!food99Delivery?.allows_manual_delivery_completion
     )
   const canOpenFood99HandoverFlow =
     !isTerminalFood99Order &&
     (
+      marketplaceCapabilities.canOpenHandoverFlow ||
       !!food99Delivery?.handover_confirmation_url ||
       !!food99Delivery?.handover_page_url ||
       !!food99Identifiers?.handoverPageUrl ||
@@ -1239,12 +1343,15 @@ const OrderDetails = ({ route, navigation }) => {
     isIfoodOrder && isIfoodMerchantDelivery && isIfoodDeliveryActionState
   const requiresFood99DeliveryLocator =
     isFood99Order &&
-    !!food99Delivery?.is_store_delivery
-  const food99LocatorLength = 8
-  const food99DeliveryCodeLength = 4
+    (
+      marketplaceCapabilities.requiresDeliveryLocator ||
+      !!food99Delivery?.is_store_delivery
+    )
+  const food99LocatorLength = marketplaceCapabilities.deliveryLocatorLength
+  const food99DeliveryCodeLength = marketplaceCapabilities.deliveryCodeLength
   const shouldShowFood99DeliveryAction =
     isIfoodOrder
-      ? canManualCompleteFood99Order
+      ? canManualCompleteFood99Order && (canOpenFood99HandoverFlow || isIfoodHandoverFlow)
       : canManualCompleteFood99Order || canOpenFood99HandoverFlow || isIfoodHandoverFlow
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const food99Locator = String(food99Delivery?.locator || '').trim()
@@ -1268,12 +1375,21 @@ const OrderDetails = ({ route, navigation }) => {
   const isFood99Ready = remoteOrderStateKey === 'ready'
   const isFood99CourierToStore = remoteOrderStateKey === 'courier_to_store'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
+  const isIfoodReadyOrBeyondLocalState =
+    isIfoodOrder &&
+    (
+      localStatusNameKey === 'ready' ||
+      localStatusNameKey === 'way' ||
+      localRealStatusKey === 'pending'
+    )
   const canReadyFood99Order =
     !isTerminalFood99Order &&
+    isMarketplacePreparingState &&
     (
       isIfoodOrder
-        ? platformCapabilities.canReady
-        : platformCapabilities.canReady && !shouldHideReadyFood99Action
+        ? marketplaceCapabilities.canReady &&
+          !isIfoodReadyOrBeyondLocalState
+        : marketplaceCapabilities.canReady && !shouldHideReadyFood99Action
     )
   const applicableFood99CancelReasons = Array.isArray(food99CancelReasons)
     ? food99CancelReasons.filter(reason => reason?.applicable !== false)
@@ -1287,10 +1403,14 @@ const OrderDetails = ({ route, navigation }) => {
   const isFood99Delivering =
     isIfoodOrder
       ? isIfoodDispatchLifecycle && isIfoodRiderAssigned
-      : typeof food99Capabilities?.is_delivering === 'boolean'
-        ? food99Capabilities.is_delivering
+      : typeof marketplaceCapabilities.isDelivering === 'boolean'
+        ? marketplaceCapabilities.isDelivering
         : ['courier_to_store', 'picked_up', 'delivering', 'arriving', 'dispatching'].includes(remoteOrderStateKey)
   const hasFood99VisualData = !!(food99State || fallbackFood99Summary)
+  const isUsingFallbackMarketplaceSummary =
+    (isFood99Order || isIfoodOrder) &&
+    !food99State &&
+    !!fallbackFood99Summary
   const food99PaymentMethodValue = isIfoodOrder
     ? resolvePreferredMeaningfulText(
         food99Payment?.pay_method_label,
@@ -1402,9 +1522,40 @@ const OrderDetails = ({ route, navigation }) => {
   const remoteStateAgeLabel = formatAgeMinutes(food99Observability?.remote_state_age_minutes)
   const lastActionAgeLabel = formatAgeMinutes(food99Observability?.last_action_age_minutes)
   const lastReconcileAgeLabel = formatAgeMinutes(food99Observability?.last_reconcile_age_minutes)
-  const localPaidAmount = Array.isArray(invoices)
-    ? invoices.reduce((sum, invoice) => sum + Number(invoice?.price || 0), 0)
-    : 0
+  const activeLocalInvoices = useMemo(
+    () => (
+      Array.isArray(invoices)
+        ? invoices.filter(invoice => {
+            const invoiceStatus = String(
+              invoice?.status?.realStatus ||
+              invoice?.status?.real_status ||
+              invoice?.status?.status ||
+              '',
+            ).trim().toLowerCase()
+
+            return !['canceled', 'cancelled'].includes(invoiceStatus)
+          })
+        : []
+    ),
+    [invoices],
+  )
+  const localPaidAmount = useMemo(
+    () => activeLocalInvoices.reduce((sum, invoice) => {
+      const invoiceStatusName = String(invoice?.status?.status || '').trim().toLowerCase()
+      const invoiceRealStatus = String(
+        invoice?.status?.realStatus ||
+        invoice?.status?.real_status ||
+        '',
+      ).trim().toLowerCase()
+      const isInvoicePaid =
+        invoiceRealStatus === 'closed' ||
+        invoiceStatusName === 'closed' ||
+        invoiceStatusName === 'paid'
+
+      return isInvoicePaid ? sum + Number(invoice?.price || 0) : sum
+    }, 0),
+    [activeLocalInvoices],
+  )
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
   const canAddProductsToOrder = isManualInput && canEditItems
@@ -1423,7 +1574,6 @@ const OrderDetails = ({ route, navigation }) => {
     hasMeaningfulValue(food99Payment?.customer_need_paying_money) ||
     hasMeaningfulValue(food99Financial?.customer_need_paying_money) ||
     hasMeaningfulValue(food99Payment?.collect_on_delivery_amount)
-  const localRealStatusLabel = String(item?.status?.realStatus || '').trim().toLowerCase()
   const isFood99FinanciallyPaid =
     isFood99Order &&
     (
@@ -1437,19 +1587,6 @@ const OrderDetails = ({ route, navigation }) => {
   const isOrderPaidForCompletion = isFood99Order
     ? isFood99FinanciallyPaid
     : isFinanciallyPaid
-  const canMarkOrderAsPreparingStandalone =
-    !!item?.id &&
-    !isFood99Order &&
-    !isIfoodOrder &&
-    !isTerminalFood99Order &&
-    isPosOrder &&
-    isEditablePosCartOrder
-  const canMarkOrderAsReadyStandalone =
-    !!item?.id &&
-    !isFood99Order &&
-    !isIfoodOrder &&
-    !isTerminalFood99Order &&
-    (!isPosOrder || isPreparingPosOrder)
   const hasFood99SyncIssue =
     food99Observability?.is_healthy === false ||
     hasErrnoError(food99Integration?.last_action_errno) ||
@@ -1488,13 +1625,20 @@ const OrderDetails = ({ route, navigation }) => {
 
     return String(item?.app || global.t?.t('orders', 'label', 'localOrigin'))
   })()
-  const localStatusRaw = String(item?.status?.status || item?.status?.realStatus || '').trim()
+  const localStatusRaw = String(
+    food99State?.order?.status?.status ||
+    food99State?.order?.status?.real_status ||
+    food99State?.order?.status?.realStatus ||
+    item?.status?.status ||
+    item?.status?.realStatus ||
+    '',
+  ).trim()
   const localStatusLower = localStatusRaw.toLowerCase()
   const isLocallyCanceledOrder =
     localStatusLower.includes('canceled')
   const pendingAmountForBadge = Number(
     isFood99Order
-      ? (food99Payment?.amount_pending || localPendingAmount || 0)
+      ? resolvePreferredMoney(food99Payment?.amount_pending, localPendingAmount || 0)
       : (localPendingAmount || 0),
   )
   const isPendingForBadge = Number.isFinite(pendingAmountForBadge) && pendingAmountForBadge > 0.009
@@ -1511,7 +1655,7 @@ const OrderDetails = ({ route, navigation }) => {
       ? global.t?.t('orders', 'message', 'noObservationsIfood')
       : `${global.t?.t('orders', 'message', 'noObservationsFor')} ${integrationChannelLabel}.`
   const showOrderObservationCard = isIfoodOrder
-    ? !!food99Notes?.remark
+    ? !!(food99Notes?.remark || food99ItemRemarksText)
     : true
   const orderCustomerName = resolvePreferredText(
     food99Customer?.name,
@@ -1567,6 +1711,9 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam?.remark,
     orderParam?.description,
   ) || fallbackNoObservationText
+  const shouldShowFood99ItemRemarks =
+    !!food99ItemRemarksText &&
+    normalizeKey(food99ItemRemarksText) !== normalizeKey(orderObservationText)
   const orderDiscountTotal = Number(food99Financial?.discount_total || 0)
   const orderDisplayTotal = Number(
     food99Financial?.customer_total ||
@@ -1581,7 +1728,7 @@ const OrderDetails = ({ route, navigation }) => {
       ? `${food99PaymentMethodValue} (${normalizeText(food99PaymentBrandValue).toUpperCase()})`
       : food99PaymentMethodValue
   const invoicePaymentText = (!isFood99Order && !isIfoodOrder)
-    ? (invoices || []).map(inv => inv?.paymentType?.paymentType).filter(Boolean).join(', ')
+    ? activeLocalInvoices.map(inv => inv?.paymentType?.paymentType).filter(Boolean).join(', ')
     : ''
   const orderPaymentMethodText = resolvePreferredText(
     ifoodPaymentMethodWithBrand,
@@ -1595,20 +1742,39 @@ const OrderDetails = ({ route, navigation }) => {
         : global.t?.t('orders', 'label', 'onlinePayment'))
       : global.t?.t('orders', 'label', 'notInformed')
   )
-  const canConfirmIfoodOrder =
-    isIfoodOrder &&
-    !isTerminalFood99Order
+  const canConfirmIfoodOrder = false
+  const marketplaceLifecycleKey = isIfoodOrder
+    ? effectiveIfoodLifecycleKey
+    : remoteOrderStateKey
+  const isMarketplacePreparingState =
+    (
+      localRealStatusKey === 'open' &&
+      localStatusNameKey === 'preparing'
+    ) ||
+    (
+      localRealStatusKey !== 'pending' &&
+      ['accepted', 'confirmed', 'preparing'].includes(marketplaceLifecycleKey)
+    )
+  const marketplaceReadyActionLabel = global.t?.t('orders', 'button', 'orderReady')
   const canGenericConfirmOrder =
     !isFood99Order &&
     !isIfoodOrder &&
     !isTerminalFood99Order &&
     isPosOrder &&
     isEditablePosCartOrder
-  const shouldShowKdsCancel =
+  const canGenericCancelOrder =
+    !isFood99Order &&
+    !isIfoodOrder &&
+    !isPosOrder &&
     !isTerminalFood99Order &&
     platformCapabilities.canCancel
+  const shouldShowKdsCancel =
+    isFood99Order || isIfoodOrder
+      ? false
+      : canGenericCancelOrder
   const canGenericReadyOrder =
     !isFood99Order &&
+    !isIfoodOrder &&
     platformCapabilities.canReady &&
     !isTerminalFood99Order &&
     (!isPosOrder || isPreparingPosOrder)
@@ -1620,13 +1786,7 @@ const OrderDetails = ({ route, navigation }) => {
     (!isPosOrder || isReadyPosOrder)
 
   // Finalizar: aparece quando não há mais ações disponíveis e o pedido ainda não foi encerrado
-  const canFinalizeFood99Order =
-    (isFood99Order || isIfoodOrder) &&
-    !isTerminalFood99Order &&
-    !canConfirmIfoodOrder &&
-    !canCancelFood99Order &&
-    !canReadyFood99Order &&
-    !shouldShowFood99DeliveryAction
+  const canFinalizeFood99Order = false
 
   const canFinalizeGenericOrder =
     !isFood99Order &&
@@ -1685,6 +1845,32 @@ const OrderDetails = ({ route, navigation }) => {
     runOrderAction,
   ])
 
+  const handleDeliverGenericOrder = useCallback(() => {
+    if (!item?.id || isTerminalFood99Order || orderActionLoading === 'delivered') {
+      return
+    }
+
+    void runOrderAction('delivered')
+  }, [
+    item?.id,
+    isTerminalFood99Order,
+    orderActionLoading,
+    runOrderAction,
+  ])
+
+  const handleFinalizeGenericOrder = useCallback(() => {
+    if (!item?.id || isTerminalFood99Order || orderActionLoading === 'finalize') {
+      return
+    }
+
+    void runOrderAction('finalize')
+  }, [
+    item?.id,
+    isTerminalFood99Order,
+    orderActionLoading,
+    runOrderAction,
+  ])
+
   const openFood99DeliveryFlow = useCallback(() => {
     setDeliveryLocator(normalizeDigits(food99Delivery?.locator, food99LocatorLength))
     setDeliveryCustomerCode('')
@@ -1705,13 +1891,43 @@ const OrderDetails = ({ route, navigation }) => {
       return
     }
 
-    if (!platformCapabilities.canCancel) {
+    if (!marketplaceCapabilities.canCancel) {
       return
     }
 
+    const cancelReasonsPath = isFood99Order
+      ? `/marketplace/integrations/99food/orders/${item.id}/cancel-reasons`
+      : `/marketplace/integrations/ifood/orders/${item.id}/cancel-reasons`
+
     try {
       setFood99CancelReasonsLoading(true)
-      await runOrderAction('cancel')
+      const response = await api.fetch(cancelReasonsPath)
+      const result = response?.result || response
+
+      if (normalizeErrno(result?.errno) !== '0') {
+        throw result || response
+      }
+
+      const reasons = Array.isArray(result?.data?.reasons)
+        ? result.data.reasons
+        : Array.isArray(result?.reasons)
+          ? result.reasons
+          : []
+
+      if (!reasons.length) {
+        showError(
+          global.t?.t('orders', 'message', 'noOfficialCancelReasonAvailable') ||
+            `A plataforma ${cancelReasonChannelLabel} nao retornou motivos oficiais de cancelamento para este pedido.`,
+        )
+        return
+      }
+
+      setFood99CancelReasons(reasons)
+      setCancelReasonModalVisible(true)
+      setSelectedFood99CancelReasonId(null)
+      setFood99CancelReasonText('')
+    } catch (cancelReasonError) {
+      showError(formatApiError(cancelReasonError))
     } finally {
       setFood99CancelReasonsLoading(false)
     }
@@ -1720,8 +1936,10 @@ const OrderDetails = ({ route, navigation }) => {
     isTerminalFood99Order,
     food99ActionLoading,
     food99CancelReasonsLoading,
-    platformCapabilities.canCancel,
-    runOrderAction,
+    isFood99Order,
+    marketplaceCapabilities.canCancel,
+    cancelReasonChannelLabel,
+    showError,
   ])
 
   const handleFood99CopyLocator = useCallback(async () => {
@@ -2006,9 +2224,15 @@ const OrderDetails = ({ route, navigation }) => {
 
   const handleCancelOrderPress = useCallback(() => {
     if (isFood99Order || isIfoodOrder) {
-      confirmCancelOrder(() => {
-        void handleFood99CancelPress()
-      })
+      void handleFood99CancelPress()
+      return
+    }
+
+    if (!canGenericCancelOrder) {
+      showError(
+        global.t?.t('orders', 'message', 'orderCannotBeCanceledAfterReady') ||
+          'Este pedido nao pode mais ser cancelado depois que saiu do estado editavel.',
+      )
       return
     }
 
@@ -2019,17 +2243,29 @@ const OrderDetails = ({ route, navigation }) => {
     isFood99Order,
     isIfoodOrder,
     confirmCancelOrder,
+    canGenericCancelOrder,
     handleFood99CancelPress,
     runOrderAction,
+    showError,
   ])
 
   const primaryKdsAction = useMemo(() => {
     const hasActions = isFood99Order || isIfoodOrder || platformCapabilities.canReady || platformCapabilities.canDeliver
     if (!hasActions) return null
 
+    if (canConfirmIfoodOrder) {
+      return {
+        label: global.t?.t('orders', 'button', 'confirm'),
+        icon: 'done-all',
+        loadingKey: 'confirm',
+        disabled: !!(food99ActionLoading || orderActionLoading),
+        onPress: () => runOrderAction('confirm'),
+      }
+    }
+
     if (canReadyFood99Order) {
       return {
-        label: global.t?.t('orders', 'button', 'orderReady'),
+        label: marketplaceReadyActionLabel,
         icon: 'check-circle',
         loadingKey: 'ready',
         disabled: !!(food99ActionLoading || orderActionLoading),
@@ -2049,8 +2285,10 @@ const OrderDetails = ({ route, navigation }) => {
 
     return null
   }, [
+    canConfirmIfoodOrder,
     canReadyFood99Order,
     food99ActionLoading,
+    marketplaceReadyActionLabel,
     orderActionLoading,
     handleFood99DeliveredPress,
     isFood99Order,
@@ -2079,7 +2317,7 @@ const OrderDetails = ({ route, navigation }) => {
   const resolvedPrimaryKdsAction = !isTerminalFood99Order && (
     primaryKdsAction ||
     (
-      canMarkOrderAsPreparingStandalone
+      canGenericConfirmOrder
         ? {
             label: global.t?.t('orders', 'label', 'startPreparation') || 'Iniciar preparo',
             icon: 'play-arrow',
@@ -2087,7 +2325,7 @@ const OrderDetails = ({ route, navigation }) => {
             disabled: orderActionLoading === 'confirm',
             onPress: handleConfirmGenericOrder,
           }
-        : canMarkOrderAsReadyStandalone
+        : canGenericReadyOrder
           ? {
               label: global.t?.t('orders', 'button', 'orderReady'),
               icon: 'check-circle',
@@ -2095,7 +2333,23 @@ const OrderDetails = ({ route, navigation }) => {
               disabled: orderActionLoading === 'ready',
               onPress: handleMarkOrderAsReady,
             }
-          : null
+          : canGenericDeliveredOrder
+            ? {
+                label: global.t?.t('orders', 'button', 'deliverOrder'),
+                icon: 'local-shipping',
+                loadingKey: 'delivered',
+                disabled: orderActionLoading === 'delivered',
+                onPress: handleDeliverGenericOrder,
+              }
+            : canFinalizeGenericOrder
+              ? {
+                  label: global.t?.t('orders', 'button', 'finalize') || 'Finalizar',
+                  icon: 'task-alt',
+                  loadingKey: 'finalize',
+                  disabled: orderActionLoading === 'finalize',
+                  onPress: handleFinalizeGenericOrder,
+                }
+              : null
     )
   )
   const shouldShowMarketplaceKdsActionRow =
@@ -2113,7 +2367,7 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldShowMobileCancelAction =
     isFood99Order || isIfoodOrder
       ? canCancelFood99Order
-      : shouldShowKdsCancel
+      : canGenericCancelOrder
   const shouldShowMobileBottomActions =
     shouldShowMobileCancelAction ||
     !!resolvedPrimaryKdsAction
@@ -2241,19 +2495,19 @@ const OrderDetails = ({ route, navigation }) => {
             {!!remoteOrderStateLabel && (
               <View style={[
                 localStyles.remoteStateBadge,
-                  remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { borderColor: '#0EA5E9', backgroundColor: '#0EA5E922' }
+                  ['dispatching', 'dispatched', 'order_in_transit', 'courier_to_store', 'picked_up', 'arriving', 'delivering'].includes(remoteOrderStateKey) ? { borderColor: '#0EA5E9', backgroundColor: '#0EA5E922' }
                 : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { borderColor: '#10B981', backgroundColor: '#10B98122' }
-                : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
-                : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { borderColor: '#22C55E', backgroundColor: '#22C55E22' }
+                : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' || remoteOrderStateKey === 'confirmed' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
+                : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' || remoteOrderStateKey === 'delivered' || remoteOrderStateKey === 'finished' || remoteOrderStateKey === 'completed' || remoteOrderStateKey === 'complete' ? { borderColor: '#22C55E', backgroundColor: '#22C55E22' }
                 : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { borderColor: '#EF4444', backgroundColor: '#EF444422' }
                 : { borderColor: '#8B5CF6', backgroundColor: '#8B5CF622' }
               ]}>
                 <Text style={[
                   localStyles.remoteStateBadgeText,
-                  remoteOrderStateKey === 'dispatching' || remoteOrderStateKey === 'order_in_transit' ? { color: '#0EA5E9' }
+                  ['dispatching', 'dispatched', 'order_in_transit', 'courier_to_store', 'picked_up', 'arriving', 'delivering'].includes(remoteOrderStateKey) ? { color: '#0EA5E9' }
                   : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { color: '#10B981' }
-                  : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' ? { color: '#F59E0B' }
-                  : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' ? { color: '#22C55E' }
+                  : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' || remoteOrderStateKey === 'confirmed' ? { color: '#F59E0B' }
+                  : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' || remoteOrderStateKey === 'delivered' || remoteOrderStateKey === 'finished' || remoteOrderStateKey === 'completed' || remoteOrderStateKey === 'complete' ? { color: '#22C55E' }
                   : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { color: '#EF4444' }
                   : { color: '#8B5CF6' }
                 ]}>
@@ -2315,6 +2569,11 @@ const OrderDetails = ({ route, navigation }) => {
               <Text style={localStyles.mobileNoteLabel}>{global.t?.t('orders', 'label', 'customerObservation')}</Text>
             </View>
             <Text style={localStyles.mobileNoteText}>{orderObservationText}</Text>
+            {shouldShowFood99ItemRemarks && (
+              <Text style={localStyles.mobileNoteText}>
+                {global.t?.t('orders', 'label', 'itemsObservation') || 'Observações dos itens'}: {food99ItemRemarksText}
+              </Text>
+            )}
           </View>
         )}
       </View>
@@ -2335,13 +2594,13 @@ const OrderDetails = ({ route, navigation }) => {
         <View style={localStyles.mobilePaymentMetricCard}>
           <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
           <Text style={localStyles.mobilePaymentMetricValue}>
-            {Formatter.formatMoney(food99Payment?.amount_paid || localPaidAmount || 0)}
+            {Formatter.formatMoney(resolvePreferredMoney(food99Payment?.amount_paid, localPaidAmount || 0))}
           </Text>
         </View>
         <View style={localStyles.mobilePaymentMetricCard}>
           <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
           <Text style={[localStyles.mobilePaymentMetricValue, localStyles.mobilePaymentPendingValue]}>
-            {Formatter.formatMoney(food99Payment?.amount_pending || localPendingAmount || 0)}
+            {Formatter.formatMoney(resolvePreferredMoney(food99Payment?.amount_pending, localPendingAmount || 0))}
           </Text>
           {shouldShowCollectOnDelivery && (
             <Text style={localStyles.mobilePaymentMetricHint}>
@@ -2667,7 +2926,15 @@ const OrderDetails = ({ route, navigation }) => {
                 <View style={localStyles.detailsCard}>
                   <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'localStatus')}</Text>
                   <Text style={localStyles.detailsCardValue}>
-                    {item?.status?.status || item?.status?.realStatus || '-'}
+                    {food99State?.order?.status?.status || item?.status?.status || '-'}
+                  </Text>
+                </View>
+                <View style={localStyles.detailsCard}>
+                  <Text style={localStyles.detailsCardLabel}>
+                    {global.t?.t('orders', 'label', 'localRealStatus') || 'Real status local'}
+                  </Text>
+                  <Text style={localStyles.detailsCardValue}>
+                    {food99State?.order?.status?.real_status || food99State?.order?.status?.realStatus || item?.status?.realStatus || '-'}
                   </Text>
                 </View>
                 <View style={localStyles.detailsCard}>
@@ -2712,6 +2979,11 @@ const OrderDetails = ({ route, navigation }) => {
                     <Text style={localStyles.detailsSectionTitle}>
                       {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodOperation') : global.t?.t('orders', 'title', 'food99Operation')}
                     </Text>
+                    {isUsingFallbackMarketplaceSummary ? (
+                      <Text style={localStyles.food99InfoHint}>
+                        {global.t?.t('orders', 'message', 'marketplaceSummaryFromSnapshot') || 'Dados de integração exibidos a partir do snapshot salvo no pedido até o state mais recente ser carregado.'}
+                      </Text>
+                    ) : null}
                     {!!food99Identifiers?.order_index && (
                       <Text style={localStyles.detailsInfoText}>
                         {isIfoodOrder ? global.t?.t('orders', 'label', 'ifoodNumber') : global.t?.t('orders', 'label', 'food99Number')}: #{food99Identifiers.order_index}
@@ -3023,6 +3295,11 @@ const OrderDetails = ({ route, navigation }) => {
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'observations')}</Text>
                       <Text style={localStyles.detailsInfoText}>{orderObservationText}</Text>
+                      {shouldShowFood99ItemRemarks && (
+                        <Text style={localStyles.detailsInfoText}>
+                          {global.t?.t('orders', 'label', 'itemsObservation') || 'Observações dos itens'}: {food99ItemRemarksText}
+                        </Text>
+                      )}
                       {food99Notes?.need_cutlery !== null &&
                       food99Notes?.need_cutlery !== undefined ? (
                         <Text style={localStyles.detailsInfoText}>
@@ -3766,6 +4043,11 @@ const OrderDetails = ({ route, navigation }) => {
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'observations')}</Text>
                       <Text style={localStyles.food99InfoText}>{orderObservationText}</Text>
+                      {shouldShowFood99ItemRemarks && (
+                        <Text style={localStyles.food99InfoText}>
+                          {global.t?.t('orders', 'label', 'itemsObservation') || 'Observações dos itens'}: {food99ItemRemarksText}
+                        </Text>
+                      )}
                       {food99Notes?.need_cutlery !== null &&
                         food99Notes?.need_cutlery !== undefined && (
                           <Text style={localStyles.food99InfoText}>
@@ -3860,7 +4142,7 @@ const OrderDetails = ({ route, navigation }) => {
                         {food99ActionLoading === 'ready' ? (
                           <ActivityIndicator size="small" color="#F8FAFC" />
                         ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
+                          <Text style={localStyles.kdsActionText}>{marketplaceReadyActionLabel}</Text>
                         )}
                       </TouchableOpacity>
                     )}
@@ -3942,7 +4224,7 @@ const OrderDetails = ({ route, navigation }) => {
                     )}
                     {canGenericReadyOrder && (
                       <TouchableOpacity
-                        onPress={() => runOrderAction('ready')}
+                        onPress={handleMarkOrderAsReady}
                         disabled={orderActionLoading === 'ready'}
                         style={[
                           localStyles.kdsActionButton,
@@ -3959,7 +4241,7 @@ const OrderDetails = ({ route, navigation }) => {
                     )}
                     {canGenericDeliveredOrder && (
                       <TouchableOpacity
-                        onPress={() => runOrderAction('delivered')}
+                        onPress={handleDeliverGenericOrder}
                         disabled={orderActionLoading === 'delivered'}
                         style={[
                           localStyles.kdsActionButton,
@@ -3976,7 +4258,7 @@ const OrderDetails = ({ route, navigation }) => {
                     )}
                     {canFinalizeGenericOrder && (
                       <TouchableOpacity
-                        onPress={() => runOrderAction('finalize')}
+                        onPress={handleFinalizeGenericOrder}
                         disabled={orderActionLoading === 'finalize'}
                         style={[
                           localStyles.kdsActionButton,

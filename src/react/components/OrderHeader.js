@@ -15,6 +15,22 @@ const WAITING_RULES = [
 
 const normalizeText = value => String(value || '').trim()
 
+export const resolveDisplayedOrderStatus = (order, fallbackColor = '#6B7280') => {
+  const statusLabel = normalizeText(order?.status?.status) ||
+    normalizeText(order?.status?.realStatus) ||
+    'open'
+  const statusColor = normalizeText(order?.status?.color) || fallbackColor
+  const realStatus = normalizeText(order?.status?.realStatus).toLowerCase()
+
+  return {
+    label: statusLabel,
+    labelUpper: statusLabel.toUpperCase(),
+    color: statusColor,
+    key: statusLabel.toLowerCase(),
+    isOpen: realStatus === 'open',
+  }
+}
+
 const REMOTE_STATE_MAP = {
   new: { label: 'Novo', color: '#3B82F6' },
   placed: { label: 'Novo', color: '#3B82F6' },
@@ -144,7 +160,8 @@ const resolveHeaderPalette = palette => {
 }
 
 const OrderHeader = ({ order, compact = false, showCustomer = false, palette = null }) => {
-  const isOpen = order?.status?.realStatus === 'open'
+  const displayedStatus = useMemo(() => resolveDisplayedOrderStatus(order), [order])
+  const isOpen = displayedStatus.isOpen
   const headerPalette = useMemo(() => resolveHeaderPalette(palette), [palette])
   const styles = useMemo(() => createStyles(headerPalette), [headerPalette])
   const orderDateValue = useMemo(() => resolveOrderDateValue(order), [order?.alterDate, order?.alter_date, order?.orderDate])
@@ -193,7 +210,7 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
 
   const channelLogo = getOrderChannelLogo(order)
   const channelLabel = getOrderChannelLabel(order)
-  const statusColor = order?.status?.color || '#6B7280'
+  const statusColor = displayedStatus.color
   const externalOrderRef = getExternalOrderRef(order)
   const food99Summary = buildFood99OrderSummary(order)
   const displayPrice = Number.isFinite(Number(food99Summary?.financial?.customerTotal))
@@ -244,7 +261,7 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
           <View style={[styles.statusBadge, { borderColor: statusColor }]}>
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={styles.statusText}>
-              {order?.status?.status}
+              {displayedStatus.label}
             </Text>
           </View>
           <Text style={styles.orderPrice}>
