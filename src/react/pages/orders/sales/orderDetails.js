@@ -1375,6 +1375,20 @@ const OrderDetails = ({ route, navigation }) => {
   const isFood99Ready = remoteOrderStateKey === 'ready'
   const isFood99CourierToStore = remoteOrderStateKey === 'courier_to_store'
   const shouldHideReadyFood99Action = !!food99Delivery?.is_platform_delivery && isFood99Ready
+  const canConfirmIfoodOrder = false
+  const marketplaceLifecycleKey = isIfoodOrder
+    ? effectiveIfoodLifecycleKey
+    : remoteOrderStateKey
+  const isMarketplacePreparingState =
+    (
+      localRealStatusKey === 'open' &&
+      localStatusNameKey === 'preparing'
+    ) ||
+    (
+      localRealStatusKey !== 'pending' &&
+      ['accepted', 'confirmed', 'preparing'].includes(marketplaceLifecycleKey)
+    )
+  const marketplaceReadyActionLabel = global.t?.t('orders', 'button', 'orderReady')
   const isIfoodReadyOrBeyondLocalState =
     isIfoodOrder &&
     (
@@ -1742,20 +1756,6 @@ const OrderDetails = ({ route, navigation }) => {
         : global.t?.t('orders', 'label', 'onlinePayment'))
       : global.t?.t('orders', 'label', 'notInformed')
   )
-  const canConfirmIfoodOrder = false
-  const marketplaceLifecycleKey = isIfoodOrder
-    ? effectiveIfoodLifecycleKey
-    : remoteOrderStateKey
-  const isMarketplacePreparingState =
-    (
-      localRealStatusKey === 'open' &&
-      localStatusNameKey === 'preparing'
-    ) ||
-    (
-      localRealStatusKey !== 'pending' &&
-      ['accepted', 'confirmed', 'preparing'].includes(marketplaceLifecycleKey)
-    )
-  const marketplaceReadyActionLabel = global.t?.t('orders', 'button', 'orderReady')
   const canGenericConfirmOrder =
     !isFood99Order &&
     !isIfoodOrder &&
