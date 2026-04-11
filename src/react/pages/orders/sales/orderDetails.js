@@ -83,6 +83,17 @@ const normalizeErrno = value => String(value ?? '').trim()
 const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
 const isTerminalOrderStatus = value =>
   TERMINAL_ORDER_STATUSES.includes(String(value ?? '').trim().toLowerCase())
+const MARKETPLACE_OPERATIONAL_STATUS_RANK = {
+  'open:open': 10,
+  'open:preparing': 20,
+  'pending:ready': 30,
+  'pending:way': 40,
+  'closed:closed': 50,
+  'canceled:canceled': 60,
+  'cancelled:cancelled': 60,
+  'canceled:cancelled': 60,
+  'cancelled:canceled': 60,
+}
 
 const normalizeText = value => {
   if (value === null || value === undefined) return ''
@@ -149,6 +160,118 @@ const normalizeText = value => {
 
 const toCamelCase = value =>
   String(value ?? '').replace(/_([a-z])/g, (_, char) => char.toUpperCase())
+
+const getOperationalStatusRank = (realStatus, statusName) =>
+  MARKETPLACE_OPERATIONAL_STATUS_RANK[
+    `${String(realStatus || '').trim().toLowerCase()}:${String(statusName || '').trim().toLowerCase()}`
+  ] ?? null
+
+const getOperationalStatusColor = (realStatus, statusName, fallbackColor = '#0EA5E9') => {
+  const key = `${String(realStatus || '').trim().toLowerCase()}:${String(statusName || '').trim().toLowerCase()}`
+
+  switch (key) {
+    case 'open:preparing':
+      return '#F59E0B'
+    case 'pending:ready':
+      return '#10B981'
+    case 'pending:way':
+      return '#0EA5E9'
+    case 'closed:closed':
+      return '#22C55E'
+    case 'canceled:canceled':
+    case 'cancelled:cancelled':
+    case 'canceled:cancelled':
+    case 'cancelled:canceled':
+      return '#EF4444'
+    default:
+      return fallbackColor
+  }
+}
+
+const resolveMarketplaceOperationalStatusFromRemoteState = remoteState => {
+  const normalizedRemoteState = String(remoteState || '').trim().toLowerCase()
+
+  if (!normalizedRemoteState) return null
+
+  if (['new', 'open', 'placed', 'order_created', 'pending'].includes(normalizedRemoteState)) {
+    return { realStatus: 'open', status: 'open' }
+  }
+
+  if (['accepted', 'confirmed', 'preparing', 'started'].includes(normalizedRemoteState)) {
+    return { realStatus: 'open', status: 'preparing' }
+  }
+
+  if (['ready', 'delivery_drop_code_requested', 'delivery_drop_code_validating'].includes(normalizedRemoteState)) {
+    return { realStatus: 'pending', status: 'ready' }
+  }
+
+  if ([
+    'dispatching',
+    'dispatched',
+    'order_dispatched',
+    'order_picked_up',
+    'order_in_transit',
+    'delivery_started',
+    'delivery_collected',
+    'delivery_arrived_at_destination',
+    'courier_to_store',
+    'picked_up',
+    'delivering',
+    'arriving',
+  ].includes(normalizedRemoteState)) {
+    return { realStatus: 'pending', status: 'way' }
+  }
+
+  if (['concluded', 'closed', 'delivered', 'finished', 'completed', 'complete'].includes(normalizedRemoteState)) {
+    return { realStatus: 'closed', status: 'closed' }
+  }
+
+  if (['cancelled', 'canceled'].includes(normalizedRemoteState)) {
+    return { realStatus: 'canceled', status: 'canceled' }
+  }
+
+  return null
+}
+
+const resolvePreferredOperationalStatus = ({
+  currentStatus,
+  currentRealStatus,
+  remoteState,
+}) => {
+  const normalizedCurrentStatus = String(currentStatus || '').trim().toLowerCase()
+  const normalizedCurrentRealStatus = String(currentRealStatus || '').trim().toLowerCase()
+  const remoteOperationalStatus = resolveMarketplaceOperationalStatusFromRemoteState(remoteState)
+
+  if (!remoteOperationalStatus) {
+    return {
+      status: normalizedCurrentStatus,
+      realStatus: normalizedCurrentRealStatus,
+    }
+  }
+
+  if (!normalizedCurrentStatus && !normalizedCurrentRealStatus) {
+    return remoteOperationalStatus
+  }
+
+  const currentRank = getOperationalStatusRank(normalizedCurrentRealStatus, normalizedCurrentStatus)
+  const remoteRank = getOperationalStatusRank(
+    remoteOperationalStatus.realStatus,
+    remoteOperationalStatus.status,
+  )
+
+  if (currentRank === null) {
+    return remoteOperationalStatus
+  }
+
+  if (remoteRank !== null && remoteRank > currentRank) {
+    return remoteOperationalStatus
+  }
+
+  return {
+    status: normalizedCurrentStatus,
+    realStatus: normalizedCurrentRealStatus,
+  }
+}
 
 const readCapabilityValue = (capabilities, ...keys) => {
   if (!capabilities || typeof capabilities !== 'object') {
@@ -809,6 +932,23 @@ const OrderDetails = ({ route, navigation }) => {
       })),
     }
   }, [fallbackFood99Summary?.items, isIfoodOrder, item, orderParam])
+  const resolvedDisplayOrderProducts = useMemo(() => {
+    const currentOrderProducts = Array.isArray(item?.orderProducts) ? item.orderProducts : []
+    if (currentOrderProducts.length) {
+      return currentOrderProducts
+    }
+
+    const initialOrderProducts = Array.isArray(orderParam?.orderProducts) ? orderParam.orderProducts : []
+    if (initialOrderProducts.length) {
+      return initialOrderProducts
+    }
+
+    const fallbackOrderProducts = Array.isArray(ifoodDisplayOrder?.orderProducts)
+      ? ifoodDisplayOrder.orderProducts
+      : []
+
+    return fallbackOrderProducts
+  }, [ifoodDisplayOrder?.orderProducts, item?.orderProducts, orderParam?.orderProducts])
   const fallbackFood99Financial = useMemo(() => {
     const financial = fallbackFood99Summary?.financial
     if (!financial) return null
@@ -1285,6 +1425,57 @@ const OrderDetails = ({ route, navigation }) => {
   const effectiveIfoodLifecycleKey = isIfoodOrder
     ? (remoteOrderStateKey || normalizedIfoodLatestEventType)
     : remoteOrderStateKey
+  const effectiveDisplayedOperationalStatus = useMemo(
+    () => (
+      (isFood99Order || isIfoodOrder)
+        ? resolvePreferredOperationalStatus({
+            currentStatus: localStatusNameKey,
+            currentRealStatus: localRealStatusKey,
+            remoteState: effectiveIfoodLifecycleKey,
+          })
+        : {
+            status: localStatusNameKey,
+            realStatus: localRealStatusKey,
+          }
+    ),
+    [
+      effectiveIfoodLifecycleKey,
+      isFood99Order,
+      isIfoodOrder,
+      localRealStatusKey,
+      localStatusNameKey,
+    ],
+  )
+  const effectiveLocalStatusNameKey = effectiveDisplayedOperationalStatus.status
+  const effectiveLocalRealStatusKey = effectiveDisplayedOperationalStatus.realStatus
+  const displayOrderStatusColor = getOperationalStatusColor(
+    effectiveLocalRealStatusKey,
+    effectiveLocalStatusNameKey,
+    food99State?.order?.status?.color || item?.status?.color || orderParam?.status?.color || '#0EA5E9',
+  )
+  const resolvedDisplayOrder = useMemo(() => {
+    const baseOrder = item || orderParam
+    if (!baseOrder) return null
+
+    return {
+      ...baseOrder,
+      orderProducts: resolvedDisplayOrderProducts,
+      status: {
+        ...(baseOrder?.status || {}),
+        status: effectiveLocalStatusNameKey || baseOrder?.status?.status || '',
+        realStatus: effectiveLocalRealStatusKey || baseOrder?.status?.realStatus || '',
+        real_status: effectiveLocalRealStatusKey || baseOrder?.status?.real_status || '',
+        color: displayOrderStatusColor,
+      },
+    }
+  }, [
+    displayOrderStatusColor,
+    effectiveLocalRealStatusKey,
+    effectiveLocalStatusNameKey,
+    item,
+    orderParam,
+    resolvedDisplayOrderProducts,
+  ])
   const normalizedFood99LastAction = String(food99Integration?.last_action || '').toLowerCase()
   const isIfoodReadyLifecycle =
     isIfoodOrder &&
@@ -1298,11 +1489,7 @@ const OrderDetails = ({ route, navigation }) => {
     ) &&
     !isIfoodReadyLifecycle
   const normalizedOrderRealStatus = String(
-    food99State?.order?.status?.real_status ||
-    food99State?.order?.status?.realStatus ||
-    item?.status?.realStatus ||
-    orderParam?.status?.realStatus ||
-    '',
+    effectiveLocalRealStatusKey || '',
   ).toLowerCase()
   const hasTerminalOrderState =
     isLocallyTerminalOrder ||
@@ -1381,29 +1568,32 @@ const OrderDetails = ({ route, navigation }) => {
     : remoteOrderStateKey
   const isMarketplacePreparingState =
     (
-      localRealStatusKey === 'open' &&
-      localStatusNameKey === 'preparing'
+      effectiveLocalRealStatusKey === 'open' &&
+      effectiveLocalStatusNameKey === 'preparing'
     ) ||
     (
-      localRealStatusKey !== 'pending' &&
+      effectiveLocalRealStatusKey !== 'pending' &&
       ['accepted', 'confirmed', 'preparing'].includes(marketplaceLifecycleKey)
     )
   const marketplaceReadyActionLabel = global.t?.t('orders', 'button', 'orderReady')
   const isIfoodReadyOrBeyondLocalState =
     isIfoodOrder &&
     (
-      localStatusNameKey === 'ready' ||
-      localStatusNameKey === 'way' ||
-      localRealStatusKey === 'pending'
+      effectiveLocalStatusNameKey === 'ready' ||
+      effectiveLocalStatusNameKey === 'way' ||
+      effectiveLocalRealStatusKey === 'pending'
     )
+  const canReadyMarketplaceByLifecycleFallback =
+    !isTerminalFood99Order &&
+    ['accepted', 'confirmed', 'preparing'].includes(marketplaceLifecycleKey)
   const canReadyFood99Order =
     !isTerminalFood99Order &&
     isMarketplacePreparingState &&
     (
       isIfoodOrder
-        ? marketplaceCapabilities.canReady &&
+        ? (marketplaceCapabilities.canReady || canReadyMarketplaceByLifecycleFallback) &&
           !isIfoodReadyOrBeyondLocalState
-        : marketplaceCapabilities.canReady && !shouldHideReadyFood99Action
+        : (marketplaceCapabilities.canReady || canReadyMarketplaceByLifecycleFallback) && !shouldHideReadyFood99Action
     )
   const applicableFood99CancelReasons = Array.isArray(food99CancelReasons)
     ? food99CancelReasons.filter(reason => reason?.applicable !== false)
@@ -1640,11 +1830,8 @@ const OrderDetails = ({ route, navigation }) => {
     return String(item?.app || global.t?.t('orders', 'label', 'localOrigin'))
   })()
   const localStatusRaw = String(
-    food99State?.order?.status?.status ||
-    food99State?.order?.status?.real_status ||
-    food99State?.order?.status?.realStatus ||
-    item?.status?.status ||
-    item?.status?.realStatus ||
+    effectiveLocalStatusNameKey ||
+    effectiveLocalRealStatusKey ||
     '',
   ).trim()
   const localStatusLower = localStatusRaw.toLowerCase()
@@ -1657,7 +1844,7 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const isPendingForBadge = Number.isFinite(pendingAmountForBadge) && pendingAmountForBadge > 0.009
   const orderStatusBadgeLabel = String(localStatusRaw || '-').toUpperCase()
-  const orderStatusBadgeColor = item?.status?.color || ppcColors.accentInfo
+  const orderStatusBadgeColor = displayOrderStatusColor || ppcColors.accentInfo
   // Chip de pagamento (PAGO / PENDENTE) exibido na seção de pagamento
   const paymentStatusLabel = isPendingForBadge
     ? global.t?.t('orders', 'label', 'pending').toUpperCase()
@@ -2676,7 +2863,7 @@ const OrderDetails = ({ route, navigation }) => {
           )}
         </View>
         {isPurchaseOrder
-          ? (item?.orderProducts || orderParam?.orderProducts || []).map((op, idx) => {
+          ? (resolvedDisplayOrderProducts || []).map((op, idx) => {
               const prodName = op?.product?.product || op?.product?.name || `Produto #${idx + 1}`
               const prodDesc = op?.product?.description || ''
               const qty      = Number(op?.quantity || 0)
@@ -2815,7 +3002,7 @@ const OrderDetails = ({ route, navigation }) => {
               )
               : (
                 <OrderProducts
-                  order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
+                  order={resolvedDisplayOrder || item}
                   scale={scale}
                   styles={kdsOrderProductsStyles}
                   indentStep={18}
@@ -2926,7 +3113,7 @@ const OrderDetails = ({ route, navigation }) => {
                 <View style={localStyles.detailsCard}>
                   <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'localStatus')}</Text>
                   <Text style={localStyles.detailsCardValue}>
-                    {food99State?.order?.status?.status || item?.status?.status || '-'}
+                    {effectiveLocalStatusNameKey || item?.status?.status || '-'}
                   </Text>
                 </View>
                 <View style={localStyles.detailsCard}>
@@ -2934,7 +3121,7 @@ const OrderDetails = ({ route, navigation }) => {
                     {global.t?.t('orders', 'label', 'localRealStatus') || 'Real status local'}
                   </Text>
                   <Text style={localStyles.detailsCardValue}>
-                    {food99State?.order?.status?.real_status || food99State?.order?.status?.realStatus || item?.status?.realStatus || '-'}
+                    {effectiveLocalRealStatusKey || item?.status?.realStatus || '-'}
                   </Text>
                 </View>
                 <View style={localStyles.detailsCard}>
@@ -3698,7 +3885,7 @@ const OrderDetails = ({ route, navigation }) => {
           {isKds ? (
             renderKdsMobileContent() || (
             <>
-              <OrderHeader order={item} showCustomer />
+              <OrderHeader order={resolvedDisplayOrder || item} showCustomer />
 
               {isFood99Order && (
                 <View style={localStyles.food99InfoCard}>
@@ -4311,7 +4498,7 @@ const OrderDetails = ({ route, navigation }) => {
             </>
           )) : (
             <>
-              <OrderHeader key={item.id} order={item} />
+              <OrderHeader key={item.id} order={resolvedDisplayOrder || item} />
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 {canAddProductsToOrder && (
                   <TouchableOpacity
@@ -4481,7 +4668,7 @@ const OrderDetails = ({ route, navigation }) => {
                   )
                   : (
                     <OrderProducts
-                      order={isIfoodOrder ? (ifoodDisplayOrder || item) : item}
+                      order={resolvedDisplayOrder || item}
                       scale={scale}
                       styles={localStyles}
                       indentStep={22}
