@@ -1521,7 +1521,7 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldShowFood99DeliveryAction =
     isIfoodOrder
       ? canManualCompleteFood99Order && (canOpenFood99HandoverFlow || isIfoodHandoverFlow)
-      : canManualCompleteFood99Order || canOpenFood99HandoverFlow || isIfoodHandoverFlow
+      : canManualCompleteFood99Order
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const food99Locator = String(food99Delivery?.locator || '').trim()
   const food99PickupCode = String(
