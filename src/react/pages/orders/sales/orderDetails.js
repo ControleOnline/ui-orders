@@ -27,6 +27,7 @@ import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProd
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import { buildFood99OrderSummary } from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
+import { useDisplayPrint } from '@controleonline/ui-ppc/src/react/pages/displays/useDisplayPrint'
 import { useDisplayTheme } from '@controleonline/ui-ppc/src/react/theme/displayTheme'
 import { getPlatformCapabilities, getOrderChannelKey, getOrderChannelLabel } from '@assets/ppc/channels'
 
@@ -471,6 +472,31 @@ const OrderDetails = ({ route, navigation }) => {
 
   const { styles: cssStyles, globalStyles } = css()
   const { ppcColors } = useDisplayTheme()
+  const selectedDisplay = useMemo(() => {
+    if (!isKds) {
+      return null
+    }
+
+    const routeDisplay = route.params?.display
+    const normalizedDisplayId = String(
+      routeDisplay?.id || route.params?.displayId || '',
+    )
+      .replace(/\D+/g, '')
+      .trim()
+
+    if (!normalizedDisplayId) {
+      return null
+    }
+
+    return {
+      id: normalizedDisplayId,
+      displayType: routeDisplay?.displayType || route.params?.displayType || '',
+    }
+  }, [isKds, route.params?.display, route.params?.displayId, route.params?.displayType])
+  const {
+    canPrint: canPrintKdsOrder,
+    printToAttachedPrinter: printKdsOrderToDisplay,
+  } = useDisplayPrint({display: selectedDisplay})
   const { width, height: windowHeight } = useWindowDimensions()
 
   const scale = useMemo(() => {
@@ -481,6 +507,14 @@ const OrderDetails = ({ route, navigation }) => {
   }, [width])
 
   const localStyles = useMemo(() => createStyles(scale, ppcColors, windowHeight), [scale, ppcColors, windowHeight])
+  const handleKdsPrintOrder = useCallback(() => {
+    const orderId = item?.id || orderParam?.id
+    if (!canPrintKdsOrder || !orderId) {
+      return
+    }
+
+    printKdsOrderToDisplay({orderId})
+  }, [canPrintKdsOrder, item?.id, orderParam?.id, printKdsOrderToDisplay])
 
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
@@ -2563,15 +2597,27 @@ const OrderDetails = ({ route, navigation }) => {
       ),
       headerRight: () => (
         <View style={localStyles.topBarActions}>
-          <PrintButton
-            printType="order"
-            store="orders"
-            compact
-            iconColor={ppcColors.accentInfo}
-            compactButtonStyle={localStyles.topBarIconButton}
-            compactSelectStyle={localStyles.topBarIconButton}
-            disabled={!item?.id}
-          />
+          {isKds ? (
+            canPrintKdsOrder && !isTvDisplay ? (
+              <TouchableOpacity
+                onPress={handleKdsPrintOrder}
+                style={localStyles.topBarIconButton}
+                disabled={!item?.id}
+              >
+                <Icon name="print" size={20} color={ppcColors.accentInfo} />
+              </TouchableOpacity>
+            ) : null
+          ) : (
+            <PrintButton
+              printType="order"
+              store="orders"
+              compact
+              iconColor={ppcColors.accentInfo}
+              compactButtonStyle={localStyles.topBarIconButton}
+              compactSelectStyle={localStyles.topBarIconButton}
+              disabled={!item?.id}
+            />
+          )}
 
           <TouchableOpacity
             onPress={handleOrderTools}
@@ -2584,7 +2630,11 @@ const OrderDetails = ({ route, navigation }) => {
     })
   }, [
     handleOrderTools,
+    handleKdsPrintOrder,
+    canPrintKdsOrder,
     item?.id,
+    isKds,
+    isTvDisplay,
     localStyles.topBarActions,
     localStyles.topBarIconButton,
     localStyles.topBarTitleSubText,
