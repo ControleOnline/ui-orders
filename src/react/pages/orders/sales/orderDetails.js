@@ -162,6 +162,208 @@ const normalizeText = value => {
 const toCamelCase = value =>
   String(value ?? '').replace(/_([a-z])/g, (_, char) => char.toUpperCase())
 
+const formatHumanLabel = value => {
+  const normalized = normalizeText(value)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!normalized) return ''
+
+  return normalized.replace(/\b\w/g, char => char.toUpperCase())
+}
+
+const resolveInvoiceStatusPresentation = invoice => {
+  const rawStatus = normalizeText(invoice?.status?.status)
+  const rawRealStatus = normalizeText(invoice?.status?.realStatus || invoice?.status?.real_status)
+  const normalizedStatus = rawStatus.toLowerCase()
+  const normalizedRealStatus = rawRealStatus.toLowerCase()
+
+  if (
+    ['canceled', 'cancelled'].includes(normalizedStatus) ||
+    ['canceled', 'cancelled'].includes(normalizedRealStatus)
+  ) {
+    return {
+      label: formatHumanLabel(rawStatus || rawRealStatus || 'Canceled'),
+      color: '#EF4444',
+      backgroundColor: '#EF444422',
+    }
+  }
+
+  if (
+    normalizedRealStatus === 'closed' ||
+    ['closed', 'paid'].includes(normalizedStatus)
+  ) {
+    return {
+      label: formatHumanLabel(rawStatus || rawRealStatus || 'Paid'),
+      color: '#16A34A',
+      backgroundColor: '#16A34A22',
+    }
+  }
+
+  if (
+    normalizedRealStatus === 'pending' ||
+    ['pending', 'waiting payment', 'waiting_payment', 'open'].includes(normalizedStatus)
+  ) {
+    return {
+      label: formatHumanLabel(rawStatus || rawRealStatus || 'Pending'),
+      color: '#D97706',
+      backgroundColor: '#D9770622',
+    }
+  }
+
+  return {
+    label: formatHumanLabel(rawStatus || rawRealStatus || 'Open'),
+    color: '#0EA5E9',
+    backgroundColor: '#0EA5E922',
+  }
+}
+
+const resolveInvoiceTitle = invoice => {
+  const categoryName = formatHumanLabel(invoice?.category?.name || invoice?.category?.context)
+  if (categoryName) return categoryName
+
+  const invoiceId = String(invoice?.id || '').trim()
+  return invoiceId ? `Invoice #${invoiceId}` : 'Invoice'
+}
+
+const getEntityId = entity => {
+  if (!entity) return null
+
+  if (typeof entity === 'number' || typeof entity === 'string') {
+    const matches = String(entity).match(/\d+/g)
+    return matches ? Number(matches[matches.length - 1]) : null
+  }
+
+  if (typeof entity === 'object') {
+    if (entity.id) return Number(entity.id)
+    if (entity['@id']) {
+      const matches = String(entity['@id']).match(/\d+/g)
+      return matches ? Number(matches[matches.length - 1]) : null
+    }
+  }
+
+  return null
+}
+
+const getPeopleLabel = entity =>
+  normalizeText(
+    entity?.alias ||
+    entity?.name ||
+    entity?.fantasy_name ||
+    entity?.company ||
+    entity?.document
+  )
+
+const resolveInvoiceKind = (invoice, companyId) => {
+  const payerId = getEntityId(invoice?.payer)
+  const receiverId = getEntityId(invoice?.receiver)
+  const companyIsPayer = !!companyId && payerId === companyId
+  const companyIsReceiver = !!companyId && receiverId === companyId
+
+  if (companyIsPayer && !companyIsReceiver) {
+    return {
+      kind: 'payable',
+      label: 'Conta a pagar',
+      counterpartyLabel: getPeopleLabel(invoice?.receiver),
+    }
+  }
+
+  if (companyIsReceiver && !companyIsPayer) {
+    return {
+      kind: 'receivable',
+      label: 'Conta a receber',
+      counterpartyLabel: getPeopleLabel(invoice?.payer),
+    }
+  }
+
+  if (companyIsPayer && companyIsReceiver) {
+    return {
+      kind: 'transfer',
+      label: 'Transferência interna',
+      counterpartyLabel: '',
+    }
+  }
+
+  if (invoice?.sourceWallet && !invoice?.destinationWallet) {
+    return {
+      kind: 'payable',
+      label: 'Conta a pagar',
+      counterpartyLabel: getPeopleLabel(invoice?.receiver),
+    }
+  }
+
+  if (!invoice?.sourceWallet && invoice?.destinationWallet) {
+    return {
+      kind: 'receivable',
+      label: 'Conta a receber',
+      counterpartyLabel: getPeopleLabel(invoice?.payer),
+    }
+  }
+
+  if (invoice?.sourceWallet && invoice?.destinationWallet) {
+    return {
+      kind: 'transfer',
+      label: 'Transferência',
+      counterpartyLabel: '',
+    }
+  }
+
+  return {
+    kind: 'unknown',
+    label: 'Movimentação financeira',
+    counterpartyLabel: getPeopleLabel(invoice?.payer) || getPeopleLabel(invoice?.receiver),
+  }
+}
+
+const formatPhoneDisplay = phoneEntry => {
+  if (!phoneEntry) return ''
+
+  if (typeof phoneEntry === 'string' || typeof phoneEntry === 'number') {
+    return normalizeText(phoneEntry)
+  }
+
+  const ddi = normalizeText(phoneEntry?.ddi)
+  const ddd = normalizeText(phoneEntry?.ddd)
+  const phone = normalizeText(phoneEntry?.phone)
+
+  if (!phone) return ''
+
+  return [ddi ? `+${ddi}` : '', ddd ? `(${ddd})` : '', phone]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+}
+
+const resolveLocalOrderAddress = address => {
+  const streetName = normalizeText(address?.street?.street)
+  const streetNumber = normalizeText(address?.number)
+  const nickname = normalizeText(address?.nickname)
+  const complement = normalizeText(address?.complement)
+  const district = normalizeText(address?.street?.district?.district)
+  const city = normalizeText(address?.street?.district?.city?.city)
+  const state = normalizeText(
+    address?.street?.district?.city?.state?.uf ||
+    address?.street?.district?.city?.state?.state
+  )
+  const postalCode = normalizeText(address?.street?.cep?.cep)
+
+  return {
+    primary: resolvePreferredText(
+      [streetName, streetNumber].filter(Boolean).join(', '),
+      streetName,
+      nickname,
+    ),
+    secondary: [district, [city, state].filter(Boolean).join(' / ')].filter(Boolean).join(' • '),
+    streetLine: [streetName, streetNumber].filter(Boolean).join(', '),
+    district,
+    cityStateLine: [city, state].filter(Boolean).join(' / '),
+    postalCode,
+    complement,
+    nickname,
+  }
+}
+
 const getOperationalStatusRank = (realStatus, statusName) =>
   MARKETPLACE_OPERATIONAL_STATUS_RANK[
     `${String(realStatus || '').trim().toLowerCase()}:${String(statusName || '').trim().toLowerCase()}`
@@ -545,16 +747,16 @@ const OrderDetails = ({ route, navigation }) => {
   const isIfoodOrder = channelKey === 'ifood'
   const isPosOrder = String(item?.app || orderParam?.app || '').trim().toUpperCase() === 'POS'
   const localStatusNameKey = String(
-    food99State?.order?.status?.status ||
     item?.status?.status ||
     orderParam?.status?.status ||
+    food99State?.order?.status?.status ||
     '',
   ).trim().toLowerCase()
   const localRealStatusKey = String(
-    food99State?.order?.status?.real_status ||
-    food99State?.order?.status?.realStatus ||
     item?.status?.realStatus ||
     orderParam?.status?.realStatus ||
+    food99State?.order?.status?.real_status ||
+    food99State?.order?.status?.realStatus ||
     '',
   ).trim().toLowerCase()
   const isLocallyTerminalOrder =
@@ -583,6 +785,7 @@ const OrderDetails = ({ route, navigation }) => {
   const [orderActionLoading, setOrderActionLoading] = useState('')
 
   const orderProductsStore = useStore('order_products')
+  const { items: storedOrderProducts } = orderProductsStore.getters
   const productsStore = useStore('products')
   const { items: productSearchResults, isLoading: productSearchLoading } = productsStore.getters
 
@@ -608,6 +811,17 @@ const OrderDetails = ({ route, navigation }) => {
     }, [orderParam]),
   )
 
+  useFocusEffect(
+    useCallback(() => {
+      if (orderParam && orderParam['@id']) {
+        orderProductsStore.actions.getItems({
+          order: orderParam['@id'],
+          itemsPerPage: 500,
+        })
+      }
+    }, [orderParam, orderProductsStore.actions]),
+  )
+
   const handleAddProduct = () => {
     if (isLocallyTerminalOrder || !canEditItems) return
     navigation.navigate('AddProductScreen')
@@ -621,8 +835,12 @@ const OrderDetails = ({ route, navigation }) => {
   const refreshCurrentOrder = useCallback(async () => {
     if (orderParam && orderParam['@id']) {
       await ordersActions.get(orderParam['@id'])
+      await orderProductsStore.actions.getItems({
+        order: orderParam['@id'],
+        itemsPerPage: 500,
+      })
     }
-  }, [orderParam, ordersActions])
+  }, [orderParam, orderProductsStore.actions, ordersActions])
 
   const canEditItems =
     !isFood99Order &&
@@ -748,10 +966,10 @@ const OrderDetails = ({ route, navigation }) => {
       }
 
       const currentLocalOrderRealStatus = String(
-        food99State?.order?.status?.real_status ||
-        food99State?.order?.status?.realStatus ||
         item?.status?.realStatus ||
         orderParam?.status?.realStatus ||
+        food99State?.order?.status?.real_status ||
+        food99State?.order?.status?.realStatus ||
         '',
       ).toLowerCase()
       if (isTerminalOrderStatus(currentLocalOrderRealStatus)) {
@@ -963,6 +1181,19 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [fallbackFood99Summary?.items, isIfoodOrder, item, orderParam])
   const resolvedDisplayOrderProducts = useMemo(() => {
+    const currentOrderId = Number(item?.id || orderParam?.id || 0)
+    const locallyFetchedOrderProducts = Array.isArray(storedOrderProducts)
+      ? storedOrderProducts.filter(orderProduct => {
+          const orderProductOrderId = getEntityId(orderProduct?.order)
+          if (!currentOrderId || !orderProductOrderId) return true
+          return orderProductOrderId === currentOrderId
+        })
+      : []
+
+    if (locallyFetchedOrderProducts.length) {
+      return locallyFetchedOrderProducts
+    }
+
     const currentOrderProducts = Array.isArray(item?.orderProducts) ? item.orderProducts : []
     if (currentOrderProducts.length) {
       return currentOrderProducts
@@ -978,7 +1209,7 @@ const OrderDetails = ({ route, navigation }) => {
       : []
 
     return fallbackOrderProducts
-  }, [ifoodDisplayOrder?.orderProducts, item?.orderProducts, orderParam?.orderProducts])
+  }, [ifoodDisplayOrder?.orderProducts, item?.id, item?.orderProducts, orderParam?.id, orderParam?.orderProducts, storedOrderProducts])
   const fallbackFood99Financial = useMemo(() => {
     const financial = fallbackFood99Summary?.financial
     if (!financial) return null
@@ -1773,6 +2004,44 @@ const OrderDetails = ({ route, navigation }) => {
     ),
     [invoices],
   )
+  const localFinancialCompanyId = useMemo(
+    () => (
+      getEntityId(item?.provider) ||
+      getEntityId(orderParam?.provider) ||
+      getEntityId(defaultCompany)
+    ),
+    [defaultCompany, item?.provider, orderParam?.provider],
+  )
+  const localInvoiceCards = useMemo(
+    () => activeLocalInvoices
+      .slice()
+      .sort((left, right) => Number(right?.id || 0) - Number(left?.id || 0))
+      .map(invoice => {
+        const statusPresentation = resolveInvoiceStatusPresentation(invoice)
+        const invoiceKind = resolveInvoiceKind(invoice, localFinancialCompanyId)
+        const title = resolveInvoiceTitle(invoice)
+        const invoiceId = String(invoice?.id || '').trim()
+        const paymentTypeLabel = resolvePreferredText(
+          invoice?.paymentType?.paymentType,
+          invoice?.paymentType?.name,
+        ) || (global.t?.t('orders', 'label', 'notInformed') || 'Não informado')
+
+        return {
+          id: invoiceId || `${title}-${invoice?.invoice_date || invoice?.dueDate || 'local'}`,
+          title,
+          subtitle: invoiceId && title !== `Invoice #${invoiceId}` ? `Invoice #${invoiceId}` : '',
+          amount: Number(invoice?.price || 0),
+          paymentTypeLabel,
+          kindLabel: invoiceKind.label,
+          counterpartyLabel: invoiceKind.counterpartyLabel,
+          kindKey: invoiceKind.kind,
+          statusLabel: statusPresentation.label,
+          statusColor: statusPresentation.color,
+          statusBackgroundColor: statusPresentation.backgroundColor,
+        }
+      }),
+    [activeLocalInvoices, localFinancialCompanyId],
+  )
   const localPaidAmount = useMemo(
     () => activeLocalInvoices.reduce((sum, invoice) => {
       const invoiceStatusName = String(invoice?.status?.status || '').trim().toLowerCase()
@@ -1875,11 +2144,6 @@ const OrderDetails = ({ route, navigation }) => {
   const isPendingForBadge = Number.isFinite(pendingAmountForBadge) && pendingAmountForBadge > 0.009
   const orderStatusBadgeLabel = String(localStatusRaw || '-').toUpperCase()
   const orderStatusBadgeColor = displayOrderStatusColor || ppcColors.accentInfo
-  // Chip de pagamento (PAGO / PENDENTE) exibido na seção de pagamento
-  const paymentStatusLabel = isPendingForBadge
-    ? global.t?.t('orders', 'label', 'pending').toUpperCase()
-    : global.t?.t('orders', 'label', 'paid').toUpperCase()
-  const paymentStatusColor = isPendingForBadge ? '#D97706' : '#16A34A'
   const fallbackNoObservationText = isFood99Order
     ? global.t?.t('orders', 'message', 'noObservations99Food')
     : isIfoodOrder
@@ -1888,51 +2152,33 @@ const OrderDetails = ({ route, navigation }) => {
   const showOrderObservationCard = isIfoodOrder
     ? !!(food99Notes?.remark || food99ItemRemarksText)
     : true
+  const localOrderClient = item?.client || orderParam?.client || null
+  const localOrderAddress = item?.addressDestination || orderParam?.addressDestination || null
+  const localOrderAddressParts = useMemo(
+    () => resolveLocalOrderAddress(localOrderAddress),
+    [localOrderAddress],
+  )
   const orderCustomerName = resolvePreferredText(
-    food99Customer?.name,
-    item?.client?.name,
-    item?.person?.name,
-    item?.customer?.name,
-    item?.customerName,
+    localOrderClient?.alias,
+    localOrderClient?.name,
   )
   const orderCustomerPhone = resolvePreferredText(
-    food99Customer?.phone,
-    item?.client?.phone?.[0]?.phone,
-    item?.client?.phone,
+    formatPhoneDisplay(localOrderClient?.phone?.[0]),
+    Array.isArray(localOrderClient?.phone)
+      ? localOrderClient.phone.map(formatPhoneDisplay).find(Boolean)
+      : formatPhoneDisplay(localOrderClient?.phone),
   )
-  const fallbackOrderAddressPrimary = resolvePreferredText(
-    item?.addressDestination,
-    item?.addressDestination?.display,
-    item?.addressDestination?.street,
-    item?.addressDestination?.address,
-    item?.deliveryContact,
-    item?.deliveryContact?.address,
-    item?.retrieveContact,
-    item?.retrieveContact?.address,
-    orderParam?.addressDestination,
-    orderParam?.addressDestination?.display,
-    orderParam?.addressDestination?.street,
-    orderParam?.addressDestination?.address,
-    orderParam?.deliveryContact,
-    orderParam?.deliveryContact?.address,
-    orderParam?.retrieveContact,
-    orderParam?.retrieveContact?.address,
-  )
-  const fallbackOrderAddressSecondary = resolvePreferredText(
-    item?.addressDestination?.district,
-    item?.addressDestination?.city,
-    orderParam?.addressDestination?.district,
-    orderParam?.addressDestination?.city,
+  const orderCustomerDocument = resolvePreferredText(
+    localOrderClient?.document?.[0]?.document,
+    Array.isArray(localOrderClient?.document)
+      ? localOrderClient.document.map(document => normalizeText(document?.document)).find(Boolean)
+      : normalizeText(localOrderClient?.document),
   )
   const orderAddressPrimary = resolvePreferredText(
-    food99AddressPrimaryLine,
-    food99AddressStreetLine,
-    fallbackOrderAddressPrimary,
+    localOrderAddressParts.primary,
   )
   const orderAddressSecondary = resolvePreferredText(
-    food99Address?.district,
-    food99AddressCityStateLine,
-    fallbackOrderAddressSecondary,
+    localOrderAddressParts.secondary,
   )
   const orderObservationText = resolvePreferredText(
     food99RemarkText,
@@ -1952,27 +2198,16 @@ const OrderDetails = ({ route, navigation }) => {
       localOrderTotal ||
       0,
   )
-  const food99PaymentMethodKey = normalizeKey(food99PaymentMethodValue)
-  const ifoodPaymentMethodWithBrand = isIfoodOrder
-    && food99PaymentBrandValue
-    && (food99PaymentMethodKey.includes('cartao de credito') || food99PaymentMethodKey.includes('cartao de debito'))
-      ? `${food99PaymentMethodValue} (${normalizeText(food99PaymentBrandValue).toUpperCase()})`
-      : food99PaymentMethodValue
-  const invoicePaymentText = (!isFood99Order && !isIfoodOrder)
-    ? activeLocalInvoices.map(inv => inv?.paymentType?.paymentType).filter(Boolean).join(', ')
-    : ''
-  const orderPaymentMethodText = resolvePreferredText(
-    ifoodPaymentMethodWithBrand,
-    food99SelectedPaymentLabel,
-    food99PaymentChannelValue,
-    invoicePaymentText,
-  ) || (
-    isIfoodOrder
-      ? (localPendingAmount > 0.009
-        ? global.t?.t('orders', 'label', 'paymentOnDelivery')
-        : global.t?.t('orders', 'label', 'onlinePayment'))
-      : global.t?.t('orders', 'label', 'notInformed')
-  )
+  const localInvoicesEmptyText =
+    global.t?.t('orders', 'message', 'noInvoicesLinkedToOrder') ||
+    'Nenhuma invoice vinculada a este pedido.'
+  const localInvoicesSectionTitle =
+    global.t?.t('orders', 'label', 'payment') ||
+    global.t?.t('orders', 'title', 'payments') ||
+    'Pagamentos'
+  const localInvoicesCountLabel = `${localInvoiceCards.length} ${
+    localInvoiceCards.length === 1 ? 'invoice' : 'invoices'
+  }`
   const canGenericConfirmOrder =
     !isFood99Order &&
     !isIfoodOrder &&
@@ -2660,6 +2895,99 @@ const OrderDetails = ({ route, navigation }) => {
     shouldHideBottomToolBar,
   ])
 
+  const renderLocalInvoiceCards = useCallback(
+    variant => {
+      const isDetailsVariant = variant === 'details'
+
+      if (!localInvoiceCards.length) {
+        return (
+          <Text style={isDetailsVariant ? localStyles.detailsInfoText : localStyles.mobileInfoSubtitle}>
+            {localInvoicesEmptyText}
+          </Text>
+        )
+      }
+
+      return (
+        <View style={localStyles.orderInvoiceList}>
+          {localInvoiceCards.map(invoiceCard => (
+            <View
+              key={invoiceCard.id}
+              style={[
+                localStyles.orderInvoiceCard,
+                isDetailsVariant && localStyles.orderInvoiceCardDetails,
+              ]}
+            >
+              <View style={localStyles.orderInvoiceCardHeader}>
+                <View style={localStyles.orderInvoiceTitleWrap}>
+                  <Text style={localStyles.orderInvoiceTitle}>{invoiceCard.title}</Text>
+                  {!!invoiceCard.subtitle && (
+                    <Text style={localStyles.orderInvoiceSubtitle}>{invoiceCard.subtitle}</Text>
+                  )}
+                </View>
+
+                <View
+                  style={[
+                    localStyles.orderInvoiceStatusBadge,
+                    {
+                      borderColor: invoiceCard.statusColor,
+                      backgroundColor: invoiceCard.statusBackgroundColor,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      localStyles.orderInvoiceStatusText,
+                      { color: invoiceCard.statusColor },
+                    ]}
+                  >
+                    {invoiceCard.statusLabel}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={localStyles.orderInvoiceAmount}>
+                {Formatter.formatMoney(invoiceCard.amount || 0)}
+              </Text>
+              <Text style={localStyles.orderInvoiceKind}>
+                {(global.t?.t('orders', 'label', 'invoiceType') || 'Tipo')}: {invoiceCard.kindLabel}
+              </Text>
+              {!!invoiceCard.counterpartyLabel && (
+                <Text style={localStyles.orderInvoiceMeta}>
+                  {invoiceCard.kindKey === 'payable'
+                    ? (global.t?.t('orders', 'label', 'receiver') || 'Recebedor')
+                    : invoiceCard.kindKey === 'receivable'
+                      ? (global.t?.t('orders', 'label', 'payer') || 'Pagador')
+                      : (global.t?.t('orders', 'label', 'counterparty') || 'Contraparte')}: {invoiceCard.counterpartyLabel}
+                </Text>
+              )}
+              <Text style={localStyles.orderInvoiceMeta}>
+                {(global.t?.t('orders', 'label', 'paymentMethod') || 'Forma de pagamento')}: {invoiceCard.paymentTypeLabel}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )
+    },
+    [
+      localInvoiceCards,
+      localInvoicesEmptyText,
+      localStyles.detailsInfoText,
+      localStyles.mobileInfoSubtitle,
+      localStyles.orderInvoiceAmount,
+      localStyles.orderInvoiceCard,
+      localStyles.orderInvoiceCardDetails,
+      localStyles.orderInvoiceCardHeader,
+      localStyles.orderInvoiceKind,
+      localStyles.orderInvoiceList,
+      localStyles.orderInvoiceMeta,
+      localStyles.orderInvoiceStatusBadge,
+      localStyles.orderInvoiceStatusText,
+      localStyles.orderInvoiceSubtitle,
+      localStyles.orderInvoiceTitle,
+      localStyles.orderInvoiceTitleWrap,
+    ],
+  )
+
   const renderKdsMobileContent = () => (
     <ScrollView
       contentContainerStyle={localStyles.mobileOrderScrollContent}
@@ -2788,56 +3116,14 @@ const OrderDetails = ({ route, navigation }) => {
         )}
       </View>
 
-      <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-        <View style={[localStyles.mobileStatusBadge, {
-          borderColor: paymentStatusColor,
-          backgroundColor: paymentStatusColor + '14',
-        }]}>
-          <View style={[localStyles.mobileStatusDot, { backgroundColor: paymentStatusColor }]} />
-          <Text style={[localStyles.mobileStatusText, { color: paymentStatusColor }]}>
-            {paymentStatusLabel}
-          </Text>
-        </View>
-      </View>
-
-      <View style={localStyles.mobilePaymentGrid}>
-        <View style={localStyles.mobilePaymentMetricCard}>
-          <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
-          <Text style={localStyles.mobilePaymentMetricValue}>
-            {Formatter.formatMoney(resolvePreferredMoney(food99Payment?.amount_paid, localPaidAmount || 0))}
-          </Text>
-        </View>
-        <View style={localStyles.mobilePaymentMetricCard}>
-          <Text style={localStyles.mobilePaymentMetricLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
-          <Text style={[localStyles.mobilePaymentMetricValue, localStyles.mobilePaymentPendingValue]}>
-            {Formatter.formatMoney(resolvePreferredMoney(food99Payment?.amount_pending, localPendingAmount || 0))}
-          </Text>
-          {shouldShowCollectOnDelivery && (
-            <Text style={localStyles.mobilePaymentMetricHint}>
-              {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
-            </Text>
+      <View style={localStyles.mobileInfoCard}>
+        <View style={localStyles.orderInvoiceBlockHeader}>
+          <Text style={localStyles.mobileInfoLabel}>{localInvoicesSectionTitle}</Text>
+          {!!localInvoiceCards.length && (
+            <Text style={localStyles.orderInvoiceCounter}>{localInvoicesCountLabel}</Text>
           )}
         </View>
-      </View>
-
-      <View style={localStyles.mobileInfoCard}>
-        <Text style={localStyles.mobileInfoLabel}>{global.t?.t('orders', 'label', 'payment')}</Text>
-        <Text style={localStyles.mobileInfoTitle}>{orderPaymentMethodText}</Text>
-        {!!food99PaymentChannelValue && (
-          <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'channel')}: {food99PaymentChannelValue}</Text>
-        )}
-        {food99ChangeFor > 0 ? (
-          <Text style={localStyles.mobileInfoSubtitle}>
-            {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
-          </Text>
-        ) : isCashPaymentSelection ? (
-          <Text style={localStyles.mobileInfoSubtitle}>{global.t?.t('orders', 'label', 'change')}: {global.t?.t('orders', 'message', 'notRequested')}</Text>
-        ) : null}
-        {food99NeedsChange ? (
-          <Text style={localStyles.mobileInfoSubtitle}>
-            {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
-          </Text>
-        ) : null}
+        {renderLocalInvoiceCards('mobile')}
       </View>
 
       {(isFood99CourierToStore ||
@@ -3150,9 +3436,11 @@ const OrderDetails = ({ route, navigation }) => {
                   </Text>
                 </View>
                 <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'localPayment')}</Text>
+                  <Text style={localStyles.detailsCardLabel}>
+                    {global.t?.t('orders', 'title', 'payments') || 'Pagamentos'}
+                  </Text>
                   <Text style={localStyles.detailsCardValue}>
-                    {isOrderPaidForCompletion ? global.t?.t('orders', 'label', 'paid') : global.t?.t('orders', 'label', 'pending')}
+                    {localInvoiceCards.length}
                   </Text>
                 </View>
               </View>
@@ -3168,12 +3456,11 @@ const OrderDetails = ({ route, navigation }) => {
                 <Text style={localStyles.detailsInfoText}>
                   {global.t?.t('orders', 'label', 'localTotal')}: {Formatter.formatMoney(localOrderTotal || 0)}
                 </Text>
-                <Text style={localStyles.detailsInfoText}>
-                  {global.t?.t('orders', 'label', 'localPaid')}: {Formatter.formatMoney(localPaidAmount || 0)}
-                </Text>
-                <Text style={localStyles.detailsInfoText}>
-                  {global.t?.t('orders', 'label', 'localPending')}: {Formatter.formatMoney(localPendingAmount || 0)}
-                </Text>
+              </View>
+
+              <View style={localStyles.detailsSection}>
+                <Text style={localStyles.detailsSectionTitle}>{localInvoicesSectionTitle}</Text>
+                {renderLocalInvoiceCards('details')}
               </View>
 
               {(isFood99Order || isIfoodOrder) && food99StateLoading && !food99State ? (
@@ -3408,61 +3695,61 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
-                  {(food99Customer?.name || food99Customer?.phone || food99Customer?.document_number) && (
+                  {(orderCustomerName || orderCustomerPhone || orderCustomerDocument) && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
-                      {!!food99Customer?.name && (
-                        <Text style={localStyles.detailsInfoText}>{food99Customer.name}</Text>
+                      {!!orderCustomerName && (
+                        <Text style={localStyles.detailsInfoText}>{orderCustomerName}</Text>
                       )}
-                      {!!food99Customer?.phone && (
-                        <Text style={localStyles.detailsInfoText}>{food99Customer.phone}</Text>
+                      {!!orderCustomerPhone && (
+                        <Text style={localStyles.detailsInfoText}>{orderCustomerPhone}</Text>
                       )}
-                      {!!food99Customer?.document_number && (
-                        <Text style={localStyles.detailsInfoText}>CPF: {food99Customer.document_number}</Text>
+                      {!!orderCustomerDocument && (
+                        <Text style={localStyles.detailsInfoText}>CPF: {orderCustomerDocument}</Text>
                       )}
                     </View>
                   )}
 
-                  {(food99AddressPrimaryLine ||
-                    food99AddressStreetLine ||
-                    food99Address?.district ||
-                    food99AddressCityStateLine ||
-                    food99Address?.postal_code ||
-                    food99Address?.reference ||
-                    food99Address?.complement) && (
+                  {(localOrderAddressParts.primary ||
+                    localOrderAddressParts.streetLine ||
+                    localOrderAddressParts.district ||
+                    localOrderAddressParts.cityStateLine ||
+                    localOrderAddressParts.postalCode ||
+                    localOrderAddressParts.nickname ||
+                    localOrderAddressParts.complement) && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'customerAddress')}</Text>
-                      {!!food99AddressPrimaryLine && (
-                        <Text style={localStyles.detailsInfoText}>{food99AddressPrimaryLine}</Text>
+                      {!!localOrderAddressParts.primary && (
+                        <Text style={localStyles.detailsInfoText}>{localOrderAddressParts.primary}</Text>
                       )}
-                      {!!food99AddressStreetLine && (
+                      {!!localOrderAddressParts.streetLine && (
                         <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'streetNumber')}: {food99AddressStreetLine}
+                          {global.t?.t('orders', 'label', 'streetNumber')}: {localOrderAddressParts.streetLine}
                         </Text>
                       )}
-                      {!!food99Address?.district && (
+                      {!!localOrderAddressParts.district && (
                         <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'district')}: {food99Address.district}
+                          {global.t?.t('orders', 'label', 'district')}: {localOrderAddressParts.district}
                         </Text>
                       )}
-                      {!!food99AddressCityStateLine && (
+                      {!!localOrderAddressParts.cityStateLine && (
                         <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'cityState')}: {food99AddressCityStateLine}
+                          {global.t?.t('orders', 'label', 'cityState')}: {localOrderAddressParts.cityStateLine}
                         </Text>
                       )}
-                      {!!food99Address?.postal_code && (
+                      {!!localOrderAddressParts.postalCode && (
                         <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'zipCode')}: {food99Address.postal_code}
+                          {global.t?.t('orders', 'label', 'zipCode')}: {localOrderAddressParts.postalCode}
                         </Text>
                       )}
-                      {!!food99Address?.reference && (
+                      {!!localOrderAddressParts.nickname && (
                         <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'reference')}: {food99Address.reference}
+                          {global.t?.t('orders', 'label', 'reference')}: {localOrderAddressParts.nickname}
                         </Text>
                       )}
-                      {!!food99Address?.complement && (
+                      {!!localOrderAddressParts.complement && (
                         <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'complement')}: {food99Address.complement}
+                          {global.t?.t('orders', 'label', 'complement')}: {localOrderAddressParts.complement}
                         </Text>
                       )}
                     </View>
@@ -4055,6 +4342,10 @@ const OrderDetails = ({ route, navigation }) => {
                       {global.t?.t('orders', 'label', 'courierTransferToMerchant')}: {Formatter.formatMoney(food99ShopPaidMoney)}
                     </Text>
                   ) : null}
+                  <View style={localStyles.food99SummaryBlock}>
+                    <Text style={localStyles.food99SummaryTitle}>{localInvoicesSectionTitle}</Text>
+                    {renderLocalInvoiceCards('details')}
+                  </View>
                   {hasFood99CancellationInfo && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'cancellation')}</Text>
@@ -4073,23 +4364,6 @@ const OrderDetails = ({ route, navigation }) => {
                           {global.t?.t('orders', 'label', 'leadSource')}: {food99Integration.cancel_reason}
                         </Text>
                       )}
-                    </View>
-                  )}
-
-                  {food99Payment && (
-                    <View style={localStyles.food99SummaryRow}>
-                      <View style={localStyles.food99SummaryPill}>
-                        <Text style={localStyles.food99SummaryLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
-                        <Text style={localStyles.food99SummaryValue}>
-                          {Formatter.formatMoney(food99Payment.amount_paid || 0)}
-                        </Text>
-                      </View>
-                      <View style={localStyles.food99SummaryPill}>
-                        <Text style={localStyles.food99SummaryLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
-                        <Text style={localStyles.food99SummaryValue}>
-                          {Formatter.formatMoney(food99Payment.amount_pending || 0)}
-                        </Text>
-                      </View>
                     </View>
                   )}
 
@@ -4156,46 +4430,46 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
-                  {(food99AddressPrimaryLine ||
-                    food99AddressStreetLine ||
-                    food99Address?.district ||
-                    food99AddressCityStateLine ||
-                    food99Address?.postal_code ||
-                    food99Address?.reference ||
-                    food99Address?.complement) && (
+                  {(localOrderAddressParts.primary ||
+                    localOrderAddressParts.streetLine ||
+                    localOrderAddressParts.district ||
+                    localOrderAddressParts.cityStateLine ||
+                    localOrderAddressParts.postalCode ||
+                    localOrderAddressParts.nickname ||
+                    localOrderAddressParts.complement) && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'customerAddress')}</Text>
-                      {!!food99AddressPrimaryLine && (
-                        <Text style={localStyles.food99InfoText}>{food99AddressPrimaryLine}</Text>
+                      {!!localOrderAddressParts.primary && (
+                        <Text style={localStyles.food99InfoText}>{localOrderAddressParts.primary}</Text>
                       )}
-                      {!!food99AddressStreetLine && (
+                      {!!localOrderAddressParts.streetLine && (
                         <Text style={localStyles.food99InfoText}>
-                          Rua/numero: {food99AddressStreetLine}
+                          Rua/numero: {localOrderAddressParts.streetLine}
                         </Text>
                       )}
-                      {!!food99Address?.district && (
+                      {!!localOrderAddressParts.district && (
                         <Text style={localStyles.food99InfoText}>
-                          Bairro: {food99Address.district}
+                          Bairro: {localOrderAddressParts.district}
                         </Text>
                       )}
-                      {!!food99AddressCityStateLine && (
+                      {!!localOrderAddressParts.cityStateLine && (
                         <Text style={localStyles.food99InfoText}>
-                          Cidade/UF: {food99AddressCityStateLine}
+                          Cidade/UF: {localOrderAddressParts.cityStateLine}
                         </Text>
                       )}
-                      {!!food99Address?.postal_code && (
+                      {!!localOrderAddressParts.postalCode && (
                         <Text style={localStyles.food99InfoText}>
-                          CEP: {food99Address.postal_code}
+                          CEP: {localOrderAddressParts.postalCode}
                         </Text>
                       )}
-                      {!!food99Address?.reference && (
+                      {!!localOrderAddressParts.nickname && (
                         <Text style={localStyles.food99InfoText}>
-                          Referencia: {food99Address.reference}
+                          Referencia: {localOrderAddressParts.nickname}
                         </Text>
                       )}
-                      {!!food99Address?.complement && (
+                      {!!localOrderAddressParts.complement && (
                         <Text style={localStyles.food99InfoText}>
-                          Complemento: {food99Address.complement}
+                          Complemento: {localOrderAddressParts.complement}
                         </Text>
                       )}
                     </View>
@@ -4220,17 +4494,17 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
-                  {(food99Customer?.name || food99Customer?.phone || food99Customer?.document_number) && (
+                  {(orderCustomerName || orderCustomerPhone || orderCustomerDocument) && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
-                      {!!food99Customer?.name && (
-                        <Text style={localStyles.food99InfoText}>{food99Customer.name}</Text>
+                      {!!orderCustomerName && (
+                        <Text style={localStyles.food99InfoText}>{orderCustomerName}</Text>
                       )}
-                      {!!food99Customer?.phone && (
-                        <Text style={localStyles.food99InfoText}>{food99Customer.phone}</Text>
+                      {!!orderCustomerPhone && (
+                        <Text style={localStyles.food99InfoText}>{orderCustomerPhone}</Text>
                       )}
-                      {!!food99Customer?.document_number && (
-                        <Text style={localStyles.food99InfoText}>CPF: {food99Customer.document_number}</Text>
+                      {!!orderCustomerDocument && (
+                        <Text style={localStyles.food99InfoText}>CPF: {orderCustomerDocument}</Text>
                       )}
                     </View>
                   )}
@@ -4990,6 +5264,87 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontWeight: '700',
       lineHeight: 18,
       marginTop: 2,
+    },
+    orderInvoiceBlockHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    orderInvoiceCounter: {
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    orderInvoiceList: {
+      gap: 8,
+    },
+    orderInvoiceCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 11,
+      paddingVertical: 10,
+      gap: 6,
+    },
+    orderInvoiceCardDetails: {
+      backgroundColor: palette.cardBg,
+    },
+    orderInvoiceCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    orderInvoiceTitleWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    orderInvoiceTitle: {
+      color: palette.textPrimary,
+      fontSize: 14 * scale,
+      fontWeight: '800',
+      lineHeight: 18 * scale,
+    },
+    orderInvoiceSubtitle: {
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+      lineHeight: 16,
+    },
+    orderInvoiceStatusBadge: {
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      alignSelf: 'flex-start',
+    },
+    orderInvoiceStatusText: {
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    orderInvoiceAmount: {
+      color: palette.textPrimary,
+      fontSize: 24 * scale,
+      fontWeight: '900',
+      lineHeight: 26 * scale,
+    },
+    orderInvoiceKind: {
+      color: palette.textPrimary,
+      fontSize: 12,
+      fontWeight: '800',
+      lineHeight: 17,
+    },
+    orderInvoiceMeta: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
     },
     mobileAddressCard: {
       borderRadius: 12,
