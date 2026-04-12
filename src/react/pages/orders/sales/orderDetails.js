@@ -1444,7 +1444,6 @@ const OrderDetails = ({ route, navigation }) => {
   }, [scheduledStartRaw, scheduledEndRaw])
 
   const scheduledDateLabel = scheduledWindowLabel
-  const remoteOrderStateLabel = food99Integration?.remote_order_state_label || food99Integration?.remote_order_state || ''
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
   const normalizedFood99LastEventType = String(food99Integration?.last_event_type || '').toLowerCase()
   const normalizedIfoodLatestEventType = String(
@@ -2724,31 +2723,8 @@ const OrderDetails = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {(isFood99Order || isIfoodOrder) && (!!remoteOrderStateLabel || !!food99Delivery?.delivery_label || !!formattedFood99Eta) && (
+        {(isFood99Order || isIfoodOrder) && (!!food99Delivery?.delivery_label || !!formattedFood99Eta) && (
           <View style={localStyles.mobileSummaryMetaList}>
-            {!!remoteOrderStateLabel && (
-              <View style={[
-                localStyles.remoteStateBadge,
-                  ['dispatching', 'dispatched', 'order_in_transit', 'courier_to_store', 'picked_up', 'arriving', 'delivering'].includes(remoteOrderStateKey) ? { borderColor: '#0EA5E9', backgroundColor: '#0EA5E922' }
-                : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { borderColor: '#10B981', backgroundColor: '#10B98122' }
-                : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' || remoteOrderStateKey === 'confirmed' ? { borderColor: '#F59E0B', backgroundColor: '#F59E0B22' }
-                : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' || remoteOrderStateKey === 'delivered' || remoteOrderStateKey === 'finished' || remoteOrderStateKey === 'completed' || remoteOrderStateKey === 'complete' ? { borderColor: '#22C55E', backgroundColor: '#22C55E22' }
-                : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { borderColor: '#EF4444', backgroundColor: '#EF444422' }
-                : { borderColor: '#8B5CF6', backgroundColor: '#8B5CF622' }
-              ]}>
-                <Text style={[
-                  localStyles.remoteStateBadgeText,
-                  ['dispatching', 'dispatched', 'order_in_transit', 'courier_to_store', 'picked_up', 'arriving', 'delivering'].includes(remoteOrderStateKey) ? { color: '#0EA5E9' }
-                  : remoteOrderStateKey === 'ready' || remoteOrderStateKey === 'delivery_drop_code_requested' || remoteOrderStateKey === 'delivery_drop_code_validating' ? { color: '#10B981' }
-                  : remoteOrderStateKey === 'preparing' || remoteOrderStateKey === 'started' || remoteOrderStateKey === 'confirmed' ? { color: '#F59E0B' }
-                  : remoteOrderStateKey === 'concluded' || remoteOrderStateKey === 'closed' || remoteOrderStateKey === 'delivered' || remoteOrderStateKey === 'finished' || remoteOrderStateKey === 'completed' || remoteOrderStateKey === 'complete' ? { color: '#22C55E' }
-                  : remoteOrderStateKey === 'cancelled' || remoteOrderStateKey === 'canceled' ? { color: '#EF4444' }
-                  : { color: '#8B5CF6' }
-                ]}>
-                  {remoteOrderStateLabel}
-                </Text>
-              </View>
-            )}
             {!!food99Delivery?.delivery_label && (
               <Text style={localStyles.mobileSummaryMetaText}>
                 {global.t?.t('orders', 'label', 'delivery')}: {food99Delivery.delivery_label}
@@ -3227,12 +3203,6 @@ const OrderDetails = ({ route, navigation }) => {
                     )}
                     <Text style={localStyles.detailsInfoText}>
                       {global.t?.t('orders', 'label', 'delivery')}: {food99Delivery?.delivery_label || '-'}
-                    </Text>
-                    <Text style={localStyles.detailsInfoText}>
-                      {global.t?.t('orders', 'label', 'remoteState')}: {remoteOrderStateLabel || '-'}
-                    </Text>
-                    <Text style={localStyles.detailsInfoText}>
-                      {global.t?.t('orders', 'label', 'remoteStatus')}: {food99Delivery?.remote_delivery_status || '-'}
                     </Text>
                     {!!formattedFood99Eta && (
                       <Text style={localStyles.detailsInfoText}>
@@ -3966,16 +3936,6 @@ const OrderDetails = ({ route, navigation }) => {
                       </TouchableOpacity>
                     </View>
                   </View>
-
-                  <Text style={localStyles.food99InfoText}>
-                    {global.t?.t('orders', 'label', 'remoteStatus')}: {food99Delivery?.remote_delivery_status || food99Integration?.remote_order_state || global.t?.t('orders', 'label', 'noReturn')}
-                  </Text>
-
-                  {!!remoteOrderStateLabel && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'remoteState')}: {remoteOrderStateLabel}
-                    </Text>
-                  )}
 
                   {isFood99CourierToStore ? (
                     <Text style={localStyles.food99InfoHint}>
