@@ -524,6 +524,30 @@ const resolvePreferredMeaningfulText = (...values) => {
   return ''
 }
 
+const readBooleanFlag = value => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+
+  const normalized = normalizeKey(value).replace(/\s+/g, '')
+  if (!normalized) return null
+
+  if (['1', 'true', 'yes', 'y', 'sim'].includes(normalized)) return true
+  if (['0', 'false', 'no', 'n', 'nao'].includes(normalized)) return false
+
+  return null
+}
+
+const resolveDocumentLabel = (documentType, documentNumber) => {
+  const normalizedType = normalizeText(documentType).toUpperCase()
+  if (normalizedType) return normalizedType
+
+  const digits = String(documentNumber ?? '').replace(/\D/g, '')
+  if (digits.length === 14) return 'CNPJ'
+  if (digits.length === 11) return 'CPF'
+
+  return 'Documento'
+}
+
 const resolvePreferredMoney = (primary, fallback) => {
   const primaryPresent = hasMeaningfulValue(primary)
   const fallbackPresent = hasMeaningfulValue(fallback)
@@ -1271,6 +1295,12 @@ const OrderDetails = ({ route, navigation }) => {
     return {
       name: customer.name || '',
       phone: customer.phone || '',
+      document_number: customer.documentNumber || customer.document_number || '',
+      document_type: customer.documentType || customer.document_type || '',
+      tax_document_requested:
+        customer.taxDocumentRequested ??
+        customer.tax_document_requested ??
+        null,
     }
   }, [fallbackFood99Summary])
   const fallbackFood99Address = useMemo(() => {
@@ -1480,15 +1510,62 @@ const OrderDetails = ({ route, navigation }) => {
   }, [food99State?.payment, fallbackFood99Payment])
   const food99Customer = useMemo(() => {
     const stateCustomer = food99State?.customer || null
-    if (!stateCustomer) return fallbackFood99Customer
-    if (!fallbackFood99Customer) return stateCustomer
+    const stateTaxDocumentRequested = readBooleanFlag(
+      stateCustomer?.tax_document_requested ?? stateCustomer?.taxDocumentRequested,
+    )
+    const fallbackTaxDocumentRequested = readBooleanFlag(
+      fallbackFood99Customer?.tax_document_requested ?? fallbackFood99Customer?.taxDocumentRequested,
+    )
+
+    if (!stateCustomer && !fallbackFood99Customer) return null
+    if (!stateCustomer) {
+      return {
+        ...fallbackFood99Customer,
+        document_number: resolvePreferredText(
+          fallbackFood99Customer?.document_number,
+          fallbackFood99Customer?.documentNumber,
+        ),
+        document_type: resolvePreferredText(
+          fallbackFood99Customer?.document_type,
+          fallbackFood99Customer?.documentType,
+        ),
+        tax_document_requested: fallbackTaxDocumentRequested,
+      }
+    }
+    if (!fallbackFood99Customer) {
+      return {
+        ...stateCustomer,
+        document_number: resolvePreferredText(
+          stateCustomer.document_number,
+          stateCustomer.documentNumber,
+        ),
+        document_type: resolvePreferredText(
+          stateCustomer.document_type,
+          stateCustomer.documentType,
+        ),
+        tax_document_requested: stateTaxDocumentRequested,
+      }
+    }
 
     return {
       ...fallbackFood99Customer,
       ...stateCustomer,
       name: resolvePreferredText(stateCustomer.name, fallbackFood99Customer.name),
       phone: resolvePreferredText(stateCustomer.phone, fallbackFood99Customer.phone),
-      document_number: resolvePreferredText(stateCustomer.document_number, fallbackFood99Customer.document_number),
+      document_number: resolvePreferredText(
+        stateCustomer.document_number,
+        stateCustomer.documentNumber,
+        fallbackFood99Customer.document_number,
+      ),
+      document_type: resolvePreferredText(
+        stateCustomer.document_type,
+        stateCustomer.documentType,
+        fallbackFood99Customer.document_type,
+      ),
+      tax_document_requested:
+        stateTaxDocumentRequested !== null
+          ? stateTaxDocumentRequested
+          : fallbackTaxDocumentRequested,
     }
   }, [food99State?.customer, fallbackFood99Customer])
   const food99Address = useMemo(() => {
@@ -1639,7 +1716,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [food99Capabilities, platformCapabilities])
 
   const food99Scheduling = food99State?.scheduling || null
-  const isScheduledOrder = food99Scheduling?.is_scheduled === true
+  const isScheduledOrder = readBooleanFlag(food99Scheduling?.is_scheduled) === true
   const scheduledStartRaw = food99Scheduling?.scheduled_start || null
   const scheduledEndRaw = food99Scheduling?.scheduled_end || null
   const scheduledDeliveryDateTimeRaw = food99Scheduling?.delivery_date_time || null
@@ -2173,7 +2250,30 @@ const OrderDetails = ({ route, navigation }) => {
     Array.isArray(localOrderClient?.document)
       ? localOrderClient.document.map(document => normalizeText(document?.document)).find(Boolean)
       : normalizeText(localOrderClient?.document),
+    food99Customer?.document_number,
   )
+  const orderCustomerDocumentType = resolvePreferredText(
+    localOrderClient?.document?.[0]?.documentType?.documentType,
+    Array.isArray(localOrderClient?.document)
+      ? localOrderClient.document.map(document => normalizeText(document?.documentType?.documentType)).find(Boolean)
+      : normalizeText(localOrderClient?.documentType?.documentType),
+    food99Customer?.document_type,
+  )
+  const orderCustomerDocumentLabel = resolveDocumentLabel(
+    orderCustomerDocumentType,
+    orderCustomerDocument,
+  )
+  const ifoodTaxDocumentRequested = isIfoodOrder && (() => {
+    const explicitFlag = readBooleanFlag(
+      food99Customer?.tax_document_requested ?? food99Customer?.taxDocumentRequested,
+    )
+    if (explicitFlag !== null) return explicitFlag
+
+    return !!resolvePreferredText(food99Customer?.document_number)
+  })()
+  const ifoodTaxDocumentTitle =
+    global.t?.t('orders', 'title', 'taxDocumentRequested') ||
+    'Documento para nota fiscal'
   const orderAddressPrimary = resolvePreferredText(
     localOrderAddressParts.primary,
   )
@@ -3695,6 +3795,20 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
+                  {ifoodTaxDocumentRequested && (
+                    <View style={localStyles.taxDocumentBanner}>
+                      <Text style={localStyles.taxDocumentLabel}>{ifoodTaxDocumentTitle}</Text>
+                      <Text style={localStyles.taxDocumentText}>
+                        {global.t?.t('orders', 'message', 'customerRequestedTaxDocument') || 'Cliente solicitou documento fiscal neste pedido.'}
+                      </Text>
+                      {!!orderCustomerDocument && (
+                        <Text style={localStyles.taxDocumentText}>
+                          {orderCustomerDocumentLabel}: {orderCustomerDocument}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
                   {(orderCustomerName || orderCustomerPhone || orderCustomerDocument) && (
                     <View style={localStyles.detailsSection}>
                       <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
@@ -3705,7 +3819,7 @@ const OrderDetails = ({ route, navigation }) => {
                         <Text style={localStyles.detailsInfoText}>{orderCustomerPhone}</Text>
                       )}
                       {!!orderCustomerDocument && (
-                        <Text style={localStyles.detailsInfoText}>CPF: {orderCustomerDocument}</Text>
+                        <Text style={localStyles.detailsInfoText}>{orderCustomerDocumentLabel}: {orderCustomerDocument}</Text>
                       )}
                     </View>
                   )}
@@ -4494,6 +4608,20 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
+                  {ifoodTaxDocumentRequested && (
+                    <View style={localStyles.taxDocumentBanner}>
+                      <Text style={localStyles.taxDocumentLabel}>{ifoodTaxDocumentTitle}</Text>
+                      <Text style={localStyles.taxDocumentText}>
+                        {global.t?.t('orders', 'message', 'customerRequestedTaxDocument') || 'Cliente solicitou documento fiscal neste pedido.'}
+                      </Text>
+                      {!!orderCustomerDocument && (
+                        <Text style={localStyles.taxDocumentText}>
+                          {orderCustomerDocumentLabel}: {orderCustomerDocument}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
                   {(orderCustomerName || orderCustomerPhone || orderCustomerDocument) && (
                     <View style={localStyles.food99SummaryBlock}>
                       <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
@@ -4504,7 +4632,7 @@ const OrderDetails = ({ route, navigation }) => {
                         <Text style={localStyles.food99InfoText}>{orderCustomerPhone}</Text>
                       )}
                       {!!orderCustomerDocument && (
-                        <Text style={localStyles.food99InfoText}>CPF: {orderCustomerDocument}</Text>
+                        <Text style={localStyles.food99InfoText}>{orderCustomerDocumentLabel}: {orderCustomerDocument}</Text>
                       )}
                     </View>
                   )}
@@ -5845,6 +5973,32 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontSize: 13,
       fontWeight: '700',
       marginTop: 3,
+    },
+    taxDocumentBanner: {
+      marginTop: 8,
+      marginBottom: 4,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: '#0891B2',
+      backgroundColor: '#082F49',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    taxDocumentLabel: {
+      color: '#67E8F9',
+      fontSize: 14,
+      fontWeight: '900',
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      textAlign: 'center',
+    },
+    taxDocumentText: {
+      color: '#CFFAFE',
+      fontSize: 13,
+      fontWeight: '700',
+      marginTop: 3,
+      textAlign: 'center',
     },
     cancelReasonModal: {
       width: '100%',
