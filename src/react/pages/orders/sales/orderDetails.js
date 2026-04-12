@@ -438,6 +438,20 @@ const formatOrderDateTime = value => {
 const resolveOrderDateValue = order =>
   resolvePreferredText(order?.alterDate, order?.alter_date, order?.orderDate)
 
+const resolveOrderItemUnitLabel = orderProduct =>
+  String(
+    resolvePreferredText(
+      orderProduct?.product?.productUnit?.productUnit,
+      orderProduct?.product?.productUnit?.unit,
+      orderProduct?.product?.productUnity?.productUnit,
+      orderProduct?.product?.productUnity?.unit,
+      orderProduct?.productUnit?.productUnit,
+      orderProduct?.productUnit?.unit,
+      orderProduct?.unit,
+      orderProduct?.product?.unit,
+    ) || '',
+  ).trim().toUpperCase()
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
@@ -2901,13 +2915,14 @@ const OrderDetails = ({ route, navigation }) => {
               const prodDesc = op?.product?.description || ''
               const qty      = Number(op?.quantity || 0)
               const price    = Number(op?.unitPrice || op?.price || 0)
+              const unitLabel = resolveOrderItemUnitLabel(op)
               const total    = qty * price
               const comment  = String(op?.comments || '').trim()
               return (
                 <View key={op?.id || idx} style={localStyles.purchaseItemRow}>
                   <View style={localStyles.purchaseItemTop}>
                     <Text style={localStyles.purchaseItemName} numberOfLines={2}>{prodName}</Text>
-                    <Text style={localStyles.purchaseItemQty}>{qty}Ã—</Text>
+                    <Text style={localStyles.purchaseItemQty}>{qty} {unitLabel}</Text>
                   </View>
                   {!!prodDesc && (
                     <Text style={localStyles.purchaseItemDesc} numberOfLines={2}>{prodDesc}</Text>
@@ -2918,7 +2933,7 @@ const OrderDetails = ({ route, navigation }) => {
                   <View style={localStyles.purchaseItemPriceRow}>
                     {price > 0 && (
                       <Text style={localStyles.purchaseItemUnit}>
-                        {Formatter.formatMoney(price)} / un
+                        {Formatter.formatMoney(price)} / {unitLabel}
                       </Text>
                     )}
                     {price > 0 && (
@@ -2936,6 +2951,7 @@ const OrderDetails = ({ route, navigation }) => {
                     const name = op?.product?.product || op?.product?.name || 'Item'
                     const qty = Number(op?.quantity || 0)
                     const price = Number(op?.unitPrice || op?.price || 0)
+                    const unitLabel = resolveOrderItemUnitLabel(op)
                     const isOpLoading = opLoadingId === opId
                     const isConfirming = confirmRemoveItemId === opId
                     return (
@@ -2943,7 +2959,7 @@ const OrderDetails = ({ route, navigation }) => {
                         <View style={{ flex: 1 }}>
                           <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
                           {price > 0 && (
-                            <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+                            <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / {unitLabel}</Text>
                           )}
                         </View>
                         {isConfirming ? (
@@ -4602,6 +4618,7 @@ const OrderDetails = ({ route, navigation }) => {
                         const name = op?.product?.product || op?.product?.name || 'Item'
                         const qty = Number(op?.quantity || 0)
                         const price = Number(op?.unitPrice || op?.price || 0)
+                        const unitLabel = resolveOrderItemUnitLabel(op)
                         const isOpLoading = opLoadingId === opId
                         const isConfirming = confirmRemoveItemId === opId
                         return (
@@ -4609,7 +4626,7 @@ const OrderDetails = ({ route, navigation }) => {
                             <View style={{ flex: 1 }}>
                               <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
                               {price > 0 && (
-                                <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / un</Text>
+                                <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / {unitLabel}</Text>
                               )}
                             </View>
                             {isConfirming ? (
