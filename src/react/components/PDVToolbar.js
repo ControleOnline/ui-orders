@@ -128,27 +128,6 @@ const ShopToolbar = ({ navigation }) => {
           {global.t?.t('orders', 'label', 'profile')}
         </Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          navigation.navigate('SettingsPage');
-        }}
-        disabled={
-          !currentCompany || Object.entries(currentCompany).length === 0
-        }>
-        <Icon
-          name="settings"
-          size={15}
-          color={activeTab === 'SettingsPage' ? '#007AFF' : '#666'}
-        />
-        <Text
-          style={[
-            styles.buttonText,
-            activeTab === 'SettingsPage' && styles.activeText,
-          ]}>
-          {global.t?.t('orders', 'label', 'settings')}
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 };

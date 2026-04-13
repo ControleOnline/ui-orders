@@ -114,9 +114,10 @@ const PrinterButton = ({
   };
 
   const requestRemotePrint = useCallback(
-    async targetDevice => {
+    async (targetDevice, targetDeviceType = '') => {
       const commonParams = {
         device: targetDevice,
+        ...(targetDeviceType ? {type: targetDeviceType} : {}),
         ...(currentCompany?.id ? {people: currentCompany.id} : {}),
       };
 
@@ -159,6 +160,12 @@ const PrinterButton = ({
         printer?.device ||
         configuredPrinterDevice ||
         null;
+      const targetPrinterOption =
+        printerOptions.find(option => option.device === targetDevice) ||
+        printer ||
+        null;
+      const targetDeviceType =
+        targetPrinterOption?.type || device_config?.type || '';
       if (!targetDevice) {
         storeActions.setError(
           global.t?.t('orders', 'title', 'selectPrinter'),
@@ -167,7 +174,10 @@ const PrinterButton = ({
       }
 
       if (Platform.OS === 'web') {
-        const remoteResult = await requestRemotePrint(targetDevice);
+        const remoteResult = await requestRemotePrint(
+          targetDevice,
+          targetDeviceType,
+        );
         if (remoteResult !== null) {
           return;
         }
@@ -177,6 +187,7 @@ const PrinterButton = ({
         printType: printType,
         id: currentItemId,
         device: targetDevice,
+        deviceType: targetDeviceType,
       });
     } catch (err) {
       storeActions.setError(err.message || global.t?.t('orders', 'message', 'printProcessingError'));
