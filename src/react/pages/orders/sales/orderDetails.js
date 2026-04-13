@@ -2308,6 +2308,90 @@ const OrderDetails = ({ route, navigation }) => {
   const localInvoicesCountLabel = `${localInvoiceCards.length} ${
     localInvoiceCards.length === 1 ? 'invoice' : 'invoices'
   }`
+  const deliveryPaymentSectionTitle =
+    global.t?.t('orders', 'title', 'paymentOnDelivery') ||
+    'Pagamento na entrega'
+  const changeForLabel =
+    global.t?.t('orders', 'label', 'changeFor') ||
+    'Troco para'
+  const changeToCarryLabel =
+    global.t?.t('orders', 'label', 'changeToReturn') ||
+    'Troco a levar'
+  const changeNotRequestedLabel =
+    global.t?.t('orders', 'message', 'changeNotRequested') ||
+    'Sem troco solicitado'
+  const courierTransferLabel =
+    global.t?.t('orders', 'label', 'courierTransferToMerchant') ||
+    'Repasse do entregador'
+  const marketplaceDeliveryPaymentRows = useMemo(() => {
+    if (!(isFood99Order || isIfoodOrder) || !shouldShowDeliveryPaymentSection) {
+      return []
+    }
+
+    const rows = []
+
+    if (shouldShowCollectOnDelivery) {
+      rows.push({
+        key: 'collect',
+        label: collectOnDeliveryLabel || (global.t?.t('orders', 'label', 'collectFromCustomer') || 'Cobrar do cliente'),
+        value: Formatter.formatMoney(food99CashCollectionAmount || 0),
+        emphasis: true,
+      })
+    }
+
+    if (food99ChangeFor > 0) {
+      rows.push({
+        key: 'change-for',
+        label: changeForLabel,
+        value: Formatter.formatMoney(food99ChangeFor),
+        emphasis: false,
+      })
+    } else if (isCashPaymentSelection) {
+      rows.push({
+        key: 'change-none',
+        label: '',
+        value: changeNotRequestedLabel,
+        emphasis: false,
+      })
+    }
+
+    if (food99NeedsChange) {
+      rows.push({
+        key: 'change-amount',
+        label: changeToCarryLabel,
+        value: Formatter.formatMoney(food99ChangeAmount),
+        emphasis: true,
+      })
+    }
+
+    if (food99ShopPaidMoney > 0) {
+      rows.push({
+        key: 'shop-paid',
+        label: courierTransferLabel,
+        value: Formatter.formatMoney(food99ShopPaidMoney),
+        emphasis: false,
+      })
+    }
+
+    return rows
+  }, [
+    changeForLabel,
+    changeNotRequestedLabel,
+    changeToCarryLabel,
+    collectOnDeliveryLabel,
+    courierTransferLabel,
+    food99CashCollectionAmount,
+    food99ChangeAmount,
+    food99ChangeFor,
+    food99NeedsChange,
+    food99ShopPaidMoney,
+    global,
+    isCashPaymentSelection,
+    isFood99Order,
+    isIfoodOrder,
+    shouldShowCollectOnDelivery,
+    shouldShowDeliveryPaymentSection,
+  ])
   const canGenericConfirmOrder =
     !isFood99Order &&
     !isIfoodOrder &&
@@ -2856,8 +2940,24 @@ const OrderDetails = ({ route, navigation }) => {
       subText: localStyles.mobileProductSubText,
       qtyText: localStyles.mobileProductQtyText,
       statusMarker: localStyles.mobileProductStatusMarker,
+      groupWrap: localStyles.orderProductGroupWrap,
+      groupTitlePill: localStyles.orderProductGroupTitlePill,
+      groupTitle: localStyles.orderProductGroupTitle,
+      groupItem: localStyles.orderProductGroupItem,
+      groupItemRow: localStyles.orderProductGroupItemRow,
+      groupItemText: localStyles.orderProductGroupItemText,
+      groupItemMetaText: localStyles.orderProductGroupItemMetaText,
+      groupItemPriceText: localStyles.orderProductGroupItemPriceText,
     }),
     [
+      localStyles.orderProductGroupItem,
+      localStyles.orderProductGroupItemMetaText,
+      localStyles.orderProductGroupItemPriceText,
+      localStyles.orderProductGroupItemRow,
+      localStyles.orderProductGroupItemText,
+      localStyles.orderProductGroupTitle,
+      localStyles.orderProductGroupTitlePill,
+      localStyles.orderProductGroupWrap,
       localStyles.mobileProductItemRow,
       localStyles.mobileProductQtyText,
       localStyles.mobileProductStatusMarker,
@@ -3165,6 +3265,31 @@ const OrderDetails = ({ route, navigation }) => {
             )}
           </View>
         )}
+        {isScheduledOrder && (
+          <View style={localStyles.mobileScheduledDeliveryCard}>
+            <View style={localStyles.mobileScheduledDeliveryHeader}>
+              <Icon name="schedule" size={15} color="#A16207" />
+              <Text style={localStyles.mobileScheduledDeliveryLabel}>
+                {global.t?.t('orders', 'title', 'scheduledDelivery')}
+              </Text>
+            </View>
+            {!!scheduledWindowLabel && (
+              <Text style={localStyles.mobileScheduledDeliveryText}>
+                {global.t?.t('orders', 'label', 'window')}: {scheduledWindowLabel}
+              </Text>
+            )}
+            {!!scheduledDeliveryDateTimeRaw && (
+              <Text style={localStyles.mobileScheduledDeliveryText}>
+                {global.t?.t('orders', 'label', 'delivery')}: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
+              </Text>
+            )}
+            {!!scheduledPreparationStartRaw && (
+              <Text style={localStyles.mobileScheduledDeliveryText}>
+                {global.t?.t('orders', 'label', 'startPreparation')}: {formatScheduledDate(scheduledPreparationStartRaw)}
+              </Text>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={localStyles.mobileInfoCard}>
@@ -3183,6 +3308,11 @@ const OrderDetails = ({ route, navigation }) => {
             {!isPurchaseOrder && !!orderCustomerPhone && (
               <Text style={localStyles.mobileInfoSubtitle}>{orderCustomerPhone}</Text>
             )}
+            {!isPurchaseOrder && !!orderCustomerDocument && !ifoodTaxDocumentRequested && (
+              <Text style={localStyles.mobileInfoSubtitle}>
+                {orderCustomerDocumentLabel}: {orderCustomerDocument}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -3195,6 +3325,23 @@ const OrderDetails = ({ route, navigation }) => {
               </Text>
               {!!orderAddressSecondary && (
                 <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {!isPurchaseOrder && ifoodTaxDocumentRequested && (
+          <View style={localStyles.mobileTaxDocumentCard}>
+            <Icon name="receipt-long" size={15} color={ppcColors.accentInfo} />
+            <View style={localStyles.mobileAddressTextWrap}>
+              <Text style={localStyles.mobileTaxDocumentPrimary}>{ifoodTaxDocumentTitle}</Text>
+              <Text style={localStyles.mobileTaxDocumentSecondary}>
+                {global.t?.t('orders', 'message', 'customerRequestedTaxDocument') || 'Cliente solicitou documento fiscal neste pedido.'}
+              </Text>
+              {!!orderCustomerDocument && (
+                <Text style={localStyles.mobileTaxDocumentSecondary}>
+                  {orderCustomerDocumentLabel}: {orderCustomerDocument}
+                </Text>
               )}
             </View>
           </View>
@@ -3217,6 +3364,35 @@ const OrderDetails = ({ route, navigation }) => {
       </View>
 
       <View style={localStyles.mobileInfoCard}>
+        {marketplaceDeliveryPaymentRows.length > 0 && (
+          <View style={localStyles.marketplaceDeliveryPaymentCard}>
+            <View style={localStyles.marketplaceDeliveryPaymentHeader}>
+              <Icon
+                name={isCashPaymentSelection ? 'payments' : 'point-of-sale'}
+                size={15}
+                color={ppcColors.accentInfo}
+              />
+              <Text style={localStyles.marketplaceDeliveryPaymentTitle}>
+                {deliveryPaymentSectionTitle}
+              </Text>
+            </View>
+
+            {marketplaceDeliveryPaymentRows.map(row => (
+              <Text
+                key={row.key}
+                style={
+                  row.emphasis
+                    ? localStyles.marketplaceDeliveryPaymentLineStrong
+                    : localStyles.marketplaceDeliveryPaymentLine
+                }
+              >
+                {row.label ? `${row.label}: ` : ''}
+                {row.value}
+              </Text>
+            ))}
+          </View>
+        )}
+
         <View style={localStyles.orderInvoiceBlockHeader}>
           <Text style={localStyles.mobileInfoLabel}>{localInvoicesSectionTitle}</Text>
           {!!localInvoiceCards.length && (
@@ -5333,6 +5509,35 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontSize: 12,
       fontWeight: '700',
     },
+    mobileScheduledDeliveryCard: {
+      marginTop: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#FCD34D',
+      backgroundColor: '#FFFBEB',
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      gap: 3,
+    },
+    mobileScheduledDeliveryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 1,
+    },
+    mobileScheduledDeliveryLabel: {
+      color: '#92400E',
+      fontSize: 11,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    mobileScheduledDeliveryText: {
+      color: '#78350F',
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
+    },
     remoteStateBadge: {
       alignSelf: 'flex-start',
       borderWidth: 1,
@@ -5474,6 +5679,40 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontWeight: '700',
       lineHeight: 17,
     },
+    marketplaceDeliveryPaymentCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      gap: 4,
+    },
+    marketplaceDeliveryPaymentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      marginBottom: 2,
+    },
+    marketplaceDeliveryPaymentTitle: {
+      color: palette.accentInfo,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    marketplaceDeliveryPaymentLine: {
+      color: palette.textPrimary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
+    },
+    marketplaceDeliveryPaymentLineStrong: {
+      color: palette.textPrimary,
+      fontSize: 12,
+      fontWeight: '900',
+      lineHeight: 17,
+    },
     mobileAddressCard: {
       borderRadius: 12,
       borderWidth: 1,
@@ -5499,6 +5738,30 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontWeight: '600',
       lineHeight: 18,
       marginTop: 2,
+    },
+    mobileTaxDocumentCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.accentInfo,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      flexDirection: 'row',
+      gap: 8,
+    },
+    mobileTaxDocumentPrimary: {
+      color: palette.accentInfo,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 2,
+    },
+    mobileTaxDocumentSecondary: {
+      color: palette.textPrimary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
     },
     mobileNoteCard: {
       borderRadius: 12,
@@ -5762,6 +6025,57 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     mobileProductStatusMarker: {
       fontWeight: '900',
+    },
+    orderProductGroupWrap: {
+      marginTop: 7,
+      paddingLeft: 6,
+      gap: 4,
+    },
+    orderProductGroupTitlePill: {
+      alignSelf: 'flex-start',
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBg,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      marginBottom: 1,
+    },
+    orderProductGroupTitle: {
+      color: palette.accentInfo,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    orderProductGroupItem: {
+      gap: 2,
+      paddingLeft: 4,
+    },
+    orderProductGroupItemRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    orderProductGroupItemText: {
+      flex: 1,
+      color: palette.textPrimary,
+      fontSize: 13 * scale,
+      fontWeight: '700',
+      lineHeight: 18,
+    },
+    orderProductGroupItemMetaText: {
+      color: palette.textSecondary,
+      fontSize: 12 * scale,
+      fontWeight: '600',
+      lineHeight: 17,
+    },
+    orderProductGroupItemPriceText: {
+      color: palette.textSecondary,
+      fontSize: 12 * scale,
+      fontWeight: '700',
+      lineHeight: 18,
     },
     mobileBottomActionsWrap: {
       position: 'absolute',
