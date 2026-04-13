@@ -4,7 +4,12 @@ import {TouchableOpacity, Text, View, Modal, FlatList, Platform} from 'react-nat
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {parseConfigsObject} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import {getPrinterOptions} from '@controleonline/ui-common/src/react/utils/printerDevices';
+import {
+  findPrinterOptionByValue,
+  getDeviceTypeLabel,
+  getPrinterOptionValue,
+  getPrinterOptions,
+} from '@controleonline/ui-common/src/react/utils/printerDevices';
 import {useStore} from '@store';
 
 const PrinterButton = ({
@@ -43,7 +48,7 @@ const PrinterButton = ({
         : null,
     [storeGetters.item],
   );
-  const configuredPrinterDevice = useMemo(
+  const configuredPrinterValue = useMemo(
     () => parseConfigsObject(device_config?.configs)?.printer || '',
     [device_config?.configs],
   );
@@ -58,7 +63,7 @@ const PrinterButton = ({
   );
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedPrinterDevice, setSelectedPrinterDevice] = useState('');
+  const [selectedPrinterValue, setSelectedPrinterValue] = useState('');
 
   useEffect(() => {
     if (!currentCompany?.id) {
@@ -73,42 +78,42 @@ const PrinterButton = ({
 
   useEffect(() => {
     const matchedPrinter =
-      printerOptions.find(
-        option =>
-          option.device === (selectedPrinterDevice || configuredPrinterDevice),
+      findPrinterOptionByValue(
+        printerOptions,
+        selectedPrinterValue || configuredPrinterValue,
       ) ||
-      printerOptions.find(option => option.device === configuredPrinterDevice) ||
+      findPrinterOptionByValue(printerOptions, configuredPrinterValue) ||
       null;
 
     printerActions.setItem(matchedPrinter || null);
 
-    const nextPrinterDevice =
-      matchedPrinter?.device || configuredPrinterDevice || '';
-    if (nextPrinterDevice !== selectedPrinterDevice) {
-      setSelectedPrinterDevice(nextPrinterDevice);
+    const nextPrinterValue =
+      getPrinterOptionValue(matchedPrinter) || configuredPrinterValue || '';
+    if (nextPrinterValue !== selectedPrinterValue) {
+      setSelectedPrinterValue(nextPrinterValue);
     }
   }, [
-    configuredPrinterDevice,
+    configuredPrinterValue,
     printerActions,
     printerOptions,
-    selectedPrinterDevice,
+    selectedPrinterValue,
   ]);
 
   const handleOpenPrinters = () => {
     setIsModalVisible(true);
   };
   const handleSelectPrinter = index => {
-    const nextPrinterDevice = printerOptions[index]?.device;
+    const nextPrinterValue = getPrinterOptionValue(printerOptions[index]);
     deviceConfigsActions
       .addDeviceConfigs({
         configs: JSON.stringify({
-          printer: nextPrinterDevice,
+          printer: nextPrinterValue,
         }),
         people: '/people/' + currentCompany.id,
       })
       .then(() => {
         setIsModalVisible(false);
-        setSelectedPrinterDevice(nextPrinterDevice || '');
+        setSelectedPrinterValue(nextPrinterValue || '');
         printerActions.setItem(printerOptions[index] || null);
       });
   };
@@ -155,15 +160,16 @@ const PrinterButton = ({
     }
 
     try {
-      const targetDevice =
-        selectedPrinterDevice ||
-        printer?.device ||
-        configuredPrinterDevice ||
-        null;
       const targetPrinterOption =
-        printerOptions.find(option => option.device === targetDevice) ||
+        findPrinterOptionByValue(
+          printerOptions,
+          selectedPrinterValue ||
+            getPrinterOptionValue(printer) ||
+            configuredPrinterValue,
+        ) ||
         printer ||
         null;
+      const targetDevice = targetPrinterOption?.device || null;
       const targetDeviceType =
         targetPrinterOption?.type || device_config?.type || '';
       if (!targetDevice) {
@@ -198,7 +204,9 @@ const PrinterButton = ({
     <TouchableOpacity
       style={styles.printButton.printerItem}
       onPress={() => handleSelectPrinter(index)}>
-      <Text style={styles.printButton.printerText}>{item.alias}</Text>
+      <Text style={styles.printButton.printerText}>
+        {`${item.alias || item.device} (${getDeviceTypeLabel(item?.type)})`}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -206,11 +214,7 @@ const PrinterButton = ({
     return null;
   }
 
-  const resolvedPrinterDevice =
-    selectedPrinterDevice ||
-    printer?.device ||
-    configuredPrinterDevice ||
-    '';
+  const resolvedPrinterDevice = printer?.device || '';
   const printDisabled = disabled || isLoading || !resolvedPrinterDevice;
 
   return (
@@ -237,7 +241,9 @@ const PrinterButton = ({
             {isLoading
               ? global.t?.t('orders', 'button', 'printing')
               : printer && printer.alias
-              ? `${global.t?.t('orders', 'button', 'print')} (${printer?.alias})`
+              ? `${global.t?.t('orders', 'button', 'print')} (${printer?.alias} • ${getDeviceTypeLabel(
+                  printer?.type,
+                )})`
               : global.t?.t('orders', 'title', 'selectPrinter')}
           </Text>
         )}
@@ -267,7 +273,7 @@ const PrinterButton = ({
             <FlatList
               data={printerOptions}
               renderItem={renderPrinterItem}
-              keyExtractor={item => item.device}
+              keyExtractor={item => getPrinterOptionValue(item) || item.device}
             />
             <TouchableOpacity
               style={styles.printButton.closeButton}
