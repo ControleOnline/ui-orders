@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+﻿import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -678,6 +678,32 @@ const resolveOrderItemUnitLabel = orderProduct =>
     ) || '',
   ).trim().toUpperCase()
 
+const resolveProductUnitLabel = product =>
+  resolveOrderItemUnitLabel({ product })
+
+const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProduct) => {
+  if (!orderProduct || !resolvedProduct) return orderProduct
+
+  return {
+    ...orderProduct,
+    product: {
+      ...(orderProduct?.product || {}),
+      ...resolvedProduct,
+      productUnit:
+        resolvedProduct?.productUnit ||
+        orderProduct?.product?.productUnit ||
+        orderProduct?.product?.productUnity ||
+        null,
+      productUnity:
+        resolvedProduct?.productUnity ||
+        resolvedProduct?.productUnit ||
+        orderProduct?.product?.productUnity ||
+        orderProduct?.product?.productUnit ||
+        null,
+    },
+  }
+}
+
 const OrderDetails = ({ route, navigation }) => {
   const orderParam = route.params.order
   const isKds = !!route.params?.kds
@@ -812,6 +838,8 @@ const OrderDetails = ({ route, navigation }) => {
   const { items: storedOrderProducts } = orderProductsStore.getters
   const productsStore = useStore('products')
   const { items: productSearchResults, isLoading: productSearchLoading } = productsStore.getters
+  const [resolvedProductsById, setResolvedProductsById] = useState({})
+  const loadingResolvedProductsRef = useRef(new Set())
 
   const [editMode, setEditMode] = useState(false)
   const [opLoadingId, setOpLoadingId] = useState(null)
@@ -1234,6 +1262,124 @@ const OrderDetails = ({ route, navigation }) => {
 
     return fallbackOrderProducts
   }, [ifoodDisplayOrder?.orderProducts, item?.id, item?.orderProducts, orderParam?.id, orderParam?.orderProducts, storedOrderProducts])
+  const editableOrderProducts = useMemo(
+    () => (Array.isArray(item?.orderProducts) ? item.orderProducts : []),
+    [item?.orderProducts],
+  )
+  const resolvedProductCandidatesById = useMemo(() => {
+    const candidates = {}
+
+    ;[
+      item?.orderProducts,
+      orderParam?.orderProducts,
+      storedOrderProducts,
+      ifoodDisplayOrder?.orderProducts,
+    ].forEach(orderProductsList => {
+      ;(Array.isArray(orderProductsList) ? orderProductsList : []).forEach(orderProduct => {
+        const productId = getEntityId(orderProduct?.product)
+        const candidateProduct = orderProduct?.product
+
+        if (!productId || !candidateProduct) return
+
+        const currentCandidate = candidates[productId]
+        const currentHasUnit = currentCandidate ? !!resolveProductUnitLabel(currentCandidate) : false
+        const nextHasUnit = !!resolveOrderItemUnitLabel(orderProduct)
+
+        if (!currentCandidate || (nextHasUnit && !currentHasUnit)) {
+          candidates[productId] = candidateProduct
+        }
+      })
+    })
+
+    return candidates
+  }, [ifoodDisplayOrder?.orderProducts, item?.orderProducts, orderParam?.orderProducts, storedOrderProducts])
+
+  useEffect(() => {
+    const productIdsMissingUnit = [...new Set(
+      [...resolvedDisplayOrderProducts, ...editableOrderProducts]
+        .map(orderProduct => {
+          const productId = getEntityId(orderProduct?.product)
+          const cachedProduct = productId
+            ? (resolvedProductsById[productId] || resolvedProductCandidatesById[productId])
+            : null
+          const hasUnit =
+            !!resolveOrderItemUnitLabel(orderProduct) ||
+            !!resolveOrderItemUnitLabel(
+              cachedProduct ? mergeOrderProductWithResolvedProduct(orderProduct, cachedProduct) : orderProduct,
+            )
+
+          if (!productId || hasUnit || loadingResolvedProductsRef.current.has(productId)) {
+            return null
+          }
+
+          return productId
+        })
+        .filter(Boolean),
+    )]
+
+    if (!productIdsMissingUnit.length) return undefined
+
+    productIdsMissingUnit.forEach(id => loadingResolvedProductsRef.current.add(id))
+
+    let cancelled = false
+
+    ;(async () => {
+      const resolvedEntries = await Promise.all(
+        productIdsMissingUnit.map(async productId => {
+          try {
+            const product = await productsStore.actions.get(productId)
+            return [productId, product || null]
+          } catch {
+            return [productId, null]
+          } finally {
+            loadingResolvedProductsRef.current.delete(productId)
+          }
+        }),
+      )
+
+      if (cancelled) return
+
+      setResolvedProductsById(prev => {
+        let changed = false
+        const next = { ...prev }
+
+        resolvedEntries.forEach(([productId, product]) => {
+          if (product && next[productId] !== product) {
+            next[productId] = product
+            changed = true
+          }
+        })
+
+        return changed ? next : prev
+      })
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [editableOrderProducts, productsStore.actions, resolvedDisplayOrderProducts, resolvedProductCandidatesById, resolvedProductsById])
+
+  const resolvedDisplayOrderProductsWithProductDetails = useMemo(
+    () => resolvedDisplayOrderProducts.map(orderProduct => {
+      const productId = getEntityId(orderProduct?.product)
+      return mergeOrderProductWithResolvedProduct(
+        orderProduct,
+        productId ? (resolvedProductsById[productId] || resolvedProductCandidatesById[productId]) : null,
+      )
+    }),
+    [resolvedDisplayOrderProducts, resolvedProductCandidatesById, resolvedProductsById],
+  )
+
+  const editableOrderProductsWithProductDetails = useMemo(
+    () => editableOrderProducts.map(orderProduct => {
+      const productId = getEntityId(orderProduct?.product)
+      return mergeOrderProductWithResolvedProduct(
+        orderProduct,
+        productId ? (resolvedProductsById[productId] || resolvedProductCandidatesById[productId]) : null,
+      )
+    }),
+    [editableOrderProducts, resolvedProductCandidatesById, resolvedProductsById],
+  )
   const fallbackFood99Financial = useMemo(() => {
     const financial = fallbackFood99Summary?.financial
     if (!financial) return null
@@ -1796,7 +1942,7 @@ const OrderDetails = ({ route, navigation }) => {
 
     return {
       ...baseOrder,
-      orderProducts: resolvedDisplayOrderProducts,
+      orderProducts: resolvedDisplayOrderProductsWithProductDetails,
       status: {
         ...(baseOrder?.status || {}),
         status: effectiveLocalStatusNameKey || baseOrder?.status?.status || '',
@@ -1811,7 +1957,7 @@ const OrderDetails = ({ route, navigation }) => {
     effectiveLocalStatusNameKey,
     item,
     orderParam,
-    resolvedDisplayOrderProducts,
+    resolvedDisplayOrderProductsWithProductDetails,
   ])
   const normalizedFood99LastAction = String(food99Integration?.last_action || '').toLowerCase()
   const isIfoodReadyLifecycle =
@@ -3448,7 +3594,7 @@ const OrderDetails = ({ route, navigation }) => {
           )}
         </View>
         {isPurchaseOrder
-          ? (resolvedDisplayOrderProducts || []).map((op, idx) => {
+          ? (resolvedDisplayOrderProductsWithProductDetails || []).map((op, idx) => {
               const prodName = op?.product?.product || op?.product?.name || `Produto #${idx + 1}`
               const prodDesc = op?.product?.description || ''
               const qty      = Number(op?.quantity || 0)
@@ -3484,7 +3630,7 @@ const OrderDetails = ({ route, navigation }) => {
           : (canEditItems && editMode
               ? (
                 <React.Fragment>
-                  {(item?.orderProducts || []).map(op => {
+                  {editableOrderProductsWithProductDetails.map(op => {
                     const opId = String(op?.id || '')
                     const name = op?.product?.product || op?.product?.name || 'Item'
                     const qty = Number(op?.quantity || 0)
@@ -5151,7 +5297,7 @@ const OrderDetails = ({ route, navigation }) => {
                 {canEditItems && editMode
                   ? (
                     <React.Fragment>
-                      {(item?.orderProducts || []).map(op => {
+                      {editableOrderProductsWithProductDetails.map(op => {
                         const opId = String(op?.id || '')
                         const name = op?.product?.product || op?.product?.name || 'Item'
                         const qty = Number(op?.quantity || 0)
