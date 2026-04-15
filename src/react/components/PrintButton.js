@@ -1,18 +1,24 @@
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import {TouchableOpacity, Text, View, Modal, FlatList, Platform} from 'react-native';
+import React, {useMemo} from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {parseConfigsObject} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import {
-  findPrinterOptionByValue,
   getDeviceTypeLabel,
+  getPrinterLabel,
   getPrinterOptionValue,
-  getPrinterOptions,
 } from '@controleonline/ui-common/src/react/utils/printerDevices';
-import {useStore} from '@store';
+import {usePrintButtonController} from '@controleonline/ui-common/src/react/print/usePrintButtonController';
 
 const PrinterButton = ({
+  job = null,
   printType,
   store,
   compact = false,
@@ -20,251 +26,134 @@ const PrinterButton = ({
   compactButtonStyle = null,
   compactSelectStyle = null,
   disabled = false,
+  style = null,
+  printerSelection = {},
+  layout = {},
+  onSuccess = null,
+  onError = null,
+  label = '',
 }) => {
   const {styles, globalStyles} = css();
-
-  const currentStore = useStore(store);
-  const storeGetters = currentStore.getters;
-  const storeActions = currentStore.actions;
-
-  const device_configStore = useStore('device_config');
-  const deviceConfigGetters = device_configStore.getters;
-  const deviceConfigsActions = device_configStore.actions;
-  const printerStore = useStore('printer');
-  const printerGetters = printerStore.getters;
-  const printerActions = printerStore.actions;
-  const printStore = useStore('print');
-  const printActions = printStore.actions;
-  const peopleStore = useStore('people');
-  const peopleGetters = peopleStore.getters;
-
-  const {currentCompany} = peopleGetters;
-  const {isLoading, items: printers, item: printer} = printerGetters;
-  const {item: device_config, items: companyDeviceConfigs = []} = deviceConfigGetters;
-  const currentItemId = useMemo(
-    () =>
-      storeGetters.item && storeGetters.item['@id']
-        ? storeGetters.item['@id'].split('/').pop()
-        : null,
-    [storeGetters.item],
-  );
-  const configuredPrinterValue = useMemo(
-    () => parseConfigsObject(device_config?.configs)?.printer || '',
-    [device_config?.configs],
-  );
-  const printerOptions = useMemo(
-    () =>
-      getPrinterOptions({
-        printers,
-        deviceConfigs: companyDeviceConfigs,
-        companyId: currentCompany?.id,
-      }),
-    [companyDeviceConfigs, currentCompany?.id, printers],
-  );
-
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedPrinterValue, setSelectedPrinterValue] = useState('');
-
-  useEffect(() => {
-    if (!currentCompany?.id) {
-      return;
-    }
-
-    deviceConfigsActions
-      .getItems({people: `/people/${currentCompany.id}`})
-      .catch(() => {});
-    printerActions.getPrinters({people: currentCompany.id}).catch(() => {});
-  }, [currentCompany?.id, deviceConfigsActions, printerActions]);
-
-  useEffect(() => {
-    const matchedPrinter =
-      findPrinterOptionByValue(
-        printerOptions,
-        selectedPrinterValue || configuredPrinterValue,
-      ) ||
-      findPrinterOptionByValue(printerOptions, configuredPrinterValue) ||
-      null;
-
-    printerActions.setItem(matchedPrinter || null);
-
-    const nextPrinterValue =
-      getPrinterOptionValue(matchedPrinter) || configuredPrinterValue || '';
-    if (nextPrinterValue !== selectedPrinterValue) {
-      setSelectedPrinterValue(nextPrinterValue);
-    }
-  }, [
-    configuredPrinterValue,
-    printerActions,
+  const {
+    canSelectPrinter,
+    closePrinterModal,
+    handlePrint,
+    handleSelectPrinter,
+    isModalVisible,
+    isRequestLoading,
+    normalizedJob,
+    openPrinterModal,
     printerOptions,
-    selectedPrinterValue,
-  ]);
+    selectedPrinter,
+  } = usePrintButtonController({
+    job,
+    printType,
+    store,
+    printerSelection,
+    onSuccess,
+    onError,
+  });
 
-  const handleOpenPrinters = () => {
-    setIsModalVisible(true);
-  };
-  const handleSelectPrinter = index => {
-    const nextPrinterValue = getPrinterOptionValue(printerOptions[index]);
-    deviceConfigsActions
-      .addDeviceConfigs({
-        configs: JSON.stringify({
-          printer: nextPrinterValue,
-        }),
-        people: '/people/' + currentCompany.id,
-      })
-      .then(() => {
-        setIsModalVisible(false);
-        setSelectedPrinterValue(nextPrinterValue || '');
-        printerActions.setItem(printerOptions[index] || null);
-      });
-  };
-
-  const requestRemotePrint = useCallback(
-    async (targetDevice, targetDeviceType = '') => {
-      const commonParams = {
-        device: targetDevice,
-        ...(targetDeviceType ? {type: targetDeviceType} : {}),
-        ...(currentCompany?.id ? {people: currentCompany.id} : {}),
-      };
-
-      if (printType === 'order') {
-        if (!currentItemId) {
-          throw new Error(global.t?.t('orders', 'message', 'printProcessingError'));
-        }
-
-        return printActions.printOrder({
-          id: currentItemId,
-          ...commonParams,
-        });
-      }
-
-      if (printType === 'cash-register') {
-        return printActions.getCashRegisterPrint(commonParams);
-      }
-
-      if (printType === 'purchasing-suggestion') {
-        return printActions.printPurchasingSuggestion(commonParams);
-      }
-
-      if (printType === 'inventory') {
-        return printActions.printInventory(commonParams);
-      }
-
-      return null;
-    },
-    [currentCompany?.id, currentItemId, printActions, printType],
-  );
-
-  const handlePrint = async () => {
-    if (disabled) {
-      return;
+  const resolvedVariant = layout?.variant || (compact ? 'compact' : 'default');
+  const showCompactContent = resolvedVariant === 'compact' || resolvedVariant === 'icon';
+  const resolvedLabel = useMemo(() => {
+    if (showCompactContent) {
+      return '';
     }
 
-    try {
-      const targetPrinterOption =
-        findPrinterOptionByValue(
-          printerOptions,
-          selectedPrinterValue ||
-            getPrinterOptionValue(printer) ||
-            configuredPrinterValue,
-        ) ||
-        printer ||
-        null;
-      const targetDevice = targetPrinterOption?.device || null;
-      const targetDeviceType =
-        targetPrinterOption?.type || device_config?.type || '';
-      if (!targetDevice) {
-        storeActions.setError(
-          global.t?.t('orders', 'title', 'selectPrinter'),
-        );
-        return;
-      }
-
-      if (Platform.OS === 'web') {
-        const remoteResult = await requestRemotePrint(
-          targetDevice,
-          targetDeviceType,
-        );
-        if (remoteResult !== null) {
-          return;
-        }
-      }
-
-      printActions.addToPrint({
-        printType: printType,
-        id: currentItemId,
-        device: targetDevice,
-        deviceType: targetDeviceType,
-      });
-    } catch (err) {
-      storeActions.setError(err.message || global.t?.t('orders', 'message', 'printProcessingError'));
+    if (isRequestLoading) {
+      return global.t?.t('orders', 'button', 'printing') || 'Processando...';
     }
-  };
 
-  const renderPrinterItem = ({item, index}) => (
+    if (label) {
+      return label;
+    }
+
+    if (selectedPrinter?.alias) {
+      return `${global.t?.t('orders', 'button', 'print') || 'Imprimir'} (${selectedPrinter.alias} • ${getDeviceTypeLabel(
+        selectedPrinter?.type,
+      )})`;
+    }
+
+    return global.t?.t('orders', 'button', 'print') || 'Imprimir';
+  }, [isRequestLoading, label, selectedPrinter?.alias, selectedPrinter?.type, showCompactContent]);
+
+  const renderPrinterItem = ({item}) => (
     <TouchableOpacity
       style={styles.printButton.printerItem}
-      onPress={() => handleSelectPrinter(index)}>
+      onPress={() => handleSelectPrinter(item)}>
       <Text style={styles.printButton.printerText}>
-        {`${item.alias || item.device} (${getDeviceTypeLabel(item?.type)})`}
+        {`${getPrinterLabel(item)} (${getDeviceTypeLabel(item?.type)})`}
       </Text>
     </TouchableOpacity>
   );
 
-  if (!printerOptions?.length) {
+  if (!normalizedJob) {
     return null;
   }
 
-  const resolvedPrinterDevice = printer?.device || '';
-  const printDisabled = disabled || isLoading || !resolvedPrinterDevice;
-
+  const printDisabled = disabled || isRequestLoading;
+	
   return (
     <View
       style={
-        compact
+        showCompactContent
           ? styles.printButton.compactWrap
           : [
               globalStyles.button,
+              style,
               {flexDirection: 'row', alignItems: 'center'},
             ]
       }>
       <TouchableOpacity
         style={
-          compact
-            ? [styles.printButton.compactButton, compactButtonStyle]
-            : [styles.printButton.printButton]
+          showCompactContent
+            ? [styles.printButton.compactButton, compactButtonStyle, layout?.mainButtonStyle]
+            : [styles.printButton.printButton, layout?.mainButtonStyle]
         }
         onPress={handlePrint}
         disabled={printDisabled}>
-        <Icon name="print" size={compact ? 19 : 24} color={iconColor} />
-        {!compact && (
+        {isRequestLoading ? (
+          <ActivityIndicator
+            size={showCompactContent ? 'small' : 'small'}
+            color={iconColor}
+          />
+        ) : (
+          <Icon
+            name="print"
+            size={showCompactContent ? 19 : 24}
+            color={iconColor}
+          />
+        )}
+        {!showCompactContent && (
           <Text style={{color: iconColor, marginLeft: 8}}>
-            {isLoading
-              ? global.t?.t('orders', 'button', 'printing')
-              : printer && printer.alias
-              ? `${global.t?.t('orders', 'button', 'print')} (${printer?.alias} • ${getDeviceTypeLabel(
-                  printer?.type,
-                )})`
-              : global.t?.t('orders', 'title', 'selectPrinter')}
+            {resolvedLabel}
           </Text>
         )}
       </TouchableOpacity>
-
-      <TouchableOpacity
-        style={
-          compact
-            ? [styles.printButton.compactButton, compactSelectStyle]
-            : styles.printButton.selectButton
-        }
-        disabled={disabled}
-        onPress={handleOpenPrinters}>
-        <Icon name="list" size={compact ? 20 : 24} color={iconColor} />
-      </TouchableOpacity>
-
+	
+      {canSelectPrinter ? (
+        <TouchableOpacity
+          style={
+            showCompactContent
+              ? [styles.printButton.compactButton, compactSelectStyle, layout?.selectButtonStyle]
+              : [styles.printButton.selectButton, layout?.selectButtonStyle]
+          }
+          disabled={disabled || isRequestLoading}
+          onPress={openPrinterModal}>
+          <Icon
+            name="list"
+            size={showCompactContent ? 20 : 24}
+            color={iconColor}
+          />
+        </TouchableOpacity>
+      ) : null}
+	
       <Modal
         visible={isModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setIsModalVisible(false)}>
+        onRequestClose={closePrinterModal}>
         <View style={styles.printButton.modalContainer}>
           <View style={styles.printButton.modalContent}>
             <Text style={styles.printButton.modalTitle}>
@@ -277,7 +166,7 @@ const PrinterButton = ({
             />
             <TouchableOpacity
               style={styles.printButton.closeButton}
-              onPress={() => setIsModalVisible(false)}>
+              onPress={closePrinterModal}>
               <Text style={styles.printButton.closeButtonText}>{global.t?.t('orders', 'button', 'close')}</Text>
             </TouchableOpacity>
           </View>

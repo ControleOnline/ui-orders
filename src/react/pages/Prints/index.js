@@ -16,7 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useStore} from '@store';
 import {api} from '@controleonline/ui-common/src/api';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import {CieloPrint} from '@controleonline/ui-orders/src/react/services/Cielo/Print';
+import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 
 const formatApiError = error => {
   if (!error) return 'Nao foi possivel completar a operacao.';
@@ -58,38 +58,6 @@ const formatRegisterDate = value => {
   return date.toLocaleString('pt-BR');
 };
 
-const decodePrintPayload = content => {
-  if (content === null || content === undefined) return '';
-  if (typeof content !== 'string') return JSON.stringify(content);
-
-  if (typeof atob === 'function') {
-    try {
-      return atob(content);
-    } catch (error) {
-      return content;
-    }
-  }
-
-  return content;
-};
-
-const withTimeout = (promise, ms, message) =>
-  new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(message));
-    }, ms);
-
-    promise
-      .then(value => {
-        clearTimeout(timer);
-        resolve(value);
-      })
-      .catch(error => {
-        clearTimeout(timer);
-        reject(error);
-      });
-  });
-
 const sortSpools = items =>
   [...items].sort((left, right) => {
     const leftDate = new Date(left?.registerDate || 0).getTime() || 0;
@@ -129,7 +97,6 @@ const PrintQueuePage = ({navigation}) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [screenError, setScreenError] = useState('');
-  const [processingId, setProcessingId] = useState(null);
   const deviceEntityIri =
     storagedDevice?.entityIri ||
     (storagedDevice?.entityId ? `/devices/${storagedDevice.entityId}` : null);
@@ -187,65 +154,25 @@ const PrintQueuePage = ({navigation}) => {
     loadSpools({refresh: true});
   }, [loadSpools]);
 
-  const handlePrint = useCallback(async spool => {
-    const spoolId = resolveSpoolId(spool);
-    if (!spoolId) {
-      Alert.alert('Falha ao imprimir', 'Nao foi possivel identificar o item.');
-      return;
-    }
-
-    setProcessingId(spoolId);
-
-    try {
-      const spoolItem = await api.fetch(`/spools/${spoolId}`);
-      if (!spoolItem?.file?.content) {
-        throw new Error('Conteudo da impressao indisponivel para este item.');
-      }
-
-      const payload = decodePrintPayload(spoolItem.file.content);
-      const cielo = new CieloPrint();
-      const response = await withTimeout(
-        cielo.print(payload),
-        45000,
-        'Timeout na impressao local. Verifique a Cielo e tente novamente.',
-      );
-
-      if (response?.success === false) {
-        throw new Error(
-          response?.result ||
-            t('orders', 'message', 'printProcessingError', 'Falha ao imprimir.'),
-        );
-      }
-
-      try {
-        await withTimeout(
-          api.fetch(`/print/${spoolId}/done`, {
-            method: 'PUT',
-          }),
-          15000,
-          'Timeout ao concluir no backend. Tente novamente.',
-        );
-      } catch (doneError) {
-        Alert.alert(
-          'Impressao enviada',
-          'A impressao foi enviada, mas falhou ao concluir no backend. Tente novamente para remover da fila.',
-        );
-        throw doneError;
-      }
-
+  const handleManualPrintSuccess = useCallback(completedRequest => {
+    const spoolId = resolveSpoolId(completedRequest?.spoolId);
+    if (spoolId) {
       setSpools(previous =>
         previous.filter(item => resolveSpoolId(item) !== spoolId),
       );
-
-      Alert.alert(
-        'Impressao concluida',
-        'A impressao foi enviada para a Cielo e removida da fila.',
-      );
-    } catch (error) {
-      Alert.alert('Falha no processamento', formatApiError(error));
-    } finally {
-      setProcessingId(null);
     }
+
+    Alert.alert(
+      'Impressao concluida',
+      'A impressao foi enviada para a Cielo e removida da fila.',
+    );
+  }, []);
+
+  const handleManualPrintError = useCallback(completedRequest => {
+    Alert.alert(
+      'Falha no processamento',
+      formatApiError(completedRequest?.error),
+    );
   }, []);
 
   const renderEmptyState = useMemo(
@@ -267,7 +194,6 @@ const PrintQueuePage = ({navigation}) => {
 
   const renderItem = ({item}) => {
     const spoolId = resolveSpoolId(item);
-    const isProcessing = processingId === spoolId;
     const statusColor = getStatusColor(item, colors?.primary || '#1B5587');
 
     return (
@@ -305,23 +231,14 @@ const PrintQueuePage = ({navigation}) => {
         </View>
 
         <View style={localStyles.actionsRow}>
-          <TouchableOpacity
-            style={[
-              globalStyles.button,
-              localStyles.primaryAction,
-              isProcessing && localStyles.buttonDisabled,
-            ]}
-            onPress={() => handlePrint(item)}
-            disabled={isProcessing}>
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Icon name="print" size={18} color="#fff" />
-            )}
-            <Text style={localStyles.buttonText}>
-              {isProcessing ? 'Processando...' : 'Imprimir'}
-            </Text>
-          </TouchableOpacity>
+          <PrintButton
+            job={{type: 'spool', spoolId}}
+            label="Imprimir"
+            iconColor="#fff"
+            style={[globalStyles.button, localStyles.primaryAction]}
+            onSuccess={handleManualPrintSuccess}
+            onError={handleManualPrintError}
+          />
         </View>
       </View>
     );

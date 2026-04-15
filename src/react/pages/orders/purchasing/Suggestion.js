@@ -129,9 +129,10 @@ const PurchasingSuggestion = () => {
           <View style={styles.CloseCashRegister.footerContainer}>
             <View style={styles.CloseCashRegister.buttonContainer}>
               <PrintButton
-                printType={'purchasing-suggestion'}
+                job={{type: 'purchasing-suggestion'}}
                 store={'products'}
                 style={[globalStyles.button]}
+                printerSelection={{enabled: true}}
               />
             </View>
           </View>

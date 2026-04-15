@@ -121,9 +121,10 @@ const Inventory = () => {
           <View style={styles.CloseCashRegister.footerContainer}>
             <View style={styles.CloseCashRegister.buttonContainer}>
               <PrintButton
-                printType={'inventory'}
+                job={{type: 'inventory'}}
                 store={'products'}
                 style={[globalStyles.button]}
+                printerSelection={{enabled: true}}
               />
             </View>
           </View>

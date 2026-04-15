@@ -167,9 +167,10 @@ const CloseCashRegister = ({navigation}) => {
 
             <View style={styles.CloseCashRegister.buttonContainer}>
               <PrintButton
-                printType={'cash-register'}
+                job={{type: 'cash-register'}}
                 store={'invoice'}
                 style={[globalStyles.button]}
+                printerSelection={{enabled: true}}
               />
 
               {!device?.configs ||

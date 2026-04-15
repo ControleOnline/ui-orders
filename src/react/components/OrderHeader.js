@@ -281,7 +281,11 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
         </View>
         {!compact && (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <PrintButton printType={'order'} store={'orders'} />
+            <PrintButton
+              job={{type: 'order'}}
+              store={'orders'}
+              printerSelection={{enabled: true}}
+            />
           </View>
         )}
       </View>
