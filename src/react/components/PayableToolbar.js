@@ -30,7 +30,10 @@ const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
   const invoiceGetters = invoiceStore.getters;
   const {isLoading, items: invoices} = invoiceGetters;
   const {items: orders, item: order, payable} = ordersGetters;
-  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeOrders = useMemo(
+    () => (Array.isArray(orders) ? orders : []),
+    [orders],
+  );
   const [price, setPrice] = useState(0);
   const [paid, setPaid] = useState(0);
   const primaryColor = colors.primary || '#1B5587';

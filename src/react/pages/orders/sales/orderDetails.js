@@ -25,6 +25,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
 import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
+import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import { buildFood99OrderSummary } from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
 import { getOrderRouteId } from '@controleonline/ui-orders/src/react/utils/orderRoute'
@@ -2356,6 +2357,9 @@ const OrderDetails = ({ route, navigation }) => {
     !!item?.id &&
     localPendingAmount > 0 &&
     !isTerminalFood99Order
+  const showInlineAddPaymentAction =
+    canAddOrderPayment &&
+    !useUnifiedKdsLayout
   const food99AmountPending = resolvePreferredMoney(
     food99Payment?.amount_pending,
     food99CashCollectionAmount,
@@ -3234,6 +3238,13 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldShowMobileBottomActions =
     shouldShowMobileCancelAction ||
     !!resolvedPrimaryKdsAction
+  const shouldShowMobilePaymentBar =
+    useUnifiedKdsLayout &&
+    !hasTerminalOrderState
+  const mobileBottomCartOffset = shouldShowMobileBottomActions ? 74 : 0
+  const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
+    ? (shouldShowMobileBottomActions ? 226 : 156)
+    : 126
 
   const isResolvedPrimaryKdsActionLoading = !!resolvedPrimaryKdsAction &&
     (
@@ -3411,7 +3422,10 @@ const OrderDetails = ({ route, navigation }) => {
 
   const renderKdsMobileContent = () => (
     <ScrollView
-      contentContainerStyle={localStyles.mobileOrderScrollContent}
+      contentContainerStyle={[
+        localStyles.mobileOrderScrollContent,
+        { paddingBottom: mobileOrderBottomSpacing },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <View style={localStyles.mobileOrderLayout}>
@@ -5279,7 +5293,7 @@ const OrderDetails = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
 
-                {canAddOrderPayment && (
+                {showInlineAddPaymentAction && (
                   <TouchableOpacity
                     onPress={handleAddPayment}
                     style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
@@ -5316,7 +5330,7 @@ const OrderDetails = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
 
-                {canAddOrderPayment && (
+                {showInlineAddPaymentAction && (
                   <TouchableOpacity
                     onPress={handleAddPayment}
                     style={[globalStyles.button, { marginRight: 5 }]}
@@ -5467,6 +5481,16 @@ const OrderDetails = ({ route, navigation }) => {
                 }
               </View>
             </ScrollView>
+          )}
+
+          {shouldShowMobilePaymentBar && (
+            <BottomCart
+              bottomOffset={mobileBottomCartOffset}
+              actionLabel={global.t?.t('orders', 'button', 'pay') || 'Pagar'}
+              actionIcon="credit-card"
+              actionDisabled={!canAddOrderPayment}
+              onActionPress={handleAddPayment}
+            />
           )}
 
           {useUnifiedKdsLayout && shouldShowMobileBottomActions && (
