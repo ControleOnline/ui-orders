@@ -13,6 +13,7 @@ const BottomCart = ({
   actionIcon = 'clipboard',
   actionDisabled,
   onActionPress,
+  collapsePayableWhenPaid = true,
   showActionButton = true,
 }) => {
   const ordersStore = useStore('orders');
@@ -47,7 +48,7 @@ const BottomCart = ({
     navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(item));
   }, [navigation, ordersStore.actions]);
 
-  const isActionDisabled = actionDisabled ?? !order?.id;
+  const isActionDisabled = !order?.id || !!actionDisabled;
   const handleActionPress = useCallback(() => {
     if (!order || isActionDisabled) {
       return;
@@ -66,6 +67,7 @@ const BottomCart = ({
       <PayableToolbar
         bottomOffset={bottomOffset}
         cartHeight={cartHeight + 10}
+        collapseWhenPaid={collapsePayableWhenPaid}
       />
       <View style={[styles.toolbar, {bottom: bottomOffset + 8, minHeight: cartHeight}]}>
         <View style={styles.totalWrap}>

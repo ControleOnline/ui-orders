@@ -5489,6 +5489,7 @@ const OrderDetails = ({ route, navigation }) => {
               actionLabel={global.t?.t('orders', 'button', 'pay') || 'Pagar'}
               actionIcon="credit-card"
               actionDisabled={!canAddOrderPayment}
+              collapsePayableWhenPaid={false}
               onActionPress={handleAddPayment}
             />
           )}

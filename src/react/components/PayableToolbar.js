@@ -20,7 +20,11 @@ const withAlpha = (color, alphaHex) => {
   return color || '#1B5587';
 };
 
-const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
+const PayableToolbar = ({
+  bottomOffset = 0,
+  cartHeight = 60,
+  collapseWhenPaid = true,
+}) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const ordersActions = ordersStore.actions;
@@ -121,7 +125,7 @@ const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
           styles.toolbarWrap,
           {
             bottom:
-              payable != undefined && payable == 0
+              collapseWhenPaid && payable != undefined && payable == 0
                 ? bottomOffset + 8
                 : cartHeight + bottomOffset + 12,
           },
