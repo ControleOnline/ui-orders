@@ -3,7 +3,6 @@ import { View, Text, Image, StyleSheet, Animated } from 'react-native'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { getOrderChannelLabel, getOrderChannelLogo } from '@assets/ppc/channels'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
-import { buildFood99OrderSummary } from '../services/food99OrderSummary'
 
 const BRAND_LOGO = require('@assets/ppc/logo 512x512 r.png')
 
@@ -31,31 +30,6 @@ export const resolveDisplayedOrderStatus = (order, fallbackColor = '#6B7280') =>
   }
 }
 
-const REMOTE_STATE_MAP = {
-  new: { label: 'Novo', color: '#3B82F6' },
-  placed: { label: 'Novo', color: '#3B82F6' },
-  confirmed: { label: 'Confirmado', color: '#8B5CF6' },
-  preparing: { label: 'Preparando', color: '#F59E0B' },
-  started: { label: 'Preparando', color: '#F59E0B' },
-  ready: { label: 'Pronto', color: '#10B981' },
-  delivery_drop_code_requested: { label: 'Pronto', color: '#10B981' },
-  delivery_drop_code_validating: { label: 'Pronto', color: '#10B981' },
-  dispatching: { label: 'Em entrega', color: '#0EA5E9' },
-  dispatched: { label: 'Em entrega', color: '#0EA5E9' },
-  order_dispatched: { label: 'Em entrega', color: '#0EA5E9' },
-  order_in_transit: { label: 'Em transito', color: '#0EA5E9' },
-  concluded: { label: 'Concluido', color: '#22C55E' },
-  closed: { label: 'Concluido', color: '#22C55E' },
-  cancelled: { label: 'Cancelado', color: '#EF4444' },
-  canceled: { label: 'Cancelado', color: '#EF4444' },
-  cancellation_requested: { label: 'Cancelamento solicitado', color: '#F97316' },
-}
-
-const resolveRemoteState = eventType => {
-  const key = normalizeText(eventType).toLowerCase().replace(/[.\-\s]/g, '_')
-  return REMOTE_STATE_MAP[key] || null
-}
-
 const isPrivacyPlaceholder = value => {
   const normalized = normalizeText(value).toLowerCase()
   if (!normalized) return false
@@ -76,34 +50,6 @@ const resolveOrderDateValue = order =>
 
 const getWaitingConfig = minutes =>
   WAITING_RULES.find(rule => minutes <= rule.max)
-
-const extractExtraEntries = extraData => {
-  if (!Array.isArray(extraData)) return []
-
-  return extraData
-    .filter(
-      item =>
-        item?.value &&
-        item?.extra_fields?.name === 'code' &&
-        item?.extra_fields?.context
-    )
-    .map(item => ({
-      id: item.id,
-      context: item.extra_fields.context,
-      value: item.value,
-    }))
-}
-
-const isChannelEntry = context =>
-  /ifood|food99|99|instagram|insta|keeta|whats|messenger|facebook/i.test(
-    String(context || ''),
-  )
-
-const getExternalOrderRef = order => {
-  const entries = extractExtraEntries(order?.extraData)
-  const preferred = entries.find(item => isChannelEntry(item.context))
-  return normalizeText(preferred?.value)
-}
 
 const getCustomerName = order =>
   {
@@ -211,22 +157,9 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
   const channelLogo = getOrderChannelLogo(order)
   const channelLabel = getOrderChannelLabel(order)
   const statusColor = displayedStatus.color
-  const externalOrderRef = getExternalOrderRef(order)
-  const food99Summary = buildFood99OrderSummary(order)
-  const displayPrice = Number.isFinite(Number(food99Summary?.financial?.customerTotal))
-    ? Number(food99Summary.financial.customerTotal)
-    : Number(order?.price || 0)
-  const customerName = getCustomerName(order) || normalizeText(food99Summary?.customer?.name)
-  const customerContact =
-    getCustomerContact(order) || normalizeText(food99Summary?.customer?.phone)
-  const remoteState = resolveRemoteState(food99Summary?.integration?.latestEventType)
-  const isPaidOnline = food99Summary?.payment?.isPaidOnline === true
-  const amountPending = Number(food99Summary?.payment?.amountPending || 0)
-  const paymentChipLabel = isPaidOnline
-    ? 'Pago online'
-    : amountPending > 0.009
-      ? `Pagar na entrega`
-      : null
+  const displayPrice = Number(order?.price || 0)
+  const customerName = getCustomerName(order)
+  const customerContact = getCustomerContact(order)
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
@@ -276,7 +209,7 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
             <Image source={channelLogo} style={styles.channelLogo} resizeMode="contain" />
           )}
           <Text style={styles.channelText}>
-            {externalOrderRef || channelLabel}
+            {channelLabel}
           </Text>
         </View>
         {!compact && (
@@ -289,28 +222,6 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
           </View>
         )}
       </View>
-
-      {(!!remoteState || !!paymentChipLabel) && (
-        <View style={styles.chipsRow}>
-          {!!remoteState && (
-            <View style={[styles.chip, { borderColor: remoteState.color, backgroundColor: remoteState.color + '22' }]}>
-              <View style={[styles.chipDot, { backgroundColor: remoteState.color }]} />
-              <Text style={[styles.chipText, { color: remoteState.color }]}>{remoteState.label}</Text>
-            </View>
-          )}
-          {!!paymentChipLabel && (
-            <View style={[styles.chip, {
-              borderColor: isPaidOnline ? '#22C55E' : '#F59E0B',
-              backgroundColor: isPaidOnline ? '#22C55E22' : '#F59E0B22',
-            }]}>
-              <Text style={[styles.chipText, { color: isPaidOnline ? '#22C55E' : '#F59E0B' }]}>
-                {paymentChipLabel}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
 
       {showCustomer && !!customerName && (
         <Text numberOfLines={1} style={styles.customerNameText}>

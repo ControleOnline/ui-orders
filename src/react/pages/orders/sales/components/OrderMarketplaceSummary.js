@@ -2,6 +2,7 @@ import React from 'react';
 import {ActivityIndicator, Text, View} from 'react-native';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import useOrderDetailsVisuals from '../useOrderDetailsVisuals';
+import OrderMarketplaceActionBar from './OrderMarketplaceActionBar';
 
 // Resumo de marketplace fica fora da tela principal para concentrar integrações em um lugar só.
 const OrderMarketplaceSummary = ({marketplace}) => {
@@ -28,6 +29,8 @@ const OrderMarketplaceSummary = ({marketplace}) => {
 
   return (
     <>
+      <OrderMarketplaceActionBar actions={marketplace.actionButtons} />
+
       <View style={styles.detailsSection}>
         <Text style={styles.detailsSectionTitle}>{marketplace.operationTitle}</Text>
         {marketplace.usingFallback ? (
@@ -58,7 +61,7 @@ const OrderMarketplaceSummary = ({marketplace}) => {
         </View>
       )}
 
-      {marketplace.financial && (
+      {marketplace.financial.length > 0 && (
         <View style={styles.detailsSection}>
           <Text style={styles.detailsSectionTitle}>{marketplace.financeTitle}</Text>
           {marketplace.financial.map(line => (
