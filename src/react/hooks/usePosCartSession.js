@@ -163,12 +163,17 @@ export default function usePosCartSession({
     return refreshActiveOrder(storedOrderId)
   }, [readStoredDraftOrderId, refreshActiveOrder, syncActiveOrderState])
 
-  const buildOrderPayload = useCallback((statusIri, peopleIri = null, orderId = null) => {
+  const buildOrderPayload = useCallback((
+    statusIri,
+    peopleIri = null,
+    orderId = null,
+    orderType = 'quote',
+  ) => {
     const payload = {
       app: 'POS',
       provider: '/people/' + companyId,
       status: statusIri,
-      orderType: 'sale',
+      orderType,
     }
 
     if (orderId) {
@@ -207,7 +212,7 @@ export default function usePosCartSession({
     }
 
     const createdOrder = await ordersActions.save(
-      buildOrderPayload(orderOpenStatusIri, peopleIri),
+      buildOrderPayload(orderOpenStatusIri, peopleIri, null, 'quote'),
     )
 
     return syncActiveOrderState(createdOrder)
@@ -246,7 +251,12 @@ export default function usePosCartSession({
     }
 
     const updatedOrder = await ordersActions.save(
-      buildOrderPayload(currentStatusIri, nextPeopleIri, currentOrder.id),
+      buildOrderPayload(
+        currentStatusIri,
+        nextPeopleIri,
+        currentOrder.id,
+        currentOrder?.orderType || 'quote',
+      ),
     )
 
     return syncActiveOrderState(updatedOrder)

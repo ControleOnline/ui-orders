@@ -30,6 +30,7 @@ const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
   const invoiceGetters = invoiceStore.getters;
   const {isLoading, items: invoices} = invoiceGetters;
   const {items: orders, item: order, payable} = ordersGetters;
+  const safeOrders = Array.isArray(orders) ? orders : [];
   const [price, setPrice] = useState(0);
   const [paid, setPaid] = useState(0);
   const primaryColor = colors.primary || '#1B5587';
@@ -93,11 +94,14 @@ const PayableToolbar = ({bottomOffset = 0, cartHeight = 60}) => {
   }, [price, paid]);
 
   useEffect(() => {
-    if (payable >= 0 && order && order['@id'] && price > 0) {
-      const updatedOrders = orders.filter(item => item['@id'] !== order['@id']);
+    if (payable >= 0 && order && order['@id'] && price > 0 && safeOrders.length > 0) {
+      const updatedOrders = safeOrders.filter(item => item['@id'] !== order['@id']);
+      if (updatedOrders.length === safeOrders.length) {
+        return;
+      }
       ordersActions.setItems(updatedOrders);
     }
-  }, [payable]);
+  }, [order, ordersActions, payable, price, safeOrders]);
 
   const payableValue = Number.isFinite(Number(payable)) ? Number(payable) : 0;
   const isDebt = payableValue < 0;

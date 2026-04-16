@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {Text, View, TouchableOpacity, StyleSheet} from 'react-native';
 import {useStore} from '@store';
 import {useNavigation} from '@react-navigation/native';
@@ -7,7 +7,14 @@ import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/Or
 import {buildOrderDetailsRouteParams} from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import Icon from 'react-native-vector-icons/Feather';
 
-const BottomCart = ({bottomOffset = 0}) => {
+const BottomCart = ({
+  bottomOffset = 0,
+  actionLabel = 'Conferir pedido',
+  actionIcon = 'clipboard',
+  actionDisabled,
+  onActionPress,
+  showActionButton = true,
+}) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const {item: order} = ordersGetters;
@@ -35,12 +42,24 @@ const BottomCart = ({bottomOffset = 0}) => {
     [primaryColor, cardBg, borderColor, totalCardBg, labelColor, textColor],
   );
 
-  const handlePay = item => {
+  const handleDefaultAction = useCallback(item => {
     ordersStore.actions.syncOrder?.(item);
     navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(item));
-  };
+  }, [navigation, ordersStore.actions]);
 
-  const canPay = !!order?.id;
+  const isActionDisabled = actionDisabled ?? !order?.id;
+  const handleActionPress = useCallback(() => {
+    if (!order || isActionDisabled) {
+      return;
+    }
+
+    if (typeof onActionPress === 'function') {
+      onActionPress(order);
+      return;
+    }
+
+    handleDefaultAction(order);
+  }, [handleDefaultAction, isActionDisabled, onActionPress, order]);
 
   return (
     <>
@@ -53,16 +72,18 @@ const BottomCart = ({bottomOffset = 0}) => {
           <Text style={styles.totalLabel}>{global.t?.t('orders', 'label', 'orderTotal')}</Text>
           <OrderTotalToolbar />
         </View>
-        <TouchableOpacity
-          disabled={!canPay}
-          onPress={() => canPay && handlePay(order)}
-          style={[
-            styles.checkoutButton,
-            !canPay && styles.checkoutButtonDisabled,
-          ]}>
-          <Icon color="#fff" name="clipboard" size={16} />
-          <Text style={styles.checkoutButtonText}>Conferir pedido</Text>
-        </TouchableOpacity>
+        {showActionButton && (
+          <TouchableOpacity
+            disabled={isActionDisabled}
+            onPress={handleActionPress}
+            style={[
+              styles.checkoutButton,
+              isActionDisabled && styles.checkoutButtonDisabled,
+            ]}>
+            <Icon color="#fff" name={actionIcon} size={16} />
+            <Text style={styles.checkoutButtonText}>{actionLabel}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </>
   );

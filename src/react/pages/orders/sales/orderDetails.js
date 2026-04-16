@@ -5341,7 +5341,7 @@ const OrderDetails = ({ route, navigation }) => {
             </>
           )}
 
-          {isKds ? null : (
+          {isKds || useUnifiedKdsLayout ? null : (
             <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
               <View
                 style={[
