@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
@@ -24,14 +24,23 @@ const styles = {
 const ProductQuantity = ({product}) => {
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(() => getPendingAddProductQuantity(product));
+  const quantityRef = useRef(getPendingAddProductQuantity(product));
 
   useEffect(() => {
-    setQtd(getPendingAddProductQuantity(product));
+    const currentQuantity = getPendingAddProductQuantity(product);
+    quantityRef.current = currentQuantity;
+    setQtd(currentQuantity);
   }, [product]);
 
   const syncQuantity = useCallback(
-    nextQuantity => {
-      const safeQuantity = Math.max(0, Number(nextQuantity || 0));
+    nextQuantityOrUpdater => {
+      const resolvedNextQuantity =
+        typeof nextQuantityOrUpdater === 'function'
+          ? nextQuantityOrUpdater(quantityRef.current)
+          : nextQuantityOrUpdater;
+      const safeQuantity = Math.max(0, Number(resolvedNextQuantity || 0));
+
+      quantityRef.current = safeQuantity;
       setQtd(safeQuantity);
       setPendingAddProductQuantity(product, safeQuantity);
 
@@ -44,12 +53,12 @@ const ProductQuantity = ({product}) => {
   );
 
   const increaseQuantity = useCallback(() => {
-    syncQuantity(qtd + 1);
-  }, [qtd, syncQuantity]);
+    syncQuantity(currentQuantity => currentQuantity + 1);
+  }, [syncQuantity]);
 
   const decreaseQuantity = useCallback(() => {
-    syncQuantity(qtd > 0 ? qtd - 1 : 0);
-  }, [qtd, syncQuantity]);
+    syncQuantity(currentQuantity => (currentQuantity > 0 ? currentQuantity - 1 : 0));
+  }, [syncQuantity]);
 
   useEffect(() => {
     if (qtd === 1) {

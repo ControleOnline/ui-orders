@@ -936,9 +936,11 @@ const OrderDetails = ({ route, navigation }) => {
 
   const {
     flushAllChanges: flushPendingOrderProductChanges,
+    getScheduledQuantity,
     isOrderProductCommitting,
     scheduleQuantityChange,
   } = useDebouncedOrderProductQuantitySync({
+    delay: 1000,
     onOptimisticUpdate: (orderProduct, nextQuantity) => {
       const nextOrderProducts =
         nextQuantity <= 0
@@ -1018,11 +1020,29 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [canEditItems, item?.id, addingProductId, ordersActions, showError, productsStore.actions, syncCurrentOrderProducts])
 
-  const handleUpdateOpQuantity = useCallback((op, newQty) => {
+  const handleUpdateOpQuantity = useCallback((op, newQtyOrUpdater) => {
     const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
     if (!id) return
-    scheduleQuantityChange(op, newQty)
+    scheduleQuantityChange(op, newQtyOrUpdater)
   }, [scheduleQuantityChange])
+
+  const handleIncreaseOpQuantity = useCallback(op => {
+    setConfirmRemoveItemId(null)
+    handleUpdateOpQuantity(op, currentQuantity => currentQuantity + 1)
+  }, [handleUpdateOpQuantity])
+
+  const handleDecreaseOpQuantity = useCallback(op => {
+    const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
+    if (!id) return
+
+    if (getScheduledQuantity(op) <= 1) {
+      setConfirmRemoveItemId(id)
+      return
+    }
+
+    setConfirmRemoveItemId(null)
+    handleUpdateOpQuantity(op, currentQuantity => currentQuantity - 1)
+  }, [getScheduledQuantity, handleUpdateOpQuantity])
 
   const handleRemoveOp = useCallback(op => {
     const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
@@ -3957,10 +3977,7 @@ const OrderDetails = ({ route, navigation }) => {
                         ) : (
                           <View style={localStyles.editQtyRow}>
                             <TouchableOpacity
-                              onPress={() => {
-                                if (qty <= 1) setConfirmRemoveItemId(opId)
-                                else handleUpdateOpQuantity(op, qty - 1)
-                              }}
+                              onPress={() => handleDecreaseOpQuantity(op)}
                               style={localStyles.editQtyBtn}
                             >
                               <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
@@ -3969,7 +3986,7 @@ const OrderDetails = ({ route, navigation }) => {
                               <Text style={localStyles.editQtyText}>{qty}</Text>
                             </View>
                             <TouchableOpacity
-                              onPress={() => handleUpdateOpQuantity(op, qty + 1)}
+                              onPress={() => handleIncreaseOpQuantity(op)}
                               style={localStyles.editQtyBtn}
                             >
                               <Icon name="add" size={18} color={ppcColors.textPrimary} />
@@ -5653,10 +5670,7 @@ const OrderDetails = ({ route, navigation }) => {
                             ) : (
                               <View style={localStyles.editQtyRow}>
                                 <TouchableOpacity
-                                  onPress={() => {
-                                    if (qty <= 1) setConfirmRemoveItemId(opId)
-                                    else handleUpdateOpQuantity(op, qty - 1)
-                                  }}
+                                  onPress={() => handleDecreaseOpQuantity(op)}
                                   style={localStyles.editQtyBtn}
                                 >
                                   <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
@@ -5665,7 +5679,7 @@ const OrderDetails = ({ route, navigation }) => {
                                   <Text style={localStyles.editQtyText}>{qty}</Text>
                                 </View>
                                 <TouchableOpacity
-                                  onPress={() => handleUpdateOpQuantity(op, qty + 1)}
+                                  onPress={() => handleIncreaseOpQuantity(op)}
                                   style={localStyles.editQtyBtn}
                                 >
                                   <Icon name="add" size={18} color={ppcColors.textPrimary} />

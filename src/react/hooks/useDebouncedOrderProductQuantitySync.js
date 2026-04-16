@@ -3,6 +3,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {normalizeEntityId} from '@controleonline/ui-orders/src/utils/orderState'
 
 const DEFAULT_DELAY = 450
+const normalizeQuantity = value => Math.max(0, Number(value || 0))
 
 export default function useDebouncedOrderProductQuantitySync({
   delay = DEFAULT_DELAY,
@@ -12,7 +13,23 @@ export default function useDebouncedOrderProductQuantitySync({
 } = {}) {
   const entriesRef = useRef(new Map())
   const mountedRef = useRef(true)
+  const flushAllChangesRef = useRef(null)
+  const onCommitRef = useRef(onCommit)
+  const onOptimisticUpdateRef = useRef(onOptimisticUpdate)
+  const onErrorRef = useRef(onError)
   const [committingIds, setCommittingIds] = useState({})
+
+  useEffect(() => {
+    onCommitRef.current = onCommit
+  }, [onCommit])
+
+  useEffect(() => {
+    onOptimisticUpdateRef.current = onOptimisticUpdate
+  }, [onOptimisticUpdate])
+
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
 
   const setOrderProductCommitting = useCallback((orderProductId, isCommitting) => {
     if (!mountedRef.current) return
@@ -43,20 +60,20 @@ export default function useDebouncedOrderProductQuantitySync({
 
   const commitEntry = useCallback(async orderProductId => {
     const entry = entriesRef.current.get(orderProductId)
-    if (!entry || entry.isCommitting || typeof onCommit !== 'function') {
+    if (!entry || entry.isCommitting || typeof onCommitRef.current !== 'function') {
       return entry?.promise || null
     }
 
     clearEntryTimer(entry)
 
-    const committedTargetQuantity = Number(entry.targetQuantity || 0)
+    const committedTargetQuantity = normalizeQuantity(entry.targetQuantity)
     entry.isCommitting = true
     setOrderProductCommitting(orderProductId, true)
 
-    const promise = Promise.resolve(onCommit(entry.orderProduct, committedTargetQuantity))
+    const promise = Promise.resolve(onCommitRef.current(entry.orderProduct, committedTargetQuantity))
       .catch(async error => {
         entriesRef.current.delete(orderProductId)
-        await onError?.(error, entry.orderProduct, committedTargetQuantity)
+        await onErrorRef.current?.(error, entry.orderProduct, committedTargetQuantity)
       })
       .finally(() => {
         const latestEntry = entriesRef.current.get(orderProductId)
@@ -70,9 +87,12 @@ export default function useDebouncedOrderProductQuantitySync({
         latestEntry.promise = null
 
         if (Number(latestEntry.targetQuantity || 0) !== committedTargetQuantity) {
+          // Cada clique renova a janela do debounce do item.
+          const elapsedSinceLastChange = Date.now() - Number(latestEntry.lastChangedAt || 0)
+          const remainingDelay = Math.max(0, delay - elapsedSinceLastChange)
           latestEntry.timeoutId = setTimeout(() => {
             void commitEntry(orderProductId)
-          }, delay)
+          }, remainingDelay)
           return
         }
 
@@ -82,24 +102,42 @@ export default function useDebouncedOrderProductQuantitySync({
     entry.promise = promise
     entriesRef.current.set(orderProductId, entry)
     return promise
-  }, [clearEntryTimer, delay, onCommit, onError, setOrderProductCommitting])
+  }, [clearEntryTimer, delay, setOrderProductCommitting])
 
-  const scheduleQuantityChange = useCallback((orderProduct, nextQuantity) => {
+  const getScheduledQuantity = useCallback(orderProduct => {
+    const orderProductId = normalizeEntityId(orderProduct)
+    if (!orderProductId) {
+      return normalizeQuantity(orderProduct?.quantity)
+    }
+
+    const currentEntry = entriesRef.current.get(orderProductId)
+    return normalizeQuantity(currentEntry?.targetQuantity ?? orderProduct?.quantity)
+  }, [])
+
+  const scheduleQuantityChange = useCallback((orderProduct, nextQuantityOrUpdater) => {
     const orderProductId = normalizeEntityId(orderProduct)
     if (!orderProductId) return
-
-    onOptimisticUpdate?.(orderProduct, Number(nextQuantity || 0))
 
     const currentEntry = entriesRef.current.get(orderProductId) || {
       orderProduct,
       timeoutId: null,
       promise: null,
       isCommitting: false,
-      targetQuantity: Number(nextQuantity || 0),
+      targetQuantity: getScheduledQuantity(orderProduct),
+      lastChangedAt: Date.now(),
     }
 
+    const resolvedNextQuantity =
+      typeof nextQuantityOrUpdater === 'function'
+        ? nextQuantityOrUpdater(getScheduledQuantity(orderProduct))
+        : nextQuantityOrUpdater
+    const nextQuantity = normalizeQuantity(resolvedNextQuantity)
+
+    onOptimisticUpdateRef.current?.(orderProduct, nextQuantity)
+
     currentEntry.orderProduct = orderProduct
-    currentEntry.targetQuantity = Number(nextQuantity || 0)
+    currentEntry.targetQuantity = nextQuantity
+    currentEntry.lastChangedAt = Date.now()
     clearEntryTimer(currentEntry)
 
     if (!currentEntry.isCommitting) {
@@ -109,7 +147,7 @@ export default function useDebouncedOrderProductQuantitySync({
     }
 
     entriesRef.current.set(orderProductId, currentEntry)
-  }, [clearEntryTimer, commitEntry, delay, onOptimisticUpdate])
+  }, [clearEntryTimer, commitEntry, delay, getScheduledQuantity])
 
   const flushOrderProductChange = useCallback(async orderProductId => {
     const entry = entriesRef.current.get(orderProductId)
@@ -144,18 +182,23 @@ export default function useDebouncedOrderProductQuantitySync({
   }, [clearEntryTimer])
 
   useEffect(() => {
+    flushAllChangesRef.current = flushAllChanges
+  }, [flushAllChanges])
+
+  useEffect(() => {
     mountedRef.current = true
 
     return () => {
       mountedRef.current = false
-      void flushAllChanges()
+      void flushAllChangesRef.current?.()
     }
-  }, [flushAllChanges])
+  }, [])
 
   return useMemo(() => ({
+    getScheduledQuantity,
     scheduleQuantityChange,
     flushAllChanges,
     cancelAllChanges,
     isOrderProductCommitting: orderProductId => !!committingIds[orderProductId],
-  }), [cancelAllChanges, committingIds, flushAllChanges, scheduleQuantityChange])
+  }), [cancelAllChanges, committingIds, flushAllChanges, getScheduledQuantity, scheduleQuantityChange])
 }
