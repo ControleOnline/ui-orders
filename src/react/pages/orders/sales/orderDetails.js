@@ -1578,6 +1578,73 @@ const OrderDetails = ({ route, navigation }) => {
       ...stateDelivery,
     }
   }, [food99State?.delivery, fallbackFood99Delivery])
+  const fallbackFood99Fulfillment = useMemo(() => {
+    const fulfillment = fallbackFood99Summary?.fulfillment
+    if (!fulfillment) return null
+
+    return {
+      order_type: fulfillment.orderType || fulfillment.order_type || '',
+      order_type_label: fulfillment.orderTypeLabel || fulfillment.order_type_label || '',
+      fulfillment_label: fulfillment.fulfillmentLabel || fulfillment.fulfillment_label || '',
+      is_delivery: fulfillment.isDelivery ?? fulfillment.is_delivery ?? false,
+      is_takeout: fulfillment.isTakeout ?? fulfillment.is_takeout ?? false,
+      is_dine_in: fulfillment.isDineIn ?? fulfillment.is_dine_in ?? false,
+    }
+  }, [fallbackFood99Summary])
+  const food99Fulfillment = useMemo(() => {
+    const stateFulfillment = food99State?.fulfillment || null
+    if (!stateFulfillment) return fallbackFood99Fulfillment
+    if (!fallbackFood99Fulfillment) return stateFulfillment
+
+    return {
+      ...fallbackFood99Fulfillment,
+      ...stateFulfillment,
+    }
+  }, [food99State?.fulfillment, fallbackFood99Fulfillment])
+  const fallbackFood99Takeout = useMemo(() => {
+    const takeout = fallbackFood99Summary?.takeout
+    if (!takeout) return null
+
+    return {
+      is_takeout: takeout.isTakeout ?? takeout.is_takeout ?? false,
+      mode: takeout.mode || '',
+      mode_label: takeout.modeLabel || takeout.mode_label || '',
+      takeout_date_time: takeout.takeoutDateTime || takeout.takeout_date_time || '',
+      pickup_code: takeout.pickupCode || takeout.pickup_code || '',
+      pickup_area_code: takeout.pickupAreaCode || takeout.pickup_area_code || '',
+      pickup_area_type: takeout.pickupAreaType || takeout.pickup_area_type || '',
+      pickup_area_type_label: takeout.pickupAreaTypeLabel || takeout.pickup_area_type_label || '',
+    }
+  }, [fallbackFood99Summary])
+  const food99Takeout = useMemo(() => {
+    const stateTakeout = food99State?.takeout || null
+    if (!stateTakeout) return fallbackFood99Takeout
+    if (!fallbackFood99Takeout) return stateTakeout
+
+    return {
+      ...fallbackFood99Takeout,
+      ...stateTakeout,
+    }
+  }, [food99State?.takeout, fallbackFood99Takeout])
+  const fallbackFood99DineIn = useMemo(() => {
+    const dineIn = fallbackFood99Summary?.dineIn || fallbackFood99Summary?.dine_in
+    if (!dineIn) return null
+
+    return {
+      is_dine_in: dineIn.isDineIn ?? dineIn.is_dine_in ?? false,
+      delivery_date_time: dineIn.deliveryDateTime || dineIn.delivery_date_time || '',
+    }
+  }, [fallbackFood99Summary])
+  const food99DineIn = useMemo(() => {
+    const stateDineIn = food99State?.dine_in || food99State?.dineIn || null
+    if (!stateDineIn) return fallbackFood99DineIn
+    if (!fallbackFood99DineIn) return stateDineIn
+
+    return {
+      ...fallbackFood99DineIn,
+      ...stateDineIn,
+    }
+  }, [food99State?.dine_in, food99State?.dineIn, fallbackFood99DineIn])
   const food99Integration = food99State?.integration || null
   const food99Observability = food99State?.observability || null
   const food99Financial = useMemo(() => {
@@ -1962,6 +2029,8 @@ const OrderDetails = ({ route, navigation }) => {
   }, [scheduledStartRaw, scheduledEndRaw])
 
   const scheduledDateLabel = scheduledWindowLabel
+  const formattedTakeoutDateTime = formatScheduledDate(takeoutDateTimeRaw)
+  const formattedDineInDateTime = formatScheduledDate(dineInDateTimeRaw)
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
   const normalizedFood99LastEventType = String(food99Integration?.last_event_type || '').toLowerCase()
   const normalizedIfoodLatestEventType = String(
@@ -2043,7 +2112,7 @@ const OrderDetails = ({ route, navigation }) => {
     marketplaceCapabilities.isTerminal ||
     isTerminalOrderStatus(normalizedOrderRealStatus)
   const isTerminalFood99Order = hasTerminalOrderState
-  const isIfoodMerchantDelivery = isIfoodOrder && (
+  const isIfoodMerchantDelivery = isIfoodOrder && !isIfoodPickupLikeOrder && (
     normalizeText(food99Delivery?.delivered_by).toUpperCase() === 'MERCHANT' ||
     food99Delivery?.is_store_delivery === true ||
     normalizeText(food99Delivery?.delivery_label).toLowerCase().includes('loja')
@@ -2090,7 +2159,7 @@ const OrderDetails = ({ route, navigation }) => {
   const formattedFood99Eta = formatFood99Eta(food99Delivery?.expected_arrived_eta)
   const food99Locator = String(food99Delivery?.locator || '').trim()
   const food99PickupCode = String(
-    food99Delivery?.pickup_code || food99Identifiers?.pickup_code || '',
+    marketplacePickupCode || '',
   ).trim()
   const food99HandoverCode = String(
     food99Delivery?.handover_code || food99Identifiers?.handover_code || '',
@@ -2489,6 +2558,58 @@ const OrderDetails = ({ route, navigation }) => {
   const ifoodTaxDocumentTitle =
     global.t?.t('orders', 'title', 'taxDocumentRequested') ||
     'Documento para nota fiscal'
+  const marketplaceOrderType = String(
+    resolvePreferredText(
+      food99Fulfillment?.order_type,
+      food99Fulfillment?.orderType,
+      food99Integration?.order_type,
+      food99Integration?.orderType,
+    ) || '',
+  ).toUpperCase()
+  const isIfoodTakeoutOrder = isIfoodOrder && marketplaceOrderType === 'TAKEOUT'
+  const isIfoodDineInOrder = isIfoodOrder && ['DINE_IN', 'INDOOR'].includes(marketplaceOrderType)
+  const isIfoodPickupLikeOrder = isIfoodTakeoutOrder || isIfoodDineInOrder
+  const isIfoodDeliveryOrder = isIfoodOrder && !isIfoodPickupLikeOrder
+  const marketplaceFulfillmentLabel = resolvePreferredText(
+    food99Fulfillment?.fulfillment_label,
+    food99Fulfillment?.fulfillmentLabel,
+    food99Fulfillment?.order_type_label,
+    food99Fulfillment?.orderTypeLabel,
+    food99Delivery?.delivery_label,
+  )
+  const marketplaceContextLabel = isIfoodPickupLikeOrder
+    ? (global.t?.t('orders', 'label', 'orderType') || 'Tipo do pedido')
+    : (global.t?.t('orders', 'label', 'delivery') || 'Entrega')
+  const takeoutModeLabel = resolvePreferredText(
+    food99Takeout?.mode_label,
+    food99Takeout?.modeLabel,
+    food99Takeout?.mode,
+  )
+  const takeoutDateTimeRaw = resolvePreferredText(
+    food99Takeout?.takeout_date_time,
+    food99Takeout?.takeoutDateTime,
+  )
+  const dineInDateTimeRaw = resolvePreferredText(
+    food99DineIn?.delivery_date_time,
+    food99DineIn?.deliveryDateTime,
+  )
+  const marketplacePickupCode = resolvePreferredText(
+    food99Takeout?.pickup_code,
+    food99Takeout?.pickupCode,
+    food99Delivery?.pickup_code,
+    food99Identifiers?.pickup_code,
+  )
+  const marketplacePickupAreaCode = resolvePreferredText(
+    food99Takeout?.pickup_area_code,
+    food99Takeout?.pickupAreaCode,
+  )
+  const marketplacePickupAreaTypeLabel = resolvePreferredText(
+    food99Takeout?.pickup_area_type_label,
+    food99Takeout?.pickupAreaTypeLabel,
+    food99Takeout?.pickup_area_type,
+    food99Takeout?.pickupAreaType,
+  )
+  const shouldShowOrderAddress = !isPurchaseOrder && (!isIfoodOrder || isIfoodDeliveryOrder)
   const orderAddressPrimary = resolvePreferredText(
     localOrderAddressParts.primary,
   )
@@ -3486,16 +3607,65 @@ const OrderDetails = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {(isFood99Order || isIfoodOrder) && (!!food99Delivery?.delivery_label || !!formattedFood99Eta) && (
+        {(isFood99Order || isIfoodOrder) && (!!marketplaceFulfillmentLabel || !!formattedFood99Eta || !!formattedTakeoutDateTime || !!formattedDineInDateTime) && (
           <View style={localStyles.mobileSummaryMetaList}>
-            {!!food99Delivery?.delivery_label && (
+            {!!marketplaceFulfillmentLabel && (
               <Text style={localStyles.mobileSummaryMetaText}>
-                {global.t?.t('orders', 'label', 'delivery')}: {food99Delivery.delivery_label}
+                {marketplaceContextLabel}: {marketplaceFulfillmentLabel}
               </Text>
             )}
-            {!!formattedFood99Eta && (
+            {!isIfoodPickupLikeOrder && !!formattedFood99Eta && (
               <Text style={localStyles.mobileSummaryMetaText}>
                 {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
+              </Text>
+            )}
+            {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
+              <Text style={localStyles.mobileSummaryMetaText}>
+                {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
+              </Text>
+            )}
+            {isIfoodDineInOrder && !!formattedDineInDateTime && (
+              <Text style={localStyles.mobileSummaryMetaText}>
+                {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
+              </Text>
+            )}
+          </View>
+        )}
+        {isIfoodPickupLikeOrder && (
+          <View style={localStyles.mobileFulfillmentCard}>
+            <View style={localStyles.mobileFulfillmentHeader}>
+              <Icon
+                name={isIfoodTakeoutOrder ? 'storefront' : 'room-service'}
+                size={15}
+                color={ppcColors.accentInfo}
+              />
+              <Text style={localStyles.mobileFulfillmentLabel}>
+                {marketplaceFulfillmentLabel || (isIfoodTakeoutOrder ? 'Retirada' : 'Consumir no local')}
+              </Text>
+            </View>
+            {!!takeoutModeLabel && (
+              <Text style={localStyles.mobileFulfillmentText}>
+                {(global.t?.t('orders', 'label', 'mode') || 'Modo')}: {takeoutModeLabel}
+              </Text>
+            )}
+            {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
+              <Text style={localStyles.mobileFulfillmentText}>
+                {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
+              </Text>
+            )}
+            {isIfoodDineInOrder && !!formattedDineInDateTime && (
+              <Text style={localStyles.mobileFulfillmentText}>
+                {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
+              </Text>
+            )}
+            {!!marketplacePickupCode && (
+              <Text style={localStyles.mobileFulfillmentText}>
+                {(global.t?.t('orders', 'label', 'pickupCode') || 'Codigo de retirada')}: {marketplacePickupCode}
+              </Text>
+            )}
+            {!!marketplacePickupAreaCode && (
+              <Text style={localStyles.mobileFulfillmentText}>
+                {marketplacePickupAreaTypeLabel || (global.t?.t('orders', 'label', 'pickupArea') || 'Area de retirada')}: {marketplacePickupAreaCode}
               </Text>
             )}
           </View>
@@ -3551,7 +3721,7 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         </View>
 
-        {!isPurchaseOrder && (
+        {shouldShowOrderAddress && (
           <View style={localStyles.mobileAddressCard}>
             <Icon name="place" size={15} color={ppcColors.accentInfo} />
             <View style={localStyles.mobileAddressTextWrap}>
@@ -3996,11 +4166,36 @@ const OrderDetails = ({ route, navigation }) => {
                       </Text>
                     )}
                     <Text style={localStyles.detailsInfoText}>
-                      {global.t?.t('orders', 'label', 'delivery')}: {food99Delivery?.delivery_label || '-'}
+                      {marketplaceContextLabel}: {marketplaceFulfillmentLabel || '-'}
                     </Text>
-                    {!!formattedFood99Eta && (
+                    {!isIfoodPickupLikeOrder && !!formattedFood99Eta && (
                       <Text style={localStyles.detailsInfoText}>
                         {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
+                      </Text>
+                    )}
+                    {isIfoodTakeoutOrder && !!takeoutModeLabel && (
+                      <Text style={localStyles.detailsInfoText}>
+                        {(global.t?.t('orders', 'label', 'mode') || 'Modo')}: {takeoutModeLabel}
+                      </Text>
+                    )}
+                    {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
+                      <Text style={localStyles.detailsInfoText}>
+                        {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
+                      </Text>
+                    )}
+                    {isIfoodDineInOrder && !!formattedDineInDateTime && (
+                      <Text style={localStyles.detailsInfoText}>
+                        {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
+                      </Text>
+                    )}
+                    {!!marketplacePickupCode && (
+                      <Text style={localStyles.detailsInfoText}>
+                        {(global.t?.t('orders', 'label', 'pickupCode') || 'Codigo de retirada')}: {marketplacePickupCode}
+                      </Text>
+                    )}
+                    {!!marketplacePickupAreaCode && (
+                      <Text style={localStyles.detailsInfoText}>
+                        {marketplacePickupAreaTypeLabel || (global.t?.t('orders', 'label', 'pickupArea') || 'Area de retirada')}: {marketplacePickupAreaCode}
                       </Text>
                     )}
                     {!!food99SelectedPaymentLabel && (
@@ -4231,7 +4426,7 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
-                  {(localOrderAddressParts.primary ||
+                  {shouldShowOrderAddress && (localOrderAddressParts.primary ||
                     localOrderAddressParts.streetLine ||
                     localOrderAddressParts.district ||
                     localOrderAddressParts.cityStateLine ||
@@ -4725,7 +4920,7 @@ const OrderDetails = ({ route, navigation }) => {
                         <ActivityIndicator size="small" color="#38BDF8" />
                       ) : (
                         <Text style={localStyles.food99InfoBadge}>
-                          {food99Delivery?.delivery_label || global.t?.t('orders', 'label', 'undefinedDelivery')}
+                          {marketplaceFulfillmentLabel || global.t?.t('orders', 'label', 'undefinedDelivery')}
                         </Text>
                       )}
                       <TouchableOpacity
@@ -4773,9 +4968,29 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   )}
 
-                  {!!formattedFood99Eta && (
+                  {!isIfoodPickupLikeOrder && !!formattedFood99Eta && (
                     <Text style={localStyles.food99InfoText}>
                       {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
+                    </Text>
+                  )}
+                  {isIfoodTakeoutOrder && !!takeoutModeLabel && (
+                    <Text style={localStyles.food99InfoText}>
+                      {(global.t?.t('orders', 'label', 'mode') || 'Modo')}: {takeoutModeLabel}
+                    </Text>
+                  )}
+                  {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
+                    <Text style={localStyles.food99InfoText}>
+                      {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
+                    </Text>
+                  )}
+                  {isIfoodDineInOrder && !!formattedDineInDateTime && (
+                    <Text style={localStyles.food99InfoText}>
+                      {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
+                    </Text>
+                  )}
+                  {!!marketplacePickupCode && (
+                    <Text style={localStyles.food99InfoText}>
+                      {(global.t?.t('orders', 'label', 'pickupCode') || 'Codigo de retirada')}: {marketplacePickupCode}
                     </Text>
                   )}
 
@@ -4951,7 +5166,7 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   )}
 
-                  {(localOrderAddressParts.primary ||
+                  {shouldShowOrderAddress && (localOrderAddressParts.primary ||
                     localOrderAddressParts.streetLine ||
                     localOrderAddressParts.district ||
                     localOrderAddressParts.cityStateLine ||
@@ -5760,6 +5975,35 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     mobileScheduledDeliveryText: {
       color: '#78350F',
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
+    },
+    mobileFulfillmentCard: {
+      marginTop: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#A7F3D0',
+      backgroundColor: '#ECFDF5',
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      gap: 3,
+    },
+    mobileFulfillmentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 1,
+    },
+    mobileFulfillmentLabel: {
+      color: '#065F46',
+      fontSize: 11,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    mobileFulfillmentText: {
+      color: '#065F46',
       fontSize: 12,
       fontWeight: '700',
       lineHeight: 17,
