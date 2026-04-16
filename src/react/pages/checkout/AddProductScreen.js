@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useStore} from '@store';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
@@ -18,11 +18,15 @@ const CheckoutContent = ({navigation}) => {
   const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
   const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
-  const {item: order, items: orders} = ordersGetters;
+  const {item: order} = ordersGetters;
+  const currentOrderId =
+    order?.id ||
+    order?.['@id'] ||
+    null;
   const {activeOrder, ensureActiveOrder, loadStoredDraftOrder} = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
-    defaultStatusId: defaultCompany?.configs['pos-default-status'],
+    defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
   });
 
   const [forceCreate, setForceCreate] = useState(
@@ -31,32 +35,33 @@ const CheckoutContent = ({navigation}) => {
 
   const Component = env.APP_TYPE === 'TOTEM' ? TotemProducts : Categories;
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        ordersActions.initQueue();
-      };
-    }, []),
-  );
+  useEffect(() => {
+    return () => {
+      ordersActions.initQueue();
+    };
+  }, [ordersActions]);
 
   useFocusEffect(
     useCallback(() => {
+      if (currentOrderId) return undefined;
       void loadStoredDraftOrder()
-    }, [loadStoredDraftOrder]),
+    }, [currentOrderId, loadStoredDraftOrder]),
   )
 
   useFocusEffect(
     useCallback(() => {
-      if (forceCreate) {
+      if (forceCreate && !currentOrderId) {
         setForceCreate(false)
         void ensureActiveOrder()
       }
-    }, [ensureActiveOrder, forceCreate]),
+    }, [currentOrderId, ensureActiveOrder, forceCreate]),
   );
   useFocusEffect(
     useCallback(() => {
-      if (currentCompany && !activeOrder) setForceCreate(true);
-    }, [activeOrder, currentCompany]),
+      if (currentCompany && !activeOrder && !currentOrderId) {
+        setForceCreate(true);
+      }
+    }, [activeOrder, currentCompany, currentOrderId]),
   );
 
   return <Component />;
