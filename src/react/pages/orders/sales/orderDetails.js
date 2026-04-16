@@ -812,7 +812,10 @@ const OrderDetails = ({ route, navigation }) => {
   const channelKey = getOrderChannelKey(item || orderParam)
   const isFood99Order = channelKey === '99food'
   const isIfoodOrder = channelKey === 'ifood'
-  const isPosOrder = String(item?.app || orderParam?.app || '').trim().toUpperCase() === 'POS'
+  const normalizedOrderApp = String(item?.app || orderParam?.app || '').trim().toUpperCase()
+  const isPosOrder = normalizedOrderApp === 'POS'
+  const isShopOrder = normalizedOrderApp === 'SHOP'
+  const isPosOrShopOrder = isPosOrder || isShopOrder
   const localStatusNameKey = String(
     item?.status?.status ||
     orderParam?.status?.status ||
@@ -833,14 +836,6 @@ const OrderDetails = ({ route, navigation }) => {
     isPosOrder &&
     localRealStatusKey === 'open' &&
     (localStatusNameKey === '' || localStatusNameKey === 'open')
-  const isPreparingPosOrder =
-    isPosOrder &&
-    localRealStatusKey === 'open' &&
-    localStatusNameKey === 'preparing'
-  const isReadyPosOrder =
-    isPosOrder &&
-    localRealStatusKey === 'pending' &&
-    localStatusNameKey === 'ready'
   const channelLabel = getOrderChannelLabel(item || orderParam) || global.t?.t('orders', 'label', 'order')
   const integrationChannelLabel = isFood99Order
     ? '99Food'
@@ -2029,8 +2024,60 @@ const OrderDetails = ({ route, navigation }) => {
   }, [scheduledStartRaw, scheduledEndRaw])
 
   const scheduledDateLabel = scheduledWindowLabel
+  const marketplaceOrderType = String(
+    resolvePreferredText(
+      food99Fulfillment?.order_type,
+      food99Fulfillment?.orderType,
+      food99Integration?.order_type,
+      food99Integration?.orderType,
+    ) || '',
+  ).toUpperCase()
+  const isIfoodTakeoutOrder = isIfoodOrder && marketplaceOrderType === 'TAKEOUT'
+  const isIfoodDineInOrder = isIfoodOrder && ['DINE_IN', 'INDOOR'].includes(marketplaceOrderType)
+  const isIfoodPickupLikeOrder = isIfoodTakeoutOrder || isIfoodDineInOrder
+  const isIfoodDeliveryOrder = isIfoodOrder && !isIfoodPickupLikeOrder
+  const marketplaceFulfillmentLabel = resolvePreferredText(
+    food99Fulfillment?.fulfillment_label,
+    food99Fulfillment?.fulfillmentLabel,
+    food99Fulfillment?.order_type_label,
+    food99Fulfillment?.orderTypeLabel,
+    food99Delivery?.delivery_label,
+  )
+  const marketplaceContextLabel = isIfoodPickupLikeOrder
+    ? (global.t?.t('orders', 'label', 'orderType') || 'Tipo do pedido')
+    : (global.t?.t('orders', 'label', 'delivery') || 'Entrega')
+  const takeoutModeLabel = resolvePreferredText(
+    food99Takeout?.mode_label,
+    food99Takeout?.modeLabel,
+    food99Takeout?.mode,
+  )
+  const takeoutDateTimeRaw = resolvePreferredText(
+    food99Takeout?.takeout_date_time,
+    food99Takeout?.takeoutDateTime,
+  )
+  const dineInDateTimeRaw = resolvePreferredText(
+    food99DineIn?.delivery_date_time,
+    food99DineIn?.deliveryDateTime,
+  )
   const formattedTakeoutDateTime = formatScheduledDate(takeoutDateTimeRaw)
   const formattedDineInDateTime = formatScheduledDate(dineInDateTimeRaw)
+  const marketplacePickupCode = resolvePreferredText(
+    food99Takeout?.pickup_code,
+    food99Takeout?.pickupCode,
+    food99Delivery?.pickup_code,
+    food99Identifiers?.pickup_code,
+  )
+  const marketplacePickupAreaCode = resolvePreferredText(
+    food99Takeout?.pickup_area_code,
+    food99Takeout?.pickupAreaCode,
+  )
+  const marketplacePickupAreaTypeLabel = resolvePreferredText(
+    food99Takeout?.pickup_area_type_label,
+    food99Takeout?.pickupAreaTypeLabel,
+    food99Takeout?.pickup_area_type,
+    food99Takeout?.pickupAreaType,
+  )
+  const shouldShowOrderAddress = !isPurchaseOrder && (!isIfoodOrder || isIfoodDeliveryOrder)
   const remoteOrderStateKey = String(food99Integration?.remote_order_state || '').toLowerCase()
   const normalizedFood99LastEventType = String(food99Integration?.last_event_type || '').toLowerCase()
   const normalizedIfoodLatestEventType = String(
@@ -2456,7 +2503,14 @@ const OrderDetails = ({ route, navigation }) => {
     hasErrnoError(food99Integration?.last_action_errno) ||
     hasErrnoError(food99Integration?.confirm_errno) ||
     hasErrnoError(food99Integration?.reconcile_errno)
-  const orderDisplayId = item?.id || orderParam?.id || '--'
+  const internalOrderDisplayId = item?.id || orderParam?.id || '--'
+  const marketplaceOrderDisplayId = resolvePreferredText(
+    food99Identifiers?.order_index,
+    food99Integration?.ifood_code,
+  )
+  const orderDisplayId = (isFood99Order || isIfoodOrder)
+    ? (marketplaceOrderDisplayId || internalOrderDisplayId)
+    : internalOrderDisplayId
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
   const orderDateLabel = formatOrderDateTime(resolvedOrderDateValue)
   const orderWaitingMinutes = resolvedOrderDateValue
@@ -2478,7 +2532,6 @@ const OrderDetails = ({ route, navigation }) => {
       const externalRefRaw = resolvePreferredText(
         food99Identifiers?.order_index,
         food99Integration?.ifood_code,
-        food99Integration?.ifood_id,
       )
       const externalRef = externalRefRaw.length > 16
         ? `${externalRefRaw.slice(0, 14)}...`
@@ -2558,58 +2611,6 @@ const OrderDetails = ({ route, navigation }) => {
   const ifoodTaxDocumentTitle =
     global.t?.t('orders', 'title', 'taxDocumentRequested') ||
     'Documento para nota fiscal'
-  const marketplaceOrderType = String(
-    resolvePreferredText(
-      food99Fulfillment?.order_type,
-      food99Fulfillment?.orderType,
-      food99Integration?.order_type,
-      food99Integration?.orderType,
-    ) || '',
-  ).toUpperCase()
-  const isIfoodTakeoutOrder = isIfoodOrder && marketplaceOrderType === 'TAKEOUT'
-  const isIfoodDineInOrder = isIfoodOrder && ['DINE_IN', 'INDOOR'].includes(marketplaceOrderType)
-  const isIfoodPickupLikeOrder = isIfoodTakeoutOrder || isIfoodDineInOrder
-  const isIfoodDeliveryOrder = isIfoodOrder && !isIfoodPickupLikeOrder
-  const marketplaceFulfillmentLabel = resolvePreferredText(
-    food99Fulfillment?.fulfillment_label,
-    food99Fulfillment?.fulfillmentLabel,
-    food99Fulfillment?.order_type_label,
-    food99Fulfillment?.orderTypeLabel,
-    food99Delivery?.delivery_label,
-  )
-  const marketplaceContextLabel = isIfoodPickupLikeOrder
-    ? (global.t?.t('orders', 'label', 'orderType') || 'Tipo do pedido')
-    : (global.t?.t('orders', 'label', 'delivery') || 'Entrega')
-  const takeoutModeLabel = resolvePreferredText(
-    food99Takeout?.mode_label,
-    food99Takeout?.modeLabel,
-    food99Takeout?.mode,
-  )
-  const takeoutDateTimeRaw = resolvePreferredText(
-    food99Takeout?.takeout_date_time,
-    food99Takeout?.takeoutDateTime,
-  )
-  const dineInDateTimeRaw = resolvePreferredText(
-    food99DineIn?.delivery_date_time,
-    food99DineIn?.deliveryDateTime,
-  )
-  const marketplacePickupCode = resolvePreferredText(
-    food99Takeout?.pickup_code,
-    food99Takeout?.pickupCode,
-    food99Delivery?.pickup_code,
-    food99Identifiers?.pickup_code,
-  )
-  const marketplacePickupAreaCode = resolvePreferredText(
-    food99Takeout?.pickup_area_code,
-    food99Takeout?.pickupAreaCode,
-  )
-  const marketplacePickupAreaTypeLabel = resolvePreferredText(
-    food99Takeout?.pickup_area_type_label,
-    food99Takeout?.pickupAreaTypeLabel,
-    food99Takeout?.pickup_area_type,
-    food99Takeout?.pickupAreaType,
-  )
-  const shouldShowOrderAddress = !isPurchaseOrder && (!isIfoodOrder || isIfoodDeliveryOrder)
   const orderAddressPrimary = resolvePreferredText(
     localOrderAddressParts.primary,
   )
@@ -2728,16 +2729,34 @@ const OrderDetails = ({ route, navigation }) => {
     shouldShowCollectOnDelivery,
     shouldShowDeliveryPaymentSection,
   ])
+  const isGenericLocalOrder = !isFood99Order && !isIfoodOrder
+  const isOpenLocalWorkflowState = effectiveLocalRealStatusKey === 'open'
+  const isPendingLocalWorkflowState = effectiveLocalRealStatusKey === 'pending'
+  const isPosOrShopInitialWorkflowState =
+    isPosOrShopOrder &&
+    isOpenLocalWorkflowState &&
+    ['open', 'paid', 'confirmed', ''].includes(effectiveLocalStatusNameKey || 'open')
+  const isPosOrShopPreparingWorkflowState =
+    isPosOrShopOrder &&
+    isOpenLocalWorkflowState &&
+    effectiveLocalStatusNameKey === 'preparing'
+  const isPosOrShopReadyWorkflowState =
+    isPosOrShopOrder &&
+    isPendingLocalWorkflowState &&
+    effectiveLocalStatusNameKey === 'ready'
+  const isPosOrShopDeliveringWorkflowState =
+    isPosOrShopOrder &&
+    isPendingLocalWorkflowState &&
+    effectiveLocalStatusNameKey === 'way'
   const canGenericConfirmOrder =
-    !isFood99Order &&
-    !isIfoodOrder &&
+    isGenericLocalOrder &&
     !isTerminalFood99Order &&
-    isPosOrder &&
-    isEditablePosCartOrder
+    (
+      isPosOrShopInitialWorkflowState ||
+      (isPosOrder && isEditablePosCartOrder)
+    )
   const canGenericCancelOrder =
-    !isFood99Order &&
-    !isIfoodOrder &&
-    !isPosOrder &&
+    isGenericLocalOrder &&
     !isTerminalFood99Order &&
     platformCapabilities.canCancel
   const shouldShowKdsCancel =
@@ -2745,29 +2764,39 @@ const OrderDetails = ({ route, navigation }) => {
       ? false
       : canGenericCancelOrder
   const canGenericReadyOrder =
-    !isFood99Order &&
-    !isIfoodOrder &&
+    isGenericLocalOrder &&
     platformCapabilities.canReady &&
     !isTerminalFood99Order &&
-    (!isPosOrder || isPreparingPosOrder)
+    (
+      isPosOrShopOrder
+        ? isPosOrShopPreparingWorkflowState
+        : true
+    )
   const canGenericDeliveredOrder =
-    !isFood99Order &&
-    !isIfoodOrder &&
+    isGenericLocalOrder &&
     platformCapabilities.canDeliver &&
     !isTerminalFood99Order &&
-    (!isPosOrder || isReadyPosOrder)
+    (
+      isPosOrShopOrder
+        ? isPosOrShopDeliveringWorkflowState
+        : true
+    )
 
   // Finalizar: aparece quando não há mais ações disponíveis e o pedido ainda não foi encerrado
   const canFinalizeFood99Order = false
 
   const canFinalizeGenericOrder =
-    !isFood99Order &&
-    !isIfoodOrder &&
-    !isPosOrder &&
+    isGenericLocalOrder &&
     !isTerminalFood99Order &&
-    !shouldShowKdsCancel &&
-    !canGenericReadyOrder &&
-    !canGenericDeliveredOrder
+    (
+      isPosOrShopOrder
+        ? isPosOrShopReadyWorkflowState
+        : (
+            !shouldShowKdsCancel &&
+            !canGenericReadyOrder &&
+            !canGenericDeliveredOrder
+          )
+    )
 
   const closeFood99DeliveryFlow = useCallback(() => {
     if (food99ActionLoading) {
