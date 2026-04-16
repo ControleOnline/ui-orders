@@ -53,8 +53,9 @@ const OrderTotalToolbar = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (order && order.price > 0 && price != order.price) {
-        setPrice(order.price);
+      const nextPrice = Number(order?.price || 0);
+      if (price !== nextPrice) {
+        setPrice(nextPrice > 0 ? nextPrice : 0);
       }
     }, [order]),
   );

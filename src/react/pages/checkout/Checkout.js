@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import {api} from '@controleonline/ui-common/src/api';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import {buildOrderDetailsRouteParams} from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
@@ -471,7 +472,8 @@ const Checkout = () => {
             i.push(data);
             invoiceActions.setItems(i);
             ordersActions.setPayable(p);
-            navigation.navigate('OrderDetails', {order});
+            ordersActions.syncOrder?.(order);
+            navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(order));
           } else {
             ordersActions.setItem(null);
             invoiceActions.setItems([]);
@@ -483,7 +485,8 @@ const Checkout = () => {
           let i = [...(invoices || [])];
           i.push(data);
           invoiceActions.setItems(i);
-          navigation.navigate('OrderDetails', {order});
+          ordersActions.syncOrder?.(order);
+          navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(order));
         }
       });
     },
@@ -504,7 +507,8 @@ const Checkout = () => {
   const cancelOperation = () => {};
 
   const handleEdit = orderItem => {
-    navigation.navigate('OrderDetails', {order: orderItem});
+    ordersActions.syncOrder?.(orderItem);
+    navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(orderItem));
   };
 
   const handleRemotePay = useCallback(() => {

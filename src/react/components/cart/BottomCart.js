@@ -4,6 +4,7 @@ import {useStore} from '@store';
 import {useNavigation} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
+import {buildOrderDetailsRouteParams} from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import Icon from 'react-native-vector-icons/Feather';
 
 const BottomCart = ({bottomOffset = 0}) => {
@@ -35,7 +36,8 @@ const BottomCart = ({bottomOffset = 0}) => {
   );
 
   const handlePay = item => {
-    navigation.navigate('OrderDetails', {order: item});
+    ordersStore.actions.syncOrder?.(item);
+    navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(item));
   };
 
   const canPay = !!order?.id;

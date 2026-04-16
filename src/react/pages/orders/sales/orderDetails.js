@@ -27,8 +27,16 @@ import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProd
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import { buildFood99OrderSummary } from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
+import { getOrderRouteId } from '@controleonline/ui-orders/src/react/utils/orderRoute'
+import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import { useDisplayTheme } from '@controleonline/ui-ppc/src/react/theme/displayTheme'
 import { getPlatformCapabilities, getOrderChannelKey, getOrderChannelLabel } from '@assets/ppc/channels'
+import {
+  mergeOrderProductIntoList,
+  mergeOrderWithOrderProducts,
+  removeOrderProductFromList,
+  withOrderProductQuantity,
+} from '@controleonline/ui-orders/src/utils/orderState'
 
 const formatApiError = error => {
   if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')
@@ -704,8 +712,27 @@ const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProduct) => 
 }
 
 const OrderDetails = ({ route, navigation }) => {
-  const orderParam = route.params.order
+  const routeOrderId = useMemo(
+    () => getOrderRouteId(route.params?.id || route.params?.order),
+    [route.params?.id, route.params?.order],
+  )
+  const routeOrderIri = useMemo(
+    () => (routeOrderId ? `/orders/${routeOrderId}` : null),
+    [routeOrderId],
+  )
+  const orderParam = useMemo(() => {
+    const routeOrder = route.params?.order || null
+    if (!routeOrder) return null
+
+    const routeParamOrderId = getOrderRouteId(routeOrder)
+    if (routeOrderId && routeParamOrderId && routeParamOrderId !== routeOrderId) {
+      return null
+    }
+
+    return routeOrder
+  }, [route.params?.order, routeOrderId])
   const isKds = !!route.params?.kds
+  const useUnifiedKdsLayout = true
   const isTvDisplay = String(route.params?.displayType || '').toLowerCase() === 'tv'
   const shouldHideBottomToolBar = Boolean(route.params?.hideBottomToolBar || isTvDisplay)
   const { showError, showSuccess } = useMessage()
@@ -726,7 +753,11 @@ const OrderDetails = ({ route, navigation }) => {
 
   const ordersStore = useStore('orders')
   const { getters: ordersGetters, actions: ordersActions } = ordersStore
-  const { item, isLoading, error } = ordersGetters
+  const { item: storedOrderItem, isLoading, error } = ordersGetters
+  const item = useMemo(() => {
+    if (!routeOrderId) return storedOrderItem
+    return getOrderRouteId(storedOrderItem) === routeOrderId ? storedOrderItem : null
+  }, [routeOrderId, storedOrderItem])
 
   const invoiceStore = useStore('invoice')
   const { getters: invoiceGetters, actions: invoiceActions } = invoiceStore
@@ -742,9 +773,8 @@ const OrderDetails = ({ route, navigation }) => {
       return null
     }
 
-    const routeDisplay = route.params?.display
     const normalizedDisplayId = String(
-      routeDisplay?.id || route.params?.displayId || '',
+      route.params?.displayId || route.params?.display?.id || '',
     )
       .replace(/\D+/g, '')
       .trim()
@@ -755,9 +785,9 @@ const OrderDetails = ({ route, navigation }) => {
 
     return {
       id: normalizedDisplayId,
-      displayType: routeDisplay?.displayType || route.params?.displayType || '',
+      displayType: route.params?.displayType || route.params?.display?.displayType || '',
     }
-  }, [isKds, route.params?.display, route.params?.displayId, route.params?.displayType])
+  }, [isKds, route.params?.display?.displayType, route.params?.display?.id, route.params?.displayId, route.params?.displayType])
   const { width, height: windowHeight } = useWindowDimensions()
 
   const scale = useMemo(() => {
@@ -827,71 +857,136 @@ const OrderDetails = ({ route, navigation }) => {
   const [resolvedProductsById, setResolvedProductsById] = useState({})
   const loadingResolvedProductsRef = useRef(new Set())
 
-  const [editMode, setEditMode] = useState(false)
-  const [opLoadingId, setOpLoadingId] = useState(null)
   const [confirmRemoveItemId, setConfirmRemoveItemId] = useState(null)
   const [addProductQuery, setAddProductQuery] = useState('')
   const [addingProductId, setAddingProductId] = useState(null)
+  const currentOrderProductsRef = useRef([])
 
   useFocusEffect(
     useCallback(() => {
-      if (orderParam && orderParam['@id']) {
-        invoiceActions.getItems({ 'order.order': orderParam['@id'] })
+      if (routeOrderIri) {
+        invoiceActions.getItems({ 'order.order': routeOrderIri })
       }
-    }, [invoiceActions, orderParam]),
+    }, [invoiceActions, routeOrderIri]),
   )
 
   useFocusEffect(
     useCallback(() => {
-      if (orderParam && orderParam['@id']) {
-        ordersActions.get(orderParam['@id'])
+      if (routeOrderId) {
+        ordersActions.get(routeOrderId)
       }
-    }, [orderParam]),
+    }, [ordersActions, routeOrderId]),
   )
 
   useFocusEffect(
     useCallback(() => {
-      if (orderParam && orderParam['@id']) {
+      if (routeOrderIri) {
         orderProductsStore.actions.getItems({
-          order: orderParam['@id'],
+          order: routeOrderIri,
           itemsPerPage: 500,
         })
       }
-    }, [orderParam, orderProductsStore.actions]),
+    }, [orderProductsStore.actions, routeOrderIri]),
   )
 
   const handleAddProduct = () => {
-    if (isLocallyTerminalOrder || !canEditItems) return
+    if (!canEditItems) return
     navigation.navigate('AddProductScreen')
   }
 
-  const handleAddPayment = useCallback(() => {
-    if (!item?.id || isLocallyTerminalOrder) return
-    navigation.navigate('Checkout', { order: item })
-  }, [item, navigation, isLocallyTerminalOrder])
-
   const refreshCurrentOrder = useCallback(async () => {
-    if (orderParam && orderParam['@id']) {
-      await ordersActions.get(orderParam['@id'])
+    if (routeOrderId && routeOrderIri) {
+      await ordersActions.get(routeOrderId)
       await orderProductsStore.actions.getItems({
-        order: orderParam['@id'],
+        order: routeOrderIri,
         itemsPerPage: 500,
       })
     }
-  }, [orderParam, orderProductsStore.actions, ordersActions])
+  }, [orderProductsStore.actions, ordersActions, routeOrderId, routeOrderIri])
 
-  const canEditItems =
-    !isFood99Order &&
-    !isIfoodOrder &&
-    !isLocallyTerminalOrder &&
-    (!isPosOrder || isEditablePosCartOrder)
+  const canEditItems = !isTerminalOrderStatus(localRealStatusKey)
 
   useEffect(() => {
     if (!canEditItems) {
-      setEditMode(false)
       setConfirmRemoveItemId(null)
+      setAddProductQuery('')
+      productsStore.actions.setItems([])
     }
-  }, [canEditItems])
+  }, [canEditItems, productsStore.actions])
+
+  useEffect(() => {
+    currentOrderProductsRef.current = Array.isArray(item?.orderProducts)
+      ? item.orderProducts
+      : []
+  }, [item?.orderProducts])
+
+  const syncCurrentOrderProducts = useCallback(nextOrderProducts => {
+    const normalizedOrderProducts = Array.isArray(nextOrderProducts) ? nextOrderProducts : []
+    const baseOrder = item?.id ? item : orderParam
+
+    currentOrderProductsRef.current = normalizedOrderProducts
+    orderProductsStore.actions.setItems(normalizedOrderProducts)
+
+    if (!baseOrder) {
+      return normalizedOrderProducts
+    }
+
+    ordersActions.syncOrder(
+      mergeOrderWithOrderProducts(baseOrder, normalizedOrderProducts),
+    )
+
+    return normalizedOrderProducts
+  }, [item, orderParam, orderProductsStore.actions, ordersActions])
+
+  const {
+    flushAllChanges: flushPendingOrderProductChanges,
+    isOrderProductCommitting,
+    scheduleQuantityChange,
+  } = useDebouncedOrderProductQuantitySync({
+    onOptimisticUpdate: (orderProduct, nextQuantity) => {
+      const nextOrderProducts =
+        nextQuantity <= 0
+          ? removeOrderProductFromList(currentOrderProductsRef.current, orderProduct)
+          : mergeOrderProductIntoList(
+              currentOrderProductsRef.current,
+              withOrderProductQuantity(orderProduct, nextQuantity),
+            )
+
+      syncCurrentOrderProducts(nextOrderProducts)
+    },
+    onCommit: async (orderProduct, targetQuantity) => {
+      const orderProductId = String(
+        orderProduct?.id || String(orderProduct?.['@id'] || '').replace(/\D/g, ''),
+      )
+
+      if (!orderProductId) return
+
+      if (targetQuantity <= 0) {
+        await orderProductsStore.actions.remove(orderProductId)
+        return
+      }
+
+      const savedOrderProduct = await orderProductsStore.actions.save({
+        '@id': orderProduct?.['@id'],
+        id: Number(orderProductId),
+        quantity: targetQuantity,
+      })
+
+      syncCurrentOrderProducts(
+        mergeOrderProductIntoList(currentOrderProductsRef.current, savedOrderProduct),
+      )
+    },
+    onError: async error => {
+      await refreshCurrentOrder()
+      showError(formatApiError(error))
+    },
+  })
+
+  const handleAddPayment = useCallback(async () => {
+    if (!item?.id || isLocallyTerminalOrder) return
+    await flushPendingOrderProductChanges()
+    navigation.navigate('Checkout', { order: ordersGetters.item || item })
+  }, [flushPendingOrderProductChanges, item, navigation, isLocallyTerminalOrder, ordersGetters.item])
 
   const searchProducts = useCallback((query) => {
     if (!query.trim()) {
@@ -916,8 +1011,8 @@ const OrderDetails = ({ route, navigation }) => {
     if (!pid) return
     setAddingProductId(pid)
     try {
-      await ordersActions.addProducts(item.id, [{ product: pid, quantity: 1 }])
-      await refreshCurrentOrder()
+      const updatedOrder = await ordersActions.addProducts(item.id, [{ product: pid, quantity: 1 }])
+      syncCurrentOrderProducts(updatedOrder?.orderProducts || [])
       setAddProductQuery('')
       productsStore.actions.setItems([])
     } catch (e) {
@@ -925,38 +1020,20 @@ const OrderDetails = ({ route, navigation }) => {
     } finally {
       setAddingProductId(null)
     }
-  }, [canEditItems, item?.id, addingProductId, ordersActions, refreshCurrentOrder, showError, productsStore.actions])
+  }, [canEditItems, item?.id, addingProductId, ordersActions, showError, productsStore.actions, syncCurrentOrderProducts])
 
-  const handleUpdateOpQuantity = useCallback(async (op, newQty) => {
-    if (opLoadingId) return
+  const handleUpdateOpQuantity = useCallback((op, newQty) => {
     const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
     if (!id) return
-    setOpLoadingId(id)
-    try {
-      await orderProductsStore.actions.save({ '@id': op['@id'], id: Number(id), quantity: newQty })
-      await refreshCurrentOrder()
-    } catch (e) {
-      showError(formatApiError(e))
-    } finally {
-      setOpLoadingId(null)
-    }
-  }, [opLoadingId, orderProductsStore.actions, refreshCurrentOrder, showError])
+    scheduleQuantityChange(op, newQty)
+  }, [scheduleQuantityChange])
 
-  const handleRemoveOp = useCallback(async (op) => {
-    if (opLoadingId) return
+  const handleRemoveOp = useCallback(op => {
     const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
     if (!id) return
-    setOpLoadingId(id)
     setConfirmRemoveItemId(null)
-    try {
-      await orderProductsStore.actions.remove(id)
-      await refreshCurrentOrder()
-    } catch (e) {
-      showError(formatApiError(e))
-    } finally {
-      setOpLoadingId(null)
-    }
-  }, [opLoadingId, orderProductsStore.actions, refreshCurrentOrder, showError])
+    scheduleQuantityChange(op, 0)
+  }, [scheduleQuantityChange])
 
   const loadFood99OrderState = useCallback(async ({ silent = false } = {}) => {
     if (!item?.id || (!isFood99Order && !isIfoodOrder)) {
@@ -1220,6 +1297,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [fallbackFood99Summary?.items, isIfoodOrder, item, orderParam])
   const resolvedDisplayOrderProducts = useMemo(() => {
     const currentOrderId = Number(item?.id || orderParam?.id || 0)
+    const currentOrderProducts = Array.isArray(item?.orderProducts) ? item.orderProducts : []
     const locallyFetchedOrderProducts = Array.isArray(storedOrderProducts)
       ? storedOrderProducts.filter(orderProduct => {
           const orderProductOrderId = getEntityId(orderProduct?.order)
@@ -1228,13 +1306,12 @@ const OrderDetails = ({ route, navigation }) => {
         })
       : []
 
-    if (locallyFetchedOrderProducts.length) {
-      return locallyFetchedOrderProducts
-    }
-
-    const currentOrderProducts = Array.isArray(item?.orderProducts) ? item.orderProducts : []
     if (currentOrderProducts.length) {
       return currentOrderProducts
+    }
+
+    if (locallyFetchedOrderProducts.length) {
+      return locallyFetchedOrderProducts
     }
 
     const initialOrderProducts = Array.isArray(orderParam?.orderProducts) ? orderParam.orderProducts : []
@@ -2270,7 +2347,9 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
-  const canAddProductsToOrder = isManualInput && canEditItems
+  const canAddProductsToOrder = canEditItems
+  const addProductsButtonLabel =
+    global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
   const canAddOrderPayment =
     !isFood99Order &&
     !isIfoodOrder &&
@@ -3573,18 +3652,18 @@ const OrderDetails = ({ route, navigation }) => {
       <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
           <Text style={[localStyles.mobileProductsTitle, { flex: 1 }]}>{global.t?.t('orders', 'title', 'orderItems')}</Text>
-          {canEditItems && (
+          {canAddProductsToOrder && (
             <TouchableOpacity
-              onPress={() => { setEditMode(m => !m); setConfirmRemoveItemId(null) }}
+              onPress={handleAddProduct}
               style={{
                 flexDirection: 'row', alignItems: 'center', gap: 4,
                 paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8,
-                backgroundColor: editMode ? '#F59E0B' : ppcColors.primary,
+                backgroundColor: ppcColors.primary,
               }}
             >
-              <Icon name={editMode ? 'check' : 'edit'} size={14} color="#fff" />
+              <Icon name="add-circle" size={14} color="#fff" />
               <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
-                {editMode ? 'Concluir' : 'Editar'}
+                {addProductsButtonLabel}
               </Text>
             </TouchableOpacity>
           )}
@@ -3623,7 +3702,7 @@ const OrderDetails = ({ route, navigation }) => {
                 </View>
               )
             })
-          : (canEditItems && editMode
+          : (canEditItems
               ? (
                 <React.Fragment>
                   {editableOrderProductsWithProductDetails.map(op => {
@@ -3632,7 +3711,7 @@ const OrderDetails = ({ route, navigation }) => {
                     const qty = Number(op?.quantity || 0)
                     const price = Number(op?.unitPrice || op?.price || 0)
                     const unitLabel = resolveOrderItemUnitLabel(op)
-                    const isOpLoading = opLoadingId === opId
+                    const isOpLoading = isOrderProductCommitting(opId)
                     const isConfirming = confirmRemoveItemId === opId
                     return (
                       <View key={opId || op['@id']} style={localStyles.editItemRow}>
@@ -3648,7 +3727,7 @@ const OrderDetails = ({ route, navigation }) => {
                             <TouchableOpacity
                               onPress={() => handleRemoveOp(op)}
                               style={localStyles.editConfirmYes}
-                              disabled={!!opLoadingId}
+                              disabled={isOpLoading}
                             >
                               {isOpLoading
                                 ? <ActivityIndicator size="small" color="#fff" />
@@ -3657,7 +3736,7 @@ const OrderDetails = ({ route, navigation }) => {
                             <TouchableOpacity
                               onPress={() => setConfirmRemoveItemId(null)}
                               style={localStyles.editConfirmNo}
-                              disabled={!!opLoadingId}
+                              disabled={isOpLoading}
                             >
                               <Icon name="close" size={15} color="#fff" />
                             </TouchableOpacity>
@@ -3669,19 +3748,15 @@ const OrderDetails = ({ route, navigation }) => {
                                 if (qty <= 1) setConfirmRemoveItemId(opId)
                                 else handleUpdateOpQuantity(op, qty - 1)
                               }}
-                              disabled={!!opLoadingId}
                               style={localStyles.editQtyBtn}
                             >
                               <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
                             </TouchableOpacity>
                             <View style={localStyles.editQtyBox}>
-                              {isOpLoading
-                                ? <ActivityIndicator size="small" color={ppcColors.primary} />
-                                : <Text style={localStyles.editQtyText}>{qty}</Text>}
+                              <Text style={localStyles.editQtyText}>{qty}</Text>
                             </View>
                             <TouchableOpacity
                               onPress={() => handleUpdateOpQuantity(op, qty + 1)}
-                              disabled={!!opLoadingId}
                               style={localStyles.editQtyBtn}
                             >
                               <Icon name="add" size={18} color={ppcColors.textPrimary} />
@@ -3753,10 +3828,10 @@ const OrderDetails = ({ route, navigation }) => {
         cssStyles.container,
         {
           flex: 1,
-          paddingBottom: isKds ? 0 : 120,
-          backgroundColor: isKds ? ppcColors.appBg : undefined,
+          paddingBottom: useUnifiedKdsLayout ? 0 : 120,
+          backgroundColor: useUnifiedKdsLayout ? ppcColors.appBg : undefined,
         },
-        isKds && localStyles.kdsContainer,
+        useUnifiedKdsLayout && localStyles.kdsContainer,
       ]}
     >
       {showBarcodeInput && <BarcodeInput />}
@@ -4620,7 +4695,7 @@ const OrderDetails = ({ route, navigation }) => {
 
       {!isLoading && item && !error && (
         <View style={{ flex: 1 }}>
-          {isKds ? (
+          {useUnifiedKdsLayout ? (
             renderKdsMobileContent() || (
             <>
               <OrderHeader order={resolvedDisplayOrder || item} showCustomer />
@@ -5236,19 +5311,7 @@ const OrderDetails = ({ route, navigation }) => {
                   >
                     <Icon name="add-circle" size={24} color="#fff" />
                     <Text style={{ color: '#fff', marginLeft: 8 }}>
-                      {global.t?.t('orders', 'button', 'addItem')}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                {canEditItems && (
-                  <TouchableOpacity
-                    onPress={() => { setEditMode(m => !m); setConfirmRemoveItemId(null) }}
-                    style={[globalStyles.button, { marginRight: 5, backgroundColor: editMode ? '#F59E0B' : undefined }]}
-                  >
-                    <Icon name={editMode ? 'check' : 'edit'} size={24} color="#fff" />
-                    <Text style={{ color: '#fff', marginLeft: 8 }}>
-                      {editMode ? 'Concluir edição' : 'Editar itens'}
+                      {addProductsButtonLabel}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -5290,7 +5353,7 @@ const OrderDetails = ({ route, navigation }) => {
                   },
                 ]}
               >
-                {canEditItems && editMode
+                {canEditItems
                   ? (
                     <React.Fragment>
                       {editableOrderProductsWithProductDetails.map(op => {
@@ -5299,7 +5362,7 @@ const OrderDetails = ({ route, navigation }) => {
                         const qty = Number(op?.quantity || 0)
                         const price = Number(op?.unitPrice || op?.price || 0)
                         const unitLabel = resolveOrderItemUnitLabel(op)
-                        const isOpLoading = opLoadingId === opId
+                        const isOpLoading = isOrderProductCommitting(opId)
                         const isConfirming = confirmRemoveItemId === opId
                         return (
                           <View key={opId || op['@id']} style={localStyles.editItemRow}>
@@ -5315,7 +5378,7 @@ const OrderDetails = ({ route, navigation }) => {
                                 <TouchableOpacity
                                   onPress={() => handleRemoveOp(op)}
                                   style={localStyles.editConfirmYes}
-                                  disabled={!!opLoadingId}
+                                  disabled={isOpLoading}
                                 >
                                   {isOpLoading
                                     ? <ActivityIndicator size="small" color="#fff" />
@@ -5324,7 +5387,7 @@ const OrderDetails = ({ route, navigation }) => {
                                 <TouchableOpacity
                                   onPress={() => setConfirmRemoveItemId(null)}
                                   style={localStyles.editConfirmNo}
-                                  disabled={!!opLoadingId}
+                                  disabled={isOpLoading}
                                 >
                                   <Icon name="close" size={15} color="#fff" />
                                 </TouchableOpacity>
@@ -5336,19 +5399,15 @@ const OrderDetails = ({ route, navigation }) => {
                                     if (qty <= 1) setConfirmRemoveItemId(opId)
                                     else handleUpdateOpQuantity(op, qty - 1)
                                   }}
-                                  disabled={!!opLoadingId}
                                   style={localStyles.editQtyBtn}
                                 >
                                   <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
                                 </TouchableOpacity>
                                 <View style={localStyles.editQtyBox}>
-                                  {isOpLoading
-                                    ? <ActivityIndicator size="small" color={ppcColors.primary} />
-                                    : <Text style={localStyles.editQtyText}>{qty}</Text>}
+                                  <Text style={localStyles.editQtyText}>{qty}</Text>
                                 </View>
                                 <TouchableOpacity
                                   onPress={() => handleUpdateOpQuantity(op, qty + 1)}
-                                  disabled={!!opLoadingId}
                                   style={localStyles.editQtyBtn}
                                 >
                                   <Icon name="add" size={18} color={ppcColors.textPrimary} />
@@ -5410,7 +5469,7 @@ const OrderDetails = ({ route, navigation }) => {
             </ScrollView>
           )}
 
-          {isKds && shouldShowMobileBottomActions && (
+          {useUnifiedKdsLayout && shouldShowMobileBottomActions && (
             <View style={localStyles.mobileBottomActionsWrap}>
               {(() => {
                 const cancelLoading =
