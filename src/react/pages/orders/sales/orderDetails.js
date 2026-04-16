@@ -10,8 +10,6 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
-  useWindowDimensions,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -19,6 +17,17 @@ import { useStore } from '@store'
 import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
+import {
+  buildAddressOptionSummary,
+  buildCustomerSearchMeta,
+  createEmptyAddressForm,
+  formatHumanLabel,
+  formatPhoneDisplay,
+  normalizePostalCodeInput,
+  normalizeText,
+  resolveAddressDisplayParts,
+} from '@controleonline/ui-common/src/react/utils/entityDisplay'
+import { toEntityIri } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
@@ -27,10 +36,10 @@ import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProd
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
+import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
 import { buildFood99OrderSummary } from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
 import { getOrderRouteId } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
-import { useDisplayTheme } from '@controleonline/ui-ppc/src/react/theme/displayTheme'
 import { getPlatformCapabilities, getOrderChannelKey, getOrderChannelLabel } from '@assets/ppc/channels'
 import {
   mergeOrderProductIntoList,
@@ -38,6 +47,9 @@ import {
   removeOrderProductFromList,
   withOrderProductQuantity,
 } from '@controleonline/ui-orders/src/utils/orderState'
+import OrderExtraDataCard from './components/OrderExtraDataCard'
+import OrderSummaryModal from './components/OrderSummaryModal'
+import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 
 const formatApiError = error => {
   if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')
@@ -104,82 +116,8 @@ const MARKETPLACE_OPERATIONAL_STATUS_RANK = {
   'cancelled:canceled': 60,
 }
 
-const normalizeText = value => {
-  if (value === null || value === undefined) return ''
-
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'bigint' ||
-    typeof value === 'boolean'
-  ) {
-    return String(value).trim()
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const normalized = normalizeText(item)
-      if (normalized) return normalized
-    }
-    return ''
-  }
-
-  if (typeof value === 'object') {
-    const street = String(
-      value?.street_name ||
-      value?.streetName ||
-      value?.street ||
-      value?.logradouro ||
-      '',
-    ).trim()
-    const number = String(
-      value?.street_number ||
-      value?.streetNumber ||
-      value?.number ||
-      value?.house_number ||
-      '',
-    ).trim()
-    const streetLine = [street, number].filter(Boolean).join(', ')
-
-    const candidates = [
-      value?.display,
-      value?.formattedAddress,
-      value?.formatted_address,
-      value?.formatted,
-      value?.address,
-      value?.poi_address,
-      value?.value,
-      value?.description,
-      streetLine,
-      value?.district,
-      value?.city,
-      value?.name,
-      value?.reference,
-      value?.complement,
-    ]
-
-    for (const candidate of candidates) {
-      const normalized = normalizeText(candidate)
-      if (normalized) return normalized
-    }
-  }
-
-  return ''
-}
-
 const toCamelCase = value =>
   String(value ?? '').replace(/_([a-z])/g, (_, char) => char.toUpperCase())
-
-const formatHumanLabel = value => {
-  const normalized = normalizeText(value)
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  if (!normalized) return ''
-
-  return normalized.replace(/\b\w/g, char => char.toUpperCase())
-}
 
 const resolveInvoiceStatusPresentation = invoice => {
   const rawStatus = normalizeText(invoice?.status?.status)
@@ -324,80 +262,10 @@ const resolveInvoiceKind = (invoice, companyId) => {
   }
 }
 
-const formatPhoneDisplay = phoneEntry => {
-  if (!phoneEntry) return ''
-
-  if (typeof phoneEntry === 'string' || typeof phoneEntry === 'number') {
-    return normalizeText(phoneEntry)
-  }
-
-  const ddi = normalizeText(phoneEntry?.ddi)
-  const ddd = normalizeText(phoneEntry?.ddd)
-  const phone = normalizeText(phoneEntry?.phone)
-
-  if (!phone) return ''
-
-  return [ddi ? `+${ddi}` : '', ddd ? `(${ddd})` : '', phone]
-    .filter(Boolean)
-    .join(' ')
-    .trim()
-}
-
-const resolveLocalOrderAddress = address => {
-  const streetName = normalizeText(address?.street?.street)
-  const streetNumber = normalizeText(address?.number)
-  const nickname = normalizeText(address?.nickname)
-  const complement = normalizeText(address?.complement)
-  const district = normalizeText(address?.street?.district?.district)
-  const city = normalizeText(address?.street?.district?.city?.city)
-  const state = normalizeText(
-    address?.street?.district?.city?.state?.uf ||
-    address?.street?.district?.city?.state?.state
-  )
-  const postalCode = normalizeText(address?.street?.cep?.cep)
-
-  return {
-    primary: resolvePreferredText(
-      [streetName, streetNumber].filter(Boolean).join(', '),
-      streetName,
-      nickname,
-    ),
-    secondary: [district, [city, state].filter(Boolean).join(' / ')].filter(Boolean).join(' • '),
-    streetLine: [streetName, streetNumber].filter(Boolean).join(', '),
-    district,
-    cityStateLine: [city, state].filter(Boolean).join(' / '),
-    postalCode,
-    complement,
-    nickname,
-  }
-}
-
 const getOperationalStatusRank = (realStatus, statusName) =>
   MARKETPLACE_OPERATIONAL_STATUS_RANK[
     `${String(realStatus || '').trim().toLowerCase()}:${String(statusName || '').trim().toLowerCase()}`
   ] ?? null
-
-const getOperationalStatusColor = (realStatus, statusName, fallbackColor = '#0EA5E9') => {
-  const key = `${String(realStatus || '').trim().toLowerCase()}:${String(statusName || '').trim().toLowerCase()}`
-
-  switch (key) {
-    case 'open:preparing':
-      return '#F59E0B'
-    case 'pending:ready':
-      return '#10B981'
-    case 'pending:way':
-      return '#0EA5E9'
-    case 'closed:closed':
-      return '#22C55E'
-    case 'canceled:canceled':
-    case 'cancelled:cancelled':
-    case 'canceled:cancelled':
-    case 'cancelled:canceled':
-      return '#EF4444'
-    default:
-      return fallbackColor
-  }
-}
 
 const resolveMarketplaceOperationalStatusFromRemoteState = remoteState => {
   const normalizedRemoteState = String(remoteState || '').trim().toLowerCase()
@@ -764,11 +632,13 @@ const OrderDetails = ({ route, navigation }) => {
   const { getters: invoiceGetters, actions: invoiceActions } = invoiceStore
   const { items: invoices } = invoiceGetters
   const peopleStore = useStore('people')
-  const { getters: peopleGetters } = peopleStore
-  const { defaultCompany } = peopleGetters
+  const { getters: peopleGetters, actions: peopleActions } = peopleStore
+  const { defaultCompany, currentCompany } = peopleGetters
+  const addressStore = useStore('address')
+  const { actions: addressActions } = addressStore
 
   const { styles: cssStyles, globalStyles } = css()
-  const { ppcColors } = useDisplayTheme()
+  const { ppcColors, scale, styles: localStyles } = useOrderDetailsVisuals()
   const selectedDisplay = useMemo(() => {
     if (!isKds) {
       return null
@@ -789,16 +659,18 @@ const OrderDetails = ({ route, navigation }) => {
       displayType: route.params?.displayType || route.params?.display?.displayType || '',
     }
   }, [isKds, route.params?.display?.displayType, route.params?.display?.id, route.params?.displayId, route.params?.displayType])
-  const { width, height: windowHeight } = useWindowDimensions()
-
-  const scale = useMemo(() => {
-    if (width >= 2200) return 1.15
-    if (width >= 1700) return 1.05
-    if (width >= 1300) return 0.97
-    return 0.92
-  }, [width])
-
-  const localStyles = useMemo(() => createStyles(scale, ppcColors, windowHeight), [scale, ppcColors, windowHeight])
+  const orderCompanyId = useMemo(
+    () =>
+      getEntityId(item?.provider) ||
+      getEntityId(orderParam?.provider) ||
+      getEntityId(currentCompany) ||
+      getEntityId(defaultCompany),
+    [item?.provider, orderParam?.provider, currentCompany, defaultCompany],
+  )
+  const orderCompanyIri = useMemo(
+    () => (orderCompanyId ? `/people/${orderCompanyId}` : null),
+    [orderCompanyId],
+  )
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
@@ -849,14 +721,24 @@ const OrderDetails = ({ route, navigation }) => {
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
   const productsStore = useStore('products')
-  const { items: productSearchResults, isLoading: productSearchLoading } = productsStore.getters
   const [resolvedProductsById, setResolvedProductsById] = useState({})
   const loadingResolvedProductsRef = useRef(new Set())
 
   const [confirmRemoveItemId, setConfirmRemoveItemId] = useState(null)
-  const [addProductQuery, setAddProductQuery] = useState('')
-  const [addingProductId, setAddingProductId] = useState(null)
   const currentOrderProductsRef = useRef([])
+  const [customerModalVisible, setCustomerModalVisible] = useState(false)
+  const [customerCreateModalVisible, setCustomerCreateModalVisible] = useState(false)
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customerSearchResults, setCustomerSearchResults] = useState([])
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false)
+  const [customerLinkingId, setCustomerLinkingId] = useState('')
+  const [addressModalVisible, setAddressModalVisible] = useState(false)
+  const [addressModalMode, setAddressModalMode] = useState('select')
+  const [addressOptions, setAddressOptions] = useState([])
+  const [addressOptionsLoading, setAddressOptionsLoading] = useState(false)
+  const [addressForm, setAddressForm] = useState(createEmptyAddressForm())
+  const [addressSaveLoading, setAddressSaveLoading] = useState(false)
+  const [addressSelectingId, setAddressSelectingId] = useState('')
 
   useFocusEffect(
     useCallback(() => {
@@ -900,15 +782,39 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [orderProductsStore.actions, ordersActions, routeOrderId, routeOrderIri])
 
+  const buildOrderUpdatePayload = useCallback(changes => {
+    const baseOrder = item || orderParam
+    const orderId = getEntityId(baseOrder)
+
+    if (!orderId) {
+      throw new Error(
+        global.t?.t('orders', 'message', 'unableCompleteOperation') ||
+          'Nao foi possivel identificar o pedido para atualizar.',
+      )
+    }
+
+    const providerIri =
+      toEntityIri(baseOrder?.provider, 'people') ||
+      orderCompanyIri
+    const statusIri = toEntityIri(baseOrder?.status, 'statuses')
+
+    return {
+      id: Number(orderId),
+      app: baseOrder?.app || 'POS',
+      orderType: baseOrder?.orderType || 'quote',
+      ...(providerIri ? { provider: providerIri } : {}),
+      ...(statusIri ? { status: statusIri } : {}),
+      ...changes,
+    }
+  }, [item, orderParam, orderCompanyIri])
+
   const canEditItems = !isTerminalOrderStatus(localRealStatusKey)
 
   useEffect(() => {
     if (!canEditItems) {
       setConfirmRemoveItemId(null)
-      setAddProductQuery('')
-      productsStore.actions.setItems([])
     }
-  }, [canEditItems, productsStore.actions])
+  }, [canEditItems])
 
   useEffect(() => {
     currentOrderProductsRef.current = Array.isArray(item?.orderProducts)
@@ -980,45 +886,36 @@ const OrderDetails = ({ route, navigation }) => {
     },
   })
 
+  const updateCurrentOrder = useCallback(async changes => {
+    await flushPendingOrderProductChanges()
+
+    const savedOrder = await ordersActions.save(
+      buildOrderUpdatePayload(changes),
+    )
+
+    if (savedOrder) {
+      if (typeof ordersActions.syncOrder === 'function') {
+        ordersActions.syncOrder(savedOrder)
+      } else {
+        ordersActions.setItem(savedOrder)
+      }
+    }
+
+    await refreshCurrentOrder()
+
+    return savedOrder
+  }, [
+    flushPendingOrderProductChanges,
+    ordersActions,
+    buildOrderUpdatePayload,
+    refreshCurrentOrder,
+  ])
+
   const handleAddPayment = useCallback(async () => {
     if (!item?.id || isLocallyTerminalOrder) return
     await flushPendingOrderProductChanges()
     navigation.navigate('Checkout', { order: ordersGetters.item || item })
   }, [flushPendingOrderProductChanges, item, navigation, isLocallyTerminalOrder, ordersGetters.item])
-
-  const searchProducts = useCallback((query) => {
-    if (!query.trim()) {
-      productsStore.actions.setItems([])
-      return
-    }
-    const companyId = String(
-      item?.provider?.id ||
-      String(item?.provider?.['@id'] || '').replace(/\D/g, '') ||
-      defaultCompany?.id || ''
-    )
-    productsStore.actions.getItems({
-      ...(companyId ? { 'productCompany.company': '/people/' + companyId } : {}),
-      product: query.trim(),
-      itemsPerPage: 8,
-    })
-  }, [item?.provider, defaultCompany?.id, productsStore.actions])
-
-  const handleAddProductInline = useCallback(async (product) => {
-    if (!canEditItems || !item?.id || addingProductId) return
-    const pid = String(product?.id || String(product?.['@id'] || '').replace(/\D/g, ''))
-    if (!pid) return
-    setAddingProductId(pid)
-    try {
-      const updatedOrder = await ordersActions.addProducts(item.id, [{ product: pid, quantity: 1 }])
-      syncCurrentOrderProducts(updatedOrder?.orderProducts || [])
-      setAddProductQuery('')
-      productsStore.actions.setItems([])
-    } catch (e) {
-      showError(formatApiError(e))
-    } finally {
-      setAddingProductId(null)
-    }
-  }, [canEditItems, item?.id, addingProductId, ordersActions, showError, productsStore.actions, syncCurrentOrderProducts])
 
   const handleUpdateOpQuantity = useCallback((op, newQtyOrUpdater) => {
     const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
@@ -2131,10 +2028,11 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const effectiveLocalStatusNameKey = effectiveDisplayedOperationalStatus.status
   const effectiveLocalRealStatusKey = effectiveDisplayedOperationalStatus.realStatus
-  const displayOrderStatusColor = getOperationalStatusColor(
-    effectiveLocalRealStatusKey,
-    effectiveLocalStatusNameKey,
-    food99State?.order?.status?.color || item?.status?.color || orderParam?.status?.color || '#0EA5E9',
+  const displayOrderStatusColor = resolvePreferredText(
+    food99State?.order?.status?.color,
+    item?.status?.color,
+    orderParam?.status?.color,
+    '#0EA5E9',
   )
   const resolvedDisplayOrder = useMemo(() => {
     const baseOrder = item || orderParam
@@ -2524,13 +2422,7 @@ const OrderDetails = ({ route, navigation }) => {
     hasErrnoError(food99Integration?.confirm_errno) ||
     hasErrnoError(food99Integration?.reconcile_errno)
   const internalOrderDisplayId = item?.id || orderParam?.id || '--'
-  const marketplaceOrderDisplayId = resolvePreferredText(
-    food99Identifiers?.order_index,
-    food99Integration?.ifood_code,
-  )
-  const orderDisplayId = (isFood99Order || isIfoodOrder)
-    ? (marketplaceOrderDisplayId || internalOrderDisplayId)
-    : internalOrderDisplayId
+  const orderDisplayId = internalOrderDisplayId
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
   const orderDateLabel = formatOrderDateTime(resolvedOrderDateValue)
   const orderWaitingMinutes = resolvedOrderDateValue
@@ -2540,28 +2432,12 @@ const OrderDetails = ({ route, navigation }) => {
     orderWaitingMinutes === null
       ? ''
       : `${orderWaitingMinutes} min`
-  const orderOriginLabel = (() => {
-    if (isFood99Order) {
-      const suffix = food99Identifiers?.order_index
-        ? ` #${food99Identifiers.order_index}`
-        : ''
-      return `99Food${suffix}`
-    }
-
-    if (isIfoodOrder) {
-      const externalRefRaw = resolvePreferredText(
-        food99Identifiers?.order_index,
-        food99Integration?.ifood_code,
-      )
-      const externalRef = externalRefRaw.length > 16
-        ? `${externalRefRaw.slice(0, 14)}...`
-        : externalRefRaw
-
-      return externalRef ? `iFood #${externalRef}` : 'iFood'
-    }
-
-    return String(item?.app || global.t?.t('orders', 'label', 'localOrigin'))
-  })()
+  const orderOriginLabel = String(
+    channelLabel ||
+    item?.app ||
+    orderParam?.app ||
+    global.t?.t('orders', 'label', 'localOrigin'),
+  )
   const localStatusRaw = String(
     effectiveLocalStatusNameKey ||
     effectiveLocalRealStatusKey ||
@@ -2589,7 +2465,7 @@ const OrderDetails = ({ route, navigation }) => {
   const localOrderClient = item?.client || orderParam?.client || null
   const localOrderAddress = item?.addressDestination || orderParam?.addressDestination || null
   const localOrderAddressParts = useMemo(
-    () => resolveLocalOrderAddress(localOrderAddress),
+    () => resolveAddressDisplayParts(localOrderAddress),
     [localOrderAddress],
   )
   const orderCustomerName = resolvePreferredText(
@@ -2602,11 +2478,14 @@ const OrderDetails = ({ route, navigation }) => {
       ? localOrderClient.phone.map(formatPhoneDisplay).find(Boolean)
       : formatPhoneDisplay(localOrderClient?.phone),
   )
-  const orderCustomerDocument = resolvePreferredText(
+  const localOrderCustomerDocument = resolvePreferredText(
     localOrderClient?.document?.[0]?.document,
     Array.isArray(localOrderClient?.document)
       ? localOrderClient.document.map(document => normalizeText(document?.document)).find(Boolean)
       : normalizeText(localOrderClient?.document),
+  )
+  const orderCustomerDocument = resolvePreferredText(
+    localOrderCustomerDocument,
     food99Customer?.document_number,
   )
   const orderCustomerDocumentType = resolvePreferredText(
@@ -2637,14 +2516,311 @@ const OrderDetails = ({ route, navigation }) => {
   const orderAddressSecondary = resolvePreferredText(
     localOrderAddressParts.secondary,
   )
-  const orderObservationText = resolvePreferredText(
-    food99RemarkText,
+  const selectedOrderClientIri = useMemo(
+    () => toEntityIri(localOrderClient, 'people'),
+    [localOrderClient],
+  )
+  const selectedOrderAddressIri = useMemo(
+    () => toEntityIri(localOrderAddress, 'addresses'),
+    [localOrderAddress],
+  )
+
+  const closeCustomerModal = useCallback(() => {
+    if (customerLinkingId) {
+      return
+    }
+
+    setCustomerModalVisible(false)
+    setCustomerSearch('')
+    setCustomerSearchResults([])
+  }, [customerLinkingId])
+
+  const openCustomerModal = useCallback(() => {
+    setCustomerModalVisible(true)
+  }, [])
+
+  const openCustomerCreateModal = useCallback(() => {
+    setCustomerCreateModalVisible(true)
+  }, [])
+
+  const closeAddressModal = useCallback(() => {
+    if (addressSaveLoading || addressSelectingId) {
+      return
+    }
+
+    setAddressModalVisible(false)
+    setAddressModalMode('select')
+    setAddressOptions([])
+    setAddressForm(createEmptyAddressForm())
+  }, [addressSaveLoading, addressSelectingId])
+
+  const loadAddressOptions = useCallback(async customer => {
+    const customerIri = toEntityIri(customer, 'people')
+
+    if (!customerIri) {
+      setAddressOptions([])
+      return []
+    }
+
+    try {
+      setAddressOptionsLoading(true)
+      const response = await addressActions.getItems({
+        people: customerIri,
+        itemsPerPage: 50,
+      })
+      const items = Array.isArray(response) ? response : []
+
+      setAddressOptions(items)
+      return items
+    } catch (addressError) {
+      setAddressOptions([])
+      showError(formatApiError(addressError))
+      return []
+    } finally {
+      setAddressOptionsLoading(false)
+    }
+  }, [addressActions, showError])
+
+  const openAddressCreateMode = useCallback(() => {
+    setAddressForm(createEmptyAddressForm())
+    setAddressModalMode('create')
+    setAddressModalVisible(true)
+  }, [])
+
+  const openAddressModal = useCallback(async () => {
+    setAddressModalVisible(true)
+
+    if (!selectedOrderClientIri) {
+      setAddressOptions([])
+      setAddressModalMode('create')
+      return
+    }
+
+    setAddressModalMode('select')
+    await loadAddressOptions(localOrderClient)
+  }, [loadAddressOptions, localOrderClient, selectedOrderClientIri])
+
+  const handleAddressFormFieldChange = useCallback((field, value) => {
+    setAddressForm(previousForm => ({
+      ...previousForm,
+      [field]:
+        field === 'cep'
+          ? normalizePostalCodeInput(value)
+          : field === 'number'
+            ? String(value ?? '').replace(/\D+/g, '')
+            : value,
+    }))
+  }, [])
+
+  useEffect(() => {
+    if (!customerModalVisible) {
+      return undefined
+    }
+
+    const normalizedSearch = String(customerSearch || '').trim()
+
+    if (!normalizedSearch || !orderCompanyIri) {
+      setCustomerSearchResults([])
+      setCustomerSearchLoading(false)
+      return undefined
+    }
+
+    let isMounted = true
+    const timeoutId = setTimeout(async () => {
+      try {
+        setCustomerSearchLoading(true)
+        const response = await peopleActions.getItems({
+          'link.company': orderCompanyIri,
+          'link.linkType': 'client',
+          search: normalizedSearch,
+          itemsPerPage: 20,
+        })
+
+        if (!isMounted) {
+          return
+        }
+
+        setCustomerSearchResults(Array.isArray(response) ? response : [])
+      } catch {
+        if (isMounted) {
+          setCustomerSearchResults([])
+        }
+      } finally {
+        if (isMounted) {
+          setCustomerSearchLoading(false)
+        }
+      }
+    }, 250)
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
+    }
+  }, [
+    customerModalVisible,
+    customerSearch,
+    orderCompanyIri,
+    peopleActions,
+  ])
+
+  const handleSelectCustomer = useCallback(async customer => {
+    const nextCustomerIri = toEntityIri(customer, 'people')
+    const nextCustomerId = String(getEntityId(customer) || '')
+
+    if (!nextCustomerIri) {
+      showError('Nao foi possivel identificar o cliente selecionado.')
+      return
+    }
+
+    if (selectedOrderClientIri === nextCustomerIri) {
+      closeCustomerModal()
+      return
+    }
+
+    try {
+      setCustomerLinkingId(nextCustomerId)
+      await updateCurrentOrder({ client: nextCustomerIri })
+      closeCustomerModal()
+      showSuccess(
+        selectedOrderClientIri
+          ? 'Cliente do pedido atualizado com sucesso.'
+          : 'Cliente vinculado ao pedido com sucesso.',
+      )
+    } catch (updateError) {
+      showError(formatApiError(updateError))
+    } finally {
+      setCustomerLinkingId('')
+    }
+  }, [
+    closeCustomerModal,
+    selectedOrderClientIri,
+    showError,
+    showSuccess,
+    updateCurrentOrder,
+  ])
+
+  const handleCustomerCreated = useCallback(async savedCustomer => {
+    setCustomerCreateModalVisible(false)
+
+    if (!savedCustomer) {
+      return
+    }
+
+    await handleSelectCustomer(savedCustomer)
+  }, [handleSelectCustomer])
+
+  const handleSelectAddress = useCallback(async address => {
+    const nextAddressIri = toEntityIri(address, 'addresses')
+    const nextAddressId = String(getEntityId(address) || '')
+
+    if (!nextAddressIri) {
+      showError('Nao foi possivel identificar o endereco selecionado.')
+      return
+    }
+
+    if (selectedOrderAddressIri === nextAddressIri) {
+      closeAddressModal()
+      return
+    }
+
+    try {
+      setAddressSelectingId(nextAddressId)
+      await updateCurrentOrder({ addressDestination: nextAddressIri })
+      closeAddressModal()
+      showSuccess('Endereco de entrega atualizado com sucesso.')
+    } catch (updateError) {
+      showError(formatApiError(updateError))
+    } finally {
+      setAddressSelectingId('')
+    }
+  }, [
+    closeAddressModal,
+    selectedOrderAddressIri,
+    showError,
+    showSuccess,
+    updateCurrentOrder,
+  ])
+
+  const handleCreateAddress = useCallback(async () => {
+    const street = normalizeText(addressForm.street)
+    const district = normalizeText(addressForm.district)
+    const city = normalizeText(addressForm.city)
+    const state = normalizeText(addressForm.state)
+    const country = normalizeText(addressForm.country)
+    const number = String(addressForm.number ?? '').replace(/\D+/g, '').trim()
+    const cep = normalizePostalCodeInput(addressForm.cep)
+    const complement = normalizeText(addressForm.complement)
+    const nickname = resolvePreferredText(addressForm.nickname, 'Entrega')
+
+    if (!street || !district || !city || !state || !country || !number || !cep) {
+      showError('Rua, numero, bairro, cidade, estado, pais e CEP sao obrigatorios.')
+      return
+    }
+
+    try {
+      setAddressSaveLoading(true)
+
+      const payload = {
+        street,
+        district,
+        city,
+        state,
+        country,
+        number: Number(number),
+        cep,
+        nickname,
+        complement,
+        ...(selectedOrderClientIri ? { people: selectedOrderClientIri } : {}),
+      }
+
+      const savedAddress = await addressActions.save(payload)
+      const savedAddressIri = toEntityIri(savedAddress, 'addresses')
+
+      if (!savedAddressIri) {
+        throw new Error('Endereco criado sem identificador valido.')
+      }
+
+      await updateCurrentOrder({ addressDestination: savedAddressIri })
+      closeAddressModal()
+      showSuccess('Endereco de entrega atualizado com sucesso.')
+    } catch (saveError) {
+      showError(formatApiError(saveError))
+    } finally {
+      setAddressSaveLoading(false)
+    }
+  }, [
+    addressActions,
+    addressForm.cep,
+    addressForm.city,
+    addressForm.complement,
+    addressForm.country,
+    addressForm.district,
+    addressForm.nickname,
+    addressForm.number,
+    addressForm.state,
+    addressForm.street,
+    closeAddressModal,
+    selectedOrderClientIri,
+    showError,
+    showSuccess,
+    updateCurrentOrder,
+  ])
+
+  const localOrderObservationSource = resolvePreferredText(
     item?.comments,
     item?.remark,
     orderParam?.comments,
     orderParam?.remark,
     orderParam?.description,
+  )
+  const orderObservationText = resolvePreferredText(
+    food99RemarkText,
+    localOrderObservationSource,
   ) || fallbackNoObservationText
+  const baseOrderObservationText = localOrderObservationSource || fallbackNoObservationText
+  const showBaseOrderObservationCard = isIfoodOrder
+    ? !!localOrderObservationSource
+    : true
   const shouldShowFood99ItemRemarks =
     !!food99ItemRemarksText &&
     normalizeKey(food99ItemRemarksText) !== normalizeKey(orderObservationText)
@@ -2665,90 +2841,6 @@ const OrderDetails = ({ route, navigation }) => {
   const localInvoicesCountLabel = `${localInvoiceCards.length} ${
     localInvoiceCards.length === 1 ? 'invoice' : 'invoices'
   }`
-  const deliveryPaymentSectionTitle =
-    global.t?.t('orders', 'title', 'paymentOnDelivery') ||
-    'Pagamento na entrega'
-  const changeForLabel =
-    global.t?.t('orders', 'label', 'changeFor') ||
-    'Troco para'
-  const changeToCarryLabel =
-    global.t?.t('orders', 'label', 'changeToReturn') ||
-    'Troco a levar'
-  const changeNotRequestedLabel =
-    global.t?.t('orders', 'message', 'changeNotRequested') ||
-    'Sem troco solicitado'
-  const courierTransferLabel =
-    global.t?.t('orders', 'label', 'courierTransferToMerchant') ||
-    'Repasse do entregador'
-  const marketplaceDeliveryPaymentRows = useMemo(() => {
-    if (!(isFood99Order || isIfoodOrder) || !shouldShowDeliveryPaymentSection) {
-      return []
-    }
-
-    const rows = []
-
-    if (shouldShowCollectOnDelivery) {
-      rows.push({
-        key: 'collect',
-        label: collectOnDeliveryLabel || (global.t?.t('orders', 'label', 'collectFromCustomer') || 'Cobrar do cliente'),
-        value: Formatter.formatMoney(food99CashCollectionAmount || 0),
-        emphasis: true,
-      })
-    }
-
-    if (food99ChangeFor > 0) {
-      rows.push({
-        key: 'change-for',
-        label: changeForLabel,
-        value: Formatter.formatMoney(food99ChangeFor),
-        emphasis: false,
-      })
-    } else if (isCashPaymentSelection) {
-      rows.push({
-        key: 'change-none',
-        label: '',
-        value: changeNotRequestedLabel,
-        emphasis: false,
-      })
-    }
-
-    if (food99NeedsChange) {
-      rows.push({
-        key: 'change-amount',
-        label: changeToCarryLabel,
-        value: Formatter.formatMoney(food99ChangeAmount),
-        emphasis: true,
-      })
-    }
-
-    if (food99ShopPaidMoney > 0) {
-      rows.push({
-        key: 'shop-paid',
-        label: courierTransferLabel,
-        value: Formatter.formatMoney(food99ShopPaidMoney),
-        emphasis: false,
-      })
-    }
-
-    return rows
-  }, [
-    changeForLabel,
-    changeNotRequestedLabel,
-    changeToCarryLabel,
-    collectOnDeliveryLabel,
-    courierTransferLabel,
-    food99CashCollectionAmount,
-    food99ChangeAmount,
-    food99ChangeFor,
-    food99NeedsChange,
-    food99ShopPaidMoney,
-    global,
-    isCashPaymentSelection,
-    isFood99Order,
-    isIfoodOrder,
-    shouldShowCollectOnDelivery,
-    shouldShowDeliveryPaymentSection,
-  ])
   const isGenericLocalOrder = !isFood99Order && !isIfoodOrder
   const isOpenLocalWorkflowState = effectiveLocalRealStatusKey === 'open'
   const isPendingLocalWorkflowState = effectiveLocalRealStatusKey === 'pending'
@@ -3590,6 +3682,751 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
+  const orderSummaryData = useMemo(() => {
+    const operationLines = []
+    const courierLines = []
+    const financialLines = []
+    const paymentCards = []
+    const deliveryPaymentLines = []
+    const schedulingLines = []
+    const taxDocumentLines = []
+    const customerLines = []
+    const addressLines = []
+    const codesLines = []
+    const observationLines = []
+
+    if (!!food99Identifiers?.order_index) {
+      operationLines.push({
+        key: 'order-index',
+        label: isIfoodOrder
+          ? global.t?.t('orders', 'label', 'ifoodNumber')
+          : global.t?.t('orders', 'label', 'food99Number'),
+        value: `#${food99Identifiers.order_index}`,
+      })
+    }
+
+    operationLines.push({
+      key: 'fulfillment',
+      label: marketplaceContextLabel,
+      value: marketplaceFulfillmentLabel || '-',
+    })
+
+    if (!isIfoodPickupLikeOrder && !!formattedFood99Eta) {
+      operationLines.push({
+        key: 'eta',
+        label: global.t?.t('orders', 'label', 'estimatedEta'),
+        value: formattedFood99Eta,
+      })
+    }
+
+    if (isIfoodTakeoutOrder && !!takeoutModeLabel) {
+      operationLines.push({
+        key: 'takeout-mode',
+        label: global.t?.t('orders', 'label', 'mode') || 'Modo',
+        value: takeoutModeLabel,
+      })
+    }
+
+    if (isIfoodTakeoutOrder && !!formattedTakeoutDateTime) {
+      operationLines.push({
+        key: 'takeout-time',
+        label: global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada',
+        value: formattedTakeoutDateTime,
+      })
+    }
+
+    if (isIfoodDineInOrder && !!formattedDineInDateTime) {
+      operationLines.push({
+        key: 'service-time',
+        label: global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto',
+        value: formattedDineInDateTime,
+      })
+    }
+
+    if (!!marketplacePickupCode) {
+      operationLines.push({
+        key: 'pickup-code',
+        label: global.t?.t('orders', 'label', 'pickupCode') || 'Codigo de retirada',
+        value: marketplacePickupCode,
+      })
+    }
+
+    if (!!marketplacePickupAreaCode) {
+      operationLines.push({
+        key: 'pickup-area',
+        label: marketplacePickupAreaTypeLabel || (global.t?.t('orders', 'label', 'pickupArea') || 'Area de retirada'),
+        value: marketplacePickupAreaCode,
+      })
+    }
+
+    if (!!food99SelectedPaymentLabel) {
+      operationLines.push({
+        key: 'selected-payment',
+        label: global.t?.t('orders', 'label', 'selectedPaymentMethod'),
+        value: food99SelectedPaymentLabel,
+        strong: true,
+      })
+    }
+
+    if (!!food99PaymentMethodValue) {
+      operationLines.push({
+        key: 'payment-method',
+        label: global.t?.t('orders', 'label', 'paymentMethod'),
+        value: food99PaymentMethodValue,
+      })
+    }
+
+    if (!!food99PaymentChannelValue) {
+      operationLines.push({
+        key: 'payment-channel',
+        label: global.t?.t('orders', 'label', 'paymentChannel'),
+        value: food99PaymentChannelValue,
+      })
+    }
+
+    if (!!food99CancellationSourceLabel) {
+      operationLines.push({
+        key: 'cancellation-origin',
+        label: global.t?.t('orders', 'label', 'cancellationOrigin'),
+        value: food99CancellationSourceLabel,
+      })
+    }
+
+    if (!!food99Integration?.cancel_code) {
+      operationLines.push({
+        key: 'cancellation-code',
+        label: global.t?.t('orders', 'label', 'cancellationCode'),
+        value: food99Integration.cancel_code,
+      })
+    }
+
+    if (!!food99Integration?.cancel_reason) {
+      operationLines.push({
+        key: 'cancellation-reason',
+        label: global.t?.t('orders', 'label', 'cancellationReason'),
+        value: food99Integration.cancel_reason,
+      })
+    }
+
+    if (!!remoteStateAgeLabel) {
+      operationLines.push({
+        key: 'remote-update',
+        label: global.t?.t('orders', 'label', 'remoteUpdate'),
+        value: remoteStateAgeLabel,
+      })
+    }
+
+    if (!!lastActionAgeLabel) {
+      operationLines.push({
+        key: 'last-action',
+        label: global.t?.t('orders', 'label', 'lastAction'),
+        value: lastActionAgeLabel,
+      })
+    }
+
+    if (!!lastReconcileAgeLabel) {
+      operationLines.push({
+        key: 'last-reconciliation',
+        label: global.t?.t('orders', 'label', 'lastReconciliation'),
+        value: lastReconcileAgeLabel,
+      })
+    }
+
+    if (food99Delivery?.is_platform_delivery) {
+      operationLines.push({
+        key: 'platform-delivery',
+        label: '',
+        value: global.t?.t('orders', 'message', 'platformHandlesDeliveryAfterReady'),
+      })
+    }
+
+    if (shouldHideReadyFood99Action) {
+      operationLines.push({
+        key: 'ready-waiting-platform',
+        label: '',
+        value: `${global.t?.t('orders', 'message', 'orderReadyWaitingPlatform')} ${isIfoodOrder ? 'iFood' : '99Food'}.`,
+      })
+    }
+
+    if (hasFood99SyncIssue) {
+      operationLines.push({
+        key: 'integration-divergence',
+        label: '',
+        value: global.t?.t('orders', 'message', 'integrationDivergenceTapRefresh'),
+      })
+    }
+
+    if (!!food99RiderName) {
+      courierLines.push({
+        key: 'courier-name',
+        label: global.t?.t('orders', 'label', 'name'),
+        value: food99RiderName,
+      })
+    }
+
+    if (!!food99RiderPhone) {
+      courierLines.push({
+        key: 'courier-phone',
+        label: global.t?.t('orders', 'label', 'phone'),
+        value: food99RiderPhone,
+      })
+    }
+
+    if (!!food99RiderToStoreEta) {
+      courierLines.push({
+        key: 'courier-eta-store',
+        label: global.t?.t('orders', 'label', 'etaToStore'),
+        value: food99RiderToStoreEta,
+      })
+    }
+
+    if (food99Financial) {
+      financialLines.push(
+        {
+          key: 'items-total',
+          label: global.t?.t('orders', 'label', 'items'),
+          value: food99Financial.items_total || 0,
+          money: true,
+        },
+        {
+          key: 'delivery-fee',
+          label: global.t?.t('orders', 'label', 'delivery'),
+          value: food99Financial.delivery_fee || 0,
+          money: true,
+        },
+      )
+
+      if (Number(food99Financial.service_fee || 0)) {
+        financialLines.push({
+          key: 'service-fee',
+          label: global.t?.t('orders', 'label', 'serviceFee'),
+          value: food99Financial.service_fee || 0,
+          money: true,
+        })
+      }
+
+      if (Number(food99Financial.small_order_fee || 0)) {
+        financialLines.push({
+          key: 'small-order-fee',
+          label: global.t?.t('orders', 'label', 'minimumOrderFee'),
+          value: food99Financial.small_order_fee || 0,
+          money: true,
+        })
+      }
+
+      if (Number(food99Financial.meal_top_up_fee || 0)) {
+        financialLines.push({
+          key: 'meal-top-up-fee',
+          label: global.t?.t('orders', 'label', 'topUpFee'),
+          value: food99Financial.meal_top_up_fee || 0,
+          money: true,
+        })
+      }
+
+      if (Number(food99Financial.discount_total || 0)) {
+        financialLines.push(
+          {
+            key: 'discount-total',
+            label: global.t?.t('orders', 'label', 'totalDiscounts'),
+            value: food99Financial.discount_total || 0,
+            money: true,
+          },
+          {
+            key: 'items-discount-total',
+            label: global.t?.t('orders', 'label', 'itemDiscount'),
+            value: food99Financial.items_discount_total || 0,
+            money: true,
+          },
+          {
+            key: 'delivery-discount-total',
+            label: global.t?.t('orders', 'label', 'deliveryDiscount'),
+            value: food99Financial.delivery_discount_total || 0,
+            money: true,
+          },
+          {
+            key: 'coupon-discount-total',
+            label: global.t?.t('orders', 'label', 'couponDiscount'),
+            value: food99Financial.coupon_discount_total || 0,
+            money: true,
+          },
+        )
+      }
+
+      if (Number(food99Financial.store_discount_total || 0)) {
+        financialLines.push({
+          key: 'store-discount-total',
+          label: global.t?.t('orders', 'label', isIfoodOrder ? 'storeSubsidy' : 'storeSubsidizedDiscount'),
+          value: isIfoodOrder
+            ? food99Financial.merchant_subsidy || food99Financial.store_discount_total || 0
+            : food99Financial.store_discount_total || 0,
+          money: true,
+        })
+      }
+
+      if (Number(food99Financial.platform_discount_total || 0)) {
+        financialLines.push({
+          key: 'platform-discount-total',
+          label: global.t?.t('orders', 'label', isIfoodOrder ? 'ifoodSubsidy' : 'platformSubsidizedDiscount'),
+          value: isIfoodOrder
+            ? food99Financial.ifood_subsidy || food99Financial.platform_discount_total || 0
+            : food99Financial.platform_discount_total || 0,
+          money: true,
+        })
+      }
+
+      if (isIfoodOrder && !!food99Financial.payment_brand) {
+        financialLines.push({
+          key: 'payment-brand',
+          label: global.t?.t('orders', 'label', 'brand'),
+          value: food99Financial.payment_brand,
+        })
+      }
+
+      if (isIfoodOrder && Number(food99Financial.change_for || 0) > 0) {
+        financialLines.push({
+          key: 'ifood-change-for',
+          label: global.t?.t('orders', 'label', 'changeFor'),
+          value: food99Financial.change_for || 0,
+          money: true,
+        })
+      }
+
+      if (Number(food99Financial.store_charged_delivery_price || 0)) {
+        financialLines.push({
+          key: 'original-delivery-fee',
+          label: global.t?.t('orders', 'label', 'originalDeliveryFee'),
+          value: food99Financial.store_charged_delivery_price || 0,
+          money: true,
+        })
+      }
+
+      financialLines.push({
+        key: 'customer-total',
+        label: global.t?.t('orders', 'label', 'customerTotal'),
+        value: food99Financial.customer_total || 0,
+        money: true,
+        strong: true,
+      })
+
+      if (shouldShowCollectOnDelivery) {
+        financialLines.push({
+          key: 'collect-from-customer',
+          label: global.t?.t('orders', 'label', 'collectFromCustomer'),
+          value: food99CashCollectionAmount || 0,
+          money: true,
+          strong: true,
+        })
+      }
+    }
+
+    if (food99Payment) {
+      paymentCards.push(
+        {
+          key: 'amount-paid',
+          label: global.t?.t('orders', 'label', 'paid'),
+          value: food99Payment.amount_paid || 0,
+        },
+        {
+          key: 'amount-pending',
+          label: global.t?.t('orders', 'label', 'pending'),
+          value: food99Payment.amount_pending || 0,
+        },
+      )
+
+      if (shouldShowCollectOnDelivery) {
+        paymentCards.push({
+          key: 'collect-customer',
+          label: global.t?.t('orders', 'label', 'collectCustomer'),
+          value: food99CashCollectionAmount || 0,
+        })
+      }
+    }
+
+    if (food99Payment && shouldShowDeliveryPaymentSection) {
+      if (shouldShowCollectOnDelivery) {
+        deliveryPaymentLines.push({
+          key: 'delivery-collect',
+          label: collectOnDeliveryLabel,
+          value: food99CashCollectionAmount || 0,
+          strong: true,
+        })
+      }
+
+      if (food99ChangeFor > 0) {
+        deliveryPaymentLines.push({
+          key: 'delivery-change-for',
+          label: global.t?.t('orders', 'label', 'changeFor'),
+          value: food99ChangeFor,
+        })
+      }
+
+      if (food99NeedsChange) {
+        deliveryPaymentLines.push({
+          key: 'delivery-change-amount',
+          label: global.t?.t('orders', 'label', 'changeToReturn'),
+          value: food99ChangeAmount,
+        })
+      }
+
+      if (food99ShopPaidMoney > 0) {
+        deliveryPaymentLines.push({
+          key: 'delivery-shop-paid',
+          label: global.t?.t('orders', 'label', 'courierTransferToMerchant'),
+          value: food99ShopPaidMoney,
+        })
+      }
+    }
+
+    if (isScheduledOrder) {
+      if (!!scheduledWindowLabel) {
+        schedulingLines.push({
+          key: 'schedule-window',
+          label: global.t?.t('orders', 'label', 'window'),
+          value: scheduledWindowLabel,
+        })
+      }
+
+      if (!!scheduledDeliveryDateTimeRaw) {
+        schedulingLines.push({
+          key: 'schedule-delivery',
+          label: global.t?.t('orders', 'label', 'delivery'),
+          value: formatScheduledDate(scheduledDeliveryDateTimeRaw),
+        })
+      }
+
+      if (!!scheduledPreparationStartRaw) {
+        schedulingLines.push({
+          key: 'schedule-preparation',
+          label: global.t?.t('orders', 'label', 'startPreparation'),
+          value: formatScheduledDate(scheduledPreparationStartRaw),
+        })
+      }
+    }
+
+    if (ifoodTaxDocumentRequested) {
+      taxDocumentLines.push({
+        key: 'tax-document-requested',
+        label: '',
+        value: global.t?.t('orders', 'message', 'customerRequestedTaxDocument') || 'Cliente solicitou documento fiscal neste pedido.',
+      })
+
+      if (!!orderCustomerDocument) {
+        taxDocumentLines.push({
+          key: 'tax-document-value',
+          label: orderCustomerDocumentLabel,
+          value: orderCustomerDocument,
+        })
+      }
+    }
+
+    if (!!orderCustomerName) {
+      customerLines.push({ key: 'customer-name', label: '', value: orderCustomerName })
+    }
+
+    if (!!orderCustomerPhone) {
+      customerLines.push({
+        key: 'customer-phone',
+        label: global.t?.t('orders', 'label', 'phone'),
+        value: orderCustomerPhone,
+      })
+    }
+
+    if (!!orderCustomerDocument) {
+      customerLines.push({
+        key: 'customer-document',
+        label: orderCustomerDocumentLabel,
+        value: orderCustomerDocument,
+      })
+    }
+
+    if (shouldShowOrderAddress && !!localOrderAddressParts.primary) {
+      addressLines.push({ key: 'address-primary', label: '', value: localOrderAddressParts.primary })
+    }
+
+    if (shouldShowOrderAddress && !!localOrderAddressParts.streetLine) {
+      addressLines.push({
+        key: 'address-street-line',
+        label: global.t?.t('orders', 'label', 'streetNumber'),
+        value: localOrderAddressParts.streetLine,
+      })
+    }
+
+    if (shouldShowOrderAddress && !!localOrderAddressParts.district) {
+      addressLines.push({
+        key: 'address-district',
+        label: global.t?.t('orders', 'label', 'district'),
+        value: localOrderAddressParts.district,
+      })
+    }
+
+    if (shouldShowOrderAddress && !!localOrderAddressParts.cityStateLine) {
+      addressLines.push({
+        key: 'address-city-state',
+        label: global.t?.t('orders', 'label', 'cityState'),
+        value: localOrderAddressParts.cityStateLine,
+      })
+    }
+
+    if (shouldShowOrderAddress && !!localOrderAddressParts.postalCode) {
+      addressLines.push({
+        key: 'address-postal-code',
+        label: global.t?.t('orders', 'label', 'zipCode'),
+        value: localOrderAddressParts.postalCode,
+      })
+    }
+
+    if (shouldShowOrderAddress && !!localOrderAddressParts.nickname) {
+      addressLines.push({
+        key: 'address-reference',
+        label: global.t?.t('orders', 'label', 'reference'),
+        value: localOrderAddressParts.nickname,
+      })
+    }
+
+    if (shouldShowOrderAddress && !!localOrderAddressParts.complement) {
+      addressLines.push({
+        key: 'address-complement',
+        label: global.t?.t('orders', 'label', 'complement'),
+        value: localOrderAddressParts.complement,
+      })
+    }
+
+    if (!!food99PickupCode) {
+      codesLines.push({
+        key: 'code-pickup',
+        label: global.t?.t('orders', 'label', 'pickupCode'),
+        value: food99PickupCode,
+      })
+    }
+
+    if (!!food99HandoverCode) {
+      codesLines.push({
+        key: 'code-handover',
+        label: global.t?.t('orders', 'label', 'handoverCode'),
+        value: food99HandoverCode,
+      })
+    }
+
+    if (!!food99Delivery?.locator) {
+      codesLines.push({
+        key: 'code-locator',
+        label: global.t?.t('orders', 'label', 'locator'),
+        value: food99Delivery.locator,
+      })
+    }
+
+    if (!!food99Delivery?.virtual_phone_number) {
+      codesLines.push({
+        key: 'code-virtual-phone',
+        label: global.t?.t('orders', 'label', 'virtualPhone'),
+        value: food99Delivery.virtual_phone_number,
+      })
+    }
+
+    if (showOrderObservationCard) {
+      observationLines.push({
+        key: 'observation-main',
+        label: '',
+        value: orderObservationText,
+      })
+
+      if (shouldShowFood99ItemRemarks) {
+        observationLines.push({
+          key: 'observation-items',
+          label: global.t?.t('orders', 'label', 'itemsObservation') || 'Observações dos itens',
+          value: food99ItemRemarksText,
+        })
+      }
+
+      if (food99Notes?.need_cutlery !== null && food99Notes?.need_cutlery !== undefined) {
+        observationLines.push({
+          key: 'observation-cutlery',
+          label: global.t?.t('orders', 'label', 'needCutlery'),
+          value: food99Notes.need_cutlery
+            ? global.t?.t('orders', 'label', 'yes')
+            : global.t?.t('orders', 'label', 'no'),
+        })
+      }
+    }
+
+    return {
+      base: {
+        orderId: item?.id || orderParam?.id || '--',
+        cards: [
+          {
+            key: 'application',
+            label: global.t?.t('orders', 'label', 'application'),
+            value: item?.app || '-',
+          },
+          {
+            key: 'local-status',
+            label: global.t?.t('orders', 'label', 'localStatus'),
+            value: effectiveLocalStatusNameKey || item?.status?.status || '-',
+          },
+          {
+            key: 'local-real-status',
+            label: global.t?.t('orders', 'label', 'localRealStatus') || 'Real status local',
+            value: effectiveLocalRealStatusKey || item?.status?.realStatus || '-',
+          },
+          {
+            key: 'payments',
+            label: global.t?.t('orders', 'title', 'payments') || 'Pagamentos',
+            value: localInvoiceCards.length,
+          },
+        ],
+        lines: [
+          {
+            key: 'created-at',
+            label: global.t?.t('orders', 'label', 'createdAt'),
+            value: formatOrderDateTime(resolvedOrderDateValue),
+          },
+          {
+            key: 'updated-at',
+            label: global.t?.t('orders', 'label', 'updatedAt'),
+            value: formatOrderDateTime(item?.alterDate || resolvedOrderDateValue),
+          },
+          {
+            key: 'local-total',
+            label: global.t?.t('orders', 'label', 'localTotal'),
+            value: Formatter.formatMoney(localOrderTotal || 0),
+          },
+        ],
+        invoicesTitle: localInvoicesSectionTitle,
+        invoiceCardsNode: renderLocalInvoiceCards('details'),
+      },
+      primaryAction:
+        !isFood99Order && !isIfoodOrder && resolvedPrimaryKdsAction
+          ? {
+              disabled: orderActionLoading === resolvedPrimaryKdsAction.loadingKey,
+              onPress: resolvedPrimaryKdsAction.onPress,
+              content:
+                orderActionLoading === resolvedPrimaryKdsAction.loadingKey ? (
+                  <ActivityIndicator size="small" color="#F8FAFC" />
+                ) : (
+                  <>
+                    <Icon
+                      name={resolvedPrimaryKdsAction.icon}
+                      size={18}
+                      color="#F8FAFC"
+                    />
+                    <Text style={localStyles.detailsMarkPaidButtonText}>
+                      {resolvedPrimaryKdsAction.label}
+                    </Text>
+                  </>
+                ),
+            }
+          : null,
+      marketplace: {
+        enabled: isFood99Order || isIfoodOrder,
+        isFood99: isFood99Order,
+        isIfood: isIfoodOrder,
+        platformLabel: isIfoodOrder ? 'iFood' : '99Food',
+        isLoading: food99StateLoading,
+        hasVisualData: hasFood99VisualData,
+        usingFallback: isUsingFallbackMarketplaceSummary,
+        operationTitle: isIfoodOrder
+          ? global.t?.t('orders', 'title', 'ifoodOperation')
+          : global.t?.t('orders', 'title', 'food99Operation'),
+        courierTitle: isIfoodOrder
+          ? global.t?.t('orders', 'title', 'ifoodCourier')
+          : global.t?.t('orders', 'title', 'food99Courier'),
+        financeTitle: isIfoodOrder
+          ? global.t?.t('orders', 'title', 'ifoodFinance')
+          : global.t?.t('orders', 'title', 'food99Finance'),
+        taxDocumentTitle: ifoodTaxDocumentTitle,
+        operationLines,
+        courierLines,
+        financial: financialLines,
+        paymentCards,
+        deliveryPaymentLines,
+        schedulingLines,
+        taxDocumentLines,
+        customerLines,
+        addressLines,
+        codesLines,
+        observationLines,
+      },
+    }
+  }, [
+    effectiveLocalRealStatusKey,
+    effectiveLocalStatusNameKey,
+    food99ActionLoading,
+    food99CancellationSourceLabel,
+    food99ChangeAmount,
+    food99ChangeFor,
+    food99Customer,
+    food99Delivery,
+    food99Financial,
+    food99HandoverCode,
+    food99Identifiers,
+    food99Integration,
+    food99ItemRemarksText,
+    food99NeedsChange,
+    food99Notes,
+    food99Payment,
+    food99PaymentChannelValue,
+    food99PaymentMethodValue,
+    food99PickupCode,
+    food99RiderName,
+    food99RiderPhone,
+    food99RiderToStoreEta,
+    food99SelectedPaymentLabel,
+    food99ShopPaidMoney,
+    food99StateLoading,
+    formatOrderDateTime,
+    formattedDineInDateTime,
+    formattedFood99Eta,
+    formattedTakeoutDateTime,
+    hasFood99SyncIssue,
+    hasFood99VisualData,
+    ifoodTaxDocumentRequested,
+    ifoodTaxDocumentTitle,
+    isFood99Order,
+    isIfoodDineInOrder,
+    isIfoodOrder,
+    isIfoodPickupLikeOrder,
+    isIfoodTakeoutOrder,
+    isScheduledOrder,
+    isUsingFallbackMarketplaceSummary,
+    item?.alterDate,
+    item?.app,
+    item?.id,
+    item?.status?.realStatus,
+    item?.status?.status,
+    lastActionAgeLabel,
+    lastReconcileAgeLabel,
+    localInvoiceCards.length,
+    localInvoicesSectionTitle,
+    localOrderAddressParts,
+    localOrderTotal,
+    marketplaceContextLabel,
+    marketplaceFulfillmentLabel,
+    marketplacePickupAreaCode,
+    marketplacePickupAreaTypeLabel,
+    marketplacePickupCode,
+    orderCustomerDocument,
+    orderCustomerDocumentLabel,
+    orderCustomerName,
+    orderCustomerPhone,
+    orderObservationText,
+    orderParam?.id,
+    orderActionLoading,
+    remoteStateAgeLabel,
+    renderLocalInvoiceCards,
+    resolvedOrderDateValue,
+    resolvedPrimaryKdsAction,
+    scheduledDeliveryDateTimeRaw,
+    scheduledPreparationStartRaw,
+    scheduledWindowLabel,
+    shouldHideReadyFood99Action,
+    shouldShowCollectOnDelivery,
+    shouldShowDeliveryPaymentSection,
+    shouldShowFood99ItemRemarks,
+    shouldShowOrderAddress,
+    showOrderObservationCard,
+    takeoutModeLabel,
+  ])
+
   const renderKdsMobileContent = () => (
     <ScrollView
       contentContainerStyle={[
@@ -3604,7 +4441,7 @@ const OrderDetails = ({ route, navigation }) => {
           <View style={localStyles.mobileSummaryOriginWrap}>
             <View style={localStyles.mobileSummaryOriginIcon}>
               <Icon
-                name={isFood99Order ? 'two-wheeler' : 'store'}
+                name="store"
                 size={16}
                 color={ppcColors.accent}
               />
@@ -3656,94 +4493,6 @@ const OrderDetails = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {(isFood99Order || isIfoodOrder) && (!!marketplaceFulfillmentLabel || !!formattedFood99Eta || !!formattedTakeoutDateTime || !!formattedDineInDateTime) && (
-          <View style={localStyles.mobileSummaryMetaList}>
-            {!!marketplaceFulfillmentLabel && (
-              <Text style={localStyles.mobileSummaryMetaText}>
-                {marketplaceContextLabel}: {marketplaceFulfillmentLabel}
-              </Text>
-            )}
-            {!isIfoodPickupLikeOrder && !!formattedFood99Eta && (
-              <Text style={localStyles.mobileSummaryMetaText}>
-                {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
-              </Text>
-            )}
-            {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
-              <Text style={localStyles.mobileSummaryMetaText}>
-                {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
-              </Text>
-            )}
-            {isIfoodDineInOrder && !!formattedDineInDateTime && (
-              <Text style={localStyles.mobileSummaryMetaText}>
-                {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
-              </Text>
-            )}
-          </View>
-        )}
-        {isIfoodPickupLikeOrder && (
-          <View style={localStyles.mobileFulfillmentCard}>
-            <View style={localStyles.mobileFulfillmentHeader}>
-              <Icon
-                name={isIfoodTakeoutOrder ? 'storefront' : 'room-service'}
-                size={15}
-                color={ppcColors.accentInfo}
-              />
-              <Text style={localStyles.mobileFulfillmentLabel}>
-                {marketplaceFulfillmentLabel || (isIfoodTakeoutOrder ? 'Retirada' : 'Consumir no local')}
-              </Text>
-            </View>
-            {!!takeoutModeLabel && (
-              <Text style={localStyles.mobileFulfillmentText}>
-                {(global.t?.t('orders', 'label', 'mode') || 'Modo')}: {takeoutModeLabel}
-              </Text>
-            )}
-            {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
-              <Text style={localStyles.mobileFulfillmentText}>
-                {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
-              </Text>
-            )}
-            {isIfoodDineInOrder && !!formattedDineInDateTime && (
-              <Text style={localStyles.mobileFulfillmentText}>
-                {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
-              </Text>
-            )}
-            {!!marketplacePickupCode && (
-              <Text style={localStyles.mobileFulfillmentText}>
-                {(global.t?.t('orders', 'label', 'pickupCode') || 'Codigo de retirada')}: {marketplacePickupCode}
-              </Text>
-            )}
-            {!!marketplacePickupAreaCode && (
-              <Text style={localStyles.mobileFulfillmentText}>
-                {marketplacePickupAreaTypeLabel || (global.t?.t('orders', 'label', 'pickupArea') || 'Area de retirada')}: {marketplacePickupAreaCode}
-              </Text>
-            )}
-          </View>
-        )}
-        {isScheduledOrder && (
-          <View style={localStyles.mobileScheduledDeliveryCard}>
-            <View style={localStyles.mobileScheduledDeliveryHeader}>
-              <Icon name="schedule" size={15} color="#A16207" />
-              <Text style={localStyles.mobileScheduledDeliveryLabel}>
-                {global.t?.t('orders', 'title', 'scheduledDelivery')}
-              </Text>
-            </View>
-            {!!scheduledWindowLabel && (
-              <Text style={localStyles.mobileScheduledDeliveryText}>
-                {global.t?.t('orders', 'label', 'window')}: {scheduledWindowLabel}
-              </Text>
-            )}
-            {!!scheduledDeliveryDateTimeRaw && (
-              <Text style={localStyles.mobileScheduledDeliveryText}>
-                {global.t?.t('orders', 'label', 'delivery')}: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
-              </Text>
-            )}
-            {!!scheduledPreparationStartRaw && (
-              <Text style={localStyles.mobileScheduledDeliveryText}>
-                {global.t?.t('orders', 'label', 'startPreparation')}: {formatScheduledDate(scheduledPreparationStartRaw)}
-              </Text>
-            )}
-          </View>
-        )}
       </View>
 
       <View style={localStyles.mobileInfoCard}>
@@ -3762,13 +4511,33 @@ const OrderDetails = ({ route, navigation }) => {
             {!isPurchaseOrder && !!orderCustomerPhone && (
               <Text style={localStyles.mobileInfoSubtitle}>{orderCustomerPhone}</Text>
             )}
-            {!isPurchaseOrder && !!orderCustomerDocument && !ifoodTaxDocumentRequested && (
+            {!isPurchaseOrder && !!localOrderCustomerDocument && (
               <Text style={localStyles.mobileInfoSubtitle}>
-                {orderCustomerDocumentLabel}: {orderCustomerDocument}
+                {orderCustomerDocumentLabel}: {localOrderCustomerDocument}
               </Text>
             )}
           </View>
         </View>
+
+        {!isPurchaseOrder && (
+          <View style={localStyles.inlineActionRow}>
+            <TouchableOpacity
+              onPress={openCustomerModal}
+              disabled={!!customerLinkingId}
+              style={[
+                localStyles.inlineActionButton,
+                localStyles.inlineActionButtonPrimary,
+                !!customerLinkingId &&
+                  localStyles.inlineActionButtonDisabled,
+              ]}
+            >
+              <Icon name="search" size={15} color={ppcColors.accentInfo} />
+              <Text style={localStyles.inlineActionButtonText}>
+                {orderCustomerName ? 'Trocar cliente' : 'Vincular cliente'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {shouldShowOrderAddress && (
           <View style={localStyles.mobileAddressCard}>
@@ -3784,69 +4553,44 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         )}
 
-        {!isPurchaseOrder && ifoodTaxDocumentRequested && (
-          <View style={localStyles.mobileTaxDocumentCard}>
-            <Icon name="receipt-long" size={15} color={ppcColors.accentInfo} />
-            <View style={localStyles.mobileAddressTextWrap}>
-              <Text style={localStyles.mobileTaxDocumentPrimary}>{ifoodTaxDocumentTitle}</Text>
-              <Text style={localStyles.mobileTaxDocumentSecondary}>
-                {global.t?.t('orders', 'message', 'customerRequestedTaxDocument') || 'Cliente solicitou documento fiscal neste pedido.'}
+        {!isPurchaseOrder && shouldShowOrderAddress && (
+          <View style={localStyles.inlineActionRow}>
+            <TouchableOpacity
+              onPress={openAddressModal}
+              disabled={addressSaveLoading || !!addressSelectingId}
+              style={[
+                localStyles.inlineActionButton,
+                localStyles.inlineActionButtonPrimary,
+                (addressSaveLoading || !!addressSelectingId) &&
+                  localStyles.inlineActionButtonDisabled,
+              ]}
+            >
+              <Icon
+                name={selectedOrderClientIri ? 'place' : 'add-location'}
+                size={15}
+                color={ppcColors.accentInfo}
+              />
+              <Text style={localStyles.inlineActionButtonText}>
+                {selectedOrderClientIri ? 'Escolher endereco' : 'Novo endereco'}
               </Text>
-              {!!orderCustomerDocument && (
-                <Text style={localStyles.mobileTaxDocumentSecondary}>
-                  {orderCustomerDocumentLabel}: {orderCustomerDocument}
-                </Text>
-              )}
-            </View>
+            </TouchableOpacity>
           </View>
         )}
 
-        {!isPurchaseOrder && showOrderObservationCard && (
+        {!isPurchaseOrder && showBaseOrderObservationCard && (
           <View style={localStyles.mobileNoteCard}>
             <View style={localStyles.mobileNoteHeader}>
               <Icon name="info" size={14} color={ppcColors.accent} />
               <Text style={localStyles.mobileNoteLabel}>{global.t?.t('orders', 'label', 'customerObservation')}</Text>
             </View>
-            <Text style={localStyles.mobileNoteText}>{orderObservationText}</Text>
-            {shouldShowFood99ItemRemarks && (
-              <Text style={localStyles.mobileNoteText}>
-                {global.t?.t('orders', 'label', 'itemsObservation') || 'Observações dos itens'}: {food99ItemRemarksText}
-              </Text>
-            )}
+            <Text style={localStyles.mobileNoteText}>{baseOrderObservationText}</Text>
           </View>
         )}
       </View>
 
+      <OrderExtraDataCard order={resolvedDisplayOrder || item} />
+
       <View style={localStyles.mobileInfoCard}>
-        {marketplaceDeliveryPaymentRows.length > 0 && (
-          <View style={localStyles.marketplaceDeliveryPaymentCard}>
-            <View style={localStyles.marketplaceDeliveryPaymentHeader}>
-              <Icon
-                name={isCashPaymentSelection ? 'payments' : 'point-of-sale'}
-                size={15}
-                color={ppcColors.accentInfo}
-              />
-              <Text style={localStyles.marketplaceDeliveryPaymentTitle}>
-                {deliveryPaymentSectionTitle}
-              </Text>
-            </View>
-
-            {marketplaceDeliveryPaymentRows.map(row => (
-              <Text
-                key={row.key}
-                style={
-                  row.emphasis
-                    ? localStyles.marketplaceDeliveryPaymentLineStrong
-                    : localStyles.marketplaceDeliveryPaymentLine
-                }
-              >
-                {row.label ? `${row.label}: ` : ''}
-                {row.value}
-              </Text>
-            ))}
-          </View>
-        )}
-
         <View style={localStyles.orderInvoiceBlockHeader}>
           <Text style={localStyles.mobileInfoLabel}>{localInvoicesSectionTitle}</Text>
           {!!localInvoiceCards.length && (
@@ -3855,32 +4599,6 @@ const OrderDetails = ({ route, navigation }) => {
         </View>
         {renderLocalInvoiceCards('mobile')}
       </View>
-
-      {(isFood99CourierToStore ||
-        isFood99Delivering ||
-        shouldHideReadyFood99Action ||
-        hasFood99SyncIssue) && (
-        <View style={localStyles.mobileWarningCard}>
-          {isFood99CourierToStore ? (
-            <Text style={localStyles.mobileWarningText}>
-              {global.t?.t('orders', 'message', 'courierAssignedAndComingToStore')}
-            </Text>
-          ) : null}
-          {isFood99Delivering && !isFood99CourierToStore ? (
-            <Text style={localStyles.mobileWarningText}>{global.t?.t('orders', 'message', 'orderInDelivery')}</Text>
-          ) : null}
-          {shouldHideReadyFood99Action ? (
-            <Text style={localStyles.mobileWarningText}>
-              {global.t?.t('orders', 'message', 'orderReadyWaitingPlatform99Update')}
-            </Text>
-          ) : null}
-          {hasFood99SyncIssue ? (
-            <Text style={localStyles.mobileWarningText}>
-              {global.t?.t('orders', 'message', 'integrationDivergenceUseDetailsToSync')}
-            </Text>
-          ) : null}
-        </View>
-      )}
 
       <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
@@ -3996,42 +4714,6 @@ const OrderDetails = ({ route, navigation }) => {
                       </View>
                     )
                   })}
-                  <View style={localStyles.editAddWrap}>
-                    <View style={[localStyles.editAddSearch, { borderColor: ppcColors.border, backgroundColor: ppcColors.cardBg }]}>
-                      <Icon name="search" size={16} color={ppcColors.textSecondary} />
-                      <TextInput
-                        value={addProductQuery}
-                        onChangeText={v => { setAddProductQuery(v); searchProducts(v) }}
-                        placeholder="Buscar produto para adicionar..."
-                        placeholderTextColor={ppcColors.textSecondary}
-                        style={{ flex: 1, color: ppcColors.textPrimary, fontSize: 14, paddingVertical: 0 }}
-                      />
-                      {productSearchLoading && <ActivityIndicator size="small" color={ppcColors.primary} />}
-                    </View>
-                    {addProductQuery.trim().length > 0 && (productSearchResults || []).map(p => {
-                      const pid = String(p?.id || '')
-                      const pname = p?.product || p?.name || 'Produto'
-                      const pprice = Number(p?.price || 0)
-                      const isAdding = addingProductId === pid
-                      return (
-                        <TouchableOpacity
-                          key={pid || p['@id']}
-                          onPress={() => handleAddProductInline(p)}
-                          disabled={!!addingProductId}
-                          style={[localStyles.editAddResult, { borderColor: ppcColors.borderSoft }]}
-                          activeOpacity={0.7}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text style={[localStyles.editAddResultName, { color: ppcColors.textPrimary }]} numberOfLines={1}>{pname}</Text>
-                            {pprice > 0 && <Text style={[localStyles.editAddResultPrice, { color: ppcColors.textSecondary }]}>{Formatter.formatMoney(pprice)}</Text>}
-                          </View>
-                          {isAdding
-                            ? <ActivityIndicator size="small" color={ppcColors.primary} />
-                            : <Icon name="add-circle" size={22} color={ppcColors.primary} />}
-                        </TouchableOpacity>
-                      )
-                    })}
-                  </View>
                 </React.Fragment>
               )
               : (
@@ -4071,8 +4753,8 @@ const OrderDetails = ({ route, navigation }) => {
       <Modal
         transparent
         animationType="slide"
-        visible={detailsModalVisible}
-        onRequestClose={closeDetailsModal}
+        visible={customerModalVisible}
+        onRequestClose={closeCustomerModal}
         statusBarTranslucent
         presentationStyle="overFullScreen"
       >
@@ -4080,496 +4762,437 @@ const OrderDetails = ({ route, navigation }) => {
           <TouchableOpacity
             activeOpacity={1}
             style={localStyles.modalSheetBackdrop}
-            onPress={closeDetailsModal}
+            onPress={closeCustomerModal}
           />
           <View style={localStyles.modalSheetWrap}>
             <View
               style={[
-                localStyles.detailsModal,
+                localStyles.deliveryCodeModal,
                 { paddingBottom: 14 + modalBottomInset },
               ]}
             >
-            <View style={localStyles.detailsModalHeader}>
-              <View>
-                <Text style={localStyles.detailsModalEyebrow}>{global.t?.t('orders', 'title', 'orderSummary')}</Text>
-                <Text style={localStyles.detailsModalTitle}>
-                  {global.t?.t('orders', 'title', 'order')} #{item?.id || orderParam?.id || '--'}
+              <View style={localStyles.deliveryCodeHeader}>
+                <Text style={localStyles.deliveryCodeStepBadge}>
+                  Clientes
                 </Text>
+                <TouchableOpacity
+                  onPress={closeCustomerModal}
+                  disabled={!!customerLinkingId}
+                  style={localStyles.deliveryCodeCloseButton}
+                >
+                  <Icon name="close" size={22} color={ppcColors.textSecondary} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={closeDetailsModal}
-                style={localStyles.detailsModalCloseButton}
+
+              <Text style={localStyles.deliveryCodeModalTitle}>
+                {orderCustomerName ? 'Trocar cliente do pedido' : 'Vincular cliente ao pedido'}
+              </Text>
+
+              <ScrollView
+                style={localStyles.deliveryCodeScroll}
+                contentContainerStyle={localStyles.deliveryCodeScrollContent}
+                showsVerticalScrollIndicator={false}
               >
-                <Icon name="close" size={22} color={ppcColors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {!isFood99Order && !isIfoodOrder && resolvedPrimaryKdsAction && (
-              <TouchableOpacity
-                onPress={resolvedPrimaryKdsAction.onPress}
-                disabled={orderActionLoading === resolvedPrimaryKdsAction.loadingKey}
-                style={[
-                  localStyles.detailsMarkPaidButton,
-                  orderActionLoading === resolvedPrimaryKdsAction.loadingKey &&
-                    localStyles.kdsActionButtonDisabled,
-                ]}
-              >
-                {orderActionLoading === resolvedPrimaryKdsAction.loadingKey ? (
-                  <ActivityIndicator size="small" color="#F8FAFC" />
-                ) : (
-                  <>
-                    <Icon
-                      name={resolvedPrimaryKdsAction.icon}
-                      size={18}
-                      color="#F8FAFC"
-                    />
-                    <Text style={localStyles.detailsMarkPaidButtonText}>
-                      {resolvedPrimaryKdsAction.label}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-
-            <ScrollView
-              style={localStyles.detailsModalScroll}
-              contentContainerStyle={[
-                localStyles.detailsModalScrollContent,
-                { paddingBottom: 20 + modalBottomInset },
-              ]}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={localStyles.detailsGrid}>
-                <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'application')}</Text>
-                  <Text style={localStyles.detailsCardValue}>{item?.app || '-'}</Text>
-                </View>
-                <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'localStatus')}</Text>
-                  <Text style={localStyles.detailsCardValue}>
-                    {effectiveLocalStatusNameKey || item?.status?.status || '-'}
-                  </Text>
-                </View>
-                <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>
-                    {global.t?.t('orders', 'label', 'localRealStatus') || 'Real status local'}
-                  </Text>
-                  <Text style={localStyles.detailsCardValue}>
-                    {effectiveLocalRealStatusKey || item?.status?.realStatus || '-'}
-                  </Text>
-                </View>
-                <View style={localStyles.detailsCard}>
-                  <Text style={localStyles.detailsCardLabel}>
-                    {global.t?.t('orders', 'title', 'payments') || 'Pagamentos'}
-                  </Text>
-                  <Text style={localStyles.detailsCardValue}>
-                    {localInvoiceCards.length}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={localStyles.detailsSection}>
-                <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'orderData')}</Text>
-                <Text style={localStyles.detailsInfoText}>
-                  {global.t?.t('orders', 'label', 'createdAt')}: {formatOrderDateTime(resolvedOrderDateValue)}
+                <Text style={localStyles.deliveryCodeDescription}>
+                  Pesquise por nome, email, telefone, documento ou endereco. Se nao encontrar, use o cadastro rapido abaixo sem sair deste modal.
                 </Text>
-                <Text style={localStyles.detailsInfoText}>
-                  {global.t?.t('orders', 'label', 'updatedAt')}: {formatOrderDateTime(item?.alterDate || resolvedOrderDateValue)}
-                </Text>
-                <Text style={localStyles.detailsInfoText}>
-                  {global.t?.t('orders', 'label', 'localTotal')}: {Formatter.formatMoney(localOrderTotal || 0)}
-                </Text>
-              </View>
 
-              <View style={localStyles.detailsSection}>
-                <Text style={localStyles.detailsSectionTitle}>{localInvoicesSectionTitle}</Text>
-                {renderLocalInvoiceCards('details')}
-              </View>
-
-              {(isFood99Order || isIfoodOrder) && food99StateLoading && !food99State ? (
-                <View style={localStyles.detailsLoadingState}>
-                  <ActivityIndicator size="small" color="#38BDF8" />
-                  <Text style={localStyles.detailsLoadingText}>
-                    {global.t?.t('orders', 'message', 'loadingIntegrationData')} {isIfoodOrder ? 'iFood' : '99Food'}...
-                  </Text>
+                <View style={localStyles.assignmentSearchBox}>
+                  <Icon name="search" size={18} color={ppcColors.textSecondary} />
+                  <TextInput
+                    value={customerSearch}
+                    onChangeText={setCustomerSearch}
+                    editable={!customerLinkingId}
+                    placeholder="Buscar cliente"
+                    placeholderTextColor={ppcColors.textSecondary}
+                    autoCapitalize="none"
+                    style={localStyles.assignmentSearchInput}
+                  />
+                  {customerSearchLoading && (
+                    <ActivityIndicator size="small" color={ppcColors.primary} />
+                  )}
                 </View>
-              ) : null}
 
-              {(isFood99Order || isIfoodOrder) && hasFood99VisualData ? (
-                <>
-                  <View style={localStyles.detailsSection}>
-                    <Text style={localStyles.detailsSectionTitle}>
-                      {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodOperation') : global.t?.t('orders', 'title', 'food99Operation')}
+                {customerSearch.trim().length === 0 ? (
+                  <View style={localStyles.assignmentEmptyState}>
+                    <Text style={localStyles.assignmentEmptyStateTitle}>
+                      Digite para buscar
                     </Text>
-                    {isUsingFallbackMarketplaceSummary ? (
-                      <Text style={localStyles.food99InfoHint}>
-                        {global.t?.t('orders', 'message', 'marketplaceSummaryFromSnapshot') || 'Dados de integração exibidos a partir do snapshot salvo no pedido até o state mais recente ser carregado.'}
-                      </Text>
-                    ) : null}
-                    {!!food99Identifiers?.order_index && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {isIfoodOrder ? global.t?.t('orders', 'label', 'ifoodNumber') : global.t?.t('orders', 'label', 'food99Number')}: #{food99Identifiers.order_index}
-                      </Text>
-                    )}
-                    <Text style={localStyles.detailsInfoText}>
-                      {marketplaceContextLabel}: {marketplaceFulfillmentLabel || '-'}
+                    <Text style={localStyles.assignmentEmptyStateText}>
+                      A busca considera nome, email, telefone, documento e enderecos do cliente.
                     </Text>
-                    {!isIfoodPickupLikeOrder && !!formattedFood99Eta && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
-                      </Text>
-                    )}
-                    {isIfoodTakeoutOrder && !!takeoutModeLabel && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {(global.t?.t('orders', 'label', 'mode') || 'Modo')}: {takeoutModeLabel}
-                      </Text>
-                    )}
-                    {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
-                      </Text>
-                    )}
-                    {isIfoodDineInOrder && !!formattedDineInDateTime && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
-                      </Text>
-                    )}
-                    {!!marketplacePickupCode && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {(global.t?.t('orders', 'label', 'pickupCode') || 'Codigo de retirada')}: {marketplacePickupCode}
-                      </Text>
-                    )}
-                    {!!marketplacePickupAreaCode && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {marketplacePickupAreaTypeLabel || (global.t?.t('orders', 'label', 'pickupArea') || 'Area de retirada')}: {marketplacePickupAreaCode}
-                      </Text>
-                    )}
-                    {!!food99SelectedPaymentLabel && (
-                      <Text style={localStyles.detailsInfoTextStrong}>
-                        {global.t?.t('orders', 'label', 'selectedPaymentMethod')}: {food99SelectedPaymentLabel}
-                      </Text>
-                    )}
-                    {!!food99PaymentMethodValue && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'paymentMethod')}: {food99PaymentMethodValue}
-                      </Text>
-                    )}
-                    {!!food99PaymentChannelValue && (
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'paymentChannel')}: {food99PaymentChannelValue}
-                      </Text>
-                    )}
-                    {hasFood99CancellationInfo && (
-                      <>
-                        {!!food99CancellationSourceLabel && (
-                          <Text style={localStyles.detailsInfoText}>
-                            {global.t?.t('orders', 'label', 'cancellationOrigin')}: {food99CancellationSourceLabel}
-                          </Text>
-                        )}
-                        {!!food99Integration?.cancel_code && (
-                          <Text style={localStyles.detailsInfoText}>
-                            {global.t?.t('orders', 'label', 'cancellationCode')}: {food99Integration.cancel_code}
-                          </Text>
-                        )}
-                        {!!food99Integration?.cancel_reason && (
-                          <Text style={localStyles.detailsInfoText}>
-                            {global.t?.t('orders', 'label', 'cancellationReason')}: {food99Integration.cancel_reason}
-                          </Text>
-                        )}
-                      </>
-                    )}
                   </View>
+                ) : customerSearchLoading ? (
+                  <View style={localStyles.assignmentEmptyState}>
+                    <ActivityIndicator size="small" color={ppcColors.primary} />
+                    <Text style={localStyles.assignmentEmptyStateText}>
+                      Buscando clientes...
+                    </Text>
+                  </View>
+                ) : customerSearchResults.length > 0 ? (
+                  customerSearchResults.map(customer => {
+                    const customerId = String(getEntityId(customer) || '')
+                    const customerIri = toEntityIri(customer, 'people')
+                    const customerMeta = buildCustomerSearchMeta(customer)
+                    const customerTitle = resolvePreferredText(
+                      customer?.alias,
+                      customer?.name,
+                    ) || `Cliente #${customerId || '--'}`
+                    const isCurrent = customerIri === selectedOrderClientIri
+                    const isSaving = customerLinkingId === customerId
 
-                  {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>
-                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodCourier') : global.t?.t('orders', 'title', 'food99Courier')}
-                      </Text>
-                      {!!food99RiderName && (
-                        <Text style={localStyles.detailsInfoText}>{global.t?.t('orders', 'label', 'name')}: {food99RiderName}</Text>
-                      )}
-                      {!!food99RiderPhone && (
-                        <Text style={localStyles.detailsInfoText}>{global.t?.t('orders', 'label', 'phone')}: {food99RiderPhone}</Text>
-                      )}
-                      {!!food99RiderToStoreEta && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'etaToStore')}: {food99RiderToStoreEta}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {food99Financial && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>
-                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodFinance') : global.t?.t('orders', 'title', 'food99Finance')}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'items')}: {Formatter.formatMoney(food99Financial.items_total || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'delivery')}: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'serviceFee')}: {Formatter.formatMoney(food99Financial.service_fee || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'minimumOrderFee')}: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'topUpFee')}: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'totalDiscounts')}: {Formatter.formatMoney(food99Financial.discount_total || 0)}
-                      </Text>
-                      {isIfoodOrder && food99Financial.ifood_subsidy > 0 && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'ifoodSubsidy')}: {Formatter.formatMoney(food99Financial.ifood_subsidy)}
-                        </Text>
-                      )}
-                      {isIfoodOrder && food99Financial.merchant_subsidy > 0 && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'storeSubsidy')}: {Formatter.formatMoney(food99Financial.merchant_subsidy)}
-                        </Text>
-                      )}
-                      {isIfoodOrder && !!food99Financial.payment_brand && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'brand')}: {food99Financial.payment_brand}
-                        </Text>
-                      )}
-                      {isIfoodOrder && food99Financial.change_for > 0 && (
-                        <Text style={localStyles.detailsInfoTextStrong}>
-                          {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99Financial.change_for)}
-                        </Text>
-                      )}
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'itemDiscount')}: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'deliveryDiscount')}: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'couponDiscount')}: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'storeCouponDiscount')}: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'platformCouponDiscount')}: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoText}>
-                        {global.t?.t('orders', 'label', 'originalDeliveryFee')}: {Formatter.formatMoney(food99Financial.store_charged_delivery_price || 0)}
-                      </Text>
-                      <Text style={localStyles.detailsInfoTextStrong}>
-                        {global.t?.t('orders', 'label', 'customerTotal')}: {Formatter.formatMoney(food99Financial.customer_total || 0)}
-                      </Text>
-                      {shouldShowCollectOnDelivery && (
-                        <Text style={localStyles.detailsInfoTextStrong}>
-                          {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {food99Payment && (
-                    <View style={localStyles.detailsGrid}>
-                      <View style={localStyles.detailsCard}>
-                        <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'paid')}</Text>
-                        <Text style={localStyles.detailsCardValue}>
-                          {Formatter.formatMoney(food99Payment.amount_paid || 0)}
-                        </Text>
-                      </View>
-                      <View style={localStyles.detailsCard}>
-                        <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'pending')}</Text>
-                        <Text style={localStyles.detailsCardValue}>
-                          {Formatter.formatMoney(food99Payment.amount_pending || 0)}
-                        </Text>
-                      </View>
-                      {shouldShowCollectOnDelivery && (
-                        <View style={localStyles.detailsCard}>
-                          <Text style={localStyles.detailsCardLabel}>{global.t?.t('orders', 'label', 'collectCustomer')}</Text>
-                          <Text style={localStyles.detailsCardValue}>
-                            {Formatter.formatMoney(food99CashCollectionAmount || 0)}
+                    return (
+                      <TouchableOpacity
+                        key={customerIri || customerId || customerTitle}
+                        onPress={() => handleSelectCustomer(customer)}
+                        disabled={!!customerLinkingId}
+                        style={[
+                          localStyles.assignmentOptionCard,
+                          isCurrent && localStyles.assignmentOptionCardSelected,
+                        ]}
+                      >
+                        <View style={localStyles.assignmentOptionTextWrap}>
+                          <Text style={localStyles.assignmentOptionTitle}>
+                            {customerTitle}
                           </Text>
+                          {!!customerMeta && (
+                            <Text style={localStyles.assignmentOptionMeta}>
+                              {customerMeta}
+                            </Text>
+                          )}
                         </View>
-                      )}
-                    </View>
-                  )}
 
-                  {food99Payment && shouldShowDeliveryPaymentSection && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'paymentOnDelivery')}</Text>
-                      {shouldShowCollectOnDelivery && (
-                        <Text style={localStyles.detailsInfoTextStrong}>
-                          {collectOnDeliveryLabel}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
-                        </Text>
-                      )}
-                      {food99ChangeFor > 0 ? (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
-                        </Text>
-                      ) : isCashPaymentSelection ? (
-                        <Text style={localStyles.detailsInfoText}>{global.t?.t('orders', 'message', 'changeNotRequested')}</Text>
-                      ) : null}
-                      {food99NeedsChange ? (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
-                        </Text>
-                      ) : null}
-                      {food99ShopPaidMoney > 0 ? (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'courierTransferToMerchant')}: {Formatter.formatMoney(food99ShopPaidMoney)}
-                        </Text>
-                      ) : null}
-                    </View>
-                  )}
+                        {isSaving ? (
+                          <ActivityIndicator size="small" color={ppcColors.primary} />
+                        ) : isCurrent ? (
+                          <Text style={localStyles.assignmentOptionBadge}>Atual</Text>
+                        ) : (
+                          <Icon name="chevron-right" size={20} color={ppcColors.textSecondary} />
+                        )}
+                      </TouchableOpacity>
+                    )
+                  })
+                ) : (
+                  <View style={localStyles.assignmentEmptyState}>
+                    <Text style={localStyles.assignmentEmptyStateTitle}>
+                      Nenhum cliente encontrado
+                    </Text>
+                    <Text style={localStyles.assignmentEmptyStateText}>
+                      Use o cadastro rapido para criar e vincular um novo cliente.
+                    </Text>
+                  </View>
+                )}
 
-                  {isScheduledOrder && (
-                    <View style={localStyles.scheduledDeliveryBanner}>
-                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ {global.t?.t('orders', 'title', 'scheduledDelivery')}</Text>
-                      {!!scheduledWindowLabel && (
-                        <Text style={localStyles.scheduledDeliveryDate}>{global.t?.t('orders', 'label', 'window')}: {scheduledWindowLabel}</Text>
-                      )}
-                      {!!scheduledDeliveryDateTimeRaw && (
-                        <Text style={localStyles.scheduledDeliveryDate}>
-                          {global.t?.t('orders', 'label', 'delivery')}: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
-                        </Text>
-                      )}
-                      {!!scheduledPreparationStartRaw && (
-                        <Text style={localStyles.scheduledDeliveryDate}>
-                          {global.t?.t('orders', 'label', 'startPreparation')}: {formatScheduledDate(scheduledPreparationStartRaw)}
-                        </Text>
-                      )}
-                    </View>
-                  )}
+                <TouchableOpacity
+                  onPress={openCustomerCreateModal}
+                  disabled={!!customerLinkingId}
+                  style={localStyles.assignmentQuickActionCard}
+                >
+                  <View style={localStyles.assignmentQuickActionHeader}>
+                    <Icon name="person-add" size={18} color={ppcColors.accentInfo} />
+                    <Text style={localStyles.assignmentQuickActionTitle}>
+                      Cadastro rapido de cliente
+                    </Text>
+                  </View>
+                  <Text style={localStyles.assignmentQuickActionText}>
+                    Abre o cadastro compartilhado de clientes do CRM e vincula o resultado neste pedido.
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
 
-                  {ifoodTaxDocumentRequested && (
-                    <View style={localStyles.taxDocumentBanner}>
-                      <Text style={localStyles.taxDocumentLabel}>{ifoodTaxDocumentTitle}</Text>
-                      <Text style={localStyles.taxDocumentText}>
-                        {global.t?.t('orders', 'message', 'customerRequestedTaxDocument') || 'Cliente solicitou documento fiscal neste pedido.'}
-                      </Text>
-                      {!!orderCustomerDocument && (
-                        <Text style={localStyles.taxDocumentText}>
-                          {orderCustomerDocumentLabel}: {orderCustomerDocument}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {(orderCustomerName || orderCustomerPhone || orderCustomerDocument) && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
-                      {!!orderCustomerName && (
-                        <Text style={localStyles.detailsInfoText}>{orderCustomerName}</Text>
-                      )}
-                      {!!orderCustomerPhone && (
-                        <Text style={localStyles.detailsInfoText}>{orderCustomerPhone}</Text>
-                      )}
-                      {!!orderCustomerDocument && (
-                        <Text style={localStyles.detailsInfoText}>{orderCustomerDocumentLabel}: {orderCustomerDocument}</Text>
-                      )}
-                    </View>
-                  )}
-
-                  {shouldShowOrderAddress && (localOrderAddressParts.primary ||
-                    localOrderAddressParts.streetLine ||
-                    localOrderAddressParts.district ||
-                    localOrderAddressParts.cityStateLine ||
-                    localOrderAddressParts.postalCode ||
-                    localOrderAddressParts.nickname ||
-                    localOrderAddressParts.complement) && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'customerAddress')}</Text>
-                      {!!localOrderAddressParts.primary && (
-                        <Text style={localStyles.detailsInfoText}>{localOrderAddressParts.primary}</Text>
-                      )}
-                      {!!localOrderAddressParts.streetLine && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'streetNumber')}: {localOrderAddressParts.streetLine}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.district && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'district')}: {localOrderAddressParts.district}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.cityStateLine && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'cityState')}: {localOrderAddressParts.cityStateLine}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.postalCode && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'zipCode')}: {localOrderAddressParts.postalCode}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.nickname && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'reference')}: {localOrderAddressParts.nickname}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.complement && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'complement')}: {localOrderAddressParts.complement}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {(food99PickupCode ||
-                    food99HandoverCode ||
-                    food99Delivery?.locator ||
-                    food99Delivery?.virtual_phone_number) && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'codesAndSupport')}</Text>
-                      {!!food99PickupCode && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'pickupCode')}: {food99PickupCode}
-                        </Text>
-                      )}
-                      {!!food99HandoverCode && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'handoverCode')}: {food99HandoverCode}
-                        </Text>
-                      )}
-                      {!!food99Delivery?.locator && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'locator')}: {food99Delivery.locator}
-                        </Text>
-                      )}
-                      {!!food99Delivery?.virtual_phone_number && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'virtualPhone')}: {food99Delivery.virtual_phone_number}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {showOrderObservationCard && (
-                    <View style={localStyles.detailsSection}>
-                      <Text style={localStyles.detailsSectionTitle}>{global.t?.t('orders', 'title', 'observations')}</Text>
-                      <Text style={localStyles.detailsInfoText}>{orderObservationText}</Text>
-                      {shouldShowFood99ItemRemarks && (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'itemsObservation') || 'Observações dos itens'}: {food99ItemRemarksText}
-                        </Text>
-                      )}
-                      {food99Notes?.need_cutlery !== null &&
-                      food99Notes?.need_cutlery !== undefined ? (
-                        <Text style={localStyles.detailsInfoText}>
-                          {global.t?.t('orders', 'label', 'needCutlery')}: {food99Notes.need_cutlery ? global.t?.t('orders', 'label', 'yes') : global.t?.t('orders', 'label', 'no')}
-                        </Text>
-                      ) : null}
-                    </View>
-                  )}
-                </>
-              ) : null}
-            </ScrollView>
+              <View style={localStyles.deliveryCodeActions}>
+                <TouchableOpacity
+                  onPress={closeCustomerModal}
+                  disabled={!!customerLinkingId}
+                  style={[
+                    localStyles.deliveryCodeButton,
+                    localStyles.deliveryCodeButtonSecondary,
+                  ]}
+                >
+                  <Text style={localStyles.deliveryCodeButtonSecondaryText}>
+                    {global.t?.t('orders', 'button', 'close') || 'Fechar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
       </Modal>
+
+      <AddCompanyModal
+        visible={customerCreateModalVisible}
+        onClose={() => setCustomerCreateModalVisible(false)}
+        context={{ context: 'client' }}
+        onSuccess={savedCustomer => {
+          void handleCustomerCreated(savedCustomer)
+        }}
+      />
+
+      <Modal
+        transparent
+        animationType="slide"
+        visible={addressModalVisible}
+        onRequestClose={closeAddressModal}
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
+      >
+        <View style={localStyles.modalSheetRoot}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={localStyles.modalSheetBackdrop}
+            onPress={closeAddressModal}
+          />
+          <View style={localStyles.modalSheetWrap}>
+            <View
+              style={[
+                localStyles.deliveryCodeModal,
+                { paddingBottom: 14 + modalBottomInset },
+              ]}
+            >
+              <View style={localStyles.deliveryCodeHeader}>
+                <Text style={localStyles.deliveryCodeStepBadge}>
+                  Entrega
+                </Text>
+                <TouchableOpacity
+                  onPress={closeAddressModal}
+                  disabled={addressSaveLoading || !!addressSelectingId}
+                  style={localStyles.deliveryCodeCloseButton}
+                >
+                  <Icon name="close" size={22} color={ppcColors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={localStyles.deliveryCodeModalTitle}>
+                Selecionar endereco de entrega
+              </Text>
+
+              <ScrollView
+                style={localStyles.deliveryCodeScroll}
+                contentContainerStyle={localStyles.deliveryCodeScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={localStyles.deliveryCodeDescription}>
+                  {selectedOrderClientIri
+                    ? 'Escolha um endereco ja cadastrado para este cliente ou use o cadastro rapido abaixo sem sair deste modal.'
+                    : 'Sem cliente vinculado, use o cadastro rapido abaixo para definir o endereco deste pedido.'}
+                </Text>
+
+                {!!orderCustomerName && !!selectedOrderClientIri && (
+                  <View style={localStyles.assignmentContextCard}>
+                    <Icon name="person" size={16} color={ppcColors.accentInfo} />
+                    <Text style={localStyles.assignmentContextText}>
+                      Cliente selecionado: {orderCustomerName}
+                    </Text>
+                  </View>
+                )}
+
+                {addressOptionsLoading ? (
+                  <View style={localStyles.assignmentEmptyState}>
+                    <ActivityIndicator size="small" color={ppcColors.primary} />
+                    <Text style={localStyles.assignmentEmptyStateText}>
+                      Carregando enderecos...
+                    </Text>
+                  </View>
+                ) : addressOptions.length > 0 ? (
+                  addressOptions.map(address => {
+                    const addressId = String(getEntityId(address) || '')
+                    const addressIri = toEntityIri(address, 'addresses')
+                    const summary = buildAddressOptionSummary(address)
+                    const isCurrent = addressIri === selectedOrderAddressIri
+                    const isSaving = addressSelectingId === addressId
+
+                    return (
+                      <TouchableOpacity
+                        key={addressIri || addressId || summary.primary}
+                        onPress={() => handleSelectAddress(address)}
+                        disabled={!!addressSelectingId || addressSaveLoading}
+                        style={[
+                          localStyles.assignmentOptionCard,
+                          isCurrent && localStyles.assignmentOptionCardSelected,
+                        ]}
+                      >
+                        <View style={localStyles.assignmentOptionTextWrap}>
+                          <Text style={localStyles.assignmentOptionTitle}>
+                            {summary.primary || `Endereco #${addressId || '--'}`}
+                          </Text>
+                          {!!summary.secondary && (
+                            <Text style={localStyles.assignmentOptionMeta}>
+                              {summary.secondary}
+                            </Text>
+                          )}
+                        </View>
+
+                        {isSaving ? (
+                          <ActivityIndicator size="small" color={ppcColors.primary} />
+                        ) : isCurrent ? (
+                          <Text style={localStyles.assignmentOptionBadge}>Atual</Text>
+                        ) : (
+                          <Icon name="chevron-right" size={20} color={ppcColors.textSecondary} />
+                        )}
+                      </TouchableOpacity>
+                    )
+                  })
+                ) : (
+                  <View style={localStyles.assignmentEmptyState}>
+                    <Text style={localStyles.assignmentEmptyStateTitle}>
+                      Nenhum endereco encontrado
+                    </Text>
+                    <Text style={localStyles.assignmentEmptyStateText}>
+                      Cadastre um endereco rapido para aplicar neste pedido.
+                    </Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  onPress={
+                    addressModalMode === 'create'
+                      ? () => setAddressModalMode('select')
+                      : openAddressCreateMode
+                  }
+                  disabled={addressSaveLoading || !!addressSelectingId}
+                  style={localStyles.assignmentQuickActionCard}
+                >
+                  <View style={localStyles.assignmentQuickActionHeader}>
+                    <Icon name="add-location" size={18} color={ppcColors.accentInfo} />
+                    <Text style={localStyles.assignmentQuickActionTitle}>
+                      Cadastro rapido de endereco
+                    </Text>
+                  </View>
+                  <Text style={localStyles.assignmentQuickActionText}>
+                    {addressModalMode === 'create'
+                      ? 'Ocultar o formulario rapido.'
+                      : 'Crie um novo endereco sem sair do detalhe do pedido.'}
+                  </Text>
+                </TouchableOpacity>
+
+                {addressModalMode === 'create' && (
+                  <>
+                    <TextInput
+                      value={addressForm.nickname}
+                      onChangeText={value => handleAddressFormFieldChange('nickname', value)}
+                      editable={!addressSaveLoading}
+                      placeholder="Referencia ou apelido"
+                      placeholderTextColor={ppcColors.textSecondary}
+                      style={localStyles.assignmentFormInput}
+                    />
+                    <View style={localStyles.assignmentFormRow}>
+                      <TextInput
+                        value={addressForm.cep}
+                        onChangeText={value => handleAddressFormFieldChange('cep', value)}
+                        editable={!addressSaveLoading}
+                        placeholder="CEP"
+                        placeholderTextColor={ppcColors.textSecondary}
+                        keyboardType="number-pad"
+                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
+                      />
+                      <TextInput
+                        value={addressForm.number}
+                        onChangeText={value => handleAddressFormFieldChange('number', value)}
+                        editable={!addressSaveLoading}
+                        placeholder="Numero"
+                        placeholderTextColor={ppcColors.textSecondary}
+                        keyboardType="number-pad"
+                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
+                      />
+                    </View>
+                    <TextInput
+                      value={addressForm.street}
+                      onChangeText={value => handleAddressFormFieldChange('street', value)}
+                      editable={!addressSaveLoading}
+                      placeholder="Rua"
+                      placeholderTextColor={ppcColors.textSecondary}
+                      style={localStyles.assignmentFormInput}
+                    />
+                    <TextInput
+                      value={addressForm.complement}
+                      onChangeText={value => handleAddressFormFieldChange('complement', value)}
+                      editable={!addressSaveLoading}
+                      placeholder="Complemento"
+                      placeholderTextColor={ppcColors.textSecondary}
+                      style={localStyles.assignmentFormInput}
+                    />
+                    <TextInput
+                      value={addressForm.district}
+                      onChangeText={value => handleAddressFormFieldChange('district', value)}
+                      editable={!addressSaveLoading}
+                      placeholder="Bairro"
+                      placeholderTextColor={ppcColors.textSecondary}
+                      style={localStyles.assignmentFormInput}
+                    />
+                    <TextInput
+                      value={addressForm.city}
+                      onChangeText={value => handleAddressFormFieldChange('city', value)}
+                      editable={!addressSaveLoading}
+                      placeholder="Cidade"
+                      placeholderTextColor={ppcColors.textSecondary}
+                      style={localStyles.assignmentFormInput}
+                    />
+                    <View style={localStyles.assignmentFormRow}>
+                      <TextInput
+                        value={addressForm.state}
+                        onChangeText={value => handleAddressFormFieldChange('state', value)}
+                        editable={!addressSaveLoading}
+                        placeholder="Estado"
+                        placeholderTextColor={ppcColors.textSecondary}
+                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
+                      />
+                      <TextInput
+                        value={addressForm.country}
+                        onChangeText={value => handleAddressFormFieldChange('country', value)}
+                        editable={!addressSaveLoading}
+                        placeholder="Pais"
+                        placeholderTextColor={ppcColors.textSecondary}
+                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
+                      />
+                    </View>
+                  </>
+                )}
+              </ScrollView>
+
+              <View style={localStyles.deliveryCodeActions}>
+                <TouchableOpacity
+                  onPress={closeAddressModal}
+                  disabled={addressSaveLoading || !!addressSelectingId}
+                  style={[
+                    localStyles.deliveryCodeButton,
+                    localStyles.deliveryCodeButtonSecondary,
+                  ]}
+                >
+                  <Text style={localStyles.deliveryCodeButtonSecondaryText}>
+                    {global.t?.t('orders', 'button', 'close') || 'Fechar'}
+                  </Text>
+                </TouchableOpacity>
+
+                {addressModalMode === 'create' && (
+                  <TouchableOpacity
+                    onPress={handleCreateAddress}
+                    disabled={addressSaveLoading}
+                    style={[
+                      localStyles.deliveryCodeButton,
+                      localStyles.deliveryCodeButtonPrimary,
+                      addressSaveLoading && localStyles.kdsActionButtonDisabled,
+                    ]}
+                  >
+                    {addressSaveLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={localStyles.deliveryCodeButtonPrimaryText}>
+                        Salvar endereco
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <OrderSummaryModal
+        visible={detailsModalVisible}
+        onClose={closeDetailsModal}
+        summary={orderSummaryData}
+      />
 
       <Modal
         transparent
@@ -4951,631 +5574,8 @@ const OrderDetails = ({ route, navigation }) => {
       {!isLoading && item && !error && (
         <View style={{ flex: 1 }}>
           {useUnifiedKdsLayout ? (
-            renderKdsMobileContent() || (
-            <>
-              <OrderHeader order={resolvedDisplayOrder || item} showCustomer />
-
-              {isFood99Order && (
-                <View style={localStyles.food99InfoCard}>
-                  <View style={localStyles.food99InfoHeader}>
-                    <Text style={localStyles.food99InfoTitle}>
-                      {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodOperation') : global.t?.t('orders', 'title', 'food99Operation')}
-                    </Text>
-                    <View style={localStyles.food99InfoHeaderRight}>
-                      {food99StateLoading ? (
-                        <ActivityIndicator size="small" color="#38BDF8" />
-                      ) : (
-                        <Text style={localStyles.food99InfoBadge}>
-                          {marketplaceFulfillmentLabel || global.t?.t('orders', 'label', 'undefinedDelivery')}
-                        </Text>
-                      )}
-                      <TouchableOpacity
-                        onPress={() => runFood99OrderAction('reconcile')}
-                        disabled={!!food99ActionLoading}
-                        style={[
-                          localStyles.food99RefreshButton,
-                          !!food99ActionLoading && localStyles.food99RefreshButtonDisabled,
-                        ]}
-                      >
-                        {food99ActionLoading === 'reconcile' ? (
-                          <ActivityIndicator size="small" color="#7DD3FC" />
-                        ) : (
-                          <Icon name="refresh" size={18} color="#7DD3FC" />
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {isFood99CourierToStore ? (
-                    <Text style={localStyles.food99InfoHint}>
-                      {global.t?.t('orders', 'message', 'courierAssignedBy99AndComingToStore')}
-                    </Text>
-                  ) : null}
-
-                  {isFood99Delivering && !isFood99CourierToStore ? (
-                    <Text style={localStyles.food99InfoHint}>
-                      {requiresFood99DeliveryLocator
-                        ? `${global.t?.t('orders', 'message', 'orderInDeliveryUseDeliveredToValidate')} ${isIfoodOrder ? 'iFood' : '99Food'}.`
-                        : `${global.t?.t('orders', 'message', 'orderInDeliveryCompleteWhenStoreFinishes')} ${isIfoodOrder ? 'iFood' : '99Food'}.`}
-                    </Text>
-                  ) : null}
-
-                  {food99Delivery?.is_store_delivery && !food99Delivery?.locator ? (
-                    <Text style={localStyles.food99InfoWarning}>
-                      {isIfoodOrder
-                        ? global.t?.t('orders', 'message', 'ifoodDidNotSendLocatorInPayload')
-                        : global.t?.t('orders', 'message', 'food99DidNotSendLocatorInPayload')}
-                    </Text>
-                  ) : null}
-
-                  {!!remoteStateAgeLabel && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'remoteUpdate')}: {remoteStateAgeLabel}
-                    </Text>
-                  )}
-
-                  {!isIfoodPickupLikeOrder && !!formattedFood99Eta && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'estimatedEta')}: {formattedFood99Eta}
-                    </Text>
-                  )}
-                  {isIfoodTakeoutOrder && !!takeoutModeLabel && (
-                    <Text style={localStyles.food99InfoText}>
-                      {(global.t?.t('orders', 'label', 'mode') || 'Modo')}: {takeoutModeLabel}
-                    </Text>
-                  )}
-                  {isIfoodTakeoutOrder && !!formattedTakeoutDateTime && (
-                    <Text style={localStyles.food99InfoText}>
-                      {(global.t?.t('orders', 'label', 'takeoutTime') || 'Horario da retirada')}: {formattedTakeoutDateTime}
-                    </Text>
-                  )}
-                  {isIfoodDineInOrder && !!formattedDineInDateTime && (
-                    <Text style={localStyles.food99InfoText}>
-                      {(global.t?.t('orders', 'label', 'serviceTime') || 'Horario previsto')}: {formattedDineInDateTime}
-                    </Text>
-                  )}
-                  {!!marketplacePickupCode && (
-                    <Text style={localStyles.food99InfoText}>
-                      {(global.t?.t('orders', 'label', 'pickupCode') || 'Codigo de retirada')}: {marketplacePickupCode}
-                    </Text>
-                  )}
-
-                  {(food99RiderName || food99RiderPhone || food99RiderToStoreEta) && (
-                    <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>
-                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodCourier') : global.t?.t('orders', 'title', 'food99Courier')}
-                      </Text>
-                      {!!food99RiderName && (
-                        <Text style={localStyles.food99InfoText}>{food99RiderName}</Text>
-                      )}
-                      {!!food99RiderPhone && (
-                        <Text style={localStyles.food99InfoText}>{food99RiderPhone}</Text>
-                      )}
-                      {!!food99RiderToStoreEta && (
-                        <Text style={localStyles.food99InfoText}>{food99RiderToStoreEta}</Text>
-                      )}
-                    </View>
-                  )}
-
-                  {!!food99Identifiers?.order_index && (
-                    <Text style={localStyles.food99InfoText}>
-                      {isIfoodOrder ? global.t?.t('orders', 'label', 'ifoodNumber') : global.t?.t('orders', 'label', 'food99Number')}: #{food99Identifiers.order_index}
-                    </Text>
-                  )}
-
-                  {!!food99HandoverCode && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'handoverCode')}: {food99HandoverCode}
-                    </Text>
-                  )}
-
-                  {!!food99PickupCode && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'pickupCode')}: {food99PickupCode}
-                    </Text>
-                  )}
-
-                  {!!food99Delivery?.locator && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'locator')}: {food99Delivery.locator}
-                    </Text>
-                  )}
-
-                  {!!food99Delivery?.virtual_phone_number && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'virtualPhone')}: {food99Delivery.virtual_phone_number}
-                    </Text>
-                  )}
-
-                  {!!food99SelectedPaymentLabel && (
-                    <Text style={localStyles.food99InfoTextStrong}>
-                      {global.t?.t('orders', 'label', 'selectedPaymentMethod')}: {food99SelectedPaymentLabel}
-                    </Text>
-                  )}
-                  {!!food99PaymentMethodValue && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'paymentMethod')}: {food99PaymentMethodValue}
-                    </Text>
-                  )}
-                  {!!food99PaymentChannelValue && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'paymentChannel')}: {food99PaymentChannelValue}
-                    </Text>
-                  )}
-                  {shouldShowCollectOnDelivery && (
-                    <Text style={localStyles.food99InfoTextStrong}>
-                      {global.t?.t('orders', 'label', 'collectFromCustomer')}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
-                    </Text>
-                  )}
-                  {food99ChangeFor > 0 ? (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'changeFor')}: {Formatter.formatMoney(food99ChangeFor)}
-                    </Text>
-                  ) : isCashPaymentSelection ? (
-                    <Text style={localStyles.food99InfoText}>{global.t?.t('orders', 'message', 'changeNotRequested')}</Text>
-                  ) : null}
-                  {food99NeedsChange ? (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'changeToReturn')}: {Formatter.formatMoney(food99ChangeAmount)}
-                    </Text>
-                  ) : null}
-                  {food99ShopPaidMoney > 0 ? (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'courierTransferToMerchant')}: {Formatter.formatMoney(food99ShopPaidMoney)}
-                    </Text>
-                  ) : null}
-                  <View style={localStyles.food99SummaryBlock}>
-                    <Text style={localStyles.food99SummaryTitle}>{localInvoicesSectionTitle}</Text>
-                    {renderLocalInvoiceCards('details')}
-                  </View>
-                  {hasFood99CancellationInfo && (
-                    <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'cancellation')}</Text>
-                      {!!food99CancellationSourceLabel && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'origin')}: {food99CancellationSourceLabel}
-                        </Text>
-                      )}
-                      {!!food99Integration?.cancel_code && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'code')}: {food99Integration.cancel_code}
-                        </Text>
-                      )}
-                      {!!food99Integration?.cancel_reason && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'leadSource')}: {food99Integration.cancel_reason}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {food99Financial && (
-                    <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>
-                        {isIfoodOrder ? global.t?.t('orders', 'title', 'ifoodFinancialSummary') : global.t?.t('orders', 'title', 'food99FinancialSummary')}
-                      </Text>
-                      <Text style={localStyles.food99InfoText}>
-                        {global.t?.t('orders', 'label', 'items')}: {Formatter.formatMoney(food99Financial.items_total || 0)}
-                      </Text>
-                      <Text style={localStyles.food99InfoText}>
-                        {global.t?.t('orders', 'label', 'delivery')}: {Formatter.formatMoney(food99Financial.delivery_fee || 0)}
-                      </Text>
-                      {!!Number(food99Financial.service_fee || 0) && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'serviceFee')}: {Formatter.formatMoney(food99Financial.service_fee || 0)}
-                        </Text>
-                      )}
-                      {!!Number(food99Financial.small_order_fee || 0) && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'minimumOrderFee')}: {Formatter.formatMoney(food99Financial.small_order_fee || 0)}
-                        </Text>
-                      )}
-                      {!!Number(food99Financial.meal_top_up_fee || 0) && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'topUpFee')}: {Formatter.formatMoney(food99Financial.meal_top_up_fee || 0)}
-                        </Text>
-                      )}
-                      {!!Number(food99Financial.discount_total || 0) && (
-                        <>
-                          <Text style={localStyles.food99InfoText}>
-                            {global.t?.t('orders', 'label', 'totalDiscounts')}: {Formatter.formatMoney(food99Financial.discount_total || 0)}
-                          </Text>
-                          <Text style={localStyles.food99InfoText}>
-                            {global.t?.t('orders', 'label', 'itemDiscount')}: {Formatter.formatMoney(food99Financial.items_discount_total || 0)}
-                          </Text>
-                          <Text style={localStyles.food99InfoText}>
-                            {global.t?.t('orders', 'label', 'deliveryDiscount')}: {Formatter.formatMoney(food99Financial.delivery_discount_total || 0)}
-                          </Text>
-                          <Text style={localStyles.food99InfoText}>
-                            {global.t?.t('orders', 'label', 'couponDiscount')}: {Formatter.formatMoney(food99Financial.coupon_discount_total || 0)}
-                          </Text>
-                        </>
-                      )}
-                      {!!Number(food99Financial.store_discount_total || 0) && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'storeSubsidizedDiscount')}: {Formatter.formatMoney(food99Financial.store_discount_total || 0)}
-                        </Text>
-                      )}
-                      {!!Number(food99Financial.platform_discount_total || 0) && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'platformSubsidizedDiscount')}: {Formatter.formatMoney(food99Financial.platform_discount_total || 0)}
-                        </Text>
-                      )}
-                      <Text style={localStyles.food99InfoTextStrong}>
-                        {global.t?.t('orders', 'label', 'customerTotal')}: {Formatter.formatMoney(food99Financial.customer_total || 0)}
-                      </Text>
-                      {shouldShowCollectOnDelivery && (
-                        <Text style={localStyles.food99InfoTextStrong}>
-                          {collectOnDeliveryLabel}: {Formatter.formatMoney(food99CashCollectionAmount || 0)}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {shouldShowOrderAddress && (localOrderAddressParts.primary ||
-                    localOrderAddressParts.streetLine ||
-                    localOrderAddressParts.district ||
-                    localOrderAddressParts.cityStateLine ||
-                    localOrderAddressParts.postalCode ||
-                    localOrderAddressParts.nickname ||
-                    localOrderAddressParts.complement) && (
-                    <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'customerAddress')}</Text>
-                      {!!localOrderAddressParts.primary && (
-                        <Text style={localStyles.food99InfoText}>{localOrderAddressParts.primary}</Text>
-                      )}
-                      {!!localOrderAddressParts.streetLine && (
-                        <Text style={localStyles.food99InfoText}>
-                          Rua/numero: {localOrderAddressParts.streetLine}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.district && (
-                        <Text style={localStyles.food99InfoText}>
-                          Bairro: {localOrderAddressParts.district}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.cityStateLine && (
-                        <Text style={localStyles.food99InfoText}>
-                          Cidade/UF: {localOrderAddressParts.cityStateLine}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.postalCode && (
-                        <Text style={localStyles.food99InfoText}>
-                          CEP: {localOrderAddressParts.postalCode}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.nickname && (
-                        <Text style={localStyles.food99InfoText}>
-                          Referencia: {localOrderAddressParts.nickname}
-                        </Text>
-                      )}
-                      {!!localOrderAddressParts.complement && (
-                        <Text style={localStyles.food99InfoText}>
-                          Complemento: {localOrderAddressParts.complement}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {isScheduledOrder && (
-                    <View style={localStyles.scheduledDeliveryBanner}>
-                      <Text style={localStyles.scheduledDeliveryLabel}>⏰ {global.t?.t('orders', 'title', 'scheduledDelivery')}</Text>
-                      {!!scheduledWindowLabel && (
-                        <Text style={localStyles.scheduledDeliveryDate}>{global.t?.t('orders', 'label', 'window')}: {scheduledWindowLabel}</Text>
-                      )}
-                      {!!scheduledDeliveryDateTimeRaw && (
-                        <Text style={localStyles.scheduledDeliveryDate}>
-                          {global.t?.t('orders', 'label', 'delivery')}: {formatScheduledDate(scheduledDeliveryDateTimeRaw)}
-                        </Text>
-                      )}
-                      {!!scheduledPreparationStartRaw && (
-                        <Text style={localStyles.scheduledDeliveryDate}>
-                          {global.t?.t('orders', 'label', 'startPreparation')}: {formatScheduledDate(scheduledPreparationStartRaw)}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {ifoodTaxDocumentRequested && (
-                    <View style={localStyles.taxDocumentBanner}>
-                      <Text style={localStyles.taxDocumentLabel}>{ifoodTaxDocumentTitle}</Text>
-                      <Text style={localStyles.taxDocumentText}>
-                        {global.t?.t('orders', 'message', 'customerRequestedTaxDocument') || 'Cliente solicitou documento fiscal neste pedido.'}
-                      </Text>
-                      {!!orderCustomerDocument && (
-                        <Text style={localStyles.taxDocumentText}>
-                          {orderCustomerDocumentLabel}: {orderCustomerDocument}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {(orderCustomerName || orderCustomerPhone || orderCustomerDocument) && (
-                    <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'customer')}</Text>
-                      {!!orderCustomerName && (
-                        <Text style={localStyles.food99InfoText}>{orderCustomerName}</Text>
-                      )}
-                      {!!orderCustomerPhone && (
-                        <Text style={localStyles.food99InfoText}>{orderCustomerPhone}</Text>
-                      )}
-                      {!!orderCustomerDocument && (
-                        <Text style={localStyles.food99InfoText}>{orderCustomerDocumentLabel}: {orderCustomerDocument}</Text>
-                      )}
-                    </View>
-                  )}
-
-                  {showOrderObservationCard && (
-                    <View style={localStyles.food99SummaryBlock}>
-                      <Text style={localStyles.food99SummaryTitle}>{global.t?.t('orders', 'title', 'observations')}</Text>
-                      <Text style={localStyles.food99InfoText}>{orderObservationText}</Text>
-                      {shouldShowFood99ItemRemarks && (
-                        <Text style={localStyles.food99InfoText}>
-                          {global.t?.t('orders', 'label', 'itemsObservation') || 'Observações dos itens'}: {food99ItemRemarksText}
-                        </Text>
-                      )}
-                      {food99Notes?.need_cutlery !== null &&
-                        food99Notes?.need_cutlery !== undefined && (
-                          <Text style={localStyles.food99InfoText}>
-                            {global.t?.t('orders', 'label', 'needCutlery')}: {food99Notes?.need_cutlery ? global.t?.t('orders', 'label', 'yes') : global.t?.t('orders', 'label', 'no')}
-                          </Text>
-                        )}
-                    </View>
-                  )}
-
-                  {food99Delivery?.is_platform_delivery ? (
-                    <Text style={localStyles.food99InfoHint}>
-                      {global.t?.t('orders', 'message', 'platformHandlesDeliveryAfterReady')}
-                    </Text>
-                  ) : null}
-
-
-                  {!!lastActionAgeLabel && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'lastAction')}: {lastActionAgeLabel}
-                    </Text>
-                  )}
-
-                  {!!lastReconcileAgeLabel && (
-                    <Text style={localStyles.food99InfoText}>
-                      {global.t?.t('orders', 'label', 'lastReconciliation')}: {lastReconcileAgeLabel}
-                    </Text>
-                  )}
-
-                  {shouldHideReadyFood99Action ? (
-                    <Text style={localStyles.food99InfoHint}>
-                      {global.t?.t('orders', 'message', 'orderReadyWaitingPlatform')} {isIfoodOrder ? 'iFood' : '99Food'}.
-                    </Text>
-                  ) : null}
-
-                  {hasFood99SyncIssue ? (
-                    <Text style={localStyles.food99InfoWarning}>
-                      {global.t?.t('orders', 'message', 'integrationDivergenceTapRefresh')}
-                    </Text>
-                  ) : null}
-
-                </View>
-              )}
-
-              {isFood99Order || isIfoodOrder ? (
-                shouldShowMarketplaceKdsActionRow ? (
-                  <View style={localStyles.kdsActionRow}>
-                    {canConfirmIfoodOrder && (
-                      <TouchableOpacity
-                        onPress={() => runOrderAction('confirm')}
-                        disabled={!!food99ActionLoading}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionPrimary,
-                          food99ActionLoading && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {food99ActionLoading === 'confirm' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'confirm')}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {canCancelFood99Order && (
-                      <TouchableOpacity
-                        onPress={handleCancelOrderPress}
-                        disabled={!!food99ActionLoading || !!food99CancelReasonsLoading}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionDanger,
-                          (food99ActionLoading || food99CancelReasonsLoading) &&
-                            localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {food99ActionLoading === 'cancel' || food99CancelReasonsLoading ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {canReadyFood99Order && (
-                      <TouchableOpacity
-                        onPress={() => runFood99OrderAction('ready')}
-                        disabled={!!food99ActionLoading}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionPrimary,
-                          food99ActionLoading && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {food99ActionLoading === 'ready' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{marketplaceReadyActionLabel}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {shouldShowFood99DeliveryAction && (
-                      <TouchableOpacity
-                        onPress={handleFood99DeliveredPress}
-                        disabled={!!food99ActionLoading}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionSuccess,
-                          food99ActionLoading &&
-                            localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {food99ActionLoading === 'delivered' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {canFinalizeFood99Order && (
-                      <TouchableOpacity
-                        onPress={() => runOrderAction('finalize')}
-                        disabled={!!orderActionLoading || !!food99ActionLoading}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionSuccess,
-                          (!!orderActionLoading || !!food99ActionLoading) && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {orderActionLoading === 'finalize' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ) : null
-              ) : (
-                shouldShowGenericKdsActionRow ? (
-                  <View style={localStyles.kdsActionRow}>
-                    {canGenericConfirmOrder && (
-                      <TouchableOpacity
-                        onPress={handleConfirmGenericOrder}
-                        disabled={orderActionLoading === 'confirm'}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionPrimary,
-                          orderActionLoading === 'confirm' && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {orderActionLoading === 'confirm' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>
-                            {global.t?.t('orders', 'label', 'startPreparation') || 'Iniciar preparo'}
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {shouldShowKdsCancel && (
-                      <TouchableOpacity
-                        onPress={handleCancelOrderPress}
-                        disabled={orderActionLoading === 'cancel'}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionDanger,
-                          orderActionLoading === 'cancel' && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {orderActionLoading === 'cancel' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'cancel')}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {canGenericReadyOrder && (
-                      <TouchableOpacity
-                        onPress={handleMarkOrderAsReady}
-                        disabled={orderActionLoading === 'ready'}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionPrimary,
-                          orderActionLoading === 'ready' && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {orderActionLoading === 'ready' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'orderReady')}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {canGenericDeliveredOrder && (
-                      <TouchableOpacity
-                        onPress={handleDeliverGenericOrder}
-                        disabled={orderActionLoading === 'delivered'}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionSuccess,
-                          orderActionLoading === 'delivered' && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {orderActionLoading === 'delivered' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'deliverOrder')}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    {canFinalizeGenericOrder && (
-                      <TouchableOpacity
-                        onPress={handleFinalizeGenericOrder}
-                        disabled={orderActionLoading === 'finalize'}
-                        style={[
-                          localStyles.kdsActionButton,
-                          localStyles.kdsActionSuccess,
-                          orderActionLoading === 'finalize' && localStyles.kdsActionButtonDisabled,
-                        ]}
-                      >
-                        {orderActionLoading === 'finalize' ? (
-                          <ActivityIndicator size="small" color="#F8FAFC" />
-                        ) : (
-                          <Text style={localStyles.kdsActionText}>{global.t?.t('orders', 'button', 'finalize') || 'Finalizar'}</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ) : null
-              )}
-
-              <View style={localStyles.kdsActionRow}>
-                {showBarcodeInput && canAddProductsToOrder && (
-                  <TouchableOpacity
-                    onPress={handleAddProduct}
-                    style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
-                  >
-                    <Icon name="add-circle" size={18} color="#fff" />
-                    <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>{global.t?.t('orders', 'button', 'addItem')}</Text>
-                  </TouchableOpacity>
-                )}
-
-                {showInlineAddPaymentAction && (
-                  <TouchableOpacity
-                    onPress={handleAddPayment}
-                    style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
-                  >
-                    <Icon name="payments" size={18} color="#fff" />
-                    <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>
-                      {global.t?.t('orders', 'button', 'pay') || 'Pagar'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  onPress={handleOrderTools}
-                  style={[localStyles.kdsActionButton, localStyles.kdsActionPrimary]}
-                >
-                  <Icon name="settings" size={18} color="#fff" />
-                  <Text style={[localStyles.kdsActionText, { marginLeft: 6 }]}>{global.t?.t('orders', 'button', 'details')}</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )) : (
+            renderKdsMobileContent()
+          ) : (
             <>
               <OrderHeader key={item.id} order={resolvedDisplayOrder || item} />
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -5618,6 +5618,7 @@ const OrderDetails = ({ route, navigation }) => {
 
           {isKds || useUnifiedKdsLayout ? null : (
             <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+              <OrderExtraDataCard order={resolvedDisplayOrder || item} />
               <View
                 style={[
                   cssStyles.itemsSection,
@@ -5689,42 +5690,6 @@ const OrderDetails = ({ route, navigation }) => {
                           </View>
                         )
                       })}
-                      <View style={localStyles.editAddWrap}>
-                        <View style={[localStyles.editAddSearch, { borderColor: ppcColors.border, backgroundColor: ppcColors.cardBg }]}>
-                          <Icon name="search" size={16} color={ppcColors.textSecondary} />
-                          <TextInput
-                            value={addProductQuery}
-                            onChangeText={v => { setAddProductQuery(v); searchProducts(v) }}
-                            placeholder="Buscar produto para adicionar..."
-                            placeholderTextColor={ppcColors.textSecondary}
-                            style={{ flex: 1, color: ppcColors.textPrimary, fontSize: 14, paddingVertical: 0 }}
-                          />
-                          {productSearchLoading && <ActivityIndicator size="small" color={ppcColors.primary} />}
-                        </View>
-                        {addProductQuery.trim().length > 0 && (productSearchResults || []).map(p => {
-                          const pid = String(p?.id || '')
-                          const pname = p?.product || p?.name || 'Produto'
-                          const pprice = Number(p?.price || 0)
-                          const isAdding = addingProductId === pid
-                          return (
-                            <TouchableOpacity
-                              key={pid || p['@id']}
-                              onPress={() => handleAddProductInline(p)}
-                              disabled={!!addingProductId}
-                              style={[localStyles.editAddResult, { borderColor: ppcColors.borderSoft }]}
-                              activeOpacity={0.7}
-                            >
-                              <View style={{ flex: 1 }}>
-                                <Text style={[localStyles.editAddResultName, { color: ppcColors.textPrimary }]} numberOfLines={1}>{pname}</Text>
-                                {pprice > 0 && <Text style={[localStyles.editAddResultPrice, { color: ppcColors.textSecondary }]}>{Formatter.formatMoney(pprice)}</Text>}
-                              </View>
-                              {isAdding
-                                ? <ActivityIndicator size="small" color={ppcColors.primary} />
-                                : <Icon name="add-circle" size={22} color={ppcColors.primary} />}
-                            </TouchableOpacity>
-                          )
-                        })}
-                      </View>
                     </React.Fragment>
                   )
                   : (
@@ -5812,1568 +5777,5 @@ const OrderDetails = ({ route, navigation }) => {
   )
 }
 
-const createStyles = (scale, palette, windowHeight = 800) =>
-  StyleSheet.create({
-    topBarActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginRight: 6,
-    },
-    topBarIconButton: {
-      width: 34,
-      height: 34,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBg,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    topBarIconButtonDisabled: {
-      opacity: 0.5,
-    },
-    topBarTitleWrap: {
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-      minWidth: 180,
-      marginTop: 1,
-    },
-    topBarTitleText: {
-      color: palette.textPrimary,
-      fontSize: 23 * scale,
-      fontWeight: '900',
-      lineHeight: 24 * scale,
-    },
-    topBarTitleSubText: {
-      marginTop: 1,
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '700',
-      lineHeight: 14,
-    },
-    mobileOrderScrollContent: {
-      paddingBottom: 126,
-    },
-    mobileOrderLayout: {
-      gap: 10,
-    },
-    mobileSummaryCard: {
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 2,
-    },
-    mobileSummaryHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 10,
-      gap: 10,
-    },
-    mobileSummaryOriginWrap: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
-      gap: 8,
-    },
-    mobileSummaryOriginIcon: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBgSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    mobileSummaryLabel: {
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
-    },
-    mobileSummaryValue: {
-      color: palette.textPrimary,
-      fontSize: 16,
-      fontWeight: '900',
-    },
-    mobileStatusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderRadius: 999,
-      borderWidth: 1,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      backgroundColor: palette.cardBgSoft,
-    },
-    mobileStatusDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 999,
-      marginRight: 6,
-    },
-    mobileStatusText: {
-      color: palette.textPrimary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    mobileSummaryMetricsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-      marginBottom: 10,
-    },
-    mobileDiscountPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-    },
-    mobileDiscountText: {
-      color: palette.accent,
-      fontSize: 12,
-      fontWeight: '800',
-    },
-    mobileWaitingPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: palette.danger,
-      backgroundColor: palette.dangerBg,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-    },
-    mobileWaitingText: {
-      color: palette.dangerText,
-      fontSize: 12,
-      fontWeight: '800',
-    },
-    mobileSummaryFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      borderTopWidth: 1,
-      borderTopColor: palette.border,
-      paddingTop: 8,
-      marginTop: 2,
-      marginBottom: 6,
-    },
-    mobileTotalLabel: {
-      color: palette.textSecondary,
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.7,
-    },
-    mobileTotalValue: {
-      color: palette.accentInfo,
-      fontSize: 34 * scale,
-      fontWeight: '900',
-      lineHeight: 36 * scale,
-    },
-    mobileSummaryMetaList: {
-      marginTop: 2,
-      gap: 3,
-    },
-    mobileSummaryMetaText: {
-      color: palette.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    mobileScheduledDeliveryCard: {
-      marginTop: 8,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#FCD34D',
-      backgroundColor: '#FFFBEB',
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-      gap: 3,
-    },
-    mobileScheduledDeliveryHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 1,
-    },
-    mobileScheduledDeliveryLabel: {
-      color: '#92400E',
-      fontSize: 11,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    mobileScheduledDeliveryText: {
-      color: '#78350F',
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 17,
-    },
-    mobileFulfillmentCard: {
-      marginTop: 8,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#A7F3D0',
-      backgroundColor: '#ECFDF5',
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-      gap: 3,
-    },
-    mobileFulfillmentHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 1,
-    },
-    mobileFulfillmentLabel: {
-      color: '#065F46',
-      fontSize: 11,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    mobileFulfillmentText: {
-      color: '#065F46',
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 17,
-    },
-    remoteStateBadge: {
-      alignSelf: 'flex-start',
-      borderWidth: 1,
-      borderRadius: 999,
-      paddingHorizontal: 10,
-      paddingVertical: 3,
-    },
-    remoteStateBadgeText: {
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    mobileInfoCard: {
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      gap: 10,
-    },
-    mobileInfoHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    mobileInfoIconWrap: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBgSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    mobileInfoTextWrap: {
-      flex: 1,
-    },
-    mobileInfoLabel: {
-      color: palette.textSecondary,
-      fontSize: 10,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.7,
-      marginBottom: 1,
-    },
-    mobileInfoTitle: {
-      color: palette.textPrimary,
-      fontSize: 21 * scale,
-      fontWeight: '900',
-    },
-    mobileInfoSubtitle: {
-      color: palette.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 18,
-      marginTop: 2,
-    },
-    orderInvoiceBlockHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-    },
-    orderInvoiceCounter: {
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.4,
-    },
-    orderInvoiceList: {
-      gap: 8,
-    },
-    orderInvoiceCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 11,
-      paddingVertical: 10,
-      gap: 6,
-    },
-    orderInvoiceCardDetails: {
-      backgroundColor: palette.cardBg,
-    },
-    orderInvoiceCardHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: 8,
-    },
-    orderInvoiceTitleWrap: {
-      flex: 1,
-      gap: 2,
-    },
-    orderInvoiceTitle: {
-      color: palette.textPrimary,
-      fontSize: 14 * scale,
-      fontWeight: '800',
-      lineHeight: 18 * scale,
-    },
-    orderInvoiceSubtitle: {
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '700',
-      lineHeight: 16,
-    },
-    orderInvoiceStatusBadge: {
-      borderRadius: 999,
-      borderWidth: 1,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      alignSelf: 'flex-start',
-    },
-    orderInvoiceStatusText: {
-      fontSize: 10,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    orderInvoiceAmount: {
-      color: palette.textPrimary,
-      fontSize: 24 * scale,
-      fontWeight: '900',
-      lineHeight: 26 * scale,
-    },
-    orderInvoiceKind: {
-      color: palette.textPrimary,
-      fontSize: 12,
-      fontWeight: '800',
-      lineHeight: 17,
-    },
-    orderInvoiceMeta: {
-      color: palette.textSecondary,
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 17,
-    },
-    marketplaceDeliveryPaymentCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-      gap: 4,
-    },
-    marketplaceDeliveryPaymentHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 7,
-      marginBottom: 2,
-    },
-    marketplaceDeliveryPaymentTitle: {
-      color: palette.accentInfo,
-      fontSize: 10,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    marketplaceDeliveryPaymentLine: {
-      color: palette.textPrimary,
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 17,
-    },
-    marketplaceDeliveryPaymentLineStrong: {
-      color: palette.textPrimary,
-      fontSize: 12,
-      fontWeight: '900',
-      lineHeight: 17,
-    },
-    mobileAddressCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-      flexDirection: 'row',
-      gap: 8,
-    },
-    mobileAddressTextWrap: {
-      flex: 1,
-    },
-    mobileAddressPrimary: {
-      color: palette.textPrimary,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 19,
-    },
-    mobileAddressSecondary: {
-      color: palette.textSecondary,
-      fontSize: 12,
-      fontWeight: '600',
-      lineHeight: 18,
-      marginTop: 2,
-    },
-    mobileTaxDocumentCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.accentInfo,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-      flexDirection: 'row',
-      gap: 8,
-    },
-    mobileTaxDocumentPrimary: {
-      color: palette.accentInfo,
-      fontSize: 10,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-      marginBottom: 2,
-    },
-    mobileTaxDocumentSecondary: {
-      color: palette.textPrimary,
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 17,
-    },
-    mobileNoteCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.accent,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-    },
-    mobileNoteHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 4,
-    },
-    mobileNoteLabel: {
-      color: palette.accent,
-      fontSize: 10,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    mobileNoteText: {
-      color: palette.textPrimary,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 18,
-    },
-    mobilePaymentGrid: {
-      flexDirection: 'row',
-      gap: 8,
-    },
-    mobilePaymentMetricCard: {
-      flex: 1,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    },
-    mobilePaymentMetricLabel: {
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 4,
-      letterSpacing: 0.6,
-    },
-    mobilePaymentMetricValue: {
-      color: palette.textPrimary,
-      fontSize: 30 * scale,
-      fontWeight: '900',
-      lineHeight: 32 * scale,
-    },
-    mobilePaymentPendingValue: {
-      color: '#D97706',
-    },
-    mobilePaymentMetricHint: {
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '700',
-      marginTop: 4,
-    },
-    mobileWarningCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.danger,
-      backgroundColor: palette.dangerBg,
-      paddingHorizontal: 11,
-      paddingVertical: 9,
-      gap: 4,
-    },
-    mobileWarningText: {
-      color: palette.dangerText,
-      fontSize: 12,
-      fontWeight: '700',
-      lineHeight: 17,
-    },
-    mobileProductsCard: {
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      marginTop: 4,
-      marginBottom: 6,
-    },
-    mobileProductsTitle: {
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-      marginBottom: 8,
-    },
-    purchaseItemRow: {
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 10,
-      backgroundColor: palette.cardBgSoft,
-      marginBottom: 6,
-      borderLeftWidth: 3,
-      borderLeftColor: '#D97706',
-    },
-    purchaseItemTop: {
-      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8,
-    },
-    purchaseItemName: {
-      flex: 1, fontSize: 14 * scale, fontWeight: '700', color: palette.textPrimary,
-    },
-    purchaseItemQty: {
-      fontSize: 14 * scale, fontWeight: '800', color: '#D97706',
-    },
-    purchaseItemDesc: {
-      fontSize: 12 * scale, color: palette.textSecondary, marginTop: 2,
-    },
-    purchaseItemComment: {
-      fontSize: 12 * scale, color: palette.textSecondary, fontStyle: 'italic', marginTop: 4,
-    },
-    purchaseItemPriceRow: {
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6,
-    },
-    purchaseItemUnit: {
-      fontSize: 12 * scale, color: palette.textSecondary,
-    },
-    purchaseItemTotal: {
-      fontSize: 14 * scale, fontWeight: '800', color: '#D97706',
-    },
-
-    /* edição inline de itens */
-    editItemRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 10,
-      paddingHorizontal: 4,
-      borderBottomWidth: 1,
-      borderBottomColor: palette.borderSoft,
-      gap: 8,
-    },
-    editItemName: {
-      fontSize: 14 * scale,
-      fontWeight: '700',
-      color: palette.textPrimary,
-    },
-    editItemPrice: {
-      fontSize: 12 * scale,
-      color: palette.textSecondary,
-      marginTop: 2,
-    },
-    editQtyRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    editQtyBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: palette.cardBgSoft,
-    },
-    editQtyBox: {
-      minWidth: 38,
-      height: 32,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: palette.cardBg,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-    },
-    editQtyText: {
-      fontSize: 15 * scale,
-      fontWeight: '900',
-      color: palette.textPrimary,
-    },
-    editConfirmRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    editConfirmText: {
-      fontSize: 12 * scale,
-      color: '#EF4444',
-      fontWeight: '700',
-    },
-    editConfirmYes: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      backgroundColor: '#EF4444',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    editConfirmNo: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      backgroundColor: palette.textSecondary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    editAddWrap: {
-      marginTop: 10,
-      borderTopWidth: 1,
-      borderTopColor: palette.borderSoft,
-      paddingTop: 8,
-    },
-    editAddSearch: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      borderWidth: 1,
-      borderRadius: 10,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-    },
-    editAddResult: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 10,
-      paddingHorizontal: 4,
-      borderBottomWidth: 1,
-      gap: 8,
-    },
-    editAddResultName: {
-      fontSize: 14 * scale,
-      fontWeight: '700',
-    },
-    editAddResultPrice: {
-      fontSize: 12 * scale,
-      marginTop: 1,
-    },
-
-    mobileProductItemRow: {
-      marginTop: 4,
-      paddingVertical: 9,
-      paddingHorizontal: 10,
-      borderLeftWidth: 4,
-      borderRadius: 10,
-      backgroundColor: palette.cardBgSoft,
-    },
-    mobileProductText: {
-      color: palette.textPrimary,
-      fontSize: 16 * scale,
-      fontWeight: '800',
-    },
-    mobileProductSubText: {
-      color: palette.textSecondary,
-      fontSize: 13 * scale,
-      fontWeight: '700',
-    },
-    mobileProductQtyText: {
-      color: palette.accentInfo,
-      fontWeight: '900',
-    },
-    mobileProductStatusMarker: {
-      fontWeight: '900',
-    },
-    orderProductGroupWrap: {
-      marginTop: 7,
-      paddingLeft: 6,
-      gap: 4,
-    },
-    orderProductGroupTitlePill: {
-      alignSelf: 'flex-start',
-      borderRadius: 6,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      marginBottom: 1,
-    },
-    orderProductGroupTitle: {
-      color: palette.accentInfo,
-      fontSize: 10,
-      fontWeight: '900',
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
-    },
-    orderProductGroupItem: {
-      gap: 2,
-      paddingLeft: 4,
-    },
-    orderProductGroupItemRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: 10,
-    },
-    orderProductGroupItemText: {
-      flex: 1,
-      color: palette.textPrimary,
-      fontSize: 13 * scale,
-      fontWeight: '700',
-      lineHeight: 18,
-    },
-    orderProductGroupItemMetaText: {
-      color: palette.textSecondary,
-      fontSize: 12 * scale,
-      fontWeight: '600',
-      lineHeight: 17,
-    },
-    orderProductGroupItemPriceText: {
-      color: palette.textSecondary,
-      fontSize: 12 * scale,
-      fontWeight: '700',
-      lineHeight: 18,
-    },
-    mobileBottomActionsWrap: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      backgroundColor: palette.panelBg,
-      paddingTop: 8,
-      paddingBottom: 10,
-      paddingHorizontal: 12,
-      borderTopWidth: 1,
-      borderTopColor: palette.border,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 6,
-      elevation: 10,
-    },
-    mobileCancelActionButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.danger,
-      backgroundColor: palette.dangerBg,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    mobilePrimaryActionButton: {
-      flex: 1,
-      minHeight: 48,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.primary,
-      backgroundColor: palette.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      gap: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.16,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    mobilePrimaryActionText: {
-      color: '#FFFFFF',
-      fontSize: 17 * scale,
-      fontWeight: '900',
-      letterSpacing: 0.2,
-    },
-    mobileActionButtonDisabled: {
-      opacity: 0.55,
-    },
-    itemRow: {
-      marginTop: 6 * scale,
-      paddingVertical: 6 * scale,
-      paddingLeft: 9 * scale,
-      borderLeftWidth: 5,
-      borderRadius: 10,
-      backgroundColor: '#101927',
-    },
-    text: {
-      color: '#F8FAFC',
-      fontSize: 17 * scale,
-      fontWeight: '800',
-    },
-    subText: {
-      color: '#CBD5E1',
-      fontSize: 14 * scale,
-      fontWeight: '600',
-    },
-    qtyText: {
-      color: '#FACC15',
-      fontWeight: '900',
-    },
-    statusMarker: {
-      fontWeight: '900',
-    },
-    kdsContainer: {
-      backgroundColor: palette.appBg,
-    },
-    food99InfoCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#163047',
-      backgroundColor: '#0A1420',
-      padding: 12,
-      marginBottom: 10,
-    },
-    food99InfoHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    food99InfoHeaderRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    food99InfoTitle: {
-      color: '#E2E8F0',
-      fontSize: 15,
-      fontWeight: '800',
-    },
-    food99InfoBadge: {
-      color: '#7DD3FC',
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    food99InfoText: {
-      color: '#CBD5E1',
-      fontSize: 13,
-      fontWeight: '600',
-      marginBottom: 4,
-    },
-    food99InfoTextStrong: {
-      color: '#F8FAFC',
-      fontSize: 13,
-      fontWeight: '800',
-      marginBottom: 4,
-    },
-    food99InfoHint: {
-      color: '#FCD34D',
-      fontSize: 12,
-      fontWeight: '700',
-      marginTop: 6,
-    },
-    food99RefreshButton: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      borderWidth: 1,
-      borderColor: '#1D4ED8',
-      backgroundColor: '#0F172A',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    food99RefreshButtonDisabled: {
-      opacity: 0.55,
-    },
-    food99SummaryRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginTop: 8,
-      marginBottom: 2,
-    },
-    food99SummaryPill: {
-      flex: 1,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#1E3A5F',
-      backgroundColor: '#0B1220',
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-    },
-    food99SummaryLabel: {
-      color: '#93C5FD',
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 3,
-    },
-    food99SummaryValue: {
-      color: '#F8FAFC',
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    food99SummaryBlock: {
-      marginTop: 8,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#1E293B',
-      backgroundColor: '#0B1220',
-      paddingHorizontal: 10,
-      paddingVertical: 9,
-    },
-    food99SummaryTitle: {
-      color: '#93C5FD',
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 4,
-    },
-    scheduledDeliveryBanner: {
-      marginTop: 8,
-      marginBottom: 4,
-      borderRadius: 10,
-      borderWidth: 2,
-      borderColor: '#F59E0B',
-      backgroundColor: '#451A03',
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      alignItems: 'center',
-    },
-    scheduledDeliveryLabel: {
-      color: '#FCD34D',
-      fontSize: 14,
-      fontWeight: '900',
-      letterSpacing: 1.5,
-      textTransform: 'uppercase',
-    },
-    scheduledDeliveryDate: {
-      color: '#FDE68A',
-      fontSize: 13,
-      fontWeight: '700',
-      marginTop: 3,
-    },
-    taxDocumentBanner: {
-      marginTop: 8,
-      marginBottom: 4,
-      borderRadius: 10,
-      borderWidth: 2,
-      borderColor: '#0891B2',
-      backgroundColor: '#082F49',
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      alignItems: 'center',
-    },
-    taxDocumentLabel: {
-      color: '#67E8F9',
-      fontSize: 14,
-      fontWeight: '900',
-      letterSpacing: 1.2,
-      textTransform: 'uppercase',
-      textAlign: 'center',
-    },
-    taxDocumentText: {
-      color: '#CFFAFE',
-      fontSize: 13,
-      fontWeight: '700',
-      marginTop: 3,
-      textAlign: 'center',
-    },
-    cancelReasonModal: {
-      width: '100%',
-      maxHeight: windowHeight * 0.88,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.modalBg,
-      paddingHorizontal: 16,
-      paddingTop: 16,
-      paddingBottom: 14,
-    },
-    cancelReasonBadge: {
-      alignSelf: 'flex-start',
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBgSoft,
-      color: palette.accentInfo,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 10,
-    },
-    cancelReasonTitle: {
-      color: palette.textPrimary,
-      fontSize: 22,
-      fontWeight: '900',
-      marginBottom: 6,
-    },
-    cancelReasonDescription: {
-      color: palette.textSecondary,
-      fontSize: 13,
-      lineHeight: 19,
-      marginBottom: 14,
-    },
-    cancelReasonLoadingState: {
-      minHeight: 120,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-    },
-    cancelReasonLoadingText: {
-      color: palette.textSecondary,
-      fontSize: 13,
-      fontWeight: '600',
-    },
-    cancelReasonList: {
-      maxHeight: 300,
-    },
-    cancelReasonListContent: {
-      gap: 10,
-      paddingBottom: 4,
-    },
-    cancelReasonOption: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 12,
-      paddingVertical: 11,
-    },
-    cancelReasonOptionSelected: {
-      borderColor: palette.accentInfo,
-      backgroundColor: palette.cardBg,
-    },
-    cancelReasonOptionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 4,
-    },
-    cancelReasonOptionCode: {
-      color: palette.accentInfo,
-      fontSize: 11,
-      fontWeight: '800',
-    },
-    cancelReasonOptionBadge: {
-      color: palette.accent,
-      fontSize: 10,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-    },
-    cancelReasonOptionText: {
-      color: palette.textPrimary,
-      fontSize: 13,
-      fontWeight: '700',
-      lineHeight: 18,
-    },
-    cancelReasonInputBlock: {
-      marginTop: 12,
-      marginBottom: 2,
-    },
-    cancelReasonInputLabel: {
-      color: palette.accentInfo,
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 6,
-    },
-    cancelReasonInput: {
-      minHeight: 82,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      color: palette.textPrimary,
-      fontSize: 16,
-      fontWeight: '700',
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      textAlignVertical: 'top',
-    },
-    cancelReasonButtonDanger: {
-      borderColor: palette.danger,
-      backgroundColor: palette.danger,
-    },
-    detailsModal: {
-      width: '100%',
-      maxHeight: windowHeight * 0.84,
-      minHeight: 320,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.modalBg,
-      paddingHorizontal: 18,
-      paddingTop: 16,
-      paddingBottom: 14,
-    },
-    detailsModalHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: 12,
-      marginBottom: 14,
-    },
-    detailsModalEyebrow: {
-      color: palette.accentInfo,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 4,
-    },
-    detailsModalTitle: {
-      color: palette.textPrimary,
-      fontSize: 26,
-      fontWeight: '900',
-    },
-    detailsModalCloseButton: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    detailsModalScroll: {
-      flex: 1,
-    },
-    detailsModalScrollContent: {
-      paddingBottom: 20,
-      gap: 12,
-    },
-    detailsMarkPaidButton: {
-      minHeight: 44,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.accentInfo,
-      backgroundColor: palette.accentInfo,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 14,
-    },
-    detailsMarkPaidButtonText: {
-      color: '#FFFFFF',
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    detailsGrid: {
-      flexDirection: 'row',
-      gap: 10,
-      flexWrap: 'wrap',
-    },
-    detailsCard: {
-      flexGrow: 1,
-      minWidth: 180,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 12,
-      paddingVertical: 11,
-    },
-    detailsCardLabel: {
-      color: palette.accentInfo,
-      fontSize: 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 4,
-    },
-    detailsCardValue: {
-      color: palette.textPrimary,
-      fontSize: 17,
-      fontWeight: '800',
-    },
-    detailsSection: {
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 12,
-      paddingVertical: 11,
-    },
-    detailsSectionTitle: {
-      color: palette.accentInfo,
-      fontSize: 12,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      marginBottom: 6,
-    },
-    detailsInfoText: {
-      color: palette.textSecondary,
-      fontSize: 13,
-      fontWeight: '600',
-      lineHeight: 19,
-      marginBottom: 4,
-    },
-    detailsInfoTextStrong: {
-      color: palette.textPrimary,
-      fontSize: 13,
-      fontWeight: '800',
-      lineHeight: 19,
-      marginBottom: 4,
-    },
-    detailsLoadingState: {
-      minHeight: 120,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-    },
-    detailsLoadingText: {
-      color: palette.textSecondary,
-      fontSize: 13,
-      fontWeight: '600',
-    },
-    kdsActionRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 8,
-    },
-    kdsActionButton: {
-      flex: 1,
-      borderRadius: 10,
-      minHeight: 40,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      borderWidth: 1,
-    },
-    kdsActionPrimary: {
-      backgroundColor: '#0B84C6',
-      borderColor: '#0B84C6',
-    },
-    kdsActionDanger: {
-      backgroundColor: '#2A1114',
-      borderColor: '#7F1D1D',
-    },
-    kdsActionSuccess: {
-      backgroundColor: '#102617',
-      borderColor: '#166534',
-    },
-    kdsActionNeutral: {
-      backgroundColor: '#1E293B',
-      borderColor: '#334155',
-    },
-    kdsActionText: {
-      color: '#F8FAFC',
-      fontSize: 14,
-      fontWeight: '700',
-    },
-    kdsActionButtonDisabled: {
-      opacity: 0.6,
-    },
-    food99InfoWarning: {
-      color: palette.dangerText,
-      fontSize: 12,
-      fontWeight: '700',
-      marginTop: 6,
-    },
-    modalSheetRoot: {
-      flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: palette.overlay,
-      paddingTop: 24,
-    },
-    modalSheetBackdrop: {
-      flex: 1,
-    },
-    modalSheetWrap: {
-      width: '100%',
-      maxHeight: windowHeight,
-      justifyContent: 'flex-end',
-    },
-    deliveryCodeModal: {
-      width: '100%',
-      maxHeight: windowHeight * 0.92,
-      minHeight: 360,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.modalBg,
-      paddingHorizontal: 16,
-      paddingTop: 12,
-      paddingBottom: 14,
-    },
-    deliveryCodeHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-      gap: 10,
-    },
-    deliveryCodeModalTitle: {
-      color: palette.textPrimary,
-      fontSize: 24,
-      fontWeight: '900',
-      marginBottom: 10,
-    },
-    deliveryCodeCloseButton: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    deliveryCodeScroll: {
-      flex: 1,
-    },
-    deliveryCodeScrollContent: {
-      paddingBottom: 8,
-    },
-    deliveryCodeStepBadge: {
-      alignSelf: 'flex-start',
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.borderSoft,
-      backgroundColor: palette.cardBgSoft,
-      color: palette.accentInfo,
-      fontSize: 11,
-      fontWeight: '800',
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      marginBottom: 0,
-      overflow: 'hidden',
-      textTransform: 'uppercase',
-    },
-    deliveryCodeTitle: {
-      color: palette.textPrimary,
-      fontSize: 20,
-      fontWeight: '800',
-      marginBottom: 8,
-    },
-    deliveryCodeDescription: {
-      color: palette.textSecondary,
-      fontSize: 13,
-      lineHeight: 20,
-      marginBottom: 14,
-    },
-    deliveryCodeInput: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      color: palette.textPrimary,
-      minHeight: 52,
-      paddingHorizontal: 16,
-      fontSize: 24,
-      fontWeight: '800',
-      letterSpacing: 6,
-      textAlign: 'center',
-      marginBottom: 10,
-    },
-    deliveryCodeHelper: {
-      color: palette.textSecondary,
-      fontSize: 12,
-      fontWeight: '600',
-      marginBottom: 14,
-    },
-    deliveryCodeActions: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 8,
-      paddingTop: 10,
-      borderTopWidth: 1,
-      borderTopColor: palette.borderSoft,
-    },
-    deliveryCodeMetaCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 12,
-    },
-    deliveryCodeMetaRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 12,
-    },
-    deliveryCodeMetaCardCompact: {
-      flex: 1,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    },
-    deliveryCodeMetaLabel: {
-      color: palette.textSecondary,
-      fontSize: 11,
-      fontWeight: '700',
-      marginBottom: 4,
-      textTransform: 'uppercase',
-    },
-    deliveryCodeMetaValue: {
-      color: palette.textPrimary,
-      fontSize: 20,
-      fontWeight: '800',
-      letterSpacing: 2,
-    },
-    deliveryCodeMetaValueCompact: {
-      color: palette.textPrimary,
-      fontSize: 18,
-      fontWeight: '800',
-      letterSpacing: 1.5,
-    },
-    deliveryLocatorHero: {
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      marginBottom: 12,
-    },
-    deliveryLocatorHeroValue: {
-      color: palette.textPrimary,
-      fontSize: 28,
-      fontWeight: '900',
-      letterSpacing: 4,
-      marginBottom: 8,
-    },
-    deliveryLocatorHeroHelper: {
-      color: palette.textSecondary,
-      fontSize: 12,
-      lineHeight: 18,
-      marginBottom: 10,
-    },
-    deliveryLinkCard: {
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 12,
-    },
-    deliveryLinkUrl: {
-      color: palette.accentInfo,
-      fontSize: 12,
-      lineHeight: 18,
-      marginBottom: 10,
-    },
-    deliveryLinkActions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    deliveryLinkActionButton: {
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    deliveryLinkActionText: {
-      color: palette.textPrimary,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    deliveryLinkPrimaryButton: {
-      alignSelf: 'flex-start',
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.accentInfo,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    deliveryLinkPrimaryButtonText: {
-      color: palette.accentInfo,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    deliveryCodeButton: {
-      flex: 1,
-      minHeight: 44,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-    },
-    deliveryCodeButtonSecondary: {
-      borderColor: palette.border,
-      backgroundColor: palette.cardBgSoft,
-    },
-    deliveryCodeButtonPrimary: {
-      borderColor: palette.primary,
-      backgroundColor: palette.primary,
-    },
-    deliveryCodeButtonSecondaryText: {
-      color: palette.textPrimary,
-      fontSize: 14,
-      fontWeight: '700',
-    },
-    deliveryCodeButtonPrimaryText: {
-      color: '#F8FAFC',
-      fontSize: 14,
-      fontWeight: '800',
-    },
-  })
 export default OrderDetails
+
