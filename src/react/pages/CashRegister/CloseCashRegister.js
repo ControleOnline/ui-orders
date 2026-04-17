@@ -1,4 +1,5 @@
 import React, {useCallback, useState} from 'react';
+
 import {
   Text,
   View,
@@ -7,6 +8,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {useStore} from '@store';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
@@ -15,6 +17,17 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
+
+import {
+  inlineStyle_123_20,
+  inlineStyle_130_18,
+  inlineStyle_137_24,
+  inlineStyle_141_24,
+  inlineStyle_148_24,
+  inlineStyle_152_24,
+  inlineStyle_183_24,
+  inlineStyle_192_24,
+} from './CloseCashRegister.styles';
 
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
@@ -120,36 +133,30 @@ const CloseCashRegister = ({navigation}) => {
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View>
-              <Text style={{color: '#666', marginLeft: 8}}>
+              <Text style={inlineStyle_123_20}>
                 {user?.realname}
               </Text>
 
               {orderItems.map((item, index) => (
                 <View
                   key={index}
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    paddingVertical: 4,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#eee',
-                  }}>
-                  <Text style={{color: '#333', flex: 0.2}}>
+                  style={inlineStyle_130_18}>
+                  <Text style={inlineStyle_137_24}>
                     {item.quantity}
                   </Text>
 
-                  <Text style={{color: '#333', flex: 2}}>
+                  <Text style={inlineStyle_141_24}>
                     {item.product_name}
                     {item.product_description
                       ? ' - ' + item.product_description
                       : ''}
                   </Text>
 
-                  <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                  <Text style={inlineStyle_148_24}>
                     {Formatter.formatMoney(item.order_product_price)}
                   </Text>
 
-                  <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                  <Text style={inlineStyle_152_24}>
                     {Formatter.formatMoney(item.order_product_total)}
                   </Text>
                 </View>
@@ -180,7 +187,7 @@ const CloseCashRegister = ({navigation}) => {
                   onPress={handleConfirmClose}
                   style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
-                  <Text style={{color: '#fff', marginLeft: 8}}>
+                  <Text style={inlineStyle_183_24}>
                     {global.t?.t('orders', 'button', 'closeCashRegister')}
                   </Text>
                 </TouchableOpacity>
@@ -189,7 +196,7 @@ const CloseCashRegister = ({navigation}) => {
                   onPress={handleConfirmOpen}
                   style={[globalStyles.button]}>
                   <Icon name="print" size={24} color="#fff" />
-                  <Text style={{color: '#fff', marginLeft: 8}}>
+                  <Text style={inlineStyle_192_24}>
                     {global.t?.t('orders', 'button', 'openCashRegister')}
                   </Text>
                 </TouchableOpacity>

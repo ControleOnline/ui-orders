@@ -2,10 +2,10 @@ import React from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {View, ScrollView, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
+import { inlineStyle_62_26 } from './PaymentCheckoutPanel.styles';
 
 const PaymentCheckoutPanel = ({
   payments = [],
@@ -23,7 +23,6 @@ const PaymentCheckoutPanel = ({
   return (
     <SafeAreaView style={[styles.container]}>
       {topContent}
-
       {!invoiceIsSaving &&
       !invoiceError &&
       payments &&
@@ -59,7 +58,7 @@ const PaymentCheckoutPanel = ({
                     )}
                   </View>
                   <View>
-                    <Text style={{color: '#666'}}>
+                    <Text style={inlineStyle_62_26}>
                       {payment.paymentType.paymentType}
                     </Text>
                   </View>
@@ -69,9 +68,7 @@ const PaymentCheckoutPanel = ({
           </View>
         </ScrollView>
       ) : null}
-
       <PayableToolbar />
-
       <View style={[styles.toolbar]}>
         <OrderTotalToolbar />
         <TouchableOpacity

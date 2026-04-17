@@ -3,6 +3,7 @@ import {Text, View} from 'react-native';
 import css from '@controleonline/ui-products/src/react/css/products';
 import Carousel from '@controleonline/ui-products/src/react/components/products/Carousel';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import { inlineStyle_53_45 } from './ProductItem.styles';
 
 const ProductItem = ({orderProduct}) => {
   const {styles} = css();
@@ -50,7 +51,7 @@ const ProductItem = ({orderProduct}) => {
                 <View style={styles.productItem.groupContainer}>
                   {Object.entries(groupedComponents).map(
                     ([groupName, components], groupIndex) => (
-                      <View key={groupIndex} style={{marginBottom: 8}}>
+                      <View key={groupIndex} style={inlineStyle_53_45}>
                         <Text style={styles.productItem.groupName}>
                           {groupName}
                         </Text>

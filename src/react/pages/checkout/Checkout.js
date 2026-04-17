@@ -1,18 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
 import {api} from '@controleonline/ui-common/src/api';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {buildOrderDetailsRouteParams} from '@controleonline/ui-orders/src/react/utils/orderRoute';
@@ -21,6 +10,7 @@ import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
 import CieloCheckout from '@controleonline/ui-orders/src/react/services/Cielo/Checkout';
 import InfinitePay from '@controleonline/ui-orders/src/react/services/InfinitePay/Checkout';
+
 import {
   buildWalletIdsForGateway,
   filterDeviceConfigsByCompany,
@@ -28,8 +18,10 @@ import {
   resolveRemotePaymentDeviceOptions,
   supportsLocalCardPayment,
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
-import {useStore} from '@store';
 
+import {useStore} from '@store';
+import styles from './Checkout.styles';
+import { inlineStyle_491_14, inlineStyle_534_10 } from './Checkout.styles';
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase();
 
 const extractCollectionItems = response => {
@@ -79,154 +71,6 @@ const resolvePosPaidInvoiceStatusIri = async fallbackStatusId => {
     return fallbackIri;
   }
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    color: '#000',
-    elevation: 4,
-    padding: 20,
-    marginBottom: 15,
-  },
-  headerTitle: {
-    fontSize: 18,
-    color: '#000',
-  },
-  remoteCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
-  },
-  remoteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  remoteIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#EDE9FE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  remoteTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  remoteSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    lineHeight: 18,
-  },
-  remoteCurrent: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  remoteButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#0EA5E9',
-  },
-  remoteButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    padding: 24,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
-    gap: 12,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#64748B',
-  },
-  modalItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-    marginBottom: 8,
-  },
-  modalItemActive: {
-    borderColor: '#93C5FD',
-    backgroundColor: '#EFF6FF',
-  },
-  modalItemTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  modalItemSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 3,
-  },
-  closeButton: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  closeButtonText: {
-    color: '#0EA5E9',
-    fontWeight: '700',
-  },
-  installmentsItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  installmentsText: {
-    color: '#0F172A',
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-});
 
 const Checkout = () => {
   const navigation = useNavigation();
@@ -645,7 +489,7 @@ const Checkout = () => {
         <View style={styles.remoteIconWrap}>
           <Icon name="credit-card" size={18} color="#7C3AED" />
         </View>
-        <View style={{flex: 1}}>
+        <View style={inlineStyle_491_14}>
           <Text style={styles.remoteTitle}>Pagamento remoto</Text>
           <Text style={styles.remoteSubtitle}>
             Este device nao processa cartao localmente, entao o pedido sera
@@ -688,12 +532,11 @@ const Checkout = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => handleEdit(order)}
-          style={{marginRight: 16}}>
+          style={inlineStyle_534_10}>
           <Icon name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order #{order?.id}</Text>
       </View>
-
       <StateStore
         stores={[
           'invoice',
@@ -704,7 +547,6 @@ const Checkout = () => {
           'websocket',
         ]}
       />
-
       {canRenderCheckout ? (
         <>
           {isLocalPaymentDevice && device?.configs?.['pos-gateway'] == 'cielo' && (

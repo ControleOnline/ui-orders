@@ -1,10 +1,12 @@
 import React, {useCallback, useState} from 'react';
+
 import {
   View,
   Text,
   TouchableOpacity,
   TextInput,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
@@ -13,6 +15,19 @@ import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
+
+import {
+  inlineStyle_173_12,
+  inlineStyle_175_14,
+  inlineStyle_182_18,
+  inlineStyle_191_14,
+  inlineStyle_197_14,
+  inlineStyle_215_24,
+  inlineStyle_225_14,
+  inlineStyle_226_16,
+  inlineStyle_229_12,
+  inlineStyle_245_10,
+} from './Withdrawal.styles';
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase();
 
@@ -169,17 +184,16 @@ export default function BleedScreen() {
   return (
     <SafeAreaView style={[styles.container]}>
       <StateStore store="walletPaymentType" />
-
-      <View style={{flex: 1, padding: 20}}>
+      <View style={inlineStyle_173_12}>
         {/* Combobox personalizado */}
-        <View style={{marginBottom: 20}}>
+        <View style={inlineStyle_175_14}>
           <TouchableOpacity
             style={[
               styles.boxPayment,
               {flexDirection: 'row', alignItems: 'center', padding: 10},
             ]}
             onPress={() => setDropdownVisible(!dropdownVisible)}>
-            <Text style={{color: '#666'}}>
+            <Text style={inlineStyle_182_18}>
               {selectedPaymentType
                 ? selectedPaymentType.paymentType.paymentType
                 : global.t?.t('orders', 'message', 'selectPaymentType')}
@@ -188,18 +202,13 @@ export default function BleedScreen() {
               name={dropdownVisible ? 'arrow-drop-up' : 'arrow-drop-down'}
               size={24}
               color="black"
-              style={{marginLeft: 'auto'}}
+              style={inlineStyle_191_14}
             />
           </TouchableOpacity>
 
           {dropdownVisible && (
             <View
-              style={{
-                maxHeight: 200,
-                borderWidth: 1,
-                borderColor: '#ccc',
-                backgroundColor: 'white',
-              }}>
+              style={inlineStyle_197_14}>
               {paymentTypes.map(paymentType => (
                 <TouchableOpacity
                   key={paymentType.id}
@@ -212,7 +221,7 @@ export default function BleedScreen() {
                     setSelectedPaymentType(paymentType);
                     setDropdownVisible(false);
                   }}>
-                  <Text style={{color: '#666'}}>
+                  <Text style={inlineStyle_215_24}>
                     {paymentType.paymentType.paymentType}
                   </Text>
                 </TouchableOpacity>
@@ -222,17 +231,11 @@ export default function BleedScreen() {
         </View>
 
         {/* Input de valor */}
-        <View style={{marginBottom: 20}}>
-          <Text style={{marginBottom: 5}}>{global.t?.t('orders', 'label', 'withdrawalAmount')}:</Text>
+        <View style={inlineStyle_225_14}>
+          <Text style={inlineStyle_226_16}>{global.t?.t('orders', 'label', 'withdrawalAmount')}:</Text>
           <TextInput
             placeholderTextColor="#666"
-            style={{
-              borderWidth: 1,
-              borderColor: '#ccc',
-              padding: 10,
-              fontSize: 16,
-              color: '#666',
-            }}
+            style={inlineStyle_229_12}
             keyboardType="numeric"
             value={bleedValue}
             onChangeText={handleValueChange}
@@ -242,14 +245,7 @@ export default function BleedScreen() {
 
         {/* Botão Salvar fixo no rodapé */}
         <View
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 10,
-            backgroundColor: 'white',
-          }}>
+          style={inlineStyle_245_10}>
           <TouchableOpacity
             onPress={handleSave}
             disabled={!selectedPaymentType || !bleedValue}

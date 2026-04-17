@@ -4,8 +4,8 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
-
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
+import { inlineStyle_79_6 } from './OrderTotalToolbar.styles';
 
 const OrderTotalToolbar = () => {
   const ordersStore = useStore('orders');
@@ -76,7 +76,7 @@ const OrderTotalToolbar = () => {
     <ActivityIndicator
       size="small"
       color={styles.primary?.color || '#000'}
-      style={{flex: 1}}
+      style={inlineStyle_79_6}
     />
   ) : (
     <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>

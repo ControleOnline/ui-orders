@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
+
 import {
   View,
   ScrollView,
@@ -6,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Cielo from './Cielo';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -15,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
+import { inlineStyle_174_32 } from './Checkout.styles';
 
 const Checkout = ({
   createInvoice,
@@ -171,7 +174,7 @@ const Checkout = ({
                           )}
                         </View>
                         <View>
-                          <Text style={{ color: '#666' }}>
+                          <Text style={inlineStyle_174_32}>
                             {payment.paymentType.paymentType}
                           </Text>
                         </View>

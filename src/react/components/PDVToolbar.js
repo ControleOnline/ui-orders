@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text } from 'react-native';
 
 import Icon from 'react-native-vector-icons/Feather';
 import { useNavigationState } from '@react-navigation/native';
 import { useStore } from '@store';
+import createStyles from './PDVToolbar.styles';
 
 const ShopToolbar = ({ navigation }) => {
   const state = useNavigationState(state => state);
@@ -17,6 +18,7 @@ const ShopToolbar = ({ navigation }) => {
   const getters = themeStore.getters;
   const { colors } = getters;
   const { currentCompany } = peopleGetters;
+  const styles = createStyles(colors);
 
   const isCashRegisterClosed = (() => {
     const closedId = Number(device?.configs?.['cash-wallet-closed-id']);
@@ -35,32 +37,6 @@ const ShopToolbar = ({ navigation }) => {
 
     navigation.navigate('OrderHistoryPage');
   };
-
-  const styles = StyleSheet.create({
-    toolbar: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      height: 60,
-      backgroundColor: '#f8f8f8',
-      borderTopWidth: 1,
-      borderTopColor: '#ddd',
-    },
-    button: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    buttonText: {
-      fontSize: 12,
-      color: '#666',
-      marginTop: 6,
-    },
-    activeText: {
-      color: colors.primary,
-      fontWeight: 'bold',
-    },
-  });
 
   return (
     <View style={styles.toolbar}>

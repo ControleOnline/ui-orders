@@ -1,4 +1,5 @@
-﻿import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+
 import {
   ActivityIndicator,
   Alert,
@@ -10,12 +11,14 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native'
+
 import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '@store'
 import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
+
 import {
   buildAddressOptionSummary,
   buildCustomerSearchMeta,
@@ -26,6 +29,7 @@ import {
   normalizeText,
   resolveAddressDisplayParts,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay'
+
 import { toEntityIri } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
@@ -39,17 +43,34 @@ import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddC
 import { getOrderRouteId } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import { getPlatformCapabilities, getOrderChannelLabel } from '@assets/ppc/channels'
+
 import {
   mergeOrderProductIntoList,
   mergeOrderWithOrderProducts,
   removeOrderProductFromList,
   withOrderProductQuantity,
 } from '@controleonline/ui-orders/src/utils/orderState'
+
 import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
 import OrderExtraDataCard from './components/OrderExtraDataCard'
 import OrderSummaryModal from './components/OrderSummaryModal'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
+
+import {
+  inlineStyle_2116_14,
+  inlineStyle_2121_14,
+  inlineStyle_2128_20,
+  inlineStyle_2181_30,
+  inlineStyle_2712_14,
+  inlineStyle_2718_20,
+  inlineStyle_2725_26,
+  inlineStyle_2737_26,
+  inlineStyle_2748_24,
+  inlineStyle_2782_34,
+} from './orderDetails.styles';
+
+import { inlineStyle_2768_24 } from './orderDetails.styles';
 
 const formatApiError = error => {
   if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')
@@ -71,6 +92,7 @@ const normalizeKey = value =>
     .toLowerCase()
 
 const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
+
 const isTerminalOrderStatus = value =>
   TERMINAL_ORDER_STATUSES.includes(String(value ?? '').trim().toLowerCase())
 
@@ -2113,19 +2135,17 @@ const OrderDetails = ({ route, navigation }) => {
       </View>
 
       <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+        <View style={inlineStyle_2116_14}>
           <Text style={[localStyles.mobileProductsTitle, { flex: 1 }]}>{global.t?.t('orders', 'title', 'orderItems')}</Text>
           {canAddProductsToOrder && (
             <TouchableOpacity
               onPress={handleAddProduct}
-              style={{
-                flexDirection: 'row', alignItems: 'center', gap: 4,
-                paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8,
-                backgroundColor: ppcColors.primary,
-              }}
+              style={inlineStyle_2121_14({
+                ppcColors: ppcColors,
+              })}
             >
               <Icon name="add-circle" size={14} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+              <Text style={inlineStyle_2128_20}>
                 {addProductsButtonLabel}
               </Text>
             </TouchableOpacity>
@@ -2178,7 +2198,7 @@ const OrderDetails = ({ route, navigation }) => {
                     const isConfirming = confirmRemoveItemId === opId
                     return (
                       <View key={opId || op['@id']} style={localStyles.editItemRow}>
-                        <View style={{ flex: 1 }}>
+                        <View style={inlineStyle_2181_30}>
                           <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
                           {price > 0 && (
                             <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / {unitLabel}</Text>
@@ -2224,7 +2244,7 @@ const OrderDetails = ({ route, navigation }) => {
                           </View>
                         )}
                       </View>
-                    )
+                    );
                   })}
                 </React.Fragment>
               )
@@ -2259,9 +2279,7 @@ const OrderDetails = ({ route, navigation }) => {
       ]}
     >
       {showBarcodeInput && <BarcodeInput />}
-
       <StateStore store="orders" />
-
       <Modal
         transparent
         animationType="slide"
@@ -2430,7 +2448,6 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
       <AddCompanyModal
         visible={customerCreateModalVisible}
         onClose={() => setCustomerCreateModalVisible(false)}
@@ -2439,7 +2456,6 @@ const OrderDetails = ({ route, navigation }) => {
           void handleCustomerCreated(savedCustomer)
         }}
       />
-
       <Modal
         transparent
         animationType="slide"
@@ -2699,30 +2715,27 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-
       <OrderSummaryModal
         visible={detailsModalVisible}
         onClose={closeDetailsModal}
         summary={orderSummaryData}
       />
-
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
-
       {!isLoading && item && !error && (
-        <View style={{ flex: 1 }}>
+        <View style={inlineStyle_2712_14}>
           {useUnifiedKdsLayout ? (
             renderKdsMobileContent()
           ) : (
             <>
               <OrderHeader key={item.id} order={resolvedDisplayOrder || item} />
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={inlineStyle_2718_20}>
                 {canAddProductsToOrder && (
                   <TouchableOpacity
                     onPress={handleAddProduct}
                     style={[globalStyles.button, { marginRight: 5 }]}
                   >
                     <Icon name="add-circle" size={24} color="#fff" />
-                    <Text style={{ color: '#fff', marginLeft: 8 }}>
+                    <Text style={inlineStyle_2725_26}>
                       {addProductsButtonLabel}
                     </Text>
                   </TouchableOpacity>
@@ -2734,7 +2747,7 @@ const OrderDetails = ({ route, navigation }) => {
                     style={[globalStyles.button, { marginRight: 5 }]}
                   >
                     <Icon name="payments" size={24} color="#fff" />
-                    <Text style={{ color: '#fff', marginLeft: 8 }}>
+                    <Text style={inlineStyle_2737_26}>
                       {global.t?.t('orders', 'button', 'pay') || 'Pagar'}
                     </Text>
                   </TouchableOpacity>
@@ -2745,7 +2758,7 @@ const OrderDetails = ({ route, navigation }) => {
                   style={[globalStyles.button, { marginLeft: 5 }]}
                 >
                   <Icon name="settings" size={24} color="#fff" />
-                  <Text style={{ color: '#fff', marginLeft: 8 }}>
+                  <Text style={inlineStyle_2748_24}>
                     {global.t?.t('orders', 'button', 'details')}
                   </Text>
                 </TouchableOpacity>
@@ -2754,7 +2767,7 @@ const OrderDetails = ({ route, navigation }) => {
           )}
 
           {isKds || useUnifiedKdsLayout ? null : (
-            <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+            <ScrollView contentContainerStyle={inlineStyle_2768_24}>
               <OrderExtraDataCard order={resolvedDisplayOrder || item} />
               <View
                 style={[
@@ -2779,7 +2792,7 @@ const OrderDetails = ({ route, navigation }) => {
                         const isConfirming = confirmRemoveItemId === opId
                         return (
                           <View key={opId || op['@id']} style={localStyles.editItemRow}>
-                            <View style={{ flex: 1 }}>
+                            <View style={inlineStyle_2782_34}>
                               <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
                               {price > 0 && (
                                 <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / {unitLabel}</Text>
@@ -2825,7 +2838,7 @@ const OrderDetails = ({ route, navigation }) => {
                               </View>
                             )}
                           </View>
-                        )
+                        );
                       })}
                     </React.Fragment>
                   )
@@ -2908,7 +2921,7 @@ const OrderDetails = ({ route, navigation }) => {
         </View>
       )}
     </SafeAreaView>
-  )
+  );
 }
 
 export default OrderDetails

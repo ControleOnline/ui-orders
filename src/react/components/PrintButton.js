@@ -1,4 +1,5 @@
 import React, {useMemo} from 'react';
+
 import {
   ActivityIndicator,
   FlatList,
@@ -10,12 +11,15 @@ import {
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
+
 import {
   getDeviceTypeLabel,
   getPrinterLabel,
   getPrinterOptionValue,
 } from '@controleonline/ui-common/src/react/utils/printerDevices';
+
 import {usePrintButtonController} from '@controleonline/ui-common/src/react/print/usePrintButtonController';
+import { inlineStyle_129_16 } from './PrintButton.styles';
 
 const PrinterButton = ({
   job = null,
@@ -93,7 +97,7 @@ const PrinterButton = ({
   }
 
   const printDisabled = disabled || isRequestLoading;
-	
+    
   return (
     <View
       style={
@@ -126,12 +130,13 @@ const PrinterButton = ({
           />
         )}
         {!showCompactContent && (
-          <Text style={{color: iconColor, marginLeft: 8}}>
+          <Text style={inlineStyle_129_16({
+            iconColor: iconColor,
+          })}>
             {resolvedLabel}
           </Text>
         )}
       </TouchableOpacity>
-	
       {canSelectPrinter ? (
         <TouchableOpacity
           style={
@@ -148,7 +153,6 @@ const PrinterButton = ({
           />
         </TouchableOpacity>
       ) : null}
-	
       <Modal
         visible={isModalVisible}
         transparent={true}

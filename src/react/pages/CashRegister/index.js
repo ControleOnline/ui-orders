@@ -1,13 +1,19 @@
 import React, {useState, useCallback} from 'react';
 import { Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import { useStore } from '@store';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+
+import {
+  inlineStyle_154_18,
+  inlineStyle_176_18,
+  inlineStyle_240_22,
+  inlineStyle_246_22,
+} from './index.styles';
 
 const CashRegister = ({ navigation }) => {
   const { styles, globalStyles } = css();
@@ -151,10 +157,7 @@ const CashRegister = ({ navigation }) => {
               ]}>
               {payment.inflow > 0 && (
                 <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}>
+                  style={inlineStyle_154_18}>
                   <Text
                     style={[
                       styles.CashRegister.paymentText,
@@ -173,10 +176,7 @@ const CashRegister = ({ navigation }) => {
               )}
               {payment.withdrawal > 0 && (
                 <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                  }}>
+                  style={inlineStyle_176_18}>
                   <Text
                     style={[styles.CashRegister.paymentText, { color: 'red' }]}>
                     {global.t?.t('orders', 'title', 'withdrawal')} {group['withdrawal-wallet']}
@@ -237,13 +237,13 @@ const CashRegister = ({ navigation }) => {
                 style={[globalStyles.button]}
                 onPress={handleWithdrawal}>
                 <Icon name="print" size={24} color="#fff" />
-                <Text style={{ color: '#fff', marginLeft: 8 }}>{global.t?.t('orders', 'title', 'withdrawal')}</Text>
+                <Text style={inlineStyle_240_22}>{global.t?.t('orders', 'title', 'withdrawal')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[globalStyles.button]}
                 onPress={handleCloseCashRegister}>
                 <Icon name="print" size={24} color="#fff" />
-                <Text style={{ color: '#fff', marginLeft: 8 }}>{global.t?.t('orders', 'button', 'viewDetails')}</Text>
+                <Text style={inlineStyle_246_22}>{global.t?.t('orders', 'button', 'viewDetails')}</Text>
               </TouchableOpacity>
             </View>
           </View>

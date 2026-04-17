@@ -1,24 +1,13 @@
 import React, {useCallback, useState, useEffect, useMemo} from 'react';
-import {View, Text, ActivityIndicator, StyleSheet} from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import {useStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 import {buildFood99OrderSummary} from '../services/food99OrderSummary';
-
-const withAlpha = (color, alphaHex) => {
-  const raw = String(color || '').trim().replace('#', '');
-  if (/^[0-9a-fA-F]{6}$/.test(raw)) {
-    return `#${raw}${alphaHex}`;
-  }
-
-  if (/^[0-9a-fA-F]{8}$/.test(raw)) {
-    return `#${raw.slice(0, 6)}${alphaHex}`;
-  }
-
-  return color || '#1B5587';
-};
+import createStyles from './PayableToolbar.styles';
+import { inlineStyle_125_12 } from './PayableToolbar.styles';
 
 const PayableToolbar = ({
   bottomOffset = 0,
@@ -118,80 +107,35 @@ const PayableToolbar = ({
     : Formatter.formatMoney(payableValue + parseFloat(price || 0));
   const messageColor = isDebt ? dangerColor : successColor;
 
-  return (
-    price > 0 && (
-      <View
-        style={[
-          styles.toolbarWrap,
-          {
-            bottom:
-              collapseWhenPaid && payable != undefined && payable == 0
-                ? bottomOffset + 8
-                : cartHeight + bottomOffset + 12,
-          },
-        ]}>
-        {isLoading ? (
-          <ActivityIndicator
-            size="small"
-            color={primaryColor}
-            style={{paddingVertical: 6}}
-          />
-        ) : (
-          <View style={[styles.badge, isDebt ? styles.badgeDanger : styles.badgeSuccess]}>
-            <Icon
-              color={messageColor}
-              name={isDebt ? 'alert-triangle' : 'check-circle'}
-              size={14}
-            />
-            <Text style={[styles.badgeText, {color: messageColor}]}>
-              {statusText}: {amountText}
-            </Text>
-          </View>
-        )}
+  return (price > 0 && (<View
+    style={[
+      styles.toolbarWrap,
+      {
+        bottom:
+          collapseWhenPaid && payable != undefined && payable == 0
+            ? bottomOffset + 8
+            : cartHeight + bottomOffset + 12,
+      },
+    ]}>
+    {isLoading ? (
+      <ActivityIndicator
+        size="small"
+        color={primaryColor}
+        style={inlineStyle_125_12}
+      />
+    ) : (
+      <View style={[styles.badge, isDebt ? styles.badgeDanger : styles.badgeSuccess]}>
+        <Icon
+          color={messageColor}
+          name={isDebt ? 'alert-triangle' : 'check-circle'}
+          size={14}
+        />
+        <Text style={[styles.badgeText, {color: messageColor}]}>
+          {statusText}: {amountText}
+        </Text>
       </View>
-    )
-  );
+    )}
+  </View>));
 };
-
-const createStyles = ({primaryColor, dangerColor, successColor}) =>
-  StyleSheet.create({
-    toolbarWrap: {
-      position: 'absolute',
-      left: 10,
-      right: 10,
-      alignItems: 'center',
-      zIndex: 12,
-    },
-    badge: {
-      minHeight: 34,
-      borderRadius: 999,
-      borderWidth: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      shadowColor: '#0F172A',
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      shadowOffset: {width: 0, height: 4},
-      elevation: 3,
-      backgroundColor: withAlpha(primaryColor, '10'),
-      borderColor: withAlpha(primaryColor, '30'),
-    },
-    badgeDanger: {
-      backgroundColor: withAlpha(dangerColor, '12'),
-      borderColor: withAlpha(dangerColor, '55'),
-    },
-    badgeSuccess: {
-      backgroundColor: withAlpha(successColor, '10'),
-      borderColor: withAlpha(successColor, '45'),
-    },
-    badgeText: {
-      fontSize: 12,
-      fontWeight: '800',
-      textAlign: 'center',
-    },
-  });
 
 export default PayableToolbar;

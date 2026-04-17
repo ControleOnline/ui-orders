@@ -7,6 +7,21 @@ import {useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 
+import {
+  inlineStyle_51_45,
+  inlineStyle_53_18,
+  inlineStyle_62_18,
+  inlineStyle_70_24,
+  inlineStyle_74_20,
+  inlineStyle_83_20,
+  inlineStyle_92_20,
+  inlineStyle_104_20,
+  inlineStyle_111_26,
+  inlineStyle_115_26,
+  inlineStyle_118_26,
+  inlineStyle_121_26,
+} from './Suggestion.styles';
+
 const PurchasingSuggestion = () => {
   const {styles, globalStyles} = css();
   const peopleStore = useStore('people');
@@ -48,77 +63,44 @@ const PurchasingSuggestion = () => {
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             {Object.keys(groupedByCompany).map((companyName, index) => (
-              <View key={`company-${index}`} style={{marginBottom: 20}}>
+              <View key={`company-${index}`} style={inlineStyle_51_45}>
                 <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    color: '#333',
-                    marginBottom: 10,
-                  }}>
+                  style={inlineStyle_53_18}>
                   {companyName}
                 </Text>
                 <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    paddingVertical: 8,
-                    borderBottomWidth: 2,
-                    borderBottomColor: '#ccc',
-                    backgroundColor: '#f5f5f5',
-                  }}>
-                  <Text style={{color: '#333', flex: 2, fontWeight: 'bold'}}>
+                  style={inlineStyle_62_18}>
+                  <Text style={inlineStyle_70_24}>
                     Produto
                   </Text>
                   <Text
-                    style={{
-                      color: '#333',
-                      flex: 1,
-                      textAlign: 'right',
-                      fontWeight: 'bold',
-                    }}>
+                    style={inlineStyle_74_20}>
                     Estoque
                   </Text>
                   <Text
-                    style={{
-                      color: '#333',
-                      flex: 1,
-                      textAlign: 'right',
-                      fontWeight: 'bold',
-                    }}>
+                    style={inlineStyle_83_20}>
                     Mínimo
                   </Text>
                   <Text
-                    style={{
-                      color: '#333',
-                      flex: 1,
-                      textAlign: 'right',
-                      fontWeight: 'bold',
-                    }}>
+                    style={inlineStyle_92_20}>
                     Comprar
                   </Text>
                 </View>
                 {groupedByCompany[companyName].map((item, itemIndex) => (
                   <View
                     key={`item-${item.product_id}-${itemIndex}`}
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      paddingVertical: 4,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#eee',
-                    }}>
-                    <Text style={{color: '#333', flex: 2}}>
+                    style={inlineStyle_104_20}>
+                    <Text style={inlineStyle_111_26}>
                       {item.product_name}{' '}
                       {item.description ? ` - ${item.description}` : ''}
                     </Text>
-                    <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                    <Text style={inlineStyle_115_26}>
                       {item.stock} {item.unity}
                     </Text>
-                    <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                    <Text style={inlineStyle_118_26}>
                       {item.minimum} {item.unity}
                     </Text>
-                    <Text style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                    <Text style={inlineStyle_121_26}>
                       {item.needed} {item.unity}
                     </Text>
                   </View>

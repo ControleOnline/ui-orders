@@ -1,4 +1,5 @@
 import React, {useCallback, useState} from 'react';
+
 import {
   View,
   ScrollView,
@@ -7,6 +8,7 @@ import {
   Modal,
   Button,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import InfinitePay from './InfinitePay';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -17,6 +19,14 @@ import {useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
+
+import {
+  inlineStyle_176_32,
+  inlineStyle_217_10,
+  inlineStyle_224_12,
+  inlineStyle_230_18,
+  inlineStyle_238_18,
+} from './Checkout.styles';
 
 const Checkout = ({
   createInvoice,
@@ -173,7 +183,7 @@ const Checkout = ({
                           )}
                         </View>
                         <View>
-                          <Text style={{color: '#666'}}>
+                          <Text style={inlineStyle_176_32}>
                             {payment.paymentType.paymentType}
                           </Text>
                         </View>
@@ -214,20 +224,10 @@ const Checkout = ({
         visible={installmentsModalVisible}
         onRequestClose={() => setInstallmentsModalVisible(false)}>
         <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-          }}>
+          style={inlineStyle_217_10}>
           <View
-            style={{
-              backgroundColor: 'white',
-              padding: 20,
-              borderRadius: 10,
-              width: '80%',
-            }}>
-            <Text style={{marginBottom: 10}}>
+            style={inlineStyle_224_12}>
+            <Text style={inlineStyle_230_18}>
               {global.t?.t('orders', 'title', 'chooseInstallments')}:
             </Text>
             <ScrollView>
@@ -235,11 +235,7 @@ const Checkout = ({
                 <TouchableOpacity
                   key={num}
                   onPress={() => handleInstallmentsSelect(num)}
-                  style={{
-                    padding: 10,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#ccc',
-                  }}>
+                  style={inlineStyle_238_18}>
                   <Text>
                     {num}x - {Formatter.formatMoney((order?.price || 0) / num)}
                   </Text>

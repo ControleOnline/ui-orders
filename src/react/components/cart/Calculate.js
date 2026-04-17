@@ -4,6 +4,14 @@ import {View, Text, TextInput, Button} from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {useStore} from '@store';
 
+import {
+  inlineStyle_45_6,
+  inlineStyle_52_8,
+  inlineStyle_58_14,
+  inlineStyle_61_10,
+  inlineStyle_73_14,
+} from './Calculate.styles';
+
 const Calculate = ({handleConfirmValue, handleCancel}) => {
   const walletPaymentTypeStore = useStore('walletPaymentType');
   const paymentTypeActions = walletPaymentTypeStore.actions;
@@ -42,35 +50,19 @@ const Calculate = ({handleConfirmValue, handleCancel}) => {
 
   return (
     <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-      }}>
+      style={inlineStyle_45_6}>
       <View
-        style={{
-          backgroundColor: 'white',
-          padding: 20,
-          borderRadius: 10,
-          width: '80%',
-        }}>
-        <Text style={{marginBottom: 10}}>{global.t?.t('orders', 'label', 'amountToPay')}:</Text>
+        style={inlineStyle_52_8}>
+        <Text style={inlineStyle_58_14}>{global.t?.t('orders', 'label', 'amountToPay')}:</Text>
         <TextInput
           placeholderTextColor="#666"
-          style={{
-            borderWidth: 1,
-            borderColor: '#ccc',
-            padding: 8,
-            marginBottom: 10,
-            color: '#666',
-          }}
+          style={inlineStyle_61_10}
           keyboardType="numeric"
           value={inputValue}
           onChangeText={handleInputChange}
           placeholder={global.t?.t('orders', 'placeholder', 'enterValue')}
         />
-        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+        <View style={inlineStyle_73_14}>
           <Button title={global.t?.t('orders', 'button', 'cancel')} onPress={handleCancel} />
           <Button title={global.t?.t('orders', 'button', 'confirm')} onPress={handleConfirm} />
         </View>

@@ -1,18 +1,12 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {
-  TextInput,
-  View,
-  StyleSheet,
-  Keyboard,
-  TouchableOpacity,
-  Text,
-} from 'react-native';
+import { TextInput, View, Keyboard, TouchableOpacity, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import {api} from '@controleonline/ui-common/src/api';
 import {useStore} from '@controleonline/ui-common/src/react/stores';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
+import styles from './BarcodeCheckReader.styles';
 
 const BarcodeCheckReader = () => {
   const peopleStore = useStore('people');
@@ -88,38 +82,5 @@ const BarcodeCheckReader = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    marginVertical: 5,
-    gap: 10,
-  },
-  readButton: {
-    backgroundColor: '#1B5587',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  readButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    fontSize: 18,
-    elevation: 2,
-  },
-});
 
 export default BarcodeCheckReader;

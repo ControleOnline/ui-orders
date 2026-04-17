@@ -7,6 +7,18 @@ import {useFocusEffect} from '@react-navigation/native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 
+import {
+  inlineStyle_54_47,
+  inlineStyle_56_18,
+  inlineStyle_65_18,
+  inlineStyle_74_18,
+  inlineStyle_82_24,
+  inlineStyle_86_20,
+  inlineStyle_99_22,
+  inlineStyle_106_28,
+  inlineStyle_112_24,
+} from './index.styles';
+
 const Inventory = () => {
   const {styles, globalStyles} = css();
   const peopleStore = useStore('people');
@@ -51,44 +63,22 @@ const Inventory = () => {
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             {Object.keys(groupedByInventory).map((inventoryName, index) => (
-              <View key={`inventory-${index}`} style={{marginBottom: 20}}>
+              <View key={`inventory-${index}`} style={inlineStyle_54_47}>
                 <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    color: '#333',
-                    marginBottom: 10,
-                  }}>
+                  style={inlineStyle_56_18}>
                   {groupedByInventory[inventoryName].companyName}
                 </Text>
                 <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    color: '#333',
-                    marginBottom: 10,
-                  }}>
+                  style={inlineStyle_65_18}>
                   Inventário: {inventoryName}
                 </Text>
                 <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    paddingVertical: 8,
-                    borderBottomWidth: 2,
-                    borderBottomColor: '#ccc',
-                    backgroundColor: '#f5f5f5',
-                  }}>
-                  <Text style={{color: '#333', flex: 2, fontWeight: 'bold'}}>
+                  style={inlineStyle_74_18}>
+                  <Text style={inlineStyle_82_24}>
                     Produto
                   </Text>
                   <Text
-                    style={{
-                      color: '#333',
-                      flex: 1,
-                      textAlign: 'right',
-                      fontWeight: 'bold',
-                    }}>
+                    style={inlineStyle_86_20}>
                     Disponível
                   </Text>
                 </View>
@@ -96,20 +86,14 @@ const Inventory = () => {
                   (item, itemIndex) => (
                     <View
                       key={`item-${item.product_id}-${itemIndex}`}
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        paddingVertical: 4,
-                        borderBottomWidth: 1,
-                        borderBottomColor: '#eee',
-                      }}>
-                      <Text style={{color: '#333', flex: 2}}>
+                      style={inlineStyle_99_22}>
+                      <Text style={inlineStyle_106_28}>
                         {item.product_name}{' '}
                         {item.description ? ` - ${item.description}` : ''}{' '}
                         {item.productUnit ? `(${item.productUnit})` : ''}
                       </Text>
                       <Text
-                        style={{color: '#333', flex: 1, textAlign: 'right'}}>
+                        style={inlineStyle_112_24}>
                         {item.available} {item.productUnit}
                       </Text>
                     </View>

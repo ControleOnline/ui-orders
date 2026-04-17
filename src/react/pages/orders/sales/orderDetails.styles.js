@@ -1703,3 +1703,67 @@ const createStyles = (scale, palette, windowHeight = 800) =>
   })
 
 export default createStyles
+
+export const inlineStyle_2116_14 = {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 4,
+};
+
+export const inlineStyle_2121_14 = (
+  {
+    ppcColors: ppcColors,
+  },
+) => ({
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 4,
+  paddingVertical: 4,
+  paddingHorizontal: 10,
+  borderRadius: 8,
+  backgroundColor: ppcColors.primary,
+});
+
+export const inlineStyle_2128_20 = {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: '700',
+};
+
+export const inlineStyle_2181_30 = {
+  flex: 1,
+};
+
+export const inlineStyle_2712_14 = {
+  flex: 1,
+};
+
+export const inlineStyle_2718_20 = {
+  flexDirection: 'row',
+  alignItems: 'center',
+};
+
+export const inlineStyle_2725_26 = {
+  color: '#fff',
+  marginLeft: 8,
+};
+
+export const inlineStyle_2737_26 = {
+  color: '#fff',
+  marginLeft: 8,
+};
+
+export const inlineStyle_2748_24 = {
+  color: '#fff',
+  marginLeft: 8,
+};
+
+export const inlineStyle_2782_34 = {
+  flex: 1,
+};
+
+export const inlineStyle_2768_24 = {
+  paddingBottom: 20,
+};
+
+
