@@ -2925,4 +2925,3 @@ const OrderDetails = ({ route, navigation }) => {
 }
 
 export default OrderDetails
-
