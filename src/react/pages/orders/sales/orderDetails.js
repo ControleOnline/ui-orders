@@ -18,7 +18,6 @@ import { useStore } from '@store'
 import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
-import EntityLogModal from '@controleonline/ui-common/src/react/components/EntityLogModal'
 
 import {
   buildAddressOptionSummary,
@@ -285,112 +284,6 @@ const resolveOrderItemUnitLabel = orderProduct =>
 const resolveProductUnitLabel = product =>
   resolveOrderItemUnitLabel({ product })
 
-const ORDER_LOG_RELATION_CONFIG = {
-  addressDestination: {
-    className: 'ControleOnline\\Entity\\Address',
-    label: 'Destino',
-  },
-  addressOrigin: {
-    className: 'ControleOnline\\Entity\\Address',
-    label: 'Origem',
-  },
-  client: {
-    className: 'ControleOnline\\Entity\\People',
-    label: 'Cliente',
-  },
-  contract: {
-    className: 'ControleOnline\\Entity\\Contract',
-    label: 'Contrato',
-  },
-  deliveryContact: {
-    className: 'ControleOnline\\Entity\\People',
-    label: 'Contato de entrega',
-  },
-  device: {
-    className: 'ControleOnline\\Entity\\Device',
-    label: 'Dispositivo',
-  },
-  invoice: {
-    className: 'ControleOnline\\Entity\\Invoice',
-    extractItems: order =>
-      Array.isArray(order?.invoice)
-        ? order.invoice.map(item => item?.invoice || item).filter(Boolean)
-        : [],
-    isCollection: true,
-    label: 'Financeiro',
-  },
-  mainOrder: {
-    className: 'ControleOnline\\Entity\\Order',
-    label: 'Pedido principal',
-  },
-  order: {
-    className: 'ControleOnline\\Entity\\Order',
-    label: 'Pedido',
-  },
-  orderProduct: {
-    className: 'ControleOnline\\Entity\\OrderProduct',
-    label: 'Item pai',
-  },
-  orderProducts: {
-    className: 'ControleOnline\\Entity\\OrderProduct',
-    isCollection: true,
-    label: 'Itens',
-  },
-  parentProduct: {
-    className: 'ControleOnline\\Entity\\Product',
-    label: 'Produto pai',
-  },
-  payer: {
-    className: 'ControleOnline\\Entity\\People',
-    label: 'Pagador',
-  },
-  paymentType: {
-    className: 'ControleOnline\\Entity\\PaymentType',
-    label: 'Pagamento',
-  },
-  product: {
-    className: 'ControleOnline\\Entity\\Product',
-    label: 'Produto',
-  },
-  productGroup: {
-    className: 'ControleOnline\\Entity\\ProductGroup',
-    label: 'Grupo',
-  },
-  provider: {
-    className: 'ControleOnline\\Entity\\People',
-    label: 'Empresa',
-  },
-  receiver: {
-    className: 'ControleOnline\\Entity\\People',
-    label: 'Recebedor',
-  },
-  retrieveContact: {
-    className: 'ControleOnline\\Entity\\People',
-    label: 'Contato de retirada',
-  },
-  sourceWallet: {
-    className: 'ControleOnline\\Entity\\Wallet',
-    label: 'Carteira origem',
-  },
-  destinationWallet: {
-    className: 'ControleOnline\\Entity\\Wallet',
-    label: 'Carteira destino',
-  },
-  status: {
-    className: 'ControleOnline\\Entity\\Status',
-    label: 'Status',
-  },
-  task: {
-    className: 'ControleOnline\\Entity\\Task',
-    isCollection: true,
-    label: 'Tarefas',
-  },
-  user: {
-    className: 'ControleOnline\\Entity\\User',
-    label: 'Usuario',
-  },
-}
-
 const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProduct) => {
   if (!orderProduct || !resolvedProduct) return orderProduct
 
@@ -440,7 +333,6 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldHideBottomToolBar = Boolean(route.params?.hideBottomToolBar || isTvDisplay)
   const { showError, showSuccess } = useMessage()
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
-  const [logModalVisible, setLogModalVisible] = useState(false)
   const insets = useSafeAreaInsets()
 
   const ordersStore = useStore('orders')
@@ -1571,18 +1463,20 @@ const OrderDetails = ({ route, navigation }) => {
     setDetailsModalVisible(false)
   }, [])
 
-  const closeLogModal = useCallback(() => {
-    setLogModalVisible(false)
-  }, [])
-
   const handleOrderTools = useCallback(async () => {
     setDetailsModalVisible(true)
     await marketplaceSummary.ensureMarketplaceSummary()
   }, [marketplaceSummary])
 
   const handleOrderLogs = useCallback(() => {
-    setLogModalVisible(true)
-  }, [])
+    const currentOrderId = item?.id || orderParam?.id
+    if (!currentOrderId) return
+
+    navigation.navigate('EntityLogPage', {
+      id: currentOrderId,
+      store: 'orders',
+    })
+  }, [item?.id, navigation, orderParam?.id])
 
   const handleConfirmGenericOrder = useCallback(() => {
     if (!item?.id || isTerminalOrder || orderActionLoading === 'confirm') {
@@ -2826,25 +2720,6 @@ const OrderDetails = ({ route, navigation }) => {
         visible={detailsModalVisible}
         onClose={closeDetailsModal}
         summary={orderSummaryData}
-      />
-      <EntityLogModal
-        visible={logModalVisible}
-        onClose={closeLogModal}
-        entity={resolvedDisplayOrder || item || orderParam}
-        entityClass="ControleOnline\\Entity\\Order"
-        entityId={item?.id || orderParam?.id}
-        entityIri={
-          resolvedDisplayOrder?.['@id'] ||
-          item?.['@id'] ||
-          orderParam?.['@id'] ||
-          ((item?.id || orderParam?.id)
-            ? `/orders/${item?.id || orderParam?.id}`
-            : '')
-        }
-        entityLabel={`${global.t?.t('orders', 'title', 'order') || 'Pedido'} #${item?.id || orderParam?.id || '--'}`}
-        relationConfig={ORDER_LOG_RELATION_CONFIG}
-        theme={ppcColors}
-        title={global.t?.t('orders', 'title', 'history') || 'Historico'}
       />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (
