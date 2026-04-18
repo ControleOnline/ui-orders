@@ -1327,35 +1327,20 @@ const useOrderMarketplaceSummary = ({
         return;
       }
 
-      const actionMap = is99FoodOrder
-        ? {
-            ready: {
-              path: `/marketplace/integrations/99food/orders/${orderId}/ready`,
-              success: global.t?.t('orders', 'message', 'orderReady'),
-            },
-            cancel: {
-              path: `/marketplace/integrations/99food/orders/${orderId}/cancel`,
-              success: global.t?.t('orders', 'message', 'orderCanceled'),
-            },
-            delivered: {
-              path: `/marketplace/integrations/99food/orders/${orderId}/delivered`,
-              success: global.t?.t('orders', 'message', 'orderDelivered'),
-            },
-          }
-        : {
-            ready: {
-              path: `/marketplace/integrations/ifood/orders/${orderId}/ready`,
-              success: global.t?.t('orders', 'message', 'orderReady'),
-            },
-            cancel: {
-              path: `/marketplace/integrations/ifood/orders/${orderId}/cancel`,
-              success: global.t?.t('orders', 'message', 'orderCanceled'),
-            },
-            delivered: {
-              path: `/marketplace/integrations/ifood/orders/${orderId}/delivered`,
-              success: global.t?.t('orders', 'message', 'orderDelivered'),
-            },
-          };
+      const actionMap = {
+        ready: {
+          path: `/orders/${orderId}/ready`,
+          success: global.t?.t('orders', 'message', 'orderReady'),
+        },
+        cancel: {
+          path: `/orders/${orderId}/cancel`,
+          success: global.t?.t('orders', 'message', 'orderCanceled'),
+        },
+        delivered: {
+          path: `/orders/${orderId}/delivered`,
+          success: global.t?.t('orders', 'message', 'orderDelivered'),
+        },
+      };
 
       const actionConfig = actionMap[action];
       if (!actionConfig) return;
@@ -1752,64 +1737,7 @@ const useOrderMarketplaceSummary = ({
     void runRemoteAction('delivered');
   }, [isHandoverFlow, openDeliveryFlow, requiresDeliveryLocator, runRemoteAction]);
 
-  const actionButtons = useMemo(() => {
-    if (!hasMarketplaceIntegration) {
-      return [];
-    }
-
-    const buttons = [];
-
-    if (canCancelRemoteOrder) {
-      buttons.push({
-        key: 'cancel',
-        label: global.t?.t('orders', 'button', 'cancelOrder'),
-        icon: 'close',
-        tone: 'danger',
-        disabled: !!(remoteActionLoading || cancelReasonsLoading),
-        loading:
-          remoteActionLoading === 'cancel' || cancelReasonsLoading,
-        onPress: handleOpenCancelFlow,
-      });
-    }
-
-    if (canReadyRemoteOrder) {
-      buttons.push({
-        key: 'ready',
-        label: global.t?.t('orders', 'button', 'orderReady'),
-        icon: 'check-circle',
-        tone: 'primary',
-        disabled: !!remoteActionLoading,
-        loading: remoteActionLoading === 'ready',
-        onPress: () => {
-          void runRemoteAction('ready');
-        },
-      });
-    } else if (canDeliverRemoteOrder) {
-      buttons.push({
-        key: 'delivered',
-        label: global.t?.t('orders', 'button', 'deliverOrder'),
-        icon: 'local-shipping',
-        tone: 'primary',
-        disabled: !!remoteActionLoading,
-        loading:
-          remoteActionLoading === 'delivered' ||
-          remoteActionLoading === 'locator_verify',
-        onPress: handleDeliverPress,
-      });
-    }
-
-    return buttons;
-  }, [
-    canCancelRemoteOrder,
-    canDeliverRemoteOrder,
-    canReadyRemoteOrder,
-    cancelReasonsLoading,
-    handleDeliverPress,
-    handleOpenCancelFlow,
-    hasMarketplaceIntegration,
-    remoteActionLoading,
-    runRemoteAction,
-  ]);
+  const actionButtons = useMemo(() => [], []);
 
   const summary = useMemo(() => {
     if (!hasMarketplaceIntegration) {

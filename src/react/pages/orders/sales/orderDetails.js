@@ -516,7 +516,9 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [item, orderParam, orderCompanyIri])
 
-  const canEditItems = !isTerminalOrderStatus(localRealStatusKey)
+  const canEditItems =
+    !hasMarketplaceIntegration &&
+    !isTerminalOrderStatus(localRealStatusKey)
 
   useEffect(() => {
     if (!canEditItems) {
@@ -702,10 +704,15 @@ const OrderDetails = ({ route, navigation }) => {
     try {
       setOrderActionLoading(action)
 
-      await api.fetch(actionConfig.path, {
+      const response = await api.fetch(actionConfig.path, {
         method: 'POST',
         body: {},
       })
+
+      const actionResult = response?.result || response
+      if (String(actionResult?.errno ?? '0').trim() !== '0') {
+        throw actionResult
+      }
 
       await refreshCurrentOrder()
       showSuccess(actionConfig.success)
@@ -1037,8 +1044,12 @@ const OrderDetails = ({ route, navigation }) => {
   }, [customerLinkingId])
 
   const openCustomerModal = useCallback(() => {
+    if (!canEditItems) {
+      return
+    }
+
     setCustomerModalVisible(true)
-  }, [])
+  }, [canEditItems])
 
   const openCustomerCreateModal = useCallback(() => {
     setCustomerCreateModalVisible(true)
@@ -1083,12 +1094,20 @@ const OrderDetails = ({ route, navigation }) => {
   }, [addressActions, showError])
 
   const openAddressCreateMode = useCallback(() => {
+    if (!canEditItems) {
+      return
+    }
+
     setAddressForm(createEmptyAddressForm())
     setAddressModalMode('create')
     setAddressModalVisible(true)
-  }, [])
+  }, [canEditItems])
 
   const openAddressModal = useCallback(async () => {
+    if (!canEditItems) {
+      return
+    }
+
     setAddressModalVisible(true)
 
     if (!selectedOrderClientIri) {
@@ -1099,7 +1118,7 @@ const OrderDetails = ({ route, navigation }) => {
 
     setAddressModalMode('select')
     await loadAddressOptions(localOrderClient)
-  }, [loadAddressOptions, localOrderClient, selectedOrderClientIri])
+  }, [canEditItems, loadAddressOptions, localOrderClient, selectedOrderClientIri])
 
   const handleAddressFormFieldChange = useCallback((field, value) => {
     setAddressForm(previousForm => ({
@@ -1328,7 +1347,7 @@ const OrderDetails = ({ route, navigation }) => {
   const localInvoicesCountLabel = `${localInvoiceCards.length} ${
     localInvoiceCards.length === 1 ? 'invoice' : 'invoices'
   }`
-  const isGenericLocalOrder = !hasMarketplaceIntegration
+  const isGenericLocalOrder = true
   const isOpenLocalWorkflowState = effectiveLocalRealStatusKey === 'open'
   const isPendingLocalWorkflowState = effectiveLocalRealStatusKey === 'pending'
   const isPosOrShopInitialWorkflowState =
@@ -1844,7 +1863,7 @@ const OrderDetails = ({ route, navigation }) => {
         invoiceCardsNode: renderLocalInvoiceCards('details'),
       },
       primaryAction:
-        !hasMarketplaceIntegration && resolvedPrimaryKdsAction
+        resolvedPrimaryKdsAction
           ? {
               disabled: orderActionLoading === resolvedPrimaryKdsAction.loadingKey,
               onPress: resolvedPrimaryKdsAction.onPress,
@@ -1986,7 +2005,7 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         </View>
 
-        {!isPurchaseOrder && (
+        {!isPurchaseOrder && canEditItems && (
           <View style={localStyles.inlineActionRow}>
             <TouchableOpacity
               onPress={openCustomerModal}
@@ -2020,7 +2039,7 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         )}
 
-        {!isPurchaseOrder && shouldShowOrderAddress && (
+        {!isPurchaseOrder && shouldShowOrderAddress && canEditItems && (
           <View style={localStyles.inlineActionRow}>
             <TouchableOpacity
               onPress={openAddressModal}
