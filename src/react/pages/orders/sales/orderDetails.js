@@ -18,6 +18,7 @@ import { useStore } from '@store'
 import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
+import EntityLogModal from '@controleonline/ui-common/src/react/components/EntityLogModal'
 
 import {
   buildAddressOptionSummary,
@@ -84,12 +85,6 @@ const formatApiError = error => {
 
   return error?.message || error?.description || error?.errmsg || global.t?.t('orders', 'message', 'unableCompleteOperation')
 }
-
-const normalizeKey = value =>
-  String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
 
 const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
 
@@ -290,6 +285,112 @@ const resolveOrderItemUnitLabel = orderProduct =>
 const resolveProductUnitLabel = product =>
   resolveOrderItemUnitLabel({ product })
 
+const ORDER_LOG_RELATION_CONFIG = {
+  addressDestination: {
+    className: 'ControleOnline\\Entity\\Address',
+    label: 'Destino',
+  },
+  addressOrigin: {
+    className: 'ControleOnline\\Entity\\Address',
+    label: 'Origem',
+  },
+  client: {
+    className: 'ControleOnline\\Entity\\People',
+    label: 'Cliente',
+  },
+  contract: {
+    className: 'ControleOnline\\Entity\\Contract',
+    label: 'Contrato',
+  },
+  deliveryContact: {
+    className: 'ControleOnline\\Entity\\People',
+    label: 'Contato de entrega',
+  },
+  device: {
+    className: 'ControleOnline\\Entity\\Device',
+    label: 'Dispositivo',
+  },
+  invoice: {
+    className: 'ControleOnline\\Entity\\Invoice',
+    extractItems: order =>
+      Array.isArray(order?.invoice)
+        ? order.invoice.map(item => item?.invoice || item).filter(Boolean)
+        : [],
+    isCollection: true,
+    label: 'Financeiro',
+  },
+  mainOrder: {
+    className: 'ControleOnline\\Entity\\Order',
+    label: 'Pedido principal',
+  },
+  order: {
+    className: 'ControleOnline\\Entity\\Order',
+    label: 'Pedido',
+  },
+  orderProduct: {
+    className: 'ControleOnline\\Entity\\OrderProduct',
+    label: 'Item pai',
+  },
+  orderProducts: {
+    className: 'ControleOnline\\Entity\\OrderProduct',
+    isCollection: true,
+    label: 'Itens',
+  },
+  parentProduct: {
+    className: 'ControleOnline\\Entity\\Product',
+    label: 'Produto pai',
+  },
+  payer: {
+    className: 'ControleOnline\\Entity\\People',
+    label: 'Pagador',
+  },
+  paymentType: {
+    className: 'ControleOnline\\Entity\\PaymentType',
+    label: 'Pagamento',
+  },
+  product: {
+    className: 'ControleOnline\\Entity\\Product',
+    label: 'Produto',
+  },
+  productGroup: {
+    className: 'ControleOnline\\Entity\\ProductGroup',
+    label: 'Grupo',
+  },
+  provider: {
+    className: 'ControleOnline\\Entity\\People',
+    label: 'Empresa',
+  },
+  receiver: {
+    className: 'ControleOnline\\Entity\\People',
+    label: 'Recebedor',
+  },
+  retrieveContact: {
+    className: 'ControleOnline\\Entity\\People',
+    label: 'Contato de retirada',
+  },
+  sourceWallet: {
+    className: 'ControleOnline\\Entity\\Wallet',
+    label: 'Carteira origem',
+  },
+  destinationWallet: {
+    className: 'ControleOnline\\Entity\\Wallet',
+    label: 'Carteira destino',
+  },
+  status: {
+    className: 'ControleOnline\\Entity\\Status',
+    label: 'Status',
+  },
+  task: {
+    className: 'ControleOnline\\Entity\\Task',
+    isCollection: true,
+    label: 'Tarefas',
+  },
+  user: {
+    className: 'ControleOnline\\Entity\\User',
+    label: 'Usuario',
+  },
+}
+
 const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProduct) => {
   if (!orderProduct || !resolvedProduct) return orderProduct
 
@@ -339,6 +440,7 @@ const OrderDetails = ({ route, navigation }) => {
   const shouldHideBottomToolBar = Boolean(route.params?.hideBottomToolBar || isTvDisplay)
   const { showError, showSuccess } = useMessage()
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
+  const [logModalVisible, setLogModalVisible] = useState(false)
   const insets = useSafeAreaInsets()
 
   const ordersStore = useStore('orders')
@@ -395,9 +497,6 @@ const OrderDetails = ({ route, navigation }) => {
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
-
-  // @todo implementar. jÃ¡ vem do banco.
-  const selectionType = device?.configs?.['selection-type'] || 'single' // ou multiple
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
@@ -1029,8 +1128,6 @@ const OrderDetails = ({ route, navigation }) => {
   const showInlineAddPaymentAction =
     canAddOrderPayment &&
     !useUnifiedKdsLayout
-  const isFinanciallyPaid = localPendingAmount <= 0.009
-  const isOrderPaidForCompletion = isFinanciallyPaid
   const internalOrderDisplayId = item?.id || orderParam?.id || '--'
   const orderDisplayId = internalOrderDisplayId
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
@@ -1053,16 +1150,10 @@ const OrderDetails = ({ route, navigation }) => {
     effectiveLocalRealStatusKey ||
     '',
   ).trim()
-  const localStatusLower = localStatusRaw.toLowerCase()
-  const isLocallyCanceledOrder =
-    localStatusLower.includes('canceled')
-  const pendingAmountForBadge = Number(localPendingAmount || 0)
-  const isPendingForBadge = Number.isFinite(pendingAmountForBadge) && pendingAmountForBadge > 0.009
   const orderStatusBadgeLabel = String(localStatusRaw || '-').toUpperCase()
   const orderStatusBadgeColor = displayOrderStatusColor || ppcColors.accentInfo
   const fallbackNoObservationText =
     `${global.t?.t('orders', 'message', 'noObservationsFor')} ${channelLabel || (global.t?.t('orders', 'label', 'order') || 'pedido')}.`
-  const showOrderObservationCard = true
   const localOrderClient = item?.client || orderParam?.client || null
   const localOrderAddress = item?.addressDestination || orderParam?.addressDestination || null
   const localOrderAddressParts = useMemo(
@@ -1399,7 +1490,6 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam?.remark,
     orderParam?.description,
   )
-  const orderObservationText = localOrderObservationSource || fallbackNoObservationText
   const baseOrderObservationText = localOrderObservationSource || fallbackNoObservationText
   const showBaseOrderObservationCard = true
   const orderDiscountTotal = Number(item?.discount || orderParam?.discount || 0)
@@ -1481,10 +1571,18 @@ const OrderDetails = ({ route, navigation }) => {
     setDetailsModalVisible(false)
   }, [])
 
+  const closeLogModal = useCallback(() => {
+    setLogModalVisible(false)
+  }, [])
+
   const handleOrderTools = useCallback(async () => {
     setDetailsModalVisible(true)
     await marketplaceSummary.ensureMarketplaceSummary()
   }, [marketplaceSummary])
+
+  const handleOrderLogs = useCallback(() => {
+    setLogModalVisible(true)
+  }, [])
 
   const handleConfirmGenericOrder = useCallback(() => {
     if (!item?.id || isTerminalOrder || orderActionLoading === 'confirm') {
@@ -1729,10 +1827,19 @@ const OrderDetails = ({ route, navigation }) => {
           >
             <Icon name="view-list" size={20} color={ppcColors.accentInfo} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleOrderLogs}
+            style={localStyles.topBarIconButton}
+            disabled={!(item?.id || orderParam?.id)}
+          >
+            <Icon name="history" size={20} color={ppcColors.accentInfo} />
+          </TouchableOpacity>
         </View>
       ),
     })
   }, [
+    handleOrderLogs,
     handleOrderTools,
     item?.id,
     orderParam?.id,
@@ -2720,6 +2827,25 @@ const OrderDetails = ({ route, navigation }) => {
         onClose={closeDetailsModal}
         summary={orderSummaryData}
       />
+      <EntityLogModal
+        visible={logModalVisible}
+        onClose={closeLogModal}
+        entity={resolvedDisplayOrder || item || orderParam}
+        entityClass="ControleOnline\\Entity\\Order"
+        entityId={item?.id || orderParam?.id}
+        entityIri={
+          resolvedDisplayOrder?.['@id'] ||
+          item?.['@id'] ||
+          orderParam?.['@id'] ||
+          ((item?.id || orderParam?.id)
+            ? `/orders/${item?.id || orderParam?.id}`
+            : '')
+        }
+        entityLabel={`${global.t?.t('orders', 'title', 'order') || 'Pedido'} #${item?.id || orderParam?.id || '--'}`}
+        relationConfig={ORDER_LOG_RELATION_CONFIG}
+        theme={ppcColors}
+        title={global.t?.t('orders', 'title', 'history') || 'Historico'}
+      />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (
         <View style={inlineStyle_2712_14}>
@@ -2752,6 +2878,17 @@ const OrderDetails = ({ route, navigation }) => {
                     </Text>
                   </TouchableOpacity>
                 )}
+
+                <TouchableOpacity
+                  onPress={handleOrderLogs}
+                  disabled={!(item?.id || orderParam?.id)}
+                  style={[globalStyles.button, { marginLeft: 5 }]}
+                >
+                  <Icon name="history" size={24} color="#fff" />
+                  <Text style={inlineStyle_2748_24}>
+                    {global.t?.t('orders', 'button', 'logs') || 'Logs'}
+                  </Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={handleOrderTools}
