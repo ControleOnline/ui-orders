@@ -420,9 +420,6 @@ const OrderDetails = ({ route, navigation }) => {
 
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
-  const productsStore = useStore('products')
-  const [resolvedProductsById, setResolvedProductsById] = useState({})
-  const loadingResolvedProductsRef = useRef(new Set())
 
   const [confirmRemoveItemId, setConfirmRemoveItemId] = useState(null)
   const currentOrderProductsRef = useRef([])
@@ -804,80 +801,15 @@ const OrderDetails = ({ route, navigation }) => {
     storedOrderProducts,
   ])
 
-  useEffect(() => {
-    const productIdsMissingUnit = [...new Set(
-      [...resolvedDisplayOrderProducts, ...editableOrderProducts]
-        .map(orderProduct => {
-          const productId = getEntityId(orderProduct?.product)
-          const cachedProduct = productId
-            ? (resolvedProductsById[productId] || resolvedProductCandidatesById[productId])
-            : null
-          const hasUnit =
-            !!resolveOrderItemUnitLabel(orderProduct) ||
-            !!resolveOrderItemUnitLabel(
-              cachedProduct ? mergeOrderProductWithResolvedProduct(orderProduct, cachedProduct) : orderProduct,
-            )
-
-          if (!productId || hasUnit || loadingResolvedProductsRef.current.has(productId)) {
-            return null
-          }
-
-          return productId
-        })
-        .filter(Boolean),
-    )]
-
-    if (!productIdsMissingUnit.length) return undefined
-
-    productIdsMissingUnit.forEach(id => loadingResolvedProductsRef.current.add(id))
-
-    let cancelled = false
-
-    ;(async () => {
-      const resolvedEntries = await Promise.all(
-        productIdsMissingUnit.map(async productId => {
-          try {
-            const product = await productsStore.actions.get(productId)
-            return [productId, product || null]
-          } catch {
-            return [productId, null]
-          } finally {
-            loadingResolvedProductsRef.current.delete(productId)
-          }
-        }),
-      )
-
-      if (cancelled) return
-
-      setResolvedProductsById(prev => {
-        let changed = false
-        const next = { ...prev }
-
-        resolvedEntries.forEach(([productId, product]) => {
-          if (product && next[productId] !== product) {
-            next[productId] = product
-            changed = true
-          }
-        })
-
-        return changed ? next : prev
-      })
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [editableOrderProducts, productsStore.actions, resolvedDisplayOrderProducts, resolvedProductCandidatesById, resolvedProductsById])
-
   const resolvedDisplayOrderProductsWithProductDetails = useMemo(
     () => resolvedDisplayOrderProducts.map(orderProduct => {
       const productId = getEntityId(orderProduct?.product)
       return mergeOrderProductWithResolvedProduct(
         orderProduct,
-        productId ? (resolvedProductsById[productId] || resolvedProductCandidatesById[productId]) : null,
+        productId ? resolvedProductCandidatesById[productId] : null,
       )
     }),
-    [resolvedDisplayOrderProducts, resolvedProductCandidatesById, resolvedProductsById],
+    [resolvedDisplayOrderProducts, resolvedProductCandidatesById],
   )
 
   const editableOrderProductsWithProductDetails = useMemo(
@@ -885,10 +817,10 @@ const OrderDetails = ({ route, navigation }) => {
       const productId = getEntityId(orderProduct?.product)
       return mergeOrderProductWithResolvedProduct(
         orderProduct,
-        productId ? (resolvedProductsById[productId] || resolvedProductCandidatesById[productId]) : null,
+        productId ? resolvedProductCandidatesById[productId] : null,
       )
     }),
-    [editableOrderProducts, resolvedProductCandidatesById, resolvedProductsById],
+    [editableOrderProducts, resolvedProductCandidatesById],
   )
   const shouldShowOrderAddress = !isPurchaseOrder
   const effectiveDisplayedOperationalStatus = useMemo(
