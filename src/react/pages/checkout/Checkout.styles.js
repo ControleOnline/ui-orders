@@ -67,6 +67,55 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#0EA5E9',
   },
+  modeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 10,
+  },
+  modeTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  modeSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 18,
+  },
+  modeOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  modeChip: {
+    minWidth: 120,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+  },
+  modeChipActive: {
+    borderColor: '#60A5FA',
+    backgroundColor: '#EFF6FF',
+  },
+  modeChipTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  modeChipDescription: {
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 16,
+    marginTop: 4,
+  },
   remoteButtonText: {
     color: '#fff',
     fontSize: 13,
@@ -157,4 +206,3 @@ export const inlineStyle_491_14 = {
 export const inlineStyle_534_10 = {
   marginRight: 16,
 };
-

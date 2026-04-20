@@ -1,10 +1,10 @@
 import React from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {View, ScrollView, Text, TouchableOpacity} from 'react-native';
+import {ActivityIndicator, View, ScrollView, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
-import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
+import UnifiedPaymentBar from '@controleonline/ui-common/src/react/components/UnifiedPaymentBar';
+import {useStore} from '@store';
 import { inlineStyle_62_26 } from './PaymentCheckoutPanel.styles';
 
 const PaymentCheckoutPanel = ({
@@ -17,21 +17,43 @@ const PaymentCheckoutPanel = ({
   invoiceError = null,
   error = null,
   topContent = null,
+  totalAmount = 0,
+  paidAmount = 0,
+  pendingAmount = 0,
+  actionLabel,
+  emptyTitle = 'Nenhuma opcao de pagamento disponivel',
+  emptyText = 'A configuracao atual nao liberou meios de pagamento para este modo.',
 }) => {
-  const {styles, globalStyles} = css();
+  const {styles} = css();
+  const themeStore = useStore('theme');
+  const colors = themeStore?.getters?.colors || {};
+  const theme = {
+    primary: colors.primary || '#1B5587',
+    success: colors.success || '#16A34A',
+    warning: colors.warning || '#D97706',
+    surface: '#FFFFFF',
+    text: '#0F172A',
+    muted: '#64748B',
+    background: colors.background || '#F8FAFC',
+    cardBorder: '#D6DEE8',
+    onPrimary: '#FFFFFF',
+  };
+  const hasError = !!invoiceError || !!error;
+  const canShowPayments =
+    !invoiceIsSaving && !hasError && Array.isArray(payments) && payments.length > 0;
 
   return (
     <SafeAreaView style={[styles.container]}>
       {topContent}
-      {!invoiceIsSaving &&
-      !invoiceError &&
-      payments &&
-      payments.length > 0 &&
-      !error ? (
+      {invoiceIsSaving ? (
+        <View style={[styles.boxInfos, {marginTop: 0}]}>
+          <ActivityIndicator size="small" color={theme.primary} />
+        </View>
+      ) : canShowPayments ? (
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            {paddingBottom: 100},
+            {paddingBottom: 220},
             {flexGrow: 1},
           ]}>
           <View>
@@ -67,19 +89,33 @@ const PaymentCheckoutPanel = ({
             ))}
           </View>
         </ScrollView>
-      ) : null}
-      <PayableToolbar />
-      <View style={[styles.toolbar]}>
-        <OrderTotalToolbar />
-        <TouchableOpacity
-          onPress={onPay}
-          disabled={payDisabled}
-          style={[globalStyles.button, payDisabled && {opacity: 0.6}]}>
-          <Text style={globalStyles.btnText}>
-            {global.t?.t('orders', 'button', 'pay').toUpperCase()}
+      ) : (
+        <View style={[styles.boxInfos, {marginTop: 0}]}>
+          <Text style={[styles.infoText, {marginBottom: 6}]}>
+            {hasError ? 'Falha ao montar o pagamento' : emptyTitle}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={{color: '#64748B'}}>
+            {invoiceError || error || emptyText}
+          </Text>
+        </View>
+      )}
+      <UnifiedPaymentBar
+        actions={[
+          {
+            key: 'pay',
+            label:
+              actionLabel || global.t?.t('orders', 'button', 'pay') || 'Pagar',
+            variant: 'primary',
+            loading: invoiceIsSaving,
+            disabled: payDisabled,
+            onPress: onPay,
+          },
+        ]}
+        paidAmount={paidAmount}
+        pendingAmount={pendingAmount}
+        theme={theme}
+        totalAmount={totalAmount}
+      />
     </SafeAreaView>
   );
 };
