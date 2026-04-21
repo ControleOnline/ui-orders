@@ -12,6 +12,7 @@ import {
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {api} from '@controleonline/ui-common/src/api';
+import {env} from '@env';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {
   buildManagerPdvRouteParams,
@@ -29,6 +30,7 @@ import {
   getPaymentGatewayFromConfigs,
   getPaymentGatewayLabel,
   isOrderChargeOnDeliveryEnabled,
+  isOrderPaymentDeviceChangeAllowed,
   PAYMENT_GATEWAY_CIELO,
   PAYMENT_GATEWAY_INFINITE_PAY,
   resolveRemotePaymentDeviceOptions,
@@ -263,6 +265,10 @@ const Checkout = () => {
     () => String(device?.type || device?.device?.type || '').trim().toUpperCase(),
     [device?.device?.type, device?.type],
   );
+  const isManagerApp = useMemo(
+    () => String(env.APP_TYPE || '').trim().toUpperCase() === 'MANAGER',
+    [],
+  );
   const isLocalPaymentDevice = useMemo(
     () =>
       supportsLocalCardPayment({
@@ -272,17 +278,25 @@ const Checkout = () => {
     [device],
   );
   const isCieloPdv =
-    deviceType === 'PDV' && localGateway === PAYMENT_GATEWAY_CIELO;
+    !isManagerApp &&
+    deviceType === 'PDV' &&
+    localGateway === PAYMENT_GATEWAY_CIELO;
   const isPdvInteractionMode = useMemo(
     () => isPdvRouteContext(route?.params),
     [route?.params],
   );
   const canUseLocalOperationalPayment = useMemo(
-    () => isLocalPaymentDevice || deviceType === 'PDV' || isPdvInteractionMode,
-    [deviceType, isLocalPaymentDevice, isPdvInteractionMode],
+    () =>
+      !isManagerApp &&
+      (isLocalPaymentDevice || deviceType === 'PDV' || isPdvInteractionMode),
+    [deviceType, isLocalPaymentDevice, isManagerApp, isPdvInteractionMode],
   );
   const orderChargeOnDeliveryEnabled = useMemo(
     () => isOrderChargeOnDeliveryEnabled(effectiveCompanyConfigs),
+    [effectiveCompanyConfigs],
+  );
+  const canChangePaymentDeviceDuringCheckout = useMemo(
+    () => isOrderPaymentDeviceChangeAllowed(effectiveCompanyConfigs),
     [effectiveCompanyConfigs],
   );
 
@@ -413,7 +427,8 @@ const Checkout = () => {
       options.push({
         key: PAYMENT_CHANNEL_REMOTE,
         label: 'Remoto',
-        description: 'Enviar a cobranca para outro terminal da empresa.',
+        description:
+          'Enviar a cobranca para o equipamento remoto configurado da empresa.',
       });
     }
 
@@ -426,7 +441,7 @@ const Checkout = () => {
         key: PAYMENT_CHANNEL_DELIVERY,
         label: 'Na entrega',
         description:
-          'Escolher o equipamento da entrega e registrar a cobranca pendente.',
+          'Usar o equipamento configurado da entrega e registrar a cobranca pendente.',
       });
     }
 
@@ -524,17 +539,27 @@ const Checkout = () => {
       return;
     }
 
+    const defaultDeviceId = remotePaymentDevices[0].deviceId;
+
     setSelectedRemoteDeviceId(current =>
-      remotePaymentDevices.some(deviceOption => deviceOption.deviceId === current)
-        ? current
-        : remotePaymentDevices[0].deviceId,
+      !canChangePaymentDeviceDuringCheckout
+        ? defaultDeviceId
+        : remotePaymentDevices.some(
+              deviceOption => deviceOption.deviceId === current,
+            )
+          ? current
+          : defaultDeviceId,
     );
     setSelectedDeliveryDeviceId(current =>
-      remotePaymentDevices.some(deviceOption => deviceOption.deviceId === current)
-        ? current
-        : remotePaymentDevices[0].deviceId,
+      !canChangePaymentDeviceDuringCheckout
+        ? defaultDeviceId
+        : remotePaymentDevices.some(
+              deviceOption => deviceOption.deviceId === current,
+            )
+          ? current
+          : defaultDeviceId,
     );
-  }, [remotePaymentDevices]);
+  }, [canChangePaymentDeviceDuringCheckout, remotePaymentDevices]);
 
   useEffect(() => {
     setPaymentChannel(current =>
@@ -1204,20 +1229,29 @@ const Checkout = () => {
             </View>
           ) : selectedRemoteDevice ? (
             <>
-              <Text style={styles.remoteCurrent}>
-                Usando {selectedRemoteDevice.alias} (
-                {getPaymentGatewayLabel(selectedRemoteDevice.gateway)})
-              </Text>
-              {remotePaymentDevices.length > 1 && (
-                <TouchableOpacity
-                  style={styles.remoteButton}
-                  activeOpacity={0.85}
-                  onPress={() => setRemoteDeviceModalVisible(true)}>
-                  <Icon name="list" size={18} color="#fff" />
-                  <Text style={styles.remoteButtonText}>
-                    Selecionar equipamento
-                  </Text>
-                </TouchableOpacity>
+              <View style={styles.remoteCurrentRow}>
+                <Text style={styles.remoteCurrent}>
+                  {canChangePaymentDeviceDuringCheckout
+                    ? 'Equipamento selecionado'
+                    : 'Equipamento padrao'}
+                  : {selectedRemoteDevice.alias} (
+                  {getPaymentGatewayLabel(selectedRemoteDevice.gateway)})
+                </Text>
+                {canChangePaymentDeviceDuringCheckout &&
+                  remotePaymentDevices.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.remoteSwapButton}
+                      activeOpacity={0.85}
+                      onPress={() => setRemoteDeviceModalVisible(true)}>
+                      <Icon name="swap-horiz" size={14} color="#0EA5E9" />
+                      <Text style={styles.remoteSwapButtonText}>Trocar</Text>
+                    </TouchableOpacity>
+                  )}
+              </View>
+              {!canChangePaymentDeviceDuringCheckout && (
+                <Text style={styles.remoteSubtitle}>
+                  Equipamento padrao definido no configurador geral.
+                </Text>
               )}
             </>
           ) : (
@@ -1253,20 +1287,35 @@ const Checkout = () => {
             </View>
           ) : selectedDeliveryDevice ? (
             <>
-              <Text style={styles.remoteCurrent}>
-                Entrega usando {selectedDeliveryDevice.alias} (
-                {getPaymentGatewayLabel(selectedDeliveryDevice.gateway)})
-              </Text>
-              {remotePaymentDevices.length > 1 && (
-                <TouchableOpacity
-                  style={[styles.remoteButton, styles.deliveryButton]}
-                  activeOpacity={0.85}
-                  onPress={() => setDeliveryDeviceModalVisible(true)}>
-                  <Icon name="list" size={18} color="#fff" />
-                  <Text style={styles.remoteButtonText}>
-                    Selecionar equipamento
-                  </Text>
-                </TouchableOpacity>
+              <View style={styles.remoteCurrentRow}>
+                <Text style={styles.remoteCurrent}>
+                  {canChangePaymentDeviceDuringCheckout
+                    ? 'Equipamento da entrega'
+                    : 'Equipamento padrao da entrega'}
+                  : {selectedDeliveryDevice.alias} (
+                  {getPaymentGatewayLabel(selectedDeliveryDevice.gateway)})
+                </Text>
+                {canChangePaymentDeviceDuringCheckout &&
+                  remotePaymentDevices.length > 1 && (
+                    <TouchableOpacity
+                      style={[styles.remoteSwapButton, styles.deliverySwapButton]}
+                      activeOpacity={0.85}
+                      onPress={() => setDeliveryDeviceModalVisible(true)}>
+                      <Icon name="swap-horiz" size={14} color="#16A34A" />
+                      <Text
+                        style={[
+                          styles.remoteSwapButtonText,
+                          styles.deliverySwapButtonText,
+                        ]}>
+                        Trocar
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+              </View>
+              {!canChangePaymentDeviceDuringCheckout && (
+                <Text style={styles.remoteSubtitle}>
+                  Equipamento padrao definido no configurador geral.
+                </Text>
               )}
             </>
           ) : (
@@ -1320,8 +1369,12 @@ const Checkout = () => {
     (activePaymentChannel === PAYMENT_CHANNEL_REMOTE && !selectedRemoteDevice) ||
     (activePaymentChannel === PAYMENT_CHANNEL_DELIVERY && !selectedDeliveryDevice);
   const actionLabel =
-    activePaymentChannel === PAYMENT_CHANNEL_DELIVERY
-      ? 'Cobrar na entrega'
+    activePaymentChannel === PAYMENT_CHANNEL_DELIVERY && selectedDeliveryDevice
+      ? `Cobrar na entrega com ${selectedDeliveryDevice.alias}`
+      : activePaymentChannel === PAYMENT_CHANNEL_DELIVERY
+        ? 'Cobrar na entrega'
+      : activePaymentChannel === PAYMENT_CHANNEL_REMOTE && selectedRemoteDevice
+        ? `Pagar em ${selectedRemoteDevice.alias}`
       : 'Pagar';
   const amountEntryTitle =
     amountEntryModalMode === 'cash-local'

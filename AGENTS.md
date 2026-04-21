@@ -20,6 +20,9 @@
 - Entrada de valor no checkout operacional deve reaproveitar um unico componente compartilhado. Nao manter dois modais equivalentes para cobrar valor ou receber dinheiro.
 - `Cielo` e `Infinite Pay` sao gateways atuais do fluxo operacional. Eles devem ser executados dentro do checkout unificado de `src/react/pages/checkout/Checkout.js`, sem telas paralelas por gateway.
 - A execucao tecnica de cada gateway pode ficar em arquivos separados, como `services/Cielo/Checkout.js` e `services/InfinitePay/Checkout.js`, desde que ambos participem do mesmo fluxo unificado de checkout.
+- Em `APP_TYPE=MANAGER`, mesmo na tela `PdvPage`, o checkout nao deve liberar pagamento local. O Gestor deve usar device remoto configurado ou pagamento na entrega.
+- Quando existir equipamento padrao configurado para pagamento remoto, o checkout deve usar esse device como destino principal. Trocar de equipamento durante o pagamento so aparece se a empresa ativar essa permissao no configurador geral.
+- No remoto e na entrega, o botao principal da barra executa o pagamento no equipamento atualmente selecionado. A troca de equipamento, quando permitida, aparece apenas como acao discreta ao lado do device atual, sem um segundo botao grande para a mesma finalidade.
 
 ## Regras por visao
 - `PDV Cielo`: cobra somente no proprio device. Nao deve oferecer remoto nem pagamento na entrega nesse fluxo.
@@ -35,6 +38,8 @@
 - Se houver mais de um device remoto disponivel, o usuario precisa poder escolher qual equipamento recebera a cobranca.
 - Quando o meio selecionado nao depende de gateway, como dinheiro, a conclusao continua sendo responsabilidade do device remoto escolhido e o helper compartilhado deve registrar a invoice no fim do fluxo.
 - O listener remoto deve apenas executar o mesmo helper tecnico usado pelo checkout unificado. Nao renderizar checkout especifico de Cielo ou Infinite Pay para isso.
+- Se `order-payment-device` ou `order-payment-devices` nao estiverem preenchidos, o checkout remoto deve cair para os devices de pagamento da empresa, excluindo o device atual.
+- O botao principal de pagar no canal remoto deve deixar claro qual equipamento configurado recebera a cobranca.
 
 ## Pagar Na Entrega
 - `Pagar na entrega` sempre exige selecionar qual device fara a cobranca.

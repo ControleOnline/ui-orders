@@ -56,19 +56,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#334155',
+    flex: 1,
   },
-  remoteButton: {
-    alignSelf: 'flex-start',
+  remoteCurrentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#0EA5E9',
+    gap: 10,
   },
-  deliveryButton: {
-    backgroundColor: '#16A34A',
+  remoteSwapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  remoteSwapButtonText: {
+    color: '#0EA5E9',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  deliverySwapButton: {
+    borderColor: '#BBF7D0',
+    backgroundColor: '#F0FDF4',
+  },
+  deliverySwapButtonText: {
+    color: '#16A34A',
   },
   modeCard: {
     backgroundColor: '#fff',
@@ -118,11 +134,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 16,
     marginTop: 4,
-  },
-  remoteButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
   },
   modalContainer: {
     flex: 1,
