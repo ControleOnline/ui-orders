@@ -40,7 +40,9 @@ import {
   isIntegratedPaymentOption,
 } from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
+  createInvoiceForGatewayFreePayment,
   formatMoneyInputValue,
+  isGatewayFreePayment,
   normalizeMoneyInputText,
   parseMoneyInputValue,
   resolveCashPaymentDetails,
@@ -745,8 +747,13 @@ const Checkout = () => {
 
       setSubmittingPayment(true);
       try {
-        if (!payment.paymentCode) {
-          await createPaidInvoice(payment, total);
+        if (
+          await createInvoiceForGatewayFreePayment({
+            payment,
+            total,
+            createInvoice: createPaidInvoice,
+          })
+        ) {
           return;
         }
 
@@ -866,11 +873,6 @@ const Checkout = () => {
 
       setSubmittingPayment(true);
       try {
-        if (!payment.paymentCode) {
-          await createPaidInvoice(payment, total);
-          return;
-        }
-
         await websocketActions.send({
           destination: selectedRemoteDevice.deviceId,
           store: 'invoice',
@@ -886,7 +888,11 @@ const Checkout = () => {
 
         Alert.alert(
           'Pagamento enviado',
-          `Pagamento enviado para ${selectedRemoteDevice.alias}. A conclusao da fatura sera feita no device remoto.`,
+          `Pagamento enviado para ${selectedRemoteDevice.alias}. ${
+            isGatewayFreePayment(payment)
+              ? 'O registro do dinheiro sera concluido no device remoto.'
+              : 'A conclusao da fatura sera feita no device remoto.'
+          }`,
         );
       } catch (error) {
         invoiceActions.setError(
@@ -900,7 +906,6 @@ const Checkout = () => {
       }
     },
     [
-      createPaidInvoice,
       invoiceActions,
       order?.id,
       selectedRemoteDevice,

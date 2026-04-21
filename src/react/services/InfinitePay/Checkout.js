@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 
 import {
   View,
@@ -19,6 +19,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
+import {createInvoiceForGatewayFreePayment} from '@controleonline/ui-common/src/react/utils/cashPayment';
 
 import {
   inlineStyle_176_32,
@@ -33,6 +34,7 @@ const Checkout = ({
   cancelOperation,
   remoteCheckoutMode = false,
   paymentType = {},
+  paymentValue = 0,
 }) => {
   const {styles, globalStyles} = css();
   const ordersStore = useStore('orders');
@@ -87,14 +89,25 @@ const Checkout = ({
     setModalVisible(true);
   };
 
-  async function handleConfirmValue(inputValue) {
-    if (selectedPayment.paymentCode) {
+  const handleConfirmValue = useCallback(async (inputValue, payment = selectedPayment) => {
+    if (
+      await createInvoiceForGatewayFreePayment({
+        payment,
+        total: inputValue,
+        createInvoice,
+      })
+    ) {
+      setModalVisible(false);
+      return;
+    }
+
+    if (payment?.paymentCode) {
       let totalPrice = Math.round(parseFloat(inputValue) * 100).toString();
       const service = new InfinitePay();
       try {
         const response = await service.payment(
-          selectedPayment.paymentCode,
-          selectedPayment.installments || 1,
+          payment.paymentCode,
+          payment.installments || 1,
           order['@id'],
           totalPrice,
         );
@@ -103,17 +116,24 @@ const Checkout = ({
           throw response;
 
         createInvoice(
-          selectedPayment,
+          payment,
           response.result.paidAmount / 100 || order.price,
         );
       } catch (error) {
         invoiceActions.setError(error);
       }
-    } else {
-      createInvoice(selectedPayment, inputValue);
     }
     setModalVisible(false);
-  }
+  }, [createInvoice, invoiceActions, order, selectedPayment]);
+
+  useEffect(() => {
+    if (!remoteCheckoutMode) {
+      return;
+    }
+
+    setSelectedPayment(paymentType);
+    handleConfirmValue(paymentValue, paymentType);
+  }, [handleConfirmValue, paymentType, paymentValue, remoteCheckoutMode]);
 
   const handleCancel = () => {
     cancelOperation();
@@ -138,7 +158,7 @@ const Checkout = ({
       if (!response.success || response.code === 2 || response.code === 1)
         throw response;
 
-      createInvoice(response.result.paidAmount / 100 || order.price);
+      createInvoice(selectedPayment, response.result.paidAmount / 100 || order.price);
     } catch (error) {
       invoiceActions.setError(error);
     }

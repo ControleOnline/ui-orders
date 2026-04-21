@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
+import {createInvoiceForGatewayFreePayment} from '@controleonline/ui-common/src/react/utils/cashPayment';
 import { inlineStyle_174_32 } from './Checkout.styles';
 
 const Checkout = ({
@@ -55,15 +56,7 @@ const Checkout = ({
     }, [selectedPayment]),
   );
 
-  useEffect(() => {
-    if (remoteCheckoutMode) {
-      console.log(paymentType, paymentValue);
-      setSelectedPayment(paymentType);
-      handleConfirmValue(paymentValue);
-    }
-  }, [remoteCheckoutMode]);
-
-  const formatProducts = () => {
+  const formatProducts = useCallback(() => {
     let items = [];
 
     orderProducts.forEach(orderProduct => {
@@ -78,7 +71,7 @@ const Checkout = ({
       items.push(item);
     });
     return items;
-  };
+  }, [orderProducts]);
 
   const handlePay = async () => {
     if (
@@ -93,8 +86,19 @@ const Checkout = ({
     setModalVisible(true);
   };
 
-  async function handleConfirmValue(inputValue) {
-    if (selectedPayment.paymentCode) {
+  const handleConfirmValue = useCallback(async (inputValue, payment = selectedPayment) => {
+    if (
+      await createInvoiceForGatewayFreePayment({
+        payment,
+        total: inputValue,
+        createInvoice,
+      })
+    ) {
+      setModalVisible(false);
+      return;
+    }
+
+    if (payment?.paymentCode) {
       let totalPrice = Math.round(parseFloat(inputValue) * 100).toString();
       let items = formatProducts();
 
@@ -102,7 +106,7 @@ const Checkout = ({
 
       try {
         const response = await service.payment(
-          selectedPayment.paymentCode,
+          payment.paymentCode,
           items,
           totalPrice,
         );
@@ -115,20 +119,32 @@ const Checkout = ({
           return;
         }
 
-        createInvoice(selectedPayment, inputValue);
+        createInvoice(payment, inputValue);
       } catch (error) {
         invoiceActions.setError(`${global.t?.t('orders', 'message', 'unexpectedError')}: ${error.message}`);
         console.error('Erro na chamada ao serviço:', error);
         cancelOperation();
         setModalVisible(false);
       }
-    } else {
-      setModalVisible(false);
-      createInvoice(selectedPayment, inputValue);
     }
 
     setModalVisible(false);
-  }
+  }, [
+    cancelOperation,
+    createInvoice,
+    formatProducts,
+    invoiceActions,
+    selectedPayment,
+  ]);
+
+  useEffect(() => {
+    if (!remoteCheckoutMode) {
+      return;
+    }
+
+    setSelectedPayment(paymentType);
+    handleConfirmValue(paymentValue, paymentType);
+  }, [handleConfirmValue, paymentType, paymentValue, remoteCheckoutMode]);
 
   const handleCancel = () => {
     cancelOperation();

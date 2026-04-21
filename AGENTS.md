@@ -20,11 +20,13 @@
 - `PDV Android`: pode cobrar no proprio device, enviar a cobranca para uma maquina remota ou marcar para cobrar na entrega.
 - `MANAGER`: nao deve cobrar localmente. Deve escolher um device remoto, como Cielo ou Infinite Pay, ou cobrar na entrega.
 - `SHOP`: o cliente deve escolher pagamento online ou pagamento na entrega. Online hoje significa Asaas. Na entrega, o shop so mostra as opcoes liberadas pela empresa.
+- Dinheiro em fluxo operacional pertence a `PDV` e `MANAGER`, sempre comandado por funcionario. O `SHOP` nao confirma pagamento em dinheiro aqui.
 
 ## Pagamento remoto
 - Pagamento remoto sempre depende de um device de destino configurado na empresa.
 - Os destinos remotos validos para orders sao devices com gateway de pagamento, hoje Cielo e Infinite Pay.
 - Se houver mais de um device remoto disponivel, o usuario precisa poder escolher qual equipamento recebera a cobranca.
+- Quando o meio selecionado nao depende de gateway, como dinheiro, a conclusao continua sendo responsabilidade do device remoto escolhido e o helper compartilhado deve registrar a invoice no fim do fluxo.
 
 ## Pagar Na Entrega
 - `Pagar na entrega` sempre exige selecionar qual device fara a cobranca.
@@ -32,6 +34,7 @@
 - Em dinheiro, o fluxo precisa pedir a informacao de troco antes de concluir a escolha.
 - No checkout operacional, registrar a cobranca como pendente com os metadados do device de entrega.
 - No `SHOP`, o cliente escolhe entre pagar online agora ou pagar na entrega com as opcoes liberadas para a empresa.
+- Quando um pedido do `SHOP` for marcado para dinheiro na entrega, a confirmacao final do valor pago acontece depois por um funcionario em `PDV` ou `MANAGER`.
 
 ## Configuracao
 - A barra unica depende das configuracoes centralizadas de empresa e device.
