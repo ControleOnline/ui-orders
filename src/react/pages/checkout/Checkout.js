@@ -734,47 +734,6 @@ const Checkout = () => {
     setCashReceivedValue(normalizeMoneyInputText(text));
   }, []);
 
-  const handleConfirmDeliveryChange = useCallback(async () => {
-    if (cashPaymentDetails.receivedAmount <= 0.009) {
-      invoiceActions.setError('Informe o valor recebido para continuar.');
-      return;
-    }
-
-    if (
-      cashPaymentContext === PAYMENT_CHANNEL_DELIVERY &&
-      cashPaymentDetails.missingAmount > 0.009
-    ) {
-      invoiceActions.setError(
-        'O valor recebido nao pode ser menor que o total do pedido na entrega.',
-      );
-      return;
-    }
-
-    setDeliveryChangeModalVisible(false);
-    if (cashPaymentContext === PAYMENT_CHANNEL_LOCAL) {
-      await runLocalPayment({
-        payment: selectedPayment,
-        total: cashPaymentDetails.appliedAmount,
-      });
-      return;
-    }
-
-    await registerDeliveryInvoice({
-      payment: selectedPayment,
-      total: remainingAmount,
-      receivedAmount: cashPaymentDetails.receivedAmount,
-      changeAmount: cashPaymentDetails.changeAmount,
-    });
-  }, [
-    cashPaymentContext,
-    cashPaymentDetails,
-    invoiceActions,
-    registerDeliveryInvoice,
-    remainingAmount,
-    runLocalPayment,
-    selectedPayment,
-  ]);
-
   const runLocalPayment = useCallback(
     async ({payment, total, installments = null}) => {
       if (!payment?.wallet || !payment?.paymentType) {
@@ -847,6 +806,47 @@ const Checkout = () => {
       order?.['@id'],
     ],
   );
+
+  const handleConfirmDeliveryChange = useCallback(async () => {
+    if (cashPaymentDetails.receivedAmount <= 0.009) {
+      invoiceActions.setError('Informe o valor recebido para continuar.');
+      return;
+    }
+
+    if (
+      cashPaymentContext === PAYMENT_CHANNEL_DELIVERY &&
+      cashPaymentDetails.missingAmount > 0.009
+    ) {
+      invoiceActions.setError(
+        'O valor recebido nao pode ser menor que o total do pedido na entrega.',
+      );
+      return;
+    }
+
+    setDeliveryChangeModalVisible(false);
+    if (cashPaymentContext === PAYMENT_CHANNEL_LOCAL) {
+      await runLocalPayment({
+        payment: selectedPayment,
+        total: cashPaymentDetails.appliedAmount,
+      });
+      return;
+    }
+
+    await registerDeliveryInvoice({
+      payment: selectedPayment,
+      total: remainingAmount,
+      receivedAmount: cashPaymentDetails.receivedAmount,
+      changeAmount: cashPaymentDetails.changeAmount,
+    });
+  }, [
+    cashPaymentContext,
+    cashPaymentDetails,
+    invoiceActions,
+    registerDeliveryInvoice,
+    remainingAmount,
+    runLocalPayment,
+    selectedPayment,
+  ]);
 
   const dispatchRemotePayment = useCallback(
     async ({payment, total, installments = null}) => {
