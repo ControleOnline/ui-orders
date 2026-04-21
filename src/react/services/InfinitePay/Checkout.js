@@ -1,276 +1,33 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import InfinitePayService from './InfinitePay';
 
-import {
-  View,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  Modal,
-  Button,
-} from 'react-native';
-
-import { SafeAreaView } from 'react-native-safe-area-context';
-import InfinitePay from './InfinitePay';
-import css from '@controleonline/ui-orders/src/react/css/orders';
-import {useStore} from '@store';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useFocusEffect} from '@react-navigation/native';
-import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
-import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
-import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
-import {createInvoiceForGatewayFreePayment} from '@controleonline/ui-common/src/react/utils/cashPayment';
-
-import {
-  inlineStyle_176_32,
-  inlineStyle_217_10,
-  inlineStyle_224_12,
-  inlineStyle_230_18,
-  inlineStyle_238_18,
-} from './Checkout.styles';
-
-const Checkout = ({
-  createInvoice,
-  cancelOperation,
-  remoteCheckoutMode = false,
-  paymentType = {},
-  paymentValue = 0,
+export const runInfinitePayCheckoutPayment = async ({
+  installments = null,
+  order = null,
+  payment = null,
+  total = 0,
 }) => {
-  const {styles, globalStyles} = css();
-  const ordersStore = useStore('orders');
-  const orderGetters = ordersStore.getters;
-  const walletPaymentTypeStore = useStore('walletPaymentType');
-  const paymentTypeGetters = walletPaymentTypeStore.getters;
-  const invoiceStore = useStore('invoice');
-  const invoiceGetters = invoiceStore.getters;
-  const invoiceActions = invoiceStore.actions;
+  const resolvedTotal = Number(total || 0);
 
-  const {error, items: payments} = paymentTypeGetters;
-  const [selectedPayment, setSelectedPayment] = useState(paymentType);
-  const [modalVisible, setModalVisible] = useState(false);
-  const {IsSaving: invoiceIsSaving, error: invoiceError} = invoiceGetters;
-  const {item: order} = orderGetters;
+  if (!payment?.paymentCode) {
+    throw new Error('Meio de pagamento sem codigo de gateway.');
+  }
 
-  const [installmentsModalVisible, setInstallmentsModalVisible] =
-    useState(false);
-  const [setSelectedInstallments] = useState(null);
+  if (resolvedTotal <= 0) {
+    throw new Error('Informe um valor de pagamento valido.');
+  }
 
-  const selectPayment = async payment => {
-    setSelectedPayment(payment);
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      if (
-        !remoteCheckoutMode &&
-        selectedPayment &&
-        Object.keys(selectedPayment).length > 0
-      )
-        handlePay();
-    }, [selectedPayment]),
+  const response = await new InfinitePayService().payment(
+    payment.paymentCode,
+    installments || payment.installments || 1,
+    order?.['@id'] || order?.id || '',
+    Math.round(resolvedTotal * 100).toString(),
   );
 
-  const handlePay = async () => {
-    if (
-      !selectedPayment ||
-      !selectedPayment.wallet ||
-      !selectedPayment.paymentType
-    ) {
-      invoiceActions.setError(global.t?.t('orders', 'message', 'selectPaymentMethod'));
-      return;
-    }
-
-    // Verifica se é 'split' para abrir o modal de parcelas
-    if (selectedPayment.installments === 'split') {
-      setInstallmentsModalVisible(true);
-      return;
-    }
-
-    setModalVisible(true);
+  return {
+    paidAmount:
+      Number(response?.result?.paidAmount || 0) > 0
+        ? Number(response.result.paidAmount) / 100
+        : resolvedTotal,
+    response,
   };
-
-  const handleConfirmValue = useCallback(async (inputValue, payment = selectedPayment) => {
-    if (
-      await createInvoiceForGatewayFreePayment({
-        payment,
-        total: inputValue,
-        createInvoice,
-      })
-    ) {
-      setModalVisible(false);
-      return;
-    }
-
-    if (payment?.paymentCode) {
-      let totalPrice = Math.round(parseFloat(inputValue) * 100).toString();
-      const service = new InfinitePay();
-      try {
-        const response = await service.payment(
-          payment.paymentCode,
-          payment.installments || 1,
-          order['@id'],
-          totalPrice,
-        );
-
-        if (!response.success || response.code === 2 || response.code === 1)
-          throw response;
-
-        createInvoice(
-          payment,
-          response.result.paidAmount / 100 || order.price,
-        );
-      } catch (error) {
-        invoiceActions.setError(error);
-      }
-    }
-    setModalVisible(false);
-  }, [createInvoice, invoiceActions, order, selectedPayment]);
-
-  useEffect(() => {
-    if (!remoteCheckoutMode) {
-      return;
-    }
-
-    setSelectedPayment(paymentType);
-    handleConfirmValue(paymentValue, paymentType);
-  }, [handleConfirmValue, paymentType, paymentValue, remoteCheckoutMode]);
-
-  const handleCancel = () => {
-    cancelOperation();
-    setModalVisible(false);
-  };
-
-  const handleInstallmentsSelect = async installments => {
-    setSelectedInstallments(installments);
-    setInstallmentsModalVisible(false);
-
-    const service = new InfinitePay();
-    let totalPrice = Math.round(order.price * 100).toString();
-
-    try {
-      const response = await service.payment(
-        selectedPayment.paymentCode,
-        installments,
-        order['@id'],
-        totalPrice,
-      );
-
-      if (!response.success || response.code === 2 || response.code === 1)
-        throw response;
-
-      createInvoice(selectedPayment, response.result.paidAmount / 100 || order.price);
-    } catch (error) {
-      invoiceActions.setError(error);
-    }
-  };
-
-  return remoteCheckoutMode ? null : (
-    <>
-      <SafeAreaView style={[styles.container]}>
-        {!invoiceIsSaving &&
-          !invoiceError &&
-          payments &&
-          payments.length > 0 &&
-          !error && (
-            <>
-              <ScrollView
-                contentContainerStyle={[
-                  styles.scrollContent,
-                  {paddingBottom: 100},
-                  {flexGrow: 1},
-                ]}>
-                <View>
-                  {payments.map(payment => (
-                    <TouchableOpacity
-                      key={payment.paymentType.id}
-                      onPress={() => selectPayment(payment)}>
-                      <View
-                        style={[
-                          styles.boxPayment,
-                          selectedPayment.paymentType?.id ===
-                            payment.paymentType.id && styles.selectedBoxPayment,
-                        ]}>
-                        <View style={styles.paymentIcon}>
-                          {selectedPayment.paymentType?.id ===
-                          payment.paymentType.id ? (
-                            <Icon name="check-box" size={24} color="black" />
-                          ) : (
-                            <Icon
-                              name="check-box-outline-blank"
-                              size={22}
-                              color="black"
-                            />
-                          )}
-                        </View>
-                        <View>
-                          <Text style={inlineStyle_176_32}>
-                            {payment.paymentType.paymentType}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </>
-          )}
-        <PayableToolbar />
-
-        <View style={[styles.toolbar]}>
-          <OrderTotalToolbar />
-          <TouchableOpacity
-            onPress={() => handlePay()}
-            disabled={!selectedPayment}
-            style={[globalStyles.button]}>
-            <Text style={globalStyles.btnText}>{global.t?.t('orders', 'button', 'pay').toUpperCase()}</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={handleCancel}>
-        <Calculate
-          handleCancel={handleCancel}
-          handleConfirmValue={handleConfirmValue}
-        />
-      </Modal>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={installmentsModalVisible}
-        onRequestClose={() => setInstallmentsModalVisible(false)}>
-        <View
-          style={inlineStyle_217_10}>
-          <View
-            style={inlineStyle_224_12}>
-            <Text style={inlineStyle_230_18}>
-              {global.t?.t('orders', 'title', 'chooseInstallments')}:
-            </Text>
-            <ScrollView>
-              {Array.from({length: 9}, (_, i) => i + 2).map(num => (
-                <TouchableOpacity
-                  key={num}
-                  onPress={() => handleInstallmentsSelect(num)}
-                  style={inlineStyle_238_18}>
-                  <Text>
-                    {num}x - {Formatter.formatMoney((order?.price || 0) / num)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <Button
-              title={global.t?.t('orders', 'button', 'cancel')}
-              onPress={() => setInstallmentsModalVisible(false)}
-            />
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
 };
-
-export default Checkout;

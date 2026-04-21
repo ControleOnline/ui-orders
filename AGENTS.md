@@ -14,6 +14,12 @@
 - Nao criar fluxo paralelo de pagamento fora dessa barra.
 - Primeiro o usuario escolhe onde a cobranca vai acontecer. Depois escolhe o meio de pagamento.
 - Os meios exibidos dependem do canal selecionado e do device/gateway configurado.
+- Quando uma tela ja tiver barra propria de pagamento, o layout nao deve renderizar outra barra por baixo. Deve aparecer uma ou outra, nunca as duas.
+- Rotas de `OrderDetails` e `Checkout` devem carregar o pedido por `id` na URL e pelo store; nao passar objeto do pedido em params.
+- O contexto de `PDV` entre `OrderDetails` e `Checkout` deve permanecer em params primitivos, preservando `interactionMode` e `showBottomToolBar` para o checkout liberar o canal local correto.
+- Entrada de valor no checkout operacional deve reaproveitar um unico componente compartilhado. Nao manter dois modais equivalentes para cobrar valor ou receber dinheiro.
+- `Cielo` e `Infinite Pay` sao gateways atuais do fluxo operacional. Eles devem ser executados dentro do checkout unificado de `src/react/pages/checkout/Checkout.js`, sem telas paralelas por gateway.
+- A execucao tecnica de cada gateway pode ficar em arquivos separados, como `services/Cielo/Checkout.js` e `services/InfinitePay/Checkout.js`, desde que ambos participem do mesmo fluxo unificado de checkout.
 
 ## Regras por visao
 - `PDV Cielo`: cobra somente no proprio device. Nao deve oferecer remoto nem pagamento na entrega nesse fluxo.
@@ -21,12 +27,14 @@
 - `MANAGER`: nao deve cobrar localmente. Deve escolher um device remoto, como Cielo ou Infinite Pay, ou cobrar na entrega.
 - `SHOP`: o cliente deve escolher pagamento online ou pagamento na entrega. Online hoje significa Asaas. Na entrega, o shop so mostra as opcoes liberadas pela empresa.
 - Dinheiro em fluxo operacional pertence a `PDV` e `MANAGER`, sempre comandado por funcionario. O `SHOP` nao confirma pagamento em dinheiro aqui.
+- Em modo `PDV` no web, o pagamento local em dinheiro continua valido. Ao escolher dinheiro e tocar em pagar, a tela deve pedir o valor recebido e mostrar o troco antes da confirmacao.
 
 ## Pagamento remoto
 - Pagamento remoto sempre depende de um device de destino configurado na empresa.
 - Os destinos remotos validos para orders sao devices com gateway de pagamento, hoje Cielo e Infinite Pay.
 - Se houver mais de um device remoto disponivel, o usuario precisa poder escolher qual equipamento recebera a cobranca.
 - Quando o meio selecionado nao depende de gateway, como dinheiro, a conclusao continua sendo responsabilidade do device remoto escolhido e o helper compartilhado deve registrar a invoice no fim do fluxo.
+- O listener remoto deve apenas executar o mesmo helper tecnico usado pelo checkout unificado. Nao renderizar checkout especifico de Cielo ou Infinite Pay para isso.
 
 ## Pagar Na Entrega
 - `Pagar na entrega` sempre exige selecionar qual device fara a cobranca.

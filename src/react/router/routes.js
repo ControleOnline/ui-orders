@@ -12,10 +12,6 @@ import React from 'react';
 
 
 const WrappedCloseCashRegister = ({ navigation, route }) => {
-  const device_configStore = useStore('device_config');
-  const deviceConfigGetters = device_configStore.getters;
-  const { item: device } = deviceConfigGetters;
-
   React.useEffect(() => {
     navigation.setOptions({
       title: global.t?.t('orders', 'title', 'cashRegister'),
@@ -126,7 +122,7 @@ const ordersRoutes = [
   {
     name: 'Checkout',
     component: Checkout,
-    options: { showBottomCart: true, headerShown: false },
+    options: { showBottomCart: false, headerShown: false },
     initialParams: { store: 'cart' },
   },
 ];

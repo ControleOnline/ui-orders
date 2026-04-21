@@ -2,6 +2,10 @@ import {normalizeEntityId} from '@controleonline/ui-orders/src/utils/orderState'
 
 export const getOrderRouteId = orderOrId => normalizeEntityId(orderOrId)
 
+export const isPdvRouteContext = params =>
+  String(params?.interactionMode || '').trim().toLowerCase() === 'pdv' ||
+  params?.showBottomToolBar === true
+
 export const buildManagerPdvRouteParams = (extraParams = {}) => ({
   interactionMode: 'pdv',
   showBottomCart: true,
@@ -21,3 +25,9 @@ export const buildOrderDetailsRouteParams = (orderOrId, extraParams = {}) => {
 
   return nextParams
 }
+
+export const buildCheckoutRouteParams = (orderOrId, extraParams = {}) => ({
+  ...buildOrderDetailsRouteParams(orderOrId),
+  showBottomCart: false,
+  ...extraParams,
+})

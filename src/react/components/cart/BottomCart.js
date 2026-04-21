@@ -7,6 +7,7 @@ import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/Or
 import {
   buildManagerPdvRouteParams,
   buildOrderDetailsRouteParams,
+  isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import Icon from 'react-native-vector-icons/Feather';
 import createStyles from './BottomCart.styles';
@@ -50,15 +51,17 @@ const BottomCart = ({
 
   const handleDefaultAction = useCallback(item => {
     ordersStore.actions.syncOrder?.(item);
-    const shouldKeepPdvMode = route?.params?.interactionMode === 'pdv';
+    const shouldKeepPdvMode = isPdvRouteContext(route?.params);
     navigation.navigate(
       'OrderDetails',
       buildOrderDetailsRouteParams(
         item,
-        shouldKeepPdvMode ? buildManagerPdvRouteParams() : {},
+        shouldKeepPdvMode
+          ? buildManagerPdvRouteParams({showBottomCart: false})
+          : {},
       ),
     );
-  }, [navigation, ordersStore.actions, route?.params?.interactionMode]);
+  }, [navigation, ordersStore.actions, route?.params]);
 
   const isActionDisabled = !order?.id || !!actionDisabled;
   const handleActionPress = useCallback(() => {

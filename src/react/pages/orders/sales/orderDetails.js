@@ -41,8 +41,10 @@ import BottomCart from '@controleonline/ui-orders/src/react/components/cart/Bott
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
 import {
+  buildCheckoutRouteParams,
   buildManagerPdvRouteParams,
   getOrderRouteId,
+  isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 import { env } from '@env'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
@@ -635,8 +637,24 @@ const OrderDetails = ({ route, navigation }) => {
   const handleAddPayment = useCallback(async () => {
     if (!item?.id || isLocallyTerminalOrder) return
     await flushPendingOrderProductChanges()
-    navigation.navigate('Checkout', { order: ordersGetters.item || item })
-  }, [flushPendingOrderProductChanges, item, navigation, isLocallyTerminalOrder, ordersGetters.item])
+    const shouldKeepPdvMode = isPdvRouteContext(route?.params)
+    navigation.navigate(
+      'Checkout',
+      buildCheckoutRouteParams(
+        ordersGetters.item || item,
+        shouldKeepPdvMode
+          ? buildManagerPdvRouteParams({showBottomCart: false})
+          : {},
+      ),
+    )
+  }, [
+    flushPendingOrderProductChanges,
+    item,
+    navigation,
+    isLocallyTerminalOrder,
+    ordersGetters.item,
+    route?.params,
+  ])
 
   const handleUpdateOpQuantity = useCallback((op, newQtyOrUpdater) => {
     const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
@@ -1630,6 +1648,18 @@ const OrderDetails = ({ route, navigation }) => {
   const isResolvedPrimaryKdsActionLoading =
     !!resolvedPrimaryKdsAction &&
     orderActionLoading === resolvedPrimaryKdsAction.loadingKey
+
+  useEffect(() => {
+    if (!shouldShowMobilePaymentBar || route?.params?.showBottomCart === false) {
+      return
+    }
+
+    navigation.setParams({ showBottomCart: false })
+  }, [
+    navigation,
+    route?.params?.showBottomCart,
+    shouldShowMobilePaymentBar,
+  ])
 
   useLayoutEffect(() => {
     navigation.setOptions({
