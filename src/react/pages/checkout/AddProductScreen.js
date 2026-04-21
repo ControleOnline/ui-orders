@@ -7,8 +7,9 @@ import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosC
 import TotemProducts from '@controleonline/ui-orders/src/react/pages/checkout/TotemProducts';
 import {env} from '@env';
 
-const CheckoutContent = ({navigation}) => {
-  const route = useRoute();
+const CheckoutContent = ({navigation, route: routeProp}) => {
+  const currentRoute = useRoute();
+  const route = routeProp || currentRoute;
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
   const deviceStore = useStore('device');
@@ -64,7 +65,7 @@ const CheckoutContent = ({navigation}) => {
     }, [activeOrder, currentCompany, currentOrderId]),
   );
 
-  return <Component />;
+  return <Component navigation={navigation} route={route} />;
 };
 
 export default CheckoutContent;
