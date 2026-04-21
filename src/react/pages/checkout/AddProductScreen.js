@@ -16,7 +16,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const ordersActions = ordersStore.actions;
   const ordersGetters = ordersStore.getters;
   const peopleGetters = peopleStore.getters;
-  const {currentCompany, defaultCompany, isLoading, error} = peopleGetters;
+  const {currentCompany, defaultCompany} = peopleGetters;
   const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {item: order} = ordersGetters;

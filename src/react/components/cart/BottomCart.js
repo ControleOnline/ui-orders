@@ -1,10 +1,13 @@
 import React, {useCallback, useMemo} from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
 import {useStore} from '@store';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
-import {buildOrderDetailsRouteParams} from '@controleonline/ui-orders/src/react/utils/orderRoute';
+import {
+  buildManagerPdvRouteParams,
+  buildOrderDetailsRouteParams,
+} from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import Icon from 'react-native-vector-icons/Feather';
 import createStyles from './BottomCart.styles';
 
@@ -23,6 +26,7 @@ const BottomCart = ({
   const themeStore = useStore('theme');
   const themeColors = themeStore?.getters?.colors || {};
   const navigation = useNavigation();
+  const route = useRoute();
   const primaryColor = themeColors.primary || '#1B5587';
   const cardBg = themeColors['cart-bottom-bg'] || '#FFFFFF';
   const borderColor = themeColors['cart-bottom-border'] || '#D3DFEC';
@@ -46,8 +50,15 @@ const BottomCart = ({
 
   const handleDefaultAction = useCallback(item => {
     ordersStore.actions.syncOrder?.(item);
-    navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(item));
-  }, [navigation, ordersStore.actions]);
+    const shouldKeepPdvMode = route?.params?.interactionMode === 'pdv';
+    navigation.navigate(
+      'OrderDetails',
+      buildOrderDetailsRouteParams(
+        item,
+        shouldKeepPdvMode ? buildManagerPdvRouteParams() : {},
+      ),
+    );
+  }, [navigation, ordersStore.actions, route?.params?.interactionMode]);
 
   const isActionDisabled = !order?.id || !!actionDisabled;
   const handleActionPress = useCallback(() => {

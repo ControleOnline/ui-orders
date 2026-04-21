@@ -40,7 +40,11 @@ import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHea
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
-import { getOrderRouteId } from '@controleonline/ui-orders/src/react/utils/orderRoute'
+import {
+  buildManagerPdvRouteParams,
+  getOrderRouteId,
+} from '@controleonline/ui-orders/src/react/utils/orderRoute'
+import { env } from '@env'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import { getPlatformCapabilities, getOrderChannelLabel } from '@assets/ppc/channels'
 
@@ -466,7 +470,14 @@ const OrderDetails = ({ route, navigation }) => {
 
   const handleAddProduct = () => {
     if (!canEditItems) return
-    navigation.navigate('AddProductScreen')
+    const shouldUseManagerPdv =
+      String(env.APP_TYPE || '').toUpperCase() === 'MANAGER' ||
+      route?.params?.interactionMode === 'pdv'
+
+    navigation.navigate(
+      'AddProductScreen',
+      shouldUseManagerPdv ? buildManagerPdvRouteParams() : undefined,
+    )
   }
 
   const refreshCurrentOrder = useCallback(async () => {
