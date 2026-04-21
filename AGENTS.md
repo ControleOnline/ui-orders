@@ -36,10 +36,12 @@
 - Pagamento remoto sempre depende de um device de destino configurado na empresa.
 - Os destinos remotos validos para orders sao devices com gateway de pagamento, hoje Cielo e Infinite Pay.
 - Se houver mais de um device remoto disponivel, o usuario precisa poder escolher qual equipamento recebera a cobranca.
+- No checkout web/manager, o operador escolhe antes no proprio web o meio de pagamento permitido pelas carteiras do equipamento remoto selecionado.
 - Quando o meio selecionado nao depende de gateway, como dinheiro, a conclusao continua sendo responsabilidade do device remoto escolhido e o helper compartilhado deve registrar a invoice no fim do fluxo.
 - O listener remoto deve apenas executar o mesmo helper tecnico usado pelo checkout unificado. Nao renderizar checkout especifico de Cielo ou Infinite Pay para isso.
 - Se `order-payment-device` ou `order-payment-devices` nao estiverem preenchidos, o checkout remoto deve cair para os devices de pagamento da empresa, excluindo o device atual.
 - O botao principal de pagar no canal remoto deve deixar claro qual equipamento configurado recebera a cobranca.
+- Depois de enviar a cobranca remota, o checkout do web deve permanecer aguardando a resposta do equipamento remoto antes de concluir a tela.
 
 ## Pagar Na Entrega
 - `Pagar na entrega` sempre exige selecionar qual device fara a cobranca.
@@ -51,6 +53,6 @@
 
 ## Configuracao
 - A barra unica depende das configuracoes centralizadas de empresa e device.
-- Chaves centrais atuais: `pos-gateway`, `order-payment-device`, `order-payment-devices` e `order-charge-on-delivery-enabled`.
+- Chaves centrais atuais: `pos-gateway`, `order-payment-device`, `order-payment-devices`, `order-payment-device-change-allowed` e `order-charge-on-delivery-enabled`.
 - Carteiras por gateway e dinheiro devem continuar centralizadas na configuracao da empresa, nao espalhadas em componentes.
 - Ao mudar qualquer regra de negocio do checkout, reescrever este arquivo de forma concisa e manter a descricao sincronizada com o codigo.

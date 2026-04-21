@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -45,7 +44,6 @@ import {
 } from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   createInvoiceForGatewayFreePayment,
-  isGatewayFreePayment,
   normalizeMoneyInputText,
   parseMoneyInputValue,
   resolveCashPaymentDetails,
@@ -54,6 +52,13 @@ import {
   normalizeGatewayPaymentError,
   runConfiguredGatewayPayment,
 } from '@controleonline/ui-common/src/react/utils/paymentGatewayExecution';
+import {
+  buildRemotePaymentRequestKey,
+  isRemotePaymentResultMessage,
+  normalizeRemotePaymentRequestKey,
+  REMOTE_PAYMENT_MESSAGE_STORE,
+  REMOTE_PAYMENT_REQUEST_ACTION,
+} from '@controleonline/ui-common/src/react/utils/remotePayment';
 
 import {useStore} from '@store';
 import styles from './Checkout.styles';
@@ -217,6 +222,8 @@ const Checkout = () => {
     isLoading: invoiceIsloading,
     isSaving: invoiceIsSaving,
     error: invoiceError,
+    message: invoiceMessage,
+    messages: invoiceMessages,
   } = invoiceGetters;
   const {
     items: orderProducts = [],
@@ -244,6 +251,8 @@ const Checkout = () => {
   const [selectedRemoteDeviceId, setSelectedRemoteDeviceId] = useState('');
   const [selectedDeliveryDeviceId, setSelectedDeliveryDeviceId] = useState('');
   const [paymentChannel, setPaymentChannel] = useState('');
+  const [pendingRemotePaymentRequest, setPendingRemotePaymentRequest] =
+    useState(null);
 
   const effectiveCompanyConfigs = useMemo(() => {
     if (companyConfigs && typeof companyConfigs === 'object') {
@@ -461,21 +470,17 @@ const Checkout = () => {
     return paymentChannelOptions[0]?.key || '';
   }, [paymentChannel, paymentChannelOptions]);
 
-  const integratedPayments = useMemo(
-    () => availablePayments.filter(isIntegratedPaymentOption),
-    [availablePayments],
-  );
   const visiblePayments = useMemo(() => {
-    if (activePaymentChannel === PAYMENT_CHANNEL_REMOTE) {
-      return integratedPayments;
-    }
-
     if (activePaymentChannel === PAYMENT_CHANNEL_DELIVERY) {
       return availablePayments;
     }
 
     return availablePayments;
-  }, [activePaymentChannel, availablePayments, integratedPayments]);
+  }, [activePaymentChannel, availablePayments]);
+  const isAwaitingRemotePayment = useMemo(
+    () => !!pendingRemotePaymentRequest?.requestKey,
+    [pendingRemotePaymentRequest?.requestKey],
+  );
 
   const appendInvoiceToStore = useCallback(
     invoiceData => {
@@ -504,6 +509,80 @@ const Checkout = () => {
       ordersActions.get(routeOrderId);
     }, [order?.id, ordersActions, routeOrderId]),
   );
+
+  useEffect(() => {
+    if (
+      invoiceMessages &&
+      invoiceMessages.length > 0 &&
+      (!invoiceMessage || Object.keys(invoiceMessage).length === 0)
+    ) {
+      const nextMessages = [...invoiceMessages];
+      invoiceActions.setMessage(nextMessages.pop());
+      invoiceActions.setMessages(nextMessages);
+    }
+  }, [invoiceActions, invoiceMessage, invoiceMessages]);
+
+  useEffect(() => {
+    if (!isRemotePaymentResultMessage(invoiceMessage)) {
+      return;
+    }
+
+    const messageRequestKey = normalizeRemotePaymentRequestKey(
+      invoiceMessage?.requestKey,
+    );
+
+    if (!messageRequestKey) {
+      invoiceActions.setMessage(null);
+      return;
+    }
+
+    if (pendingRemotePaymentRequest?.requestKey !== messageRequestKey) {
+      invoiceActions.setMessage(null);
+      return;
+    }
+
+    const handleRemotePaymentResult = async () => {
+      try {
+        if (String(invoiceMessage?.status || '').trim().toLowerCase() === 'success') {
+          if (invoiceMessage?.invoice) {
+            appendInvoiceToStore(invoiceMessage.invoice);
+          }
+
+          if (routeOrderId) {
+            await ordersActions.get(routeOrderId).catch(() => null);
+          }
+
+          navigation.navigate(
+            'OrderDetails',
+            buildOrderDetailsNavigationParams(
+              invoiceMessage?.order || routeOrderId || order,
+            ),
+          );
+          return;
+        }
+
+        invoiceActions.setError(
+          invoiceMessage?.error || 'Nao foi possivel concluir o pagamento remoto.',
+        );
+      } finally {
+        setPendingRemotePaymentRequest(null);
+        setSubmittingPayment(false);
+        invoiceActions.setMessage(null);
+      }
+    };
+
+    handleRemotePaymentResult();
+  }, [
+    appendInvoiceToStore,
+    buildOrderDetailsNavigationParams,
+    invoiceActions,
+    invoiceMessage,
+    navigation,
+    order,
+    ordersActions,
+    pendingRemotePaymentRequest?.requestKey,
+    routeOrderId,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -928,12 +1007,26 @@ const Checkout = () => {
         return;
       }
 
+      const requestKey = buildRemotePaymentRequestKey({
+        orderId: order?.id,
+        payment,
+        targetDeviceId: selectedRemoteDevice.deviceId,
+      });
+
       setSubmittingPayment(true);
+      setPendingRemotePaymentRequest({
+        paymentLabel: getPaymentOptionLabel(payment),
+        requestKey,
+        targetDeviceId: selectedRemoteDevice.deviceId,
+        targetDeviceLabel: selectedRemoteDevice.alias,
+      });
       try {
+        invoiceActions.setError('');
         await websocketActions.send({
           destination: selectedRemoteDevice.deviceId,
-          store: 'invoice',
-          action: 'pay',
+          store: REMOTE_PAYMENT_MESSAGE_STORE,
+          action: REMOTE_PAYMENT_REQUEST_ACTION,
+          requestKey,
           order: order.id,
           total,
           wallet_payment_type: {
@@ -942,24 +1035,15 @@ const Checkout = () => {
           },
           'master-device': storagedDevice?.id,
         });
-
-        Alert.alert(
-          'Pagamento enviado',
-          `Pagamento enviado para ${selectedRemoteDevice.alias}. ${
-            isGatewayFreePayment(payment)
-              ? 'O registro do dinheiro sera concluido no device remoto.'
-              : 'A conclusao da fatura sera feita no device remoto.'
-          }`,
-        );
       } catch (error) {
+        setPendingRemotePaymentRequest(null);
+        setSubmittingPayment(false);
         invoiceActions.setError(
           normalizeGatewayPaymentError(
             error,
             'Nao foi possivel enviar o pagamento remoto.',
           ),
         );
-      } finally {
-        setSubmittingPayment(false);
       }
     },
     [
@@ -1129,6 +1213,7 @@ const Checkout = () => {
     return (
       <TouchableOpacity
         style={[styles.modalItem, active && styles.modalItemActive]}
+        disabled={submittingPayment}
         onPress={() => {
           setSelectedRemoteDeviceId(item.deviceId);
           setRemoteDeviceModalVisible(false);
@@ -1146,6 +1231,7 @@ const Checkout = () => {
     return (
       <TouchableOpacity
         style={[styles.modalItem, active && styles.modalItemActive]}
+        disabled={submittingPayment}
         onPress={() => {
           setSelectedDeliveryDeviceId(item.deviceId);
           setDeliveryDeviceModalVisible(false);
@@ -1175,7 +1261,8 @@ const Checkout = () => {
               <TouchableOpacity
                 key={option.key}
                 style={[styles.modeChip, active && styles.modeChipActive]}
-                activeOpacity={0.85}
+                activeOpacity={submittingPayment ? 1 : 0.85}
+                disabled={submittingPayment}
                 onPress={() => setPaymentChannel(option.key)}>
                 <Text style={styles.modeChipTitle}>{option.label}</Text>
                 <Text style={styles.modeChipDescription}>
@@ -1241,7 +1328,8 @@ const Checkout = () => {
                   remotePaymentDevices.length > 1 && (
                     <TouchableOpacity
                       style={styles.remoteSwapButton}
-                      activeOpacity={0.85}
+                      activeOpacity={submittingPayment ? 1 : 0.85}
+                      disabled={submittingPayment}
                       onPress={() => setRemoteDeviceModalVisible(true)}>
                       <Icon name="swap-horiz" size={14} color="#0EA5E9" />
                       <Text style={styles.remoteSwapButtonText}>Trocar</Text>
@@ -1251,6 +1339,19 @@ const Checkout = () => {
               {!canChangePaymentDeviceDuringCheckout && (
                 <Text style={styles.remoteSubtitle}>
                   Equipamento padrao definido no configurador geral.
+                </Text>
+              )}
+              {isAwaitingRemotePayment ? (
+                <Text style={styles.remotePendingText}>
+                  Aguardando resposta de{' '}
+                  {pendingRemotePaymentRequest?.targetDeviceLabel ||
+                    selectedRemoteDevice.alias}{' '}
+                  para {pendingRemotePaymentRequest?.paymentLabel || 'o pagamento'}.
+                </Text>
+              ) : (
+                <Text style={styles.remoteSubtitle}>
+                  Os meios mostrados abaixo seguem as carteiras configuradas
+                  para este equipamento remoto.
                 </Text>
               )}
             </>
@@ -1299,7 +1400,8 @@ const Checkout = () => {
                   remotePaymentDevices.length > 1 && (
                     <TouchableOpacity
                       style={[styles.remoteSwapButton, styles.deliverySwapButton]}
-                      activeOpacity={0.85}
+                      activeOpacity={submittingPayment ? 1 : 0.85}
+                      disabled={submittingPayment}
                       onPress={() => setDeliveryDeviceModalVisible(true)}>
                       <Icon name="swap-horiz" size={14} color="#16A34A" />
                       <Text
@@ -1356,7 +1458,7 @@ const Checkout = () => {
         : 'Nenhum meio local disponivel';
   const emptyText =
     activePaymentChannel === PAYMENT_CHANNEL_REMOTE
-      ? 'Configure um terminal remoto e vincule meios integrados para usar o pagamento remoto.'
+      ? 'Configure um terminal remoto e vincule as carteiras de pagamento para usar o pagamento remoto.'
       : activePaymentChannel === PAYMENT_CHANNEL_DELIVERY
         ? 'Selecione um equipamento da entrega com carteira configurada para liberar maquininha e dinheiro.'
         : 'Verifique a configuracao das carteiras do gateway local deste device.';
@@ -1469,6 +1571,7 @@ const Checkout = () => {
                 />
                 <TouchableOpacity
                   style={styles.closeButton}
+                  disabled={submittingPayment}
                   onPress={() => setRemoteDeviceModalVisible(false)}>
                   <Text style={styles.closeButtonText}>Fechar</Text>
                 </TouchableOpacity>
@@ -1495,6 +1598,7 @@ const Checkout = () => {
                 />
                 <TouchableOpacity
                   style={styles.closeButton}
+                  disabled={submittingPayment}
                   onPress={() => setDeliveryDeviceModalVisible(false)}>
                   <Text style={styles.closeButtonText}>Fechar</Text>
                 </TouchableOpacity>

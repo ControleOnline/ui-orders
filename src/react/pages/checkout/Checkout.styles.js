@@ -79,6 +79,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  remotePendingText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#7C3AED',
+    fontWeight: '600',
+  },
   deliverySwapButton: {
     borderColor: '#BBF7D0',
     backgroundColor: '#F0FDF4',
