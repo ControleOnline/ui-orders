@@ -39,6 +39,12 @@ import {
   isCashPaymentOption,
   isIntegratedPaymentOption,
 } from '@controleonline/ui-common/src/react/utils/paymentOptions';
+import {
+  formatMoneyInputValue,
+  normalizeMoneyInputText,
+  parseMoneyInputValue,
+  resolveCashPaymentDetails,
+} from '@controleonline/ui-common/src/react/utils/cashPayment';
 
 import {useStore} from '@store';
 import styles from './Checkout.styles';
@@ -249,8 +255,8 @@ const Checkout = () => {
     useState(false);
   const [deliveryChangeModalVisible, setDeliveryChangeModalVisible] =
     useState(false);
-  const [deliveryChangeRequested, setDeliveryChangeRequested] = useState(false);
-  const [deliveryChangeValue, setDeliveryChangeValue] = useState('');
+  const [cashPaymentContext, setCashPaymentContext] = useState('');
+  const [cashReceivedValue, setCashReceivedValue] = useState('');
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState({});
   const [selectedRemoteDeviceId, setSelectedRemoteDeviceId] = useState('');
@@ -340,6 +346,15 @@ const Checkout = () => {
   const paidAmount = useMemo(
     () => Math.max(Number(order?.price || 0) - remainingAmount, 0),
     [order?.price, remainingAmount],
+  );
+  const cashPaymentDetails = useMemo(
+    () =>
+      resolveCashPaymentDetails({
+        allowPartial: cashPaymentContext === PAYMENT_CHANNEL_LOCAL,
+        receivedAmount: parseMoneyInputValue(cashReceivedValue),
+        totalAmount: remainingAmount,
+      }),
+    [cashPaymentContext, cashReceivedValue, remainingAmount],
   );
 
   const paymentChannelOptions = useMemo(() => {
@@ -679,7 +694,7 @@ const Checkout = () => {
   );
 
   const buildDeliveryPaymentMetadata = useCallback(
-    ({payment, changeFor = null}) => ({
+    ({payment, receivedAmount = null, changeAmount = 0}) => ({
       channel: PAYMENT_CHANNEL_DELIVERY,
       paymentLabel: getPaymentOptionLabel(payment),
       paymentMode: isCashPaymentOption(payment)
@@ -687,8 +702,11 @@ const Checkout = () => {
         : isIntegratedPaymentOption(payment)
           ? 'machine'
           : 'manual',
-      needsChange: Number(changeFor || 0) > 0,
-      changeFor: Number(changeFor || 0) > 0 ? Number(changeFor) : null,
+      needsChange: Number(changeAmount || 0) > 0.009,
+      changeFor:
+        Number(changeAmount || 0) > 0.009 ? Number(receivedAmount || 0) : null,
+      receivedAmount: Number(receivedAmount || 0) > 0 ? Number(receivedAmount) : null,
+      changeAmount: Number(changeAmount || 0) > 0 ? Number(changeAmount) : 0,
       targetDeviceId: selectedDeliveryDevice?.deviceId || null,
       targetDeviceLabel: selectedDeliveryDevice?.alias || null,
       targetGateway: selectedDeliveryDevice?.gateway || null,
@@ -697,13 +715,13 @@ const Checkout = () => {
   );
 
   const registerDeliveryInvoice = useCallback(
-    async ({payment, total, changeFor = null}) => {
+    async ({payment, total, receivedAmount = null, changeAmount = 0}) => {
       setSubmittingPayment(true);
       try {
         await createPendingInvoice(
           payment,
           total,
-          buildDeliveryPaymentMetadata({payment, changeFor}),
+          buildDeliveryPaymentMetadata({payment, receivedAmount, changeAmount}),
         );
       } finally {
         setSubmittingPayment(false);
@@ -713,37 +731,47 @@ const Checkout = () => {
   );
 
   const handleDeliveryChangeInputChange = useCallback(text => {
-    const numericValue = text.replace(/\D/g, '');
-    if (!numericValue) {
-      setDeliveryChangeValue('');
-      return;
-    }
-
-    setDeliveryChangeValue(Formatter.formatMoney(Number(numericValue) / 100));
+    setCashReceivedValue(normalizeMoneyInputText(text));
   }, []);
 
   const handleConfirmDeliveryChange = useCallback(async () => {
-    const changeFor = deliveryChangeRequested
-      ? Number(String(deliveryChangeValue || '').replace(/\D/g, '')) / 100
-      : 0;
+    if (cashPaymentDetails.receivedAmount <= 0.009) {
+      invoiceActions.setError('Informe o valor recebido para continuar.');
+      return;
+    }
 
-    if (deliveryChangeRequested && changeFor <= 0) {
-      invoiceActions.setError('Informe o valor do troco para continuar.');
+    if (
+      cashPaymentContext === PAYMENT_CHANNEL_DELIVERY &&
+      cashPaymentDetails.missingAmount > 0.009
+    ) {
+      invoiceActions.setError(
+        'O valor recebido nao pode ser menor que o total do pedido na entrega.',
+      );
       return;
     }
 
     setDeliveryChangeModalVisible(false);
+    if (cashPaymentContext === PAYMENT_CHANNEL_LOCAL) {
+      await runLocalPayment({
+        payment: selectedPayment,
+        total: cashPaymentDetails.appliedAmount,
+      });
+      return;
+    }
+
     await registerDeliveryInvoice({
       payment: selectedPayment,
       total: remainingAmount,
-      changeFor,
+      receivedAmount: cashPaymentDetails.receivedAmount,
+      changeAmount: cashPaymentDetails.changeAmount,
     });
   }, [
-    deliveryChangeRequested,
-    deliveryChangeValue,
+    cashPaymentContext,
+    cashPaymentDetails,
     invoiceActions,
     registerDeliveryInvoice,
     remainingAmount,
+    runLocalPayment,
     selectedPayment,
   ]);
 
@@ -913,8 +941,8 @@ const Checkout = () => {
       }
 
       if (isCashPaymentOption(selectedPayment)) {
-        setDeliveryChangeRequested(false);
-        setDeliveryChangeValue('');
+        setCashPaymentContext(PAYMENT_CHANNEL_DELIVERY);
+        setCashReceivedValue(formatMoneyInputValue(remainingAmount));
         setDeliveryChangeModalVisible(true);
         return;
       }
@@ -923,6 +951,16 @@ const Checkout = () => {
         payment: selectedPayment,
         total: remainingAmount,
       });
+      return;
+    }
+
+    if (
+      paymentChannel === PAYMENT_CHANNEL_LOCAL &&
+      isCashPaymentOption(selectedPayment)
+    ) {
+      setCashPaymentContext(PAYMENT_CHANNEL_LOCAL);
+      setCashReceivedValue(formatMoneyInputValue(remainingAmount));
+      setDeliveryChangeModalVisible(true);
       return;
     }
 
@@ -1323,51 +1361,40 @@ const Checkout = () => {
             onRequestClose={() => setDeliveryChangeModalVisible(false)}>
             <View style={styles.modalContainer}>
               <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Dinheiro na entrega</Text>
+                <Text style={styles.modalTitle}>
+                  {cashPaymentContext === PAYMENT_CHANNEL_LOCAL
+                    ? 'Pagamento em dinheiro'
+                    : 'Dinheiro na entrega'}
+                </Text>
                 <Text style={styles.modalSubtitle}>
-                  Informe se o cliente precisa de troco ou se o pagamento em
-                  dinheiro sera exato.
+                  Informe o valor recebido para calcular o troco
+                  automaticamente.
                 </Text>
 
-                <View style={styles.modeOptions}>
-                  <TouchableOpacity
-                    style={[
-                      styles.modeChip,
-                      !deliveryChangeRequested && styles.modeChipActive,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setDeliveryChangeRequested(false);
-                      setDeliveryChangeValue('');
-                    }}>
-                    <Text style={styles.modeChipTitle}>Sem troco</Text>
-                    <Text style={styles.modeChipDescription}>
-                      Registrar dinheiro exato na entrega.
-                    </Text>
-                  </TouchableOpacity>
+                <TextInput
+                  style={styles.modalInput}
+                  keyboardType="numeric"
+                  placeholder="Valor recebido"
+                  value={cashReceivedValue}
+                  onChangeText={handleDeliveryChangeInputChange}
+                />
 
-                  <TouchableOpacity
-                    style={[
-                      styles.modeChip,
-                      deliveryChangeRequested && styles.modeChipActive,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => setDeliveryChangeRequested(true)}>
-                    <Text style={styles.modeChipTitle}>Precisa troco</Text>
-                    <Text style={styles.modeChipDescription}>
-                      Informar para quanto o entregador precisa levar troco.
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {deliveryChangeRequested ? (
-                  <TextInput
-                    style={styles.modalInput}
-                    keyboardType="numeric"
-                    placeholder="Troco para quanto?"
-                    value={deliveryChangeValue}
-                    onChangeText={handleDeliveryChangeInputChange}
-                  />
+                <Text style={styles.modalSubtitle}>
+                  {cashPaymentContext === PAYMENT_CHANNEL_LOCAL
+                    ? `Valor pago agora: ${Formatter.formatMoney(
+                        cashPaymentDetails.appliedAmount,
+                      )}`
+                    : `Valor do pedido: ${Formatter.formatMoney(remainingAmount)}`}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  Troco: {Formatter.formatMoney(cashPaymentDetails.changeAmount)}
+                </Text>
+                {cashPaymentContext === PAYMENT_CHANNEL_LOCAL &&
+                cashPaymentDetails.missingAmount > 0.009 ? (
+                  <Text style={styles.modalSubtitle}>
+                    Restara pendente:{' '}
+                    {Formatter.formatMoney(cashPaymentDetails.missingAmount)}
+                  </Text>
                 ) : null}
 
                 <View style={styles.modalActionsRow}>
