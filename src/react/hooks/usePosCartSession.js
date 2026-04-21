@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 
 import {api} from '@controleonline/ui-common/src/api'
 import {useStore} from '@store'
@@ -61,7 +61,7 @@ const resolvePosOpenOrderStatusIri = async fallbackStatusId => {
     }
 
     return resolvedIri
-  } catch (error) {
+  } catch {
     return fallbackIri
   }
 }
@@ -92,6 +92,22 @@ export default function usePosCartSession({
     if (isOpenPosCartOrder(storedOrder)) return storedOrder
     return null
   }, [activeOrderState, storedOrder])
+  const activeOrderId = normalizeId(activeOrder?.id || activeOrder?.['@id'])
+  const storedOrderId = normalizeId(storedOrder?.id || storedOrder?.['@id'])
+  const activeOrderIdRef = useRef(activeOrderId)
+  const storedOrderIdRef = useRef(storedOrderId)
+
+  useEffect(() => {
+    if (activeOrderId) {
+      activeOrderIdRef.current = activeOrderId
+    }
+  }, [activeOrderId])
+
+  useEffect(() => {
+    if (storedOrderId) {
+      storedOrderIdRef.current = storedOrderId
+    }
+  }, [storedOrderId])
 
   const clearStoredDraftOrderId = useCallback(() => {
     if (typeof localStorage === 'undefined' || !storageKey) return
@@ -130,10 +146,8 @@ export default function usePosCartSession({
   const refreshActiveOrder = useCallback(async orderId => {
     const targetId = normalizeId(
       orderId ||
-      activeOrder?.id ||
-      activeOrder?.['@id'] ||
-      storedOrder?.id ||
-      storedOrder?.['@id'],
+      activeOrderIdRef.current ||
+      storedOrderIdRef.current,
     )
 
     if (!targetId) {
@@ -143,14 +157,11 @@ export default function usePosCartSession({
     try {
       const refreshedOrder = await ordersActions.get(targetId)
       return syncActiveOrderState(refreshedOrder)
-    } catch (error) {
+    } catch {
       return syncActiveOrderState(null)
     }
   }, [
-    activeOrder,
     ordersActions,
-    storedOrder?.['@id'],
-    storedOrder?.id,
     syncActiveOrderState,
   ])
 
