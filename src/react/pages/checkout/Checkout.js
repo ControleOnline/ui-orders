@@ -6,6 +6,7 @@ import {
   Modal,
   Platform,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -31,6 +32,13 @@ import {
   resolveRemotePaymentDeviceOptions,
   supportsLocalCardPayment,
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
+import {
+  getPaymentOptionId,
+  getPaymentOptionLabel,
+  getPaymentOptionWalletId,
+  isCashPaymentOption,
+  isIntegratedPaymentOption,
+} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 
 import {useStore} from '@store';
 import styles from './Checkout.styles';
@@ -55,15 +63,13 @@ const buildStatusIriFromId = value => {
 };
 
 const getPaymentOptionKey = payment =>
-  String(
-    payment?.paymentType?.id ||
-      payment?.paymentType?.['@id'] ||
-      payment?.paymentCode ||
-      '',
-  ).trim();
-
-const isIntegratedPayment = payment =>
-  String(payment?.paymentCode || '').trim() !== '';
+  [
+    getPaymentOptionId(payment),
+    getPaymentOptionWalletId(payment),
+    String(payment?.paymentCode || '').trim(),
+  ]
+    .filter(Boolean)
+    .join(':');
 
 const normalizePaymentErrorMessage = (
   error,
@@ -91,28 +97,6 @@ const normalizePaymentErrorMessage = (
   } catch {
     return fallback;
   }
-};
-
-const buildDeliveryWalletIds = ({
-  companyConfigs,
-  localGateway,
-  remotePaymentDevices,
-}) => {
-  const walletIds = new Set();
-
-  [
-    companyConfigs?.['pos-cash-wallet'],
-    localGateway ? companyConfigs?.[`pos-${localGateway}-wallet`] : null,
-    companyConfigs?.[`pos-${PAYMENT_GATEWAY_CIELO}-wallet`],
-    companyConfigs?.[`pos-${PAYMENT_GATEWAY_INFINITE_PAY}-wallet`],
-    ...(Array.isArray(remotePaymentDevices) ? remotePaymentDevices : []).map(
-      deviceOption => companyConfigs?.[`pos-${deviceOption?.gateway}-wallet`],
-    ),
-  ]
-    .filter(Boolean)
-    .forEach(walletId => walletIds.add(walletId));
-
-  return Array.from(walletIds);
 };
 
 let posPaidInvoiceStatusIriCache = null;
@@ -257,13 +241,20 @@ const Checkout = () => {
   const [loadingRemoteDevices, setLoadingRemoteDevices] = useState(false);
   const [remoteDeviceModalVisible, setRemoteDeviceModalVisible] =
     useState(false);
+  const [deliveryDeviceModalVisible, setDeliveryDeviceModalVisible] =
+    useState(false);
   const [paymentValueModalVisible, setPaymentValueModalVisible] =
     useState(false);
   const [installmentsModalVisible, setInstallmentsModalVisible] =
     useState(false);
+  const [deliveryChangeModalVisible, setDeliveryChangeModalVisible] =
+    useState(false);
+  const [deliveryChangeRequested, setDeliveryChangeRequested] = useState(false);
+  const [deliveryChangeValue, setDeliveryChangeValue] = useState('');
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState({});
   const [selectedRemoteDeviceId, setSelectedRemoteDeviceId] = useState('');
+  const [selectedDeliveryDeviceId, setSelectedDeliveryDeviceId] = useState('');
   const [paymentChannel, setPaymentChannel] = useState('');
 
   const effectiveCompanyConfigs = useMemo(() => {
@@ -320,6 +311,15 @@ const Checkout = () => {
       null,
     [remotePaymentDevices, selectedRemoteDeviceId],
   );
+  const selectedDeliveryDevice = useMemo(
+    () =>
+      remotePaymentDevices.find(
+        remoteDevice => remoteDevice.deviceId === selectedDeliveryDeviceId,
+      ) ||
+      remotePaymentDevices[0] ||
+      null,
+    [remotePaymentDevices, selectedDeliveryDeviceId],
+  );
 
   const canRenderCheckout =
     !orderIsloading &&
@@ -364,11 +364,16 @@ const Checkout = () => {
       });
     }
 
-    if (!isCieloPdv && orderChargeOnDeliveryEnabled) {
+    if (
+      !isCieloPdv &&
+      orderChargeOnDeliveryEnabled &&
+      remotePaymentDevices.length > 0
+    ) {
       options.push({
         key: PAYMENT_CHANNEL_DELIVERY,
         label: 'Na entrega',
-        description: 'Registrar o pedido para cobrar manualmente depois.',
+        description:
+          'Escolher o equipamento da entrega e registrar a cobranca pendente.',
       });
     }
 
@@ -382,11 +387,7 @@ const Checkout = () => {
   ]);
 
   const integratedPayments = useMemo(
-    () => availablePayments.filter(isIntegratedPayment),
-    [availablePayments],
-  );
-  const manualPayments = useMemo(
-    () => availablePayments.filter(payment => !isIntegratedPayment(payment)),
+    () => availablePayments.filter(isIntegratedPaymentOption),
     [availablePayments],
   );
   const visiblePayments = useMemo(() => {
@@ -395,11 +396,11 @@ const Checkout = () => {
     }
 
     if (paymentChannel === PAYMENT_CHANNEL_DELIVERY) {
-      return manualPayments;
+      return availablePayments;
     }
 
     return availablePayments;
-  }, [availablePayments, integratedPayments, manualPayments, paymentChannel]);
+  }, [availablePayments, integratedPayments, paymentChannel]);
 
   const appendInvoiceToStore = useCallback(
     invoiceData => {
@@ -461,10 +462,16 @@ const Checkout = () => {
   useEffect(() => {
     if (!remotePaymentDevices.length) {
       setSelectedRemoteDeviceId('');
+      setSelectedDeliveryDeviceId('');
       return;
     }
 
     setSelectedRemoteDeviceId(current =>
+      remotePaymentDevices.some(deviceOption => deviceOption.deviceId === current)
+        ? current
+        : remotePaymentDevices[0].deviceId,
+    );
+    setSelectedDeliveryDeviceId(current =>
       remotePaymentDevices.some(deviceOption => deviceOption.deviceId === current)
         ? current
         : remotePaymentDevices[0].deviceId,
@@ -504,11 +511,13 @@ const Checkout = () => {
     let walletIds = [];
 
     if (paymentChannel === PAYMENT_CHANNEL_DELIVERY) {
-      walletIds = buildDeliveryWalletIds({
-        companyConfigs: effectiveCompanyConfigs,
-        localGateway,
-        remotePaymentDevices,
-      });
+      if (selectedDeliveryDevice?.gateway) {
+        walletIds = buildWalletIdsForGateway({
+          gateway: selectedDeliveryDevice.gateway,
+          companyConfigs: effectiveCompanyConfigs,
+          includeCashWallet: true,
+        });
+      }
     } else {
       const targetGateway =
         paymentChannel === PAYMENT_CHANNEL_REMOTE
@@ -538,7 +547,7 @@ const Checkout = () => {
     effectiveCompanyConfigs,
     localGateway,
     paymentChannel,
-    remotePaymentDevices,
+    selectedDeliveryDevice?.gateway,
     selectedRemoteDevice?.gateway,
     walletPaymentTypeActions,
   ]);
@@ -620,7 +629,7 @@ const Checkout = () => {
   );
 
   const createPendingInvoice = useCallback(
-    async (payment, total) => {
+    async (payment, total, additionalInfo = null) => {
       try {
         const payload = {
           dueDate: Formatter.getCurrentDate(),
@@ -630,6 +639,9 @@ const Checkout = () => {
           receiver: '/people/' + currentCompany.id,
           order: order?.['@id'],
         };
+        if (additionalInfo && typeof additionalInfo === 'object') {
+          payload.otherInformations = additionalInfo;
+        }
 
         const pendingStatusIri = await resolvePosPendingInvoiceStatusIri();
         if (pendingStatusIri) {
@@ -665,6 +677,75 @@ const Checkout = () => {
       ordersActions,
     ],
   );
+
+  const buildDeliveryPaymentMetadata = useCallback(
+    ({payment, changeFor = null}) => ({
+      channel: PAYMENT_CHANNEL_DELIVERY,
+      paymentLabel: getPaymentOptionLabel(payment),
+      paymentMode: isCashPaymentOption(payment)
+        ? 'cash'
+        : isIntegratedPaymentOption(payment)
+          ? 'machine'
+          : 'manual',
+      needsChange: Number(changeFor || 0) > 0,
+      changeFor: Number(changeFor || 0) > 0 ? Number(changeFor) : null,
+      targetDeviceId: selectedDeliveryDevice?.deviceId || null,
+      targetDeviceLabel: selectedDeliveryDevice?.alias || null,
+      targetGateway: selectedDeliveryDevice?.gateway || null,
+    }),
+    [selectedDeliveryDevice],
+  );
+
+  const registerDeliveryInvoice = useCallback(
+    async ({payment, total, changeFor = null}) => {
+      setSubmittingPayment(true);
+      try {
+        await createPendingInvoice(
+          payment,
+          total,
+          buildDeliveryPaymentMetadata({payment, changeFor}),
+        );
+      } finally {
+        setSubmittingPayment(false);
+      }
+    },
+    [buildDeliveryPaymentMetadata, createPendingInvoice],
+  );
+
+  const handleDeliveryChangeInputChange = useCallback(text => {
+    const numericValue = text.replace(/\D/g, '');
+    if (!numericValue) {
+      setDeliveryChangeValue('');
+      return;
+    }
+
+    setDeliveryChangeValue(Formatter.formatMoney(Number(numericValue) / 100));
+  }, []);
+
+  const handleConfirmDeliveryChange = useCallback(async () => {
+    const changeFor = deliveryChangeRequested
+      ? Number(String(deliveryChangeValue || '').replace(/\D/g, '')) / 100
+      : 0;
+
+    if (deliveryChangeRequested && changeFor <= 0) {
+      invoiceActions.setError('Informe o valor do troco para continuar.');
+      return;
+    }
+
+    setDeliveryChangeModalVisible(false);
+    await registerDeliveryInvoice({
+      payment: selectedPayment,
+      total: remainingAmount,
+      changeFor,
+    });
+  }, [
+    deliveryChangeRequested,
+    deliveryChangeValue,
+    invoiceActions,
+    registerDeliveryInvoice,
+    remainingAmount,
+    selectedPayment,
+  ]);
 
   const runLocalPayment = useCallback(
     async ({payment, total, installments = null}) => {
@@ -824,12 +905,24 @@ const Checkout = () => {
     }
 
     if (paymentChannel === PAYMENT_CHANNEL_DELIVERY) {
-      setSubmittingPayment(true);
-      try {
-        await createPendingInvoice(selectedPayment, remainingAmount);
-      } finally {
-        setSubmittingPayment(false);
+      if (!selectedDeliveryDevice?.deviceId) {
+        invoiceActions.setError(
+          'Selecione o equipamento que vai cobrar na entrega.',
+        );
+        return;
       }
+
+      if (isCashPaymentOption(selectedPayment)) {
+        setDeliveryChangeRequested(false);
+        setDeliveryChangeValue('');
+        setDeliveryChangeModalVisible(true);
+        return;
+      }
+
+      await registerDeliveryInvoice({
+        payment: selectedPayment,
+        total: remainingAmount,
+      });
       return;
     }
 
@@ -855,11 +948,12 @@ const Checkout = () => {
 
     setPaymentValueModalVisible(true);
   }, [
-    createPendingInvoice,
     invoiceActions,
+    registerDeliveryInvoice,
     localGateway,
     paymentChannel,
     remainingAmount,
+    selectedDeliveryDevice,
     selectedPayment,
     selectedRemoteDevice,
   ]);
@@ -921,6 +1015,23 @@ const Checkout = () => {
         onPress={() => {
           setSelectedRemoteDeviceId(item.deviceId);
           setRemoteDeviceModalVisible(false);
+        }}>
+        <Text style={styles.modalItemTitle}>{item.alias}</Text>
+        <Text style={styles.modalItemSubtitle}>
+          {getPaymentGatewayLabel(item.gateway)} • {item.deviceId}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+  const renderDeliveryDeviceOption = ({item}) => {
+    const active = item.deviceId === selectedDeliveryDevice?.deviceId;
+
+    return (
+      <TouchableOpacity
+        style={[styles.modalItem, active && styles.modalItemActive]}
+        onPress={() => {
+          setSelectedDeliveryDeviceId(item.deviceId);
+          setDeliveryDeviceModalVisible(false);
         }}>
         <Text style={styles.modalItemTitle}>{item.alias}</Text>
         <Text style={styles.modalItemSubtitle}>
@@ -1035,11 +1146,43 @@ const Checkout = () => {
             <View style={inlineStyle_491_14}>
               <Text style={styles.remoteTitle}>Cobrar na entrega</Text>
               <Text style={styles.remoteSubtitle}>
-                Este modo registra o pedido com cobranca pendente para pagamento
-                manual na entrega.
+                Escolha o equipamento da entrega para liberar maquininha e
+                dinheiro corretos antes de registrar a cobranca pendente.
               </Text>
             </View>
           </View>
+
+          {loadingRemoteDevices ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color="#16A34A" />
+              <Text style={styles.loadingText}>
+                Carregando equipamentos da entrega...
+              </Text>
+            </View>
+          ) : selectedDeliveryDevice ? (
+            <>
+              <Text style={styles.remoteCurrent}>
+                Entrega usando {selectedDeliveryDevice.alias} (
+                {getPaymentGatewayLabel(selectedDeliveryDevice.gateway)})
+              </Text>
+              {remotePaymentDevices.length > 1 && (
+                <TouchableOpacity
+                  style={[styles.remoteButton, styles.deliveryButton]}
+                  activeOpacity={0.85}
+                  onPress={() => setDeliveryDeviceModalVisible(true)}>
+                  <Icon name="list" size={18} color="#fff" />
+                  <Text style={styles.remoteButtonText}>
+                    Selecionar equipamento
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            <Text style={styles.remoteSubtitle}>
+              Configure pelo menos um device remoto com Cielo ou Infinite Pay
+              para usar o pagamento na entrega.
+            </Text>
+          )}
         </View>
       )}
     </View>
@@ -1055,7 +1198,7 @@ const Checkout = () => {
     paymentChannel === PAYMENT_CHANNEL_REMOTE
       ? 'Configure um terminal remoto e vincule meios integrados para usar o pagamento remoto.'
       : paymentChannel === PAYMENT_CHANNEL_DELIVERY
-        ? 'Cadastre ao menos um meio manual nas carteiras da empresa para liberar o pagamento na entrega.'
+        ? 'Selecione um equipamento da entrega com carteira configurada para liberar maquininha e dinheiro.'
         : 'Verifique a configuracao das carteiras do gateway local deste device.';
   const payDisabled =
     submittingPayment ||
@@ -1063,7 +1206,8 @@ const Checkout = () => {
     !selectedPayment?.wallet ||
     !selectedPayment?.paymentType ||
     !visiblePayments.length ||
-    (paymentChannel === PAYMENT_CHANNEL_REMOTE && !selectedRemoteDevice);
+    (paymentChannel === PAYMENT_CHANNEL_REMOTE && !selectedRemoteDevice) ||
+    (paymentChannel === PAYMENT_CHANNEL_DELIVERY && !selectedDeliveryDevice);
   const actionLabel =
     paymentChannel === PAYMENT_CHANNEL_DELIVERY ? 'Cobrar na entrega' : 'Pagar';
 
@@ -1136,6 +1280,32 @@ const Checkout = () => {
           </Modal>
 
           <Modal
+            visible={deliveryDeviceModalVisible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setDeliveryDeviceModalVisible(false)}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Equipamento da entrega</Text>
+                <Text style={styles.modalSubtitle}>
+                  Escolha qual equipamento deve ser considerado para mostrar
+                  maquininha e dinheiro na barra de pagamento da entrega.
+                </Text>
+                <FlatList
+                  data={remotePaymentDevices}
+                  keyExtractor={item => `delivery-${item.deviceId}`}
+                  renderItem={renderDeliveryDeviceOption}
+                />
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setDeliveryDeviceModalVisible(false)}>
+                  <Text style={styles.closeButtonText}>Fechar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal
             animationType="slide"
             transparent={true}
             visible={paymentValueModalVisible}
@@ -1144,6 +1314,76 @@ const Checkout = () => {
               handleCancel={() => setPaymentValueModalVisible(false)}
               handleConfirmValue={handleConfirmPaymentValue}
             />
+          </Modal>
+
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={deliveryChangeModalVisible}
+            onRequestClose={() => setDeliveryChangeModalVisible(false)}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Dinheiro na entrega</Text>
+                <Text style={styles.modalSubtitle}>
+                  Informe se o cliente precisa de troco ou se o pagamento em
+                  dinheiro sera exato.
+                </Text>
+
+                <View style={styles.modeOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeChip,
+                      !deliveryChangeRequested && styles.modeChipActive,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setDeliveryChangeRequested(false);
+                      setDeliveryChangeValue('');
+                    }}>
+                    <Text style={styles.modeChipTitle}>Sem troco</Text>
+                    <Text style={styles.modeChipDescription}>
+                      Registrar dinheiro exato na entrega.
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.modeChip,
+                      deliveryChangeRequested && styles.modeChipActive,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => setDeliveryChangeRequested(true)}>
+                    <Text style={styles.modeChipTitle}>Precisa troco</Text>
+                    <Text style={styles.modeChipDescription}>
+                      Informar para quanto o entregador precisa levar troco.
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {deliveryChangeRequested ? (
+                  <TextInput
+                    style={styles.modalInput}
+                    keyboardType="numeric"
+                    placeholder="Troco para quanto?"
+                    value={deliveryChangeValue}
+                    onChangeText={handleDeliveryChangeInputChange}
+                  />
+                ) : null}
+
+                <View style={styles.modalActionsRow}>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setDeliveryChangeModalVisible(false)}>
+                    <Text style={styles.closeButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={handleConfirmDeliveryChange}>
+                    <Text style={styles.confirmButtonText}>Confirmar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </Modal>
 
           <Modal

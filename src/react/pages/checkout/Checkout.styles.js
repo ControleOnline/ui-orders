@@ -67,6 +67,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#0EA5E9',
   },
+  deliveryButton: {
+    backgroundColor: '#16A34A',
+  },
   modeCard: {
     backgroundColor: '#fff',
     borderRadius: 14,
@@ -176,6 +179,31 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: '#0EA5E9',
+    fontWeight: '700',
+  },
+  modalInput: {
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    color: '#0F172A',
+    backgroundColor: '#fff',
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  confirmButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#16A34A',
+  },
+  confirmButtonText: {
+    color: '#fff',
     fontWeight: '700',
   },
   installmentsItem: {
