@@ -114,6 +114,8 @@ const OrderProducts = ({
 
   const visibleCards = useMemo(
     () => (
+      maxCards !== null &&
+      maxCards !== undefined &&
       Number.isFinite(Number(maxCards))
         ? productCards.slice(0, Math.max(0, Number(maxCards)))
         : productCards
