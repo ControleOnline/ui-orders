@@ -216,7 +216,15 @@ const getChildBucketLabel = node =>
   getCategoryLabel(node) || getGroupLabel(node)
 
 const getParentReference = node =>
-  node?.parentProduct || node?.productGroup?.parentProduct || null
+  node?.orderProduct || node?.parentProduct || node?.productGroup?.parentProduct || null
+
+const hasGroupedParent = node =>
+  !!(
+    node?.productGroup ||
+    node?.orderProduct ||
+    node?.parentProduct ||
+    node?.productGroup?.parentProduct
+  )
 
 const getCatalogProductKey = node =>
   toOrderProductEntityId(node?.product?.id || node?.product?.['@id'])
@@ -338,6 +346,8 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       rootItem: null,
       name:
         normalizeOrderProductText(
+          parentReference?.product?.product ||
+          parentReference?.product?.name ||
           parentReference?.product ||
           parentReference?.name ||
           item?.productGroup?.parentProduct?.product ||
@@ -345,6 +355,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
           '',
         ) || `Item #${index + 1}`,
       description: normalizeOrderProductText(
+        parentReference?.product?.description ||
         parentReference?.description ||
         item?.productGroup?.parentProduct?.description ||
         '',
@@ -395,7 +406,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   }
 
   items.forEach((item, index) => {
-    if (item?.productGroup) return
+    if (hasGroupedParent(item)) return
 
     const card = getOrCreateRootCard(item, index)
     const quantity = Number(item?.quantity || 0)
@@ -416,7 +427,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   })
 
   items.forEach((item, index) => {
-    if (!item?.productGroup) return
+    if (!hasGroupedParent(item)) return
 
     const card = resolveCardForGroupedItem(item, index)
     const quantity = Number(item?.quantity || 0)
