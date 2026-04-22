@@ -1952,35 +1952,42 @@ const OrderDetails = ({ route, navigation }) => {
       showBottomToolBar: !shouldHideBottomToolBar,
       headerTitle: () => (
         <View style={localStyles.topBarTitleWrap}>
-          <OrderIdentityLabel
-            order={orderIdentitySource}
-            remoteSummary={marketplaceSummary.summary}
-            primaryTextStyle={localStyles.topBarTitleText}
-            secondaryTextStyle={localStyles.topBarTitleIdentitySecondary}
-          />
-          {!!orderDateLabel && (
-            <Text style={localStyles.topBarTitleSubText}>{orderDateLabel}</Text>
-          )}
-          {!!orderStatusLabel && (
-            <View
-              style={[
-                localStyles.topBarStatusBadge,
-                {
-                  borderColor: withOpacity(displayOrderStatusColor, 0.34),
-                  backgroundColor: withOpacity(displayOrderStatusColor, 0.12),
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  localStyles.topBarStatusText,
-                  { color: displayOrderStatusColor },
-                ]}
-              >
-                {orderStatusLabel}
-              </Text>
-            </View>
-          )}
+          <View style={localStyles.topBarTitleContent}>
+            <OrderIdentityLabel
+              order={orderIdentitySource}
+              remoteSummary={marketplaceSummary.summary}
+              containerStyle={localStyles.topBarTitleMain}
+              primaryTextStyle={localStyles.topBarTitleText}
+              secondaryTextStyle={localStyles.topBarTitleIdentitySecondary}
+            />
+            {(!!orderDateLabel || !!orderStatusLabel) && (
+              <View style={localStyles.topBarTitleMetaWrap}>
+                {!!orderDateLabel && (
+                  <Text style={localStyles.topBarTitleSubText}>{orderDateLabel}</Text>
+                )}
+                {!!orderStatusLabel && (
+                  <View
+                    style={[
+                      localStyles.topBarStatusBadge,
+                      {
+                        borderColor: withOpacity(displayOrderStatusColor, 0.34),
+                        backgroundColor: withOpacity(displayOrderStatusColor, 0.12),
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        localStyles.topBarStatusText,
+                        { color: displayOrderStatusColor },
+                      ]}
+                    >
+                      {orderStatusLabel}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
         </View>
       ),
       headerRight: () => (
@@ -2042,8 +2049,11 @@ const OrderDetails = ({ route, navigation }) => {
     isKds,
     isTvDisplay,
     localStyles.topBarActions,
+    localStyles.topBarTitleContent,
     localStyles.topBarTitleIdentitySecondary,
     localStyles.topBarIconButton,
+    localStyles.topBarTitleMain,
+    localStyles.topBarTitleMetaWrap,
     localStyles.topBarTitleSubText,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,

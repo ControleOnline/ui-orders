@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { Text, View } from 'react-native'
 
 import { withOpacity } from '@controleonline/../../src/styles/branding'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
+import { sendFrontendDebugLog } from '@controleonline/ui-common/src/react/utils/frontendDebugLog'
 
 import sharedStyles from './OrderProducts.styles'
 import {
@@ -12,6 +13,25 @@ import {
 } from './OrderProducts.utils'
 
 const REMOVAL_COLOR = '#EF4444'
+
+const getEntityId = entity => {
+  if (!entity) return null
+
+  if (typeof entity === 'number' || typeof entity === 'string') {
+    const matches = String(entity).match(/\d+/g)
+    return matches ? Number(matches[matches.length - 1]) : null
+  }
+
+  if (typeof entity === 'object') {
+    if (entity.id) return Number(entity.id)
+    if (entity['@id']) {
+      const matches = String(entity['@id']).match(/\d+/g)
+      return matches ? Number(matches[matches.length - 1]) : null
+    }
+  }
+
+  return null
+}
 
 const QueueBadge = ({ presentation, styles }) => {
   if (!presentation?.label) {
@@ -80,6 +100,7 @@ const OrderProducts = ({
   maxCards = null,
   renderActions = null,
 }) => {
+  const latestSnapshotRef = useRef('')
   const resolvedOrderProducts = Array.isArray(orderProducts)
     ? orderProducts
     : (Array.isArray(order?.orderProducts) ? order.orderProducts : [])
@@ -99,6 +120,46 @@ const OrderProducts = ({
     ),
     [maxCards, productCards],
   )
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !String(window?.location?.href || '').includes('order-details')
+    ) {
+      return
+    }
+
+    const orderId =
+      getEntityId(order) ||
+      getEntityId(resolvedOrderProducts[0]?.order)
+
+    const snapshot = JSON.stringify({
+      orderId,
+      resolvedOrderProductsCount: resolvedOrderProducts.length,
+      productCardsCount: productCards.length,
+      visibleCardsCount: visibleCards.length,
+      firstCardKey: visibleCards[0]?.key || null,
+      firstCardName: visibleCards[0]?.name || null,
+      firstCardGroupCount: Array.isArray(visibleCards[0]?.groups)
+        ? visibleCards[0].groups.length
+        : 0,
+    })
+
+    if (latestSnapshotRef.current === snapshot) {
+      return
+    }
+
+    latestSnapshotRef.current = snapshot
+
+    sendFrontendDebugLog({
+      channel: 'ui-orders',
+      class: 'ControleOnline\\Entity\\Order',
+      entityRow: orderId,
+      level: 'notice',
+      message: 'OrderProducts render snapshot',
+      context: JSON.parse(snapshot),
+    })
+  }, [order, productCards, resolvedOrderProducts, visibleCards])
 
   return (
     <>
