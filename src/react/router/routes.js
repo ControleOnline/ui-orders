@@ -5,6 +5,7 @@ import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
+import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import { useStore } from '@store';
 
@@ -31,7 +32,14 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: order?.id ? `${global.t?.t('orders', 'title', 'order')} #${order.id}` : global.t?.t('orders', 'title', 'order'),
+      title: global.t?.t('orders', 'title', 'order'),
+      headerTitle: () => (
+        <OrderIdentityLabel
+          order={order}
+          primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
+          secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
+        />
+      ),
       headerBackVisible: true,
     });
   }, [navigation, order]);
@@ -46,7 +54,14 @@ const WrappedOrderDetails = ({ navigation, route }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: order?.id ? `${global.t?.t('orders', 'title', 'order')} #${order.id}` : global.t?.t('orders', 'title', 'order'),
+      title: global.t?.t('orders', 'title', 'order'),
+      headerTitle: () => (
+        <OrderIdentityLabel
+          order={order}
+          primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
+          secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
+        />
+      ),
       headerBackVisible: true,
     });
   }, [navigation, order]);

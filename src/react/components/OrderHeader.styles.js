@@ -35,6 +35,15 @@ const createStyles = palette =>
       fontSize: 18,
       fontWeight: '800',
     },
+    orderIdentityWrap: {
+      minWidth: 0,
+    },
+    orderIdSecondary: {
+      marginTop: 1,
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
     timeRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -144,4 +153,3 @@ export const inlineStyle_217_16 = {
   flexDirection: 'row',
   alignItems: 'center',
 };
-

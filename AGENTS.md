@@ -10,6 +10,7 @@
 
 ## Regra central
 - Todo pedido de venda deve ser pago pela barra unica de pagamento do sistema.
+- A listagem de produtos dentro do pedido deve sair de um unico componente compartilhado entre `OrderDetails`, `POS` e visoes operacionais que mostrem itens do pedido. Diferencas entre telas entram apenas por acoes de contexto.
 - O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
 - Essa barra precisa existir em todos os devices que podem cobrar pedido.
 - Nao criar fluxo paralelo de pagamento fora dessa barra.
@@ -24,6 +25,17 @@
 - Em `APP_TYPE=MANAGER`, mesmo na tela `PdvPage`, o checkout nao deve liberar pagamento local. O Gestor deve usar device remoto configurado ou pagamento na entrega.
 - Quando existir equipamento padrao configurado para pagamento remoto, o checkout deve usar esse device como destino principal. Trocar de equipamento durante o pagamento so aparece se a empresa ativar essa permissao no configurador geral.
 - No remoto e na entrega, o botao principal da barra executa o pagamento no equipamento atualmente selecionado. A troca de equipamento, quando permitida, aparece apenas como acao discreta ao lado do device atual, sem um segundo botao grande para a mesma finalidade.
+- Itens do pedido com fila devem exibir na propria linha o status atual da fila com a cor da etapa corrente para indicar preparo.
+- Itens customizaveis devem reabrir `CustomizeScreen` apenas enquanto o fluxo de producao do proprio item ainda nao chegou ao status final da fila (`realStatus = out`).
+- Quando um item ja chegou ao fim da fila, a customizacao e a edicao inline daquele item devem ficar bloqueadas, mesmo que o pedido ainda esteja aberto.
+- Componentes filhos precisam continuar editaveis individualmente pelo pedido enquanto o item pai ainda nao estiver bloqueado pela fila.
+- Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o codigo que a retirada realmente procura, como `pickup_code` ou `handover_code`. Hashes e outros ids tecnicos da integracao ficam apenas no summary.
+- `OrderDetails` deve manter o summary como area de informacoes secundarias. As abas operacionais sao `Itens` e `Financeiro`, com invoices dentro de `Financeiro`.
+- O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
+- `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
+- Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.
+- `Additional Information` nao deve poluir a tela principal do pedido. Informacoes secundarias e ids tecnicos ficam no summary/modal, nao acima do bloco de cliente.
+- O detalhe do pedido nao deve depender da colecao `/order_products` para abrir a lista principal. Quando `GET /orders/{id}` ja trouxer `orderProducts`, esse payload deve ser a fonte primaria dos itens da tela.
 
 ## Regras por visao
 - `PDV Cielo`: cobra somente no proprio device. Nao deve oferecer remoto nem pagamento na entrega nesse fluxo.

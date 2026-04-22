@@ -13,6 +13,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {api} from '@controleonline/ui-common/src/api';
 import {env} from '@env';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {
   buildManagerPdvRouteParams,
   buildOrderDetailsRouteParams,
@@ -1518,7 +1519,12 @@ const Checkout = () => {
           style={inlineStyle_534_10}>
           <Icon name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order #{order?.id}</Text>
+        <OrderIdentityLabel
+          order={order}
+          containerStyle={styles.headerTitleWrap}
+          primaryTextStyle={styles.headerTitle}
+          secondaryTextStyle={styles.headerTitleSecondary}
+        />
       </View>
 
       <StateStore

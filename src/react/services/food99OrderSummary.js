@@ -645,7 +645,15 @@ const buildIfoodOrderSummary = order => {
       needCutlery: ifoodOrder?.needCutlery ?? null,
     },
     identifiers: {
-      orderIndex: normalizeText(ifoodOrder?.displayId || ifoodOrder?.display_id || ifoodOrder?.id || order?.id),
+      orderIndex: normalizeText(
+        pickupCode ||
+          handoverCode ||
+          localizer ||
+          ifoodOrder?.displayId ||
+          ifoodOrder?.display_id ||
+          ifoodOrder?.id ||
+          order?.id,
+      ),
       pickupCode,
       handoverCode,
       localizer,

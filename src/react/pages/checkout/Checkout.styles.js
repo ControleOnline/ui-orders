@@ -18,6 +18,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     color: '#000',
+    fontWeight: '800',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerTitleSecondary: {
+    marginTop: 1,
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
   },
   remoteCard: {
     backgroundColor: '#fff',

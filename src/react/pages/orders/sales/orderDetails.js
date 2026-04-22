@@ -35,11 +35,16 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
-import OrderProducts from '@controleonline/ui-ppc/src/react/components/OrderProducts'
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
+import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
+import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
+import OrderSectionTabs from '@controleonline/ui-orders/src/react/components/OrderSectionTabs'
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
+import {
+  canReopenOrderProductCustomization,
+  isOrderProductProductionCompleted,
+} from '@controleonline/ui-orders/src/react/components/OrderProducts.utils'
 import {
   buildCheckoutRouteParams,
   buildManagerPdvRouteParams,
@@ -56,9 +61,9 @@ import {
   removeOrderProductFromList,
   withOrderProductQuantity,
 } from '@controleonline/ui-orders/src/utils/orderState'
+import { extractVisibleOrderExtraEntries } from '@controleonline/ui-orders/src/react/utils/orderExtraData'
 
 import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
-import OrderExtraDataCard from './components/OrderExtraDataCard'
 import OrderSummaryModal from './components/OrderSummaryModal'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
@@ -67,13 +72,11 @@ import {
   inlineStyle_2116_14,
   inlineStyle_2121_14,
   inlineStyle_2128_20,
-  inlineStyle_2181_30,
   inlineStyle_2712_14,
   inlineStyle_2718_20,
   inlineStyle_2725_26,
   inlineStyle_2737_26,
   inlineStyle_2748_24,
-  inlineStyle_2782_34,
 } from './orderDetails.styles';
 
 import { inlineStyle_2768_24 } from './orderDetails.styles';
@@ -371,7 +374,7 @@ const OrderDetails = ({ route, navigation }) => {
   const { actions: addressActions } = addressStore
 
   const { styles: cssStyles, globalStyles } = css()
-  const { ppcColors, scale, styles: localStyles } = useOrderDetailsVisuals()
+  const { ppcColors, styles: localStyles } = useOrderDetailsVisuals()
   const selectedDisplay = useMemo(() => {
     if (!isKds) {
       return null
@@ -435,6 +438,7 @@ const OrderDetails = ({ route, navigation }) => {
   const channelLabel = getOrderChannelLabel(item || orderParam) || global.t?.t('orders', 'label', 'order')
   const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
   const [orderActionLoading, setOrderActionLoading] = useState('')
+  const [detailsTabKey, setDetailsTabKey] = useState('items')
 
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
@@ -455,6 +459,17 @@ const OrderDetails = ({ route, navigation }) => {
   const [addressSaveLoading, setAddressSaveLoading] = useState(false)
   const [addressSelectingId, setAddressSelectingId] = useState('')
 
+  const commitResolvedOrderProducts = useCallback(sourceOrder => {
+    const normalizedOrderProducts = Array.isArray(sourceOrder?.orderProducts)
+      ? sourceOrder.orderProducts
+      : []
+
+    currentOrderProductsRef.current = normalizedOrderProducts
+    orderProductsStore.actions.setItems(normalizedOrderProducts)
+
+    return normalizedOrderProducts
+  }, [orderProductsStore.actions])
+
   useFocusEffect(
     useCallback(() => {
       if (routeOrderIri) {
@@ -465,21 +480,25 @@ const OrderDetails = ({ route, navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (routeOrderId) {
-        ordersActions.get(routeOrderId)
-      }
-    }, [ordersActions, routeOrderId]),
-  )
+      let active = true
 
-  useFocusEffect(
-    useCallback(() => {
-      if (routeOrderIri) {
-        orderProductsStore.actions.getItems({
-          order: routeOrderIri,
-          itemsPerPage: 500,
-        })
+      if (routeOrderId) {
+        ordersActions
+          .get(routeOrderId)
+          .then(fetchedOrder => {
+            if (!active) {
+              return
+            }
+
+            commitResolvedOrderProducts(fetchedOrder)
+          })
+          .catch(() => {})
       }
-    }, [orderProductsStore.actions, routeOrderIri]),
+
+      return () => {
+        active = false
+      }
+    }, [commitResolvedOrderProducts, ordersActions, routeOrderId]),
   )
 
   const handleAddProduct = () => {
@@ -495,14 +514,11 @@ const OrderDetails = ({ route, navigation }) => {
   }
 
   const refreshCurrentOrder = useCallback(async () => {
-    if (routeOrderId && routeOrderIri) {
-      await ordersActions.get(routeOrderId)
-      await orderProductsStore.actions.getItems({
-        order: routeOrderIri,
-        itemsPerPage: 500,
-      })
+    if (routeOrderId) {
+      const refreshedOrder = await ordersActions.get(routeOrderId)
+      commitResolvedOrderProducts(refreshedOrder)
     }
-  }, [orderProductsStore.actions, ordersActions, routeOrderId, routeOrderIri])
+  }, [commitResolvedOrderProducts, ordersActions, routeOrderId])
 
   const marketplaceSummary = useOrderMarketplaceSummary({
     order: item,
@@ -552,10 +568,22 @@ const OrderDetails = ({ route, navigation }) => {
   }, [canEditItems])
 
   useEffect(() => {
-    currentOrderProductsRef.current = Array.isArray(item?.orderProducts)
-      ? item.orderProducts
-      : []
-  }, [item?.orderProducts])
+    if (Array.isArray(item?.orderProducts)) {
+      commitResolvedOrderProducts(item)
+      return
+    }
+
+    if (Array.isArray(orderParam?.orderProducts)) {
+      currentOrderProductsRef.current = orderParam.orderProducts
+      orderProductsStore.actions.setItems(orderParam.orderProducts)
+    }
+  }, [
+    commitResolvedOrderProducts,
+    item,
+    item?.orderProducts,
+    orderParam?.orderProducts,
+    orderProductsStore.actions,
+  ])
 
   const syncCurrentOrderProducts = useCallback(nextOrderProducts => {
     const normalizedOrderProducts = Array.isArray(nextOrderProducts) ? nextOrderProducts : []
@@ -699,6 +727,38 @@ const OrderDetails = ({ route, navigation }) => {
     scheduleQuantityChange(op, 0)
   }, [scheduleQuantityChange])
 
+  const handleEditCustomizableOrderProduct = useCallback(orderProduct => {
+    if (!canEditItems) {
+      return
+    }
+
+    const rootOrderProduct = orderProduct || null
+    const product = rootOrderProduct?.product
+    const productId = getEntityId(product)
+
+    if (!rootOrderProduct || !product || !productId) {
+      showError('Nao foi possivel identificar o item customizavel deste pedido.')
+      return
+    }
+
+    if (isOrderProductProductionCompleted(rootOrderProduct)) {
+      return
+    }
+
+    navigation.navigate('CustomizeScreen', {
+      product,
+      productId,
+      orderProduct: rootOrderProduct,
+      returnDepth: 1,
+      interactionMode: route?.params?.interactionMode,
+    })
+  }, [
+    canEditItems,
+    navigation,
+    route?.params?.interactionMode,
+    showError,
+  ])
+
   const runOrderAction = useCallback(async action => {
     if (!item?.id || orderActionLoading) {
       return
@@ -812,10 +872,6 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam?.orderProducts,
     storedOrderProducts,
   ])
-  const editableOrderProducts = useMemo(
-    () => (Array.isArray(item?.orderProducts) ? item.orderProducts : []),
-    [item?.orderProducts],
-  )
   const resolvedProductCandidatesById = useMemo(() => {
     const candidates = {}
 
@@ -859,17 +915,6 @@ const OrderDetails = ({ route, navigation }) => {
     }),
     [resolvedDisplayOrderProducts, resolvedProductCandidatesById],
   )
-
-  const editableOrderProductsWithProductDetails = useMemo(
-    () => editableOrderProducts.map(orderProduct => {
-      const productId = getEntityId(orderProduct?.product)
-      return mergeOrderProductWithResolvedProduct(
-        orderProduct,
-        productId ? resolvedProductCandidatesById[productId] : null,
-      )
-    }),
-    [editableOrderProducts, resolvedProductCandidatesById],
-  )
   const shouldShowOrderAddress = !isPurchaseOrder
   const effectiveDisplayedOperationalStatus = useMemo(
     () => ({
@@ -908,6 +953,11 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam,
     resolvedDisplayOrderProductsWithProductDetails,
   ])
+  const orderIdentitySource = resolvedDisplayOrder || item || orderParam || null
+  const orderAdditionalInfoEntries = useMemo(
+    () => extractVisibleOrderExtraEntries(orderIdentitySource),
+    [orderIdentitySource],
+  )
   const normalizedOrderRealStatus = String(
     effectiveLocalRealStatusKey || '',
   ).toLowerCase()
@@ -1000,8 +1050,6 @@ const OrderDetails = ({ route, navigation }) => {
   const showInlineAddPaymentAction =
     canAddOrderPayment &&
     !useUnifiedKdsLayout
-  const internalOrderDisplayId = item?.id || orderParam?.id || '--'
-  const orderDisplayId = internalOrderDisplayId
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
   const orderDateLabel = formatOrderDateTime(resolvedOrderDateValue)
   const orderWaitingMinutes = resolvedOrderDateValue
@@ -1011,19 +1059,6 @@ const OrderDetails = ({ route, navigation }) => {
     orderWaitingMinutes === null
       ? ''
       : `${orderWaitingMinutes} min`
-  const orderOriginLabel = String(
-    channelLabel ||
-    item?.app ||
-    orderParam?.app ||
-    global.t?.t('orders', 'label', 'localOrigin'),
-  )
-  const localStatusRaw = String(
-    effectiveLocalStatusNameKey ||
-    effectiveLocalRealStatusKey ||
-    '',
-  ).trim()
-  const orderStatusBadgeLabel = String(localStatusRaw || '-').toUpperCase()
-  const orderStatusBadgeColor = displayOrderStatusColor || ppcColors.accentInfo
   const fallbackNoObservationText =
     `${global.t?.t('orders', 'message', 'noObservationsFor')} ${channelLabel || (global.t?.t('orders', 'label', 'order') || 'pedido')}.`
   const localOrderClient = item?.client || orderParam?.client || null
@@ -1377,7 +1412,6 @@ const OrderDetails = ({ route, navigation }) => {
   const baseOrderObservationText = localOrderObservationSource || fallbackNoObservationText
   const showBaseOrderObservationCard = true
   const orderDiscountTotal = Number(item?.discount || orderParam?.discount || 0)
-  const orderDisplayTotal = Number(localOrderTotal || 0)
   const localInvoicesEmptyText =
     global.t?.t('orders', 'message', 'noInvoicesLinkedToOrder') ||
     'Nenhuma invoice vinculada a este pedido.'
@@ -1385,9 +1419,70 @@ const OrderDetails = ({ route, navigation }) => {
     global.t?.t('orders', 'label', 'payment') ||
     global.t?.t('orders', 'title', 'payments') ||
     'Pagamentos'
-  const localInvoicesCountLabel = `${localInvoiceCards.length} ${
-    localInvoiceCards.length === 1 ? 'invoice' : 'invoices'
-  }`
+  const shouldShowPreparationTime = !isTerminalOrder && !!orderWaitingLabel
+  const summaryInformationEntries = useMemo(() => {
+    const entries = orderAdditionalInfoEntries.map(entry => ({
+      key: entry.id,
+      label: formatHumanLabel(entry.label || entry.name || entry.context) || 'Campo',
+      value: entry.value,
+    }))
+
+    if (!shouldShowPreparationTime && orderWaitingLabel) {
+      entries.unshift({
+        key: 'preparation-time',
+        label: global.t?.t('orders', 'label', 'preparationTime') || 'Tempo de preparo',
+        value: orderWaitingLabel,
+      })
+    }
+
+    return entries
+  }, [
+    orderAdditionalInfoEntries,
+    orderWaitingLabel,
+    shouldShowPreparationTime,
+  ])
+  const localFinancialLines = useMemo(
+    () => [
+      {
+        key: 'local-total',
+        label: global.t?.t('orders', 'label', 'localTotal') || 'Total do pedido',
+        value: localOrderTotal,
+        money: true,
+        strong: true,
+      },
+      orderDiscountTotal > 0 && {
+        key: 'discount',
+        label: global.t?.t('orders', 'label', 'discount') || 'Desconto',
+        value: orderDiscountTotal,
+        money: true,
+      },
+      {
+        key: 'paid',
+        label: global.t?.t('orders', 'label', 'paid') || 'Pago',
+        value: localPaidAmount,
+        money: true,
+      },
+      {
+        key: 'pending',
+        label: global.t?.t('orders', 'label', 'pending') || 'Pendente',
+        value: localPendingAmount,
+        money: true,
+        strong: localPendingAmount > 0.009,
+      },
+      {
+        key: 'invoice-count',
+        label: global.t?.t('orders', 'title', 'payments') || 'Invoices',
+        value: String(localInvoiceCards.length),
+      },
+    ].filter(Boolean),
+    [
+      localInvoiceCards.length,
+      localOrderTotal,
+      localPaidAmount,
+      localPendingAmount,
+      orderDiscountTotal,
+    ],
+  )
   const isGenericLocalOrder = true
   const isOpenLocalWorkflowState = effectiveLocalRealStatusKey === 'open'
   const isPendingLocalWorkflowState = effectiveLocalRealStatusKey === 'pending'
@@ -1576,6 +1671,14 @@ const OrderDetails = ({ route, navigation }) => {
   const kdsOrderProductsStyles = useMemo(
     () => ({
       itemRow: localStyles.mobileProductItemRow,
+      itemMainRow: localStyles.orderProductItemMainRow,
+      itemContent: localStyles.orderProductItemContent,
+      metaWrap: localStyles.orderProductMetaWrap,
+      queueBadge: localStyles.orderProductQueueBadge,
+      queueBadgeDot: localStyles.orderProductQueueBadgeDot,
+      queueBadgeText: localStyles.orderProductQueueBadgeText,
+      itemActions: localStyles.orderProductItemActions,
+      priceRow: localStyles.orderProductPriceRow,
       text: localStyles.mobileProductText,
       subText: localStyles.mobileProductSubText,
       qtyText: localStyles.mobileProductQtyText,
@@ -1584,13 +1687,19 @@ const OrderDetails = ({ route, navigation }) => {
       groupTitlePill: localStyles.orderProductGroupTitlePill,
       groupTitle: localStyles.orderProductGroupTitle,
       groupItem: localStyles.orderProductGroupItem,
-      groupItemRow: localStyles.orderProductGroupItemRow,
+      groupItemMainRow: localStyles.orderProductGroupItemRow,
+      groupItemContent: localStyles.orderProductGroupItemContent,
+      groupItemMetaWrap: localStyles.orderProductGroupItemMetaWrap,
+      groupItemActions: localStyles.orderProductGroupItemActions,
       groupItemText: localStyles.orderProductGroupItemText,
       groupItemMetaText: localStyles.orderProductGroupItemMetaText,
       groupItemPriceText: localStyles.orderProductGroupItemPriceText,
     }),
     [
+      localStyles.orderProductGroupItemActions,
+      localStyles.orderProductGroupItemContent,
       localStyles.orderProductGroupItem,
+      localStyles.orderProductGroupItemMetaWrap,
       localStyles.orderProductGroupItemMetaText,
       localStyles.orderProductGroupItemPriceText,
       localStyles.orderProductGroupItemRow,
@@ -1598,6 +1707,14 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.orderProductGroupTitle,
       localStyles.orderProductGroupTitlePill,
       localStyles.orderProductGroupWrap,
+      localStyles.orderProductItemActions,
+      localStyles.orderProductItemContent,
+      localStyles.orderProductItemMainRow,
+      localStyles.orderProductMetaWrap,
+      localStyles.orderProductPriceRow,
+      localStyles.orderProductQueueBadge,
+      localStyles.orderProductQueueBadgeDot,
+      localStyles.orderProductQueueBadgeText,
       localStyles.mobileProductItemRow,
       localStyles.mobileProductQtyText,
       localStyles.mobileProductStatusMarker,
@@ -1605,6 +1722,170 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.mobileProductText,
     ],
   )
+
+  const defaultOrderProductsStyles = useMemo(
+    () => ({
+      itemRow: localStyles.itemRow,
+      itemMainRow: localStyles.orderProductItemMainRow,
+      itemContent: localStyles.orderProductItemContent,
+      metaWrap: localStyles.orderProductMetaWrap,
+      queueBadge: localStyles.orderProductQueueBadge,
+      queueBadgeDot: localStyles.orderProductQueueBadgeDot,
+      queueBadgeText: localStyles.orderProductQueueBadgeText,
+      itemActions: localStyles.orderProductItemActions,
+      priceRow: localStyles.orderProductPriceRow,
+      text: localStyles.text,
+      subText: localStyles.subText,
+      qtyText: localStyles.qtyText,
+      statusMarker: localStyles.statusMarker,
+      groupWrap: localStyles.orderProductGroupWrap,
+      groupTitlePill: localStyles.orderProductGroupTitlePill,
+      groupTitle: localStyles.orderProductGroupTitle,
+      groupItem: localStyles.orderProductGroupItem,
+      groupItemMainRow: localStyles.orderProductGroupItemRow,
+      groupItemContent: localStyles.orderProductGroupItemContent,
+      groupItemMetaWrap: localStyles.orderProductGroupItemMetaWrap,
+      groupItemActions: localStyles.orderProductGroupItemActions,
+      groupItemText: localStyles.orderProductGroupItemText,
+      groupItemMetaText: localStyles.orderProductGroupItemMetaText,
+      groupItemPriceText: localStyles.orderProductGroupItemPriceText,
+    }),
+    [
+      localStyles.itemRow,
+      localStyles.orderProductGroupItem,
+      localStyles.orderProductGroupItemActions,
+      localStyles.orderProductGroupItemContent,
+      localStyles.orderProductGroupItemMetaText,
+      localStyles.orderProductGroupItemMetaWrap,
+      localStyles.orderProductGroupItemPriceText,
+      localStyles.orderProductGroupItemRow,
+      localStyles.orderProductGroupItemText,
+      localStyles.orderProductGroupTitle,
+      localStyles.orderProductGroupTitlePill,
+      localStyles.orderProductGroupWrap,
+      localStyles.orderProductItemActions,
+      localStyles.orderProductItemContent,
+      localStyles.orderProductItemMainRow,
+      localStyles.orderProductMetaWrap,
+      localStyles.orderProductPriceRow,
+      localStyles.orderProductQueueBadge,
+      localStyles.orderProductQueueBadgeDot,
+      localStyles.orderProductQueueBadgeText,
+      localStyles.qtyText,
+      localStyles.statusMarker,
+      localStyles.subText,
+      localStyles.text,
+    ],
+  )
+
+  const renderOrderProductActions = useCallback(({
+    card,
+    orderProduct,
+    entryType,
+  }) => {
+    if (!canEditItems || !orderProduct) {
+      return null
+    }
+
+    const rootOrderProduct = card?.rootItem || orderProduct
+    if (isOrderProductProductionCompleted(rootOrderProduct)) {
+      return null
+    }
+
+    const orderProductId = String(
+      orderProduct?.id ||
+      String(orderProduct?.['@id'] || '').replace(/\D/g, ''),
+    )
+    const quantity = Number(orderProduct?.quantity || 0)
+    const isOpLoading = orderProductId ? isOrderProductCommitting(orderProductId) : false
+    const isConfirming = orderProductId && confirmRemoveItemId === orderProductId
+    const canEditCustomization =
+      entryType === 'root' &&
+      canReopenOrderProductCustomization(rootOrderProduct)
+
+    if (!canEditCustomization && !orderProductId) {
+      return null
+    }
+
+    return (
+      <View style={localStyles.orderProductActionStack}>
+        {canEditCustomization && (
+          <TouchableOpacity
+            onPress={() => handleEditCustomizableOrderProduct(rootOrderProduct)}
+            style={localStyles.orderProductCustomizeButton}
+            disabled={isOpLoading}
+          >
+            <Icon name="tune" size={16} color={ppcColors.textPrimary} />
+          </TouchableOpacity>
+        )}
+
+        {orderProductId ? (
+          isConfirming ? (
+            <View style={localStyles.editConfirmRow}>
+              <Text style={localStyles.editConfirmText}>Remover?</Text>
+              <TouchableOpacity
+                onPress={() => handleRemoveOp(orderProduct)}
+                style={localStyles.editConfirmYes}
+                disabled={isOpLoading}
+              >
+                {isOpLoading
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Icon name="check" size={15} color="#fff" />}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setConfirmRemoveItemId(null)}
+                style={localStyles.editConfirmNo}
+                disabled={isOpLoading}
+              >
+                <Icon name="close" size={15} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={localStyles.editQtyRow}>
+              <TouchableOpacity
+                onPress={() => handleDecreaseOpQuantity(orderProduct)}
+                style={localStyles.editQtyBtn}
+              >
+                <Icon
+                  name={quantity <= 1 ? 'delete' : 'remove'}
+                  size={18}
+                  color={quantity <= 1 ? '#EF4444' : ppcColors.textPrimary}
+                />
+              </TouchableOpacity>
+              <View style={localStyles.editQtyBox}>
+                <Text style={localStyles.editQtyText}>{quantity}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleIncreaseOpQuantity(orderProduct)}
+                style={localStyles.editQtyBtn}
+              >
+                <Icon name="add" size={18} color={ppcColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+          )
+        ) : null}
+      </View>
+    )
+  }, [
+    canEditItems,
+    confirmRemoveItemId,
+    handleDecreaseOpQuantity,
+    handleEditCustomizableOrderProduct,
+    handleIncreaseOpQuantity,
+    handleRemoveOp,
+    isOrderProductCommitting,
+    localStyles.editConfirmNo,
+    localStyles.editConfirmRow,
+    localStyles.editConfirmText,
+    localStyles.editConfirmYes,
+    localStyles.editQtyBox,
+    localStyles.editQtyBtn,
+    localStyles.editQtyRow,
+    localStyles.editQtyText,
+    localStyles.orderProductActionStack,
+    localStyles.orderProductCustomizeButton,
+    ppcColors.textPrimary,
+  ])
 
   const resolvedPrimaryKdsAction = !isTerminalOrder && (
     primaryKdsAction ||
@@ -1675,11 +1956,16 @@ const OrderDetails = ({ route, navigation }) => {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: `${global.t?.t('orders', 'title', 'order')} #${orderDisplayId}`,
+      title: global.t?.t('orders', 'title', 'order'),
       showBottomToolBar: !shouldHideBottomToolBar,
       headerTitle: () => (
         <View style={localStyles.topBarTitleWrap}>
-          <Text style={localStyles.topBarTitleText}>{global.t?.t('orders', 'title', 'order')} #{orderDisplayId}</Text>
+          <OrderIdentityLabel
+            order={orderIdentitySource}
+            remoteSummary={marketplaceSummary.summary}
+            primaryTextStyle={localStyles.topBarTitleText}
+            secondaryTextStyle={localStyles.topBarTitleIdentitySecondary}
+          />
           {!!orderDateLabel && (
             <Text style={localStyles.topBarTitleSubText}>{orderDateLabel}</Text>
           )}
@@ -1744,13 +2030,15 @@ const OrderDetails = ({ route, navigation }) => {
     isKds,
     isTvDisplay,
     localStyles.topBarActions,
+    localStyles.topBarTitleIdentitySecondary,
     localStyles.topBarIconButton,
     localStyles.topBarTitleSubText,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,
+    marketplaceSummary.summary,
     navigation,
     orderDateLabel,
-    orderDisplayId,
+    orderIdentitySource,
     ppcColors.accentInfo,
     selectedDisplay,
     shouldHideBottomToolBar,
@@ -1848,11 +2136,256 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.orderInvoiceTitleWrap,
     ],
   )
+  const renderDetailsLines = useCallback(
+    lines => {
+      if (!Array.isArray(lines) || lines.length === 0) {
+        return null
+      }
+
+      return lines.map(line => {
+        const value = line?.money
+          ? Formatter.formatMoney(Number(line?.value || 0))
+          : String(line?.value ?? '').trim()
+
+        if (!value) {
+          return null
+        }
+
+        const textStyle = line?.strong
+          ? localStyles.detailsInfoTextStrong
+          : localStyles.detailsInfoText
+
+        return (
+          <Text key={line.key} style={textStyle}>
+            {!!line.label ? `${line.label}: ` : ''}
+            {value}
+          </Text>
+        )
+      })
+    },
+    [
+      localStyles.detailsInfoText,
+      localStyles.detailsInfoTextStrong,
+    ],
+  )
+  const renderPaymentCards = useCallback(
+    cards => {
+      if (!Array.isArray(cards) || cards.length === 0) {
+        return null
+      }
+
+      return (
+        <View style={localStyles.detailsGrid}>
+          {cards.map(card => (
+            <View key={card.key} style={localStyles.detailsCard}>
+              <Text style={localStyles.detailsCardLabel}>{card.label}</Text>
+              <Text style={localStyles.detailsCardValue}>
+                {Formatter.formatMoney(Number(card.value || 0))}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )
+    },
+    [
+      localStyles.detailsCard,
+      localStyles.detailsCardLabel,
+      localStyles.detailsCardValue,
+      localStyles.detailsGrid,
+    ],
+  )
+  const renderFinancialTabContent = useCallback(
+    variant => {
+      const detailsVariant = variant === 'details'
+      const marketplaceFinancialLines = marketplaceSummary.summary?.financial || []
+      const marketplaceDeliveryPaymentLines =
+        marketplaceSummary.summary?.deliveryPaymentLines || []
+      const marketplacePaymentCards = marketplaceSummary.summary?.paymentCards || []
+
+      const hasContent =
+        localFinancialLines.length > 0 ||
+        marketplaceFinancialLines.length > 0 ||
+        marketplaceDeliveryPaymentLines.length > 0 ||
+        marketplacePaymentCards.length > 0 ||
+        localInvoiceCards.length > 0
+
+      if (!hasContent) {
+        return (
+          <Text style={detailsVariant ? localStyles.detailsInfoText : localStyles.mobileInfoSubtitle}>
+            {localInvoicesEmptyText}
+          </Text>
+        )
+      }
+
+      return (
+        <View style={localStyles.detailsTabStack}>
+          {renderPaymentCards(marketplacePaymentCards)}
+
+          {!!localFinancialLines.length && (
+            <View style={localStyles.detailsSection}>
+              <Text style={localStyles.detailsSectionTitle}>
+                {global.t?.t('orders', 'title', 'payments') || 'Financeiro'}
+              </Text>
+              {renderDetailsLines(localFinancialLines)}
+            </View>
+          )}
+
+          {!!marketplaceFinancialLines.length && (
+            <View style={localStyles.detailsSection}>
+              <Text style={localStyles.detailsSectionTitle}>
+                {marketplaceSummary.summary?.financeTitle ||
+                  global.t?.t('orders', 'title', 'payments') ||
+                  'Financeiro da integração'}
+              </Text>
+              {renderDetailsLines(marketplaceFinancialLines)}
+            </View>
+          )}
+
+          {!!marketplaceDeliveryPaymentLines.length && (
+            <View style={localStyles.detailsSection}>
+              <Text style={localStyles.detailsSectionTitle}>
+                {global.t?.t('orders', 'label', 'paymentMethod') || 'Cobrança'}
+              </Text>
+              {renderDetailsLines(marketplaceDeliveryPaymentLines)}
+            </View>
+          )}
+
+          <View style={localStyles.detailsSection}>
+            <Text style={localStyles.detailsSectionTitle}>
+              {localInvoicesSectionTitle}
+            </Text>
+            {renderLocalInvoiceCards(detailsVariant ? 'details' : 'mobile')}
+          </View>
+        </View>
+      )
+    },
+    [
+      localFinancialLines,
+      localInvoiceCards.length,
+      localInvoicesEmptyText,
+      localInvoicesSectionTitle,
+      localStyles.detailsInfoText,
+      localStyles.detailsSection,
+      localStyles.detailsSectionTitle,
+      localStyles.detailsTabStack,
+      localStyles.mobileInfoSubtitle,
+      marketplaceSummary.summary,
+      renderDetailsLines,
+      renderLocalInvoiceCards,
+      renderPaymentCards,
+    ],
+  )
+  const renderItemsTabContent = useCallback(
+    variant => {
+      const detailsVariant = variant === 'details'
+      const productStyles = detailsVariant
+        ? defaultOrderProductsStyles
+        : kdsOrderProductsStyles
+
+      return (
+        <View style={localStyles.detailsTabStack}>
+          <View style={inlineStyle_2116_14}>
+            <Text style={[localStyles.mobileProductsTitle, {flex: 1}]}>
+              {global.t?.t('orders', 'title', 'orderItems')}
+            </Text>
+            {canAddProductsToOrder && !detailsVariant && (
+              <TouchableOpacity
+                onPress={handleAddProduct}
+                style={inlineStyle_2121_14({
+                  ppcColors: ppcColors,
+                })}
+              >
+                <Icon name="add-circle" size={14} color="#fff" />
+                <Text style={inlineStyle_2128_20}>
+                  {addProductsButtonLabel}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View
+            style={[
+              cssStyles.itemsSection,
+              detailsVariant && localStyles.detailsItemsSection,
+            ]}
+          >
+            <OrderProducts
+              order={resolvedDisplayOrder || item}
+              orderProducts={resolvedDisplayOrderProductsWithProductDetails}
+              styles={productStyles}
+              showDetails
+              showPricing
+              renderActions={canEditItems ? renderOrderProductActions : null}
+            />
+          </View>
+        </View>
+      )
+    },
+    [
+      addProductsButtonLabel,
+      canAddProductsToOrder,
+      canEditItems,
+      cssStyles.itemsSection,
+      defaultOrderProductsStyles,
+      handleAddProduct,
+      item,
+      kdsOrderProductsStyles,
+      localStyles.detailsItemsSection,
+      localStyles.detailsTabStack,
+      localStyles.mobileProductsTitle,
+      ppcColors,
+      renderOrderProductActions,
+      resolvedDisplayOrder,
+      resolvedDisplayOrderProductsWithProductDetails,
+    ],
+  )
+  const detailsTabs = useMemo(
+    () => [
+      {
+        key: 'items',
+        label: global.t?.t('orders', 'title', 'orderItems') || 'Itens',
+        content: renderItemsTabContent('main'),
+      },
+      {
+        key: 'financial',
+        label: global.t?.t('orders', 'title', 'payments') || 'Financeiro',
+        content: renderFinancialTabContent('main'),
+      },
+    ],
+    [
+      renderFinancialTabContent,
+      renderItemsTabContent,
+    ],
+  )
+  const modalDetailsTabs = useMemo(
+    () => [
+      {
+        key: 'items',
+        label: global.t?.t('orders', 'title', 'orderItems') || 'Itens',
+        content: renderItemsTabContent('details'),
+      },
+      {
+        key: 'financial',
+        label: global.t?.t('orders', 'title', 'payments') || 'Financeiro',
+        content: renderFinancialTabContent('details'),
+      },
+    ],
+    [
+      renderFinancialTabContent,
+      renderItemsTabContent,
+    ],
+  )
+
+  useEffect(() => {
+    if (!detailsTabs.some(tab => tab.key === detailsTabKey)) {
+      setDetailsTabKey(detailsTabs[0]?.key || 'items')
+    }
+  }, [detailsTabKey, detailsTabs])
 
   const orderSummaryData = useMemo(() => {
     return {
       base: {
-        orderId: item?.id || orderParam?.id || '--',
+        order: orderIdentitySource,
         cards: [
           {
             key: 'application',
@@ -1887,6 +2420,13 @@ const OrderDetails = ({ route, navigation }) => {
             value: formatOrderDateTime(item?.alterDate || resolvedOrderDateValue),
           },
           {
+            key: 'local-order-id',
+            label:
+              global.t?.t('orders', 'label', 'localOrderNumber') ||
+              'Pedido interno',
+            value: item?.id || orderParam?.id || '-',
+          },
+          {
             key: 'local-total',
             label: global.t?.t('orders', 'label', 'localTotal'),
             value: Formatter.formatMoney(localOrderTotal || 0),
@@ -1911,10 +2451,10 @@ const OrderDetails = ({ route, navigation }) => {
             label: global.t?.t('orders', 'label', 'delivery'),
             value: localOrderAddressParts.primary,
           },
+          ...summaryInformationEntries,
         ].filter(Boolean),
-        invoicesTitle: localInvoicesSectionTitle,
-        invoiceCardsNode: renderLocalInvoiceCards('details'),
       },
+      tabs: modalDetailsTabs,
       primaryAction:
         resolvedPrimaryKdsAction
           ? {
@@ -1943,27 +2483,25 @@ const OrderDetails = ({ route, navigation }) => {
     effectiveLocalRealStatusKey,
     effectiveLocalStatusNameKey,
     formatOrderDateTime,
-    hasMarketplaceIntegration,
     item?.alterDate,
     item?.app,
-    item?.id,
     item?.status?.realStatus,
     item?.status?.status,
     localInvoiceCards.length,
-    localInvoicesSectionTitle,
     localOrderAddressParts,
     localOrderTotal,
     marketplaceSummary.summary,
+    modalDetailsTabs,
     orderCustomerDocument,
     orderCustomerDocumentLabel,
     orderCustomerName,
     orderCustomerPhone,
-    orderParam?.id,
     orderActionLoading,
-    renderLocalInvoiceCards,
+    orderIdentitySource,
     resolvedOrderDateValue,
     resolvedPrimaryKdsAction,
     shouldShowOrderAddress,
+    summaryInformationEntries,
   ])
 
   const renderKdsMobileContent = () => (
@@ -1975,65 +2513,6 @@ const OrderDetails = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={localStyles.mobileOrderLayout}>
-      <View style={localStyles.mobileSummaryCard}>
-        <View style={localStyles.mobileSummaryHeader}>
-          <View style={localStyles.mobileSummaryOriginWrap}>
-            <View style={localStyles.mobileSummaryOriginIcon}>
-              <Icon
-                name="store"
-                size={16}
-                color={ppcColors.accent}
-              />
-            </View>
-            <View>
-              <Text style={localStyles.mobileSummaryLabel}>{global.t?.t('orders', 'label', 'origin')}</Text>
-              <Text style={localStyles.mobileSummaryValue}>{orderOriginLabel}</Text>
-            </View>
-          </View>
-
-          <View
-            style={[
-              localStyles.mobileStatusBadge,
-              { borderColor: orderStatusBadgeColor },
-            ]}
-          >
-            <View
-              style={[
-                localStyles.mobileStatusDot,
-                { backgroundColor: orderStatusBadgeColor },
-              ]}
-            />
-            <Text style={localStyles.mobileStatusText}>{orderStatusBadgeLabel}</Text>
-          </View>
-        </View>
-
-        {!isPurchaseOrder && (
-        <View style={localStyles.mobileSummaryMetricsRow}>
-          <View style={localStyles.mobileDiscountPill}>
-            <Icon name="local-offer" size={14} color={ppcColors.accent} />
-            <Text style={localStyles.mobileDiscountText}>
-              {global.t?.t('orders', 'label', 'discount')}: {Formatter.formatMoney(orderDiscountTotal)}
-            </Text>
-          </View>
-
-          {!!orderWaitingLabel && (
-            <View style={localStyles.mobileWaitingPill}>
-              <Icon name="schedule" size={13} color={ppcColors.dangerText} />
-              <Text style={localStyles.mobileWaitingText}>{orderWaitingLabel}</Text>
-            </View>
-          )}
-        </View>
-        )}
-
-        <View style={localStyles.mobileSummaryFooter}>
-          <Text style={localStyles.mobileTotalLabel}>{isPurchaseOrder ? global.t?.t('orders', 'label', 'totalToPay') : global.t?.t('orders', 'label', 'totalToCharge')}</Text>
-          <Text style={localStyles.mobileTotalValue}>
-            {Formatter.formatMoney(orderDisplayTotal)}
-          </Text>
-        </View>
-
-      </View>
-
       <View style={localStyles.mobileInfoCard}>
         <View style={localStyles.mobileInfoHeader}>
           <View style={localStyles.mobileInfoIconWrap}>
@@ -2127,143 +2606,21 @@ const OrderDetails = ({ route, navigation }) => {
         )}
       </View>
 
-      <OrderExtraDataCard order={resolvedDisplayOrder || item} />
-
       <View style={localStyles.mobileInfoCard}>
-        <View style={localStyles.orderInvoiceBlockHeader}>
-          <Text style={localStyles.mobileInfoLabel}>{localInvoicesSectionTitle}</Text>
-          {!!localInvoiceCards.length && (
-            <Text style={localStyles.orderInvoiceCounter}>{localInvoicesCountLabel}</Text>
-          )}
-        </View>
-        {renderLocalInvoiceCards('mobile')}
-      </View>
-
-      <View style={[cssStyles.itemsSection, localStyles.mobileProductsCard]}>
-        <View style={inlineStyle_2116_14}>
-          <Text style={[localStyles.mobileProductsTitle, { flex: 1 }]}>{global.t?.t('orders', 'title', 'orderItems')}</Text>
-          {canAddProductsToOrder && (
-            <TouchableOpacity
-              onPress={handleAddProduct}
-              style={inlineStyle_2121_14({
-                ppcColors: ppcColors,
-              })}
-            >
-              <Icon name="add-circle" size={14} color="#fff" />
-              <Text style={inlineStyle_2128_20}>
-                {addProductsButtonLabel}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        {isPurchaseOrder
-          ? (resolvedDisplayOrderProductsWithProductDetails || []).map((op, idx) => {
-              const prodName = op?.product?.product || op?.product?.name || `Produto #${idx + 1}`
-              const prodDesc = op?.product?.description || ''
-              const qty      = Number(op?.quantity || 0)
-              const price    = Number(op?.unitPrice || op?.price || 0)
-              const unitLabel = resolveOrderItemUnitLabel(op)
-              const total    = qty * price
-              const comment  = String(op?.comments || '').trim()
-              return (
-                <View key={op?.id || idx} style={localStyles.purchaseItemRow}>
-                  <View style={localStyles.purchaseItemTop}>
-                    <Text style={localStyles.purchaseItemName} numberOfLines={2}>{prodName}</Text>
-                    <Text style={localStyles.purchaseItemQty}>{qty} {unitLabel}</Text>
-                  </View>
-                  {!!prodDesc && (
-                    <Text style={localStyles.purchaseItemDesc} numberOfLines={2}>{prodDesc}</Text>
-                  )}
-                  {!!comment && (
-                    <Text style={localStyles.purchaseItemComment}>{global.t?.t('orders', 'label', 'obs')}: {comment}</Text>
-                  )}
-                  <View style={localStyles.purchaseItemPriceRow}>
-                    {price > 0 && (
-                      <Text style={localStyles.purchaseItemUnit}>
-                        {Formatter.formatMoney(price)} / {unitLabel}
-                      </Text>
-                    )}
-                    {price > 0 && (
-                      <Text style={localStyles.purchaseItemTotal}>{Formatter.formatMoney(total)}</Text>
-                    )}
-                  </View>
-                </View>
-              )
-            })
-          : (canEditItems
-              ? (
-                <React.Fragment>
-                  {editableOrderProductsWithProductDetails.map(op => {
-                    const opId = String(op?.id || '')
-                    const name = op?.product?.product || op?.product?.name || 'Item'
-                    const qty = Number(op?.quantity || 0)
-                    const price = Number(op?.unitPrice || op?.price || 0)
-                    const unitLabel = resolveOrderItemUnitLabel(op)
-                    const isOpLoading = isOrderProductCommitting(opId)
-                    const isConfirming = confirmRemoveItemId === opId
-                    return (
-                      <View key={opId || op['@id']} style={localStyles.editItemRow}>
-                        <View style={inlineStyle_2181_30}>
-                          <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
-                          {price > 0 && (
-                            <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / {unitLabel}</Text>
-                          )}
-                        </View>
-                        {isConfirming ? (
-                          <View style={localStyles.editConfirmRow}>
-                            <Text style={localStyles.editConfirmText}>Remover?</Text>
-                            <TouchableOpacity
-                              onPress={() => handleRemoveOp(op)}
-                              style={localStyles.editConfirmYes}
-                              disabled={isOpLoading}
-                            >
-                              {isOpLoading
-                                ? <ActivityIndicator size="small" color="#fff" />
-                                : <Icon name="check" size={15} color="#fff" />}
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => setConfirmRemoveItemId(null)}
-                              style={localStyles.editConfirmNo}
-                              disabled={isOpLoading}
-                            >
-                              <Icon name="close" size={15} color="#fff" />
-                            </TouchableOpacity>
-                          </View>
-                        ) : (
-                          <View style={localStyles.editQtyRow}>
-                            <TouchableOpacity
-                              onPress={() => handleDecreaseOpQuantity(op)}
-                              style={localStyles.editQtyBtn}
-                            >
-                              <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
-                            </TouchableOpacity>
-                            <View style={localStyles.editQtyBox}>
-                              <Text style={localStyles.editQtyText}>{qty}</Text>
-                            </View>
-                            <TouchableOpacity
-                              onPress={() => handleIncreaseOpQuantity(op)}
-                              style={localStyles.editQtyBtn}
-                            >
-                              <Icon name="add" size={18} color={ppcColors.textPrimary} />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    );
-                  })}
-                </React.Fragment>
-              )
-              : (
-                <OrderProducts
-                  order={resolvedDisplayOrder || item}
-                  scale={scale}
-                  styles={kdsOrderProductsStyles}
-                  indentStep={18}
-                  showDetails
-                />
-              )
-            )
-        }
+        <OrderSectionTabs
+          tabs={detailsTabs}
+          activeKey={detailsTabKey}
+          onChange={setDetailsTabKey}
+          styles={{
+            container: localStyles.detailsTabsWrap,
+            tabRow: localStyles.detailsTabsRow,
+            tabButton: localStyles.detailsTabButton,
+            tabButtonActive: localStyles.detailsTabButtonActive,
+            tabButtonText: localStyles.detailsTabButtonText,
+            tabButtonTextActive: localStyles.detailsTabButtonTextActive,
+            contentWrap: localStyles.detailsTabContentWrap,
+          }}
+        />
       </View>
       </View>
     </ScrollView>
@@ -2732,7 +3089,6 @@ const OrderDetails = ({ route, navigation }) => {
             renderKdsMobileContent()
           ) : (
             <>
-              <OrderHeader key={item.id} order={resolvedDisplayOrder || item} />
               <View style={inlineStyle_2718_20}>
                 {canAddProductsToOrder && (
                   <TouchableOpacity
@@ -2784,90 +3140,21 @@ const OrderDetails = ({ route, navigation }) => {
 
           {isKds || useUnifiedKdsLayout ? null : (
             <ScrollView contentContainerStyle={inlineStyle_2768_24}>
-              <OrderExtraDataCard order={resolvedDisplayOrder || item} />
-              <View
-                style={[
-                  cssStyles.itemsSection,
-                  {
-                    flex: 1,
-                    flexDirection: 'column',
-                    width: '100%',
-                  },
-                ]}
-              >
-                {canEditItems
-                  ? (
-                    <React.Fragment>
-                      {editableOrderProductsWithProductDetails.map(op => {
-                        const opId = String(op?.id || '')
-                        const name = op?.product?.product || op?.product?.name || 'Item'
-                        const qty = Number(op?.quantity || 0)
-                        const price = Number(op?.unitPrice || op?.price || 0)
-                        const unitLabel = resolveOrderItemUnitLabel(op)
-                        const isOpLoading = isOrderProductCommitting(opId)
-                        const isConfirming = confirmRemoveItemId === opId
-                        return (
-                          <View key={opId || op['@id']} style={localStyles.editItemRow}>
-                            <View style={inlineStyle_2782_34}>
-                              <Text style={localStyles.editItemName} numberOfLines={2}>{name}</Text>
-                              {price > 0 && (
-                                <Text style={localStyles.editItemPrice}>{Formatter.formatMoney(price)} / {unitLabel}</Text>
-                              )}
-                            </View>
-                            {isConfirming ? (
-                              <View style={localStyles.editConfirmRow}>
-                                <Text style={localStyles.editConfirmText}>Remover?</Text>
-                                <TouchableOpacity
-                                  onPress={() => handleRemoveOp(op)}
-                                  style={localStyles.editConfirmYes}
-                                  disabled={isOpLoading}
-                                >
-                                  {isOpLoading
-                                    ? <ActivityIndicator size="small" color="#fff" />
-                                    : <Icon name="check" size={15} color="#fff" />}
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  onPress={() => setConfirmRemoveItemId(null)}
-                                  style={localStyles.editConfirmNo}
-                                  disabled={isOpLoading}
-                                >
-                                  <Icon name="close" size={15} color="#fff" />
-                                </TouchableOpacity>
-                              </View>
-                            ) : (
-                              <View style={localStyles.editQtyRow}>
-                                <TouchableOpacity
-                                  onPress={() => handleDecreaseOpQuantity(op)}
-                                  style={localStyles.editQtyBtn}
-                                >
-                                  <Icon name={qty <= 1 ? 'delete' : 'remove'} size={18} color={qty <= 1 ? '#EF4444' : ppcColors.textPrimary} />
-                                </TouchableOpacity>
-                                <View style={localStyles.editQtyBox}>
-                                  <Text style={localStyles.editQtyText}>{qty}</Text>
-                                </View>
-                                <TouchableOpacity
-                                  onPress={() => handleIncreaseOpQuantity(op)}
-                                  style={localStyles.editQtyBtn}
-                                >
-                                  <Icon name="add" size={18} color={ppcColors.textPrimary} />
-                                </TouchableOpacity>
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })}
-                    </React.Fragment>
-                  )
-                  : (
-                    <OrderProducts
-                      order={resolvedDisplayOrder || item}
-                      scale={scale}
-                      styles={localStyles}
-                      indentStep={22}
-                      showDetails
-                    />
-                  )
-                }
+              <View style={localStyles.mobileInfoCard}>
+                <OrderSectionTabs
+                  tabs={detailsTabs}
+                  activeKey={detailsTabKey}
+                  onChange={setDetailsTabKey}
+                  styles={{
+                    container: localStyles.detailsTabsWrap,
+                    tabRow: localStyles.detailsTabsRow,
+                    tabButton: localStyles.detailsTabButton,
+                    tabButtonActive: localStyles.detailsTabButtonActive,
+                    tabButtonText: localStyles.detailsTabButtonText,
+                    tabButtonTextActive: localStyles.detailsTabButtonTextActive,
+                    contentWrap: localStyles.detailsTabContentWrap,
+                  }}
+                />
               </View>
             </ScrollView>
           )}

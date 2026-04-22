@@ -3,6 +3,7 @@ import { View, Text, Image, Animated } from 'react-native'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { getOrderChannelLabel, getOrderChannelLogo } from '@assets/ppc/channels'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
+import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
 import createStyles from './OrderHeader.styles'
 import { inlineStyle_217_16 } from './OrderHeader.styles';
 const BRAND_LOGO = require('@assets/ppc/logo 512x512 r.png')
@@ -106,7 +107,13 @@ const resolveHeaderPalette = palette => {
   }
 }
 
-const OrderHeader = ({ order, compact = false, showCustomer = false, palette = null }) => {
+const OrderHeader = ({
+  order,
+  compact = false,
+  showCustomer = false,
+  palette = null,
+  showSecondaryIdentity = true,
+}) => {
   const displayedStatus = useMemo(() => resolveDisplayedOrderStatus(order), [order])
   const isOpen = displayedStatus.isOpen
   const headerPalette = useMemo(() => resolveHeaderPalette(palette), [palette])
@@ -168,7 +175,13 @@ const OrderHeader = ({ order, compact = false, showCustomer = false, palette = n
         <View style={styles.leftInfo}>
           <Image source={BRAND_LOGO} style={styles.brandLogo} resizeMode="contain" />
           <View>
-            <Text style={styles.orderId}>{global.t?.t('orders', 'title', 'order')} #{order?.id}</Text>
+            <OrderIdentityLabel
+              order={order}
+              containerStyle={styles.orderIdentityWrap}
+              primaryTextStyle={styles.orderId}
+              secondaryTextStyle={styles.orderIdSecondary}
+              showSecondary={showSecondaryIdentity}
+            />
             <View style={styles.timeRow}>
               <Text style={styles.orderTime}>
                 {Formatter.formatDateYmdTodmY(orderDateValue, true)}

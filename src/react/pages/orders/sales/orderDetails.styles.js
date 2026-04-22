@@ -33,6 +33,13 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontWeight: '900',
       lineHeight: 24 * scale,
     },
+    topBarTitleIdentitySecondary: {
+      marginTop: 2,
+      color: palette.textSecondary,
+      fontSize: 11,
+      fontWeight: '800',
+      lineHeight: 14,
+    },
     topBarTitleSubText: {
       marginTop: 1,
       color: palette.textSecondary,
@@ -89,6 +96,30 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       color: palette.textPrimary,
       fontSize: 16,
       fontWeight: '900',
+    },
+    mobileSummaryIdentityWrap: {
+      marginTop: 2,
+      minWidth: 0,
+    },
+    mobileSummaryIdentityPrimary: {
+      color: palette.textPrimary,
+      fontSize: 24 * scale,
+      fontWeight: '900',
+      lineHeight: 28 * scale,
+    },
+    mobileSummaryIdentitySecondary: {
+      marginTop: 2,
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
+      lineHeight: 16,
+    },
+    mobileSummaryDateText: {
+      marginTop: 4,
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 18,
     },
     mobileStatusBadge: {
       flexDirection: 'row',
@@ -180,6 +211,27 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       color: palette.textSecondary,
       fontSize: 12,
       fontWeight: '700',
+    },
+    mobileSummaryInfoBlock: {
+      marginTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: palette.border,
+      paddingTop: 10,
+      gap: 3,
+    },
+    mobileSummaryInfoTitle: {
+      color: palette.accentInfo,
+      fontSize: 10,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 3,
+    },
+    mobileSummaryInfoText: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '700',
+      lineHeight: 17,
     },
     mobileScheduledDeliveryCard: {
       marginTop: 8,
@@ -698,6 +750,21 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    orderProductActionStack: {
+      alignItems: 'flex-end',
+      gap: 6,
+    },
+    orderProductCustomizeButton: {
+      minWidth: 34,
+      height: 34,
+      borderRadius: 9,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBgSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 8,
+    },
     mobileProductItemRow: {
       marginTop: 4,
       paddingVertical: 9,
@@ -722,6 +789,48 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     mobileProductStatusMarker: {
       fontWeight: '900',
+    },
+    orderProductItemMainRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    orderProductItemContent: {
+      flex: 1,
+      minWidth: 0,
+    },
+    orderProductMetaWrap: {
+      marginTop: 6,
+      gap: 4,
+    },
+    orderProductQueueBadge: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      gap: 6,
+    },
+    orderProductQueueBadgeDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 999,
+    },
+    orderProductQueueBadgeText: {
+      fontSize: 10 * scale,
+      fontWeight: '800',
+    },
+    orderProductItemActions: {
+      alignSelf: 'stretch',
+      justifyContent: 'center',
+    },
+    orderProductPriceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 10,
     },
     orderProductGroupWrap: {
       marginTop: 7,
@@ -749,11 +858,23 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       gap: 2,
       paddingLeft: 4,
     },
+    orderProductGroupItemContent: {
+      flex: 1,
+      minWidth: 0,
+    },
     orderProductGroupItemRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: 10,
+    },
+    orderProductGroupItemMetaWrap: {
+      marginTop: 4,
+      gap: 3,
+    },
+    orderProductGroupItemActions: {
+      alignSelf: 'stretch',
+      justifyContent: 'center',
     },
     orderProductGroupItemText: {
       flex: 1,
@@ -1196,6 +1317,43 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontSize: 14,
       fontWeight: '800',
     },
+    detailsTabsWrap: {
+      width: '100%',
+    },
+    detailsTabsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 12,
+    },
+    detailsTabButton: {
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    detailsTabButtonActive: {
+      borderColor: palette.accentInfo,
+      backgroundColor: palette.cardBg,
+    },
+    detailsTabButtonText: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    detailsTabButtonTextActive: {
+      color: palette.accentInfo,
+    },
+    detailsTabContentWrap: {
+      width: '100%',
+    },
+    detailsTabStack: {
+      gap: 12,
+    },
     detailsGrid: {
       flexDirection: 'row',
       gap: 10,
@@ -1266,6 +1424,11 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       color: palette.textSecondary,
       fontSize: 13,
       fontWeight: '600',
+    },
+    detailsItemsSection: {
+      flex: 1,
+      flexDirection: 'column',
+      width: '100%',
     },
     kdsActionRow: {
       flexDirection: 'row',
@@ -1765,5 +1928,3 @@ export const inlineStyle_2782_34 = {
 export const inlineStyle_2768_24 = {
   paddingBottom: 20,
 };
-
-
