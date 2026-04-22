@@ -36,6 +36,8 @@
 - Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.
 - `Additional Information` nao deve poluir a tela principal do pedido. Informacoes secundarias e ids tecnicos ficam no summary/modal, nao acima do bloco de cliente.
 - O detalhe do pedido nao deve depender da colecao `/order_products` para abrir a lista principal. Quando `GET /orders/{id}` ja trouxer `orderProducts`, esse payload deve ser a fonte primaria dos itens da tela.
+- Cada aba operacional de `OrderDetails` deve ser um componente proprio. `Itens` e `Financeiro` carregam os dados do proprio modulo apenas quando a aba correspondente for montada/ativada.
+- O status visivel do pedido deve aparecer traduzido na tela e em summaries/modais. Nao exibir `open`, `pending`, `closed` ou equivalentes crus para o usuario final.
 
 ## Regras por visao
 - `PDV Cielo`: cobra somente no proprio device. Nao deve oferecer remoto nem pagamento na entrega nesse fluxo.

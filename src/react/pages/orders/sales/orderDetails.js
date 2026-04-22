@@ -18,6 +18,7 @@ import { useStore } from '@store'
 import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
+import { withOpacity } from '@controleonline/../../src/styles/branding'
 
 import {
   buildAddressOptionSummary,
@@ -36,11 +37,12 @@ import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
-import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
 import OrderSectionTabs from '@controleonline/ui-orders/src/react/components/OrderSectionTabs'
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
+import OrderInvoices from './OrderInvoices'
+import OrderItemsTab from './OrderItemsTab'
 import {
   canReopenOrderProductCustomization,
   isOrderProductProductionCompleted,
@@ -53,7 +55,7 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 import { env } from '@env'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
-import { getPlatformCapabilities, getOrderChannelLabel } from '@assets/ppc/channels'
+import { getPlatformCapabilities } from '@assets/ppc/channels'
 
 import {
   mergeOrderProductIntoList,
@@ -69,9 +71,6 @@ import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
 
 import {
-  inlineStyle_2116_14,
-  inlineStyle_2121_14,
-  inlineStyle_2128_20,
   inlineStyle_2712_14,
   inlineStyle_2718_20,
   inlineStyle_2725_26,
@@ -109,6 +108,44 @@ const resolveEditableOrderType = value => {
   }
 
   return normalizedOrderType
+}
+
+const translateOrderStatus = value => {
+  const normalizedStatus = normalizeText(value).toLowerCase()
+  if (!normalizedStatus) return ''
+
+  return global.t?.t('orders', 'status', normalizedStatus) || formatHumanLabel(value)
+}
+
+const resolveEmbeddedOrderProducts = sourceOrder => {
+  const hasOwnOrderProducts =
+    !!sourceOrder && Object.prototype.hasOwnProperty.call(sourceOrder, 'orderProducts')
+
+  if (Array.isArray(sourceOrder?.orderProducts)) {
+    return {
+      hasOwnOrderProducts: true,
+      orderProducts: sourceOrder.orderProducts,
+    }
+  }
+
+  if (Array.isArray(sourceOrder?.orderProducts?.member)) {
+    return {
+      hasOwnOrderProducts: true,
+      orderProducts: sourceOrder.orderProducts.member,
+    }
+  }
+
+  if (Array.isArray(sourceOrder?.orderProducts?.['hydra:member'])) {
+    return {
+      hasOwnOrderProducts: true,
+      orderProducts: sourceOrder.orderProducts['hydra:member'],
+    }
+  }
+
+  return {
+    hasOwnOrderProducts,
+    orderProducts: [],
+  }
 }
 
 const resolveInvoiceStatusPresentation = invoice => {
@@ -365,7 +402,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [routeOrderId, storedOrderItem])
 
   const invoiceStore = useStore('invoice')
-  const { getters: invoiceGetters, actions: invoiceActions } = invoiceStore
+  const { getters: invoiceGetters } = invoiceStore
   const { items: invoices } = invoiceGetters
   const peopleStore = useStore('people')
   const { getters: peopleGetters, actions: peopleActions } = peopleStore
@@ -435,7 +472,6 @@ const OrderDetails = ({ route, navigation }) => {
     isPosOrder &&
     localRealStatusKey === 'open' &&
     (localStatusNameKey === '' || localStatusNameKey === 'open')
-  const channelLabel = getOrderChannelLabel(item || orderParam) || global.t?.t('orders', 'label', 'order')
   const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
   const [orderActionLoading, setOrderActionLoading] = useState('')
   const [detailsTabKey, setDetailsTabKey] = useState('items')
@@ -458,10 +494,19 @@ const OrderDetails = ({ route, navigation }) => {
   const [addressForm, setAddressForm] = useState(createEmptyAddressForm())
   const [addressSaveLoading, setAddressSaveLoading] = useState(false)
   const [addressSelectingId, setAddressSelectingId] = useState('')
+  const [observationDraft, setObservationDraft] = useState('')
+  const [observationEditing, setObservationEditing] = useState(false)
+  const [observationSaving, setObservationSaving] = useState(false)
 
   const commitResolvedOrderProducts = useCallback(sourceOrder => {
-    const normalizedOrderProducts = Array.isArray(sourceOrder?.orderProducts)
-      ? sourceOrder.orderProducts
+    const {hasOwnOrderProducts, orderProducts} = resolveEmbeddedOrderProducts(sourceOrder)
+
+    if (!hasOwnOrderProducts) {
+      return currentOrderProductsRef.current
+    }
+
+    const normalizedOrderProducts = Array.isArray(orderProducts)
+      ? orderProducts
       : []
 
     currentOrderProductsRef.current = normalizedOrderProducts
@@ -469,14 +514,6 @@ const OrderDetails = ({ route, navigation }) => {
 
     return normalizedOrderProducts
   }, [orderProductsStore.actions])
-
-  useFocusEffect(
-    useCallback(() => {
-      if (routeOrderIri) {
-        invoiceActions.getItems({ 'order.order': routeOrderIri })
-      }
-    }, [invoiceActions, routeOrderIri]),
-  )
 
   useFocusEffect(
     useCallback(() => {
@@ -930,6 +967,18 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam?.status?.color,
     '#0EA5E9',
   )
+  const translatedLocalStatusLabel = useMemo(
+    () => translateOrderStatus(effectiveLocalStatusNameKey || item?.status?.status || ''),
+    [effectiveLocalStatusNameKey, item?.status?.status],
+  )
+  const translatedLocalRealStatusLabel = useMemo(
+    () => translateOrderStatus(
+      effectiveLocalRealStatusKey || item?.status?.realStatus || '',
+    ),
+    [effectiveLocalRealStatusKey, item?.status?.realStatus],
+  )
+  const orderStatusLabel =
+    translatedLocalStatusLabel || translatedLocalRealStatusLabel
   const resolvedDisplayOrder = useMemo(() => {
     const baseOrder = item || orderParam
     if (!baseOrder) return null
@@ -1059,10 +1108,18 @@ const OrderDetails = ({ route, navigation }) => {
     orderWaitingMinutes === null
       ? ''
       : `${orderWaitingMinutes} min`
-  const fallbackNoObservationText =
-    `${global.t?.t('orders', 'message', 'noObservationsFor')} ${channelLabel || (global.t?.t('orders', 'label', 'order') || 'pedido')}.`
   const localOrderClient = item?.client || orderParam?.client || null
   const localOrderAddress = item?.addressDestination || orderParam?.addressDestination || null
+  const localOrderObservationSource = resolvePreferredText(
+    item?.comments,
+    item?.remark,
+    orderParam?.comments,
+    orderParam?.remark,
+    orderParam?.description,
+  )
+  const baseOrderObservationText = localOrderObservationSource
+  const showBaseOrderObservationCard =
+    !!baseOrderObservationText || canEditItems
   const localOrderAddressParts = useMemo(
     () => resolveAddressDisplayParts(localOrderAddress),
     [localOrderAddress],
@@ -1207,6 +1264,60 @@ const OrderDetails = ({ route, navigation }) => {
             : value,
     }))
   }, [])
+
+  useEffect(() => {
+    setObservationDraft(localOrderObservationSource || '')
+  }, [localOrderObservationSource])
+
+  const handleStartObservationEdit = useCallback(() => {
+    if (!canEditItems) {
+      return
+    }
+
+    setObservationDraft(localOrderObservationSource || '')
+    setObservationEditing(true)
+  }, [canEditItems, localOrderObservationSource])
+
+  const handleCancelObservationEdit = useCallback(() => {
+    if (observationSaving) {
+      return
+    }
+
+    setObservationDraft(localOrderObservationSource || '')
+    setObservationEditing(false)
+  }, [localOrderObservationSource, observationSaving])
+
+  const handleSaveObservation = useCallback(async () => {
+    if (!canEditItems || observationSaving) {
+      return
+    }
+
+    try {
+      setObservationSaving(true)
+
+      await updateCurrentOrder({
+        comments: normalizeText(observationDraft) || null,
+      })
+
+      setObservationEditing(false)
+      showSuccess(
+        normalizeText(observationDraft)
+          ? 'Observacao do pedido atualizada com sucesso.'
+          : 'Observacao do pedido removida com sucesso.',
+      )
+    } catch (observationError) {
+      showError(formatApiError(observationError))
+    } finally {
+      setObservationSaving(false)
+    }
+  }, [
+    canEditItems,
+    observationDraft,
+    observationSaving,
+    showError,
+    showSuccess,
+    updateCurrentOrder,
+  ])
 
   useEffect(() => {
     if (!customerModalVisible) {
@@ -1402,15 +1513,6 @@ const OrderDetails = ({ route, navigation }) => {
     updateCurrentOrder,
   ])
 
-  const localOrderObservationSource = resolvePreferredText(
-    item?.comments,
-    item?.remark,
-    orderParam?.comments,
-    orderParam?.remark,
-    orderParam?.description,
-  )
-  const baseOrderObservationText = localOrderObservationSource || fallbackNoObservationText
-  const showBaseOrderObservationCard = true
   const orderDiscountTotal = Number(item?.discount || orderParam?.discount || 0)
   const localInvoicesEmptyText =
     global.t?.t('orders', 'message', 'noInvoicesLinkedToOrder') ||
@@ -1668,116 +1770,6 @@ const OrderDetails = ({ route, navigation }) => {
 
   const primaryKdsAction = null
 
-  const kdsOrderProductsStyles = useMemo(
-    () => ({
-      itemRow: localStyles.mobileProductItemRow,
-      itemMainRow: localStyles.orderProductItemMainRow,
-      itemContent: localStyles.orderProductItemContent,
-      metaWrap: localStyles.orderProductMetaWrap,
-      queueBadge: localStyles.orderProductQueueBadge,
-      queueBadgeDot: localStyles.orderProductQueueBadgeDot,
-      queueBadgeText: localStyles.orderProductQueueBadgeText,
-      itemActions: localStyles.orderProductItemActions,
-      priceRow: localStyles.orderProductPriceRow,
-      text: localStyles.mobileProductText,
-      subText: localStyles.mobileProductSubText,
-      qtyText: localStyles.mobileProductQtyText,
-      statusMarker: localStyles.mobileProductStatusMarker,
-      groupWrap: localStyles.orderProductGroupWrap,
-      groupTitlePill: localStyles.orderProductGroupTitlePill,
-      groupTitle: localStyles.orderProductGroupTitle,
-      groupItem: localStyles.orderProductGroupItem,
-      groupItemMainRow: localStyles.orderProductGroupItemRow,
-      groupItemContent: localStyles.orderProductGroupItemContent,
-      groupItemMetaWrap: localStyles.orderProductGroupItemMetaWrap,
-      groupItemActions: localStyles.orderProductGroupItemActions,
-      groupItemText: localStyles.orderProductGroupItemText,
-      groupItemMetaText: localStyles.orderProductGroupItemMetaText,
-      groupItemPriceText: localStyles.orderProductGroupItemPriceText,
-    }),
-    [
-      localStyles.orderProductGroupItemActions,
-      localStyles.orderProductGroupItemContent,
-      localStyles.orderProductGroupItem,
-      localStyles.orderProductGroupItemMetaWrap,
-      localStyles.orderProductGroupItemMetaText,
-      localStyles.orderProductGroupItemPriceText,
-      localStyles.orderProductGroupItemRow,
-      localStyles.orderProductGroupItemText,
-      localStyles.orderProductGroupTitle,
-      localStyles.orderProductGroupTitlePill,
-      localStyles.orderProductGroupWrap,
-      localStyles.orderProductItemActions,
-      localStyles.orderProductItemContent,
-      localStyles.orderProductItemMainRow,
-      localStyles.orderProductMetaWrap,
-      localStyles.orderProductPriceRow,
-      localStyles.orderProductQueueBadge,
-      localStyles.orderProductQueueBadgeDot,
-      localStyles.orderProductQueueBadgeText,
-      localStyles.mobileProductItemRow,
-      localStyles.mobileProductQtyText,
-      localStyles.mobileProductStatusMarker,
-      localStyles.mobileProductSubText,
-      localStyles.mobileProductText,
-    ],
-  )
-
-  const defaultOrderProductsStyles = useMemo(
-    () => ({
-      itemRow: localStyles.itemRow,
-      itemMainRow: localStyles.orderProductItemMainRow,
-      itemContent: localStyles.orderProductItemContent,
-      metaWrap: localStyles.orderProductMetaWrap,
-      queueBadge: localStyles.orderProductQueueBadge,
-      queueBadgeDot: localStyles.orderProductQueueBadgeDot,
-      queueBadgeText: localStyles.orderProductQueueBadgeText,
-      itemActions: localStyles.orderProductItemActions,
-      priceRow: localStyles.orderProductPriceRow,
-      text: localStyles.text,
-      subText: localStyles.subText,
-      qtyText: localStyles.qtyText,
-      statusMarker: localStyles.statusMarker,
-      groupWrap: localStyles.orderProductGroupWrap,
-      groupTitlePill: localStyles.orderProductGroupTitlePill,
-      groupTitle: localStyles.orderProductGroupTitle,
-      groupItem: localStyles.orderProductGroupItem,
-      groupItemMainRow: localStyles.orderProductGroupItemRow,
-      groupItemContent: localStyles.orderProductGroupItemContent,
-      groupItemMetaWrap: localStyles.orderProductGroupItemMetaWrap,
-      groupItemActions: localStyles.orderProductGroupItemActions,
-      groupItemText: localStyles.orderProductGroupItemText,
-      groupItemMetaText: localStyles.orderProductGroupItemMetaText,
-      groupItemPriceText: localStyles.orderProductGroupItemPriceText,
-    }),
-    [
-      localStyles.itemRow,
-      localStyles.orderProductGroupItem,
-      localStyles.orderProductGroupItemActions,
-      localStyles.orderProductGroupItemContent,
-      localStyles.orderProductGroupItemMetaText,
-      localStyles.orderProductGroupItemMetaWrap,
-      localStyles.orderProductGroupItemPriceText,
-      localStyles.orderProductGroupItemRow,
-      localStyles.orderProductGroupItemText,
-      localStyles.orderProductGroupTitle,
-      localStyles.orderProductGroupTitlePill,
-      localStyles.orderProductGroupWrap,
-      localStyles.orderProductItemActions,
-      localStyles.orderProductItemContent,
-      localStyles.orderProductItemMainRow,
-      localStyles.orderProductMetaWrap,
-      localStyles.orderProductPriceRow,
-      localStyles.orderProductQueueBadge,
-      localStyles.orderProductQueueBadgeDot,
-      localStyles.orderProductQueueBadgeText,
-      localStyles.qtyText,
-      localStyles.statusMarker,
-      localStyles.subText,
-      localStyles.text,
-    ],
-  )
-
   const renderOrderProductActions = useCallback(({
     card,
     orderProduct,
@@ -1969,6 +1961,26 @@ const OrderDetails = ({ route, navigation }) => {
           {!!orderDateLabel && (
             <Text style={localStyles.topBarTitleSubText}>{orderDateLabel}</Text>
           )}
+          {!!orderStatusLabel && (
+            <View
+              style={[
+                localStyles.topBarStatusBadge,
+                {
+                  borderColor: withOpacity(displayOrderStatusColor, 0.34),
+                  backgroundColor: withOpacity(displayOrderStatusColor, 0.12),
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  localStyles.topBarStatusText,
+                  { color: displayOrderStatusColor },
+                ]}
+              >
+                {orderStatusLabel}
+              </Text>
+            </View>
+          )}
         </View>
       ),
       headerRight: () => (
@@ -2037,8 +2049,10 @@ const OrderDetails = ({ route, navigation }) => {
     localStyles.topBarTitleWrap,
     marketplaceSummary.summary,
     navigation,
+    displayOrderStatusColor,
     orderDateLabel,
     orderIdentitySource,
+    orderStatusLabel,
     ppcColors.accentInfo,
     selectedDisplay,
     shouldHideBottomToolBar,
@@ -2136,207 +2150,56 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.orderInvoiceTitleWrap,
     ],
   )
-  const renderDetailsLines = useCallback(
-    lines => {
-      if (!Array.isArray(lines) || lines.length === 0) {
-        return null
-      }
-
-      return lines.map(line => {
-        const value = line?.money
-          ? Formatter.formatMoney(Number(line?.value || 0))
-          : String(line?.value ?? '').trim()
-
-        if (!value) {
-          return null
-        }
-
-        const textStyle = line?.strong
-          ? localStyles.detailsInfoTextStrong
-          : localStyles.detailsInfoText
-
-        return (
-          <Text key={line.key} style={textStyle}>
-            {!!line.label ? `${line.label}: ` : ''}
-            {value}
-          </Text>
-        )
-      })
-    },
-    [
-      localStyles.detailsInfoText,
-      localStyles.detailsInfoTextStrong,
-    ],
-  )
-  const renderPaymentCards = useCallback(
-    cards => {
-      if (!Array.isArray(cards) || cards.length === 0) {
-        return null
-      }
-
-      return (
-        <View style={localStyles.detailsGrid}>
-          {cards.map(card => (
-            <View key={card.key} style={localStyles.detailsCard}>
-              <Text style={localStyles.detailsCardLabel}>{card.label}</Text>
-              <Text style={localStyles.detailsCardValue}>
-                {Formatter.formatMoney(Number(card.value || 0))}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )
-    },
-    [
-      localStyles.detailsCard,
-      localStyles.detailsCardLabel,
-      localStyles.detailsCardValue,
-      localStyles.detailsGrid,
-    ],
-  )
-  const renderFinancialTabContent = useCallback(
+  const renderFinancialTab = useCallback(
     variant => {
-      const detailsVariant = variant === 'details'
-      const marketplaceFinancialLines = marketplaceSummary.summary?.financial || []
-      const marketplaceDeliveryPaymentLines =
-        marketplaceSummary.summary?.deliveryPaymentLines || []
-      const marketplacePaymentCards = marketplaceSummary.summary?.paymentCards || []
-
-      const hasContent =
-        localFinancialLines.length > 0 ||
-        marketplaceFinancialLines.length > 0 ||
-        marketplaceDeliveryPaymentLines.length > 0 ||
-        marketplacePaymentCards.length > 0 ||
-        localInvoiceCards.length > 0
-
-      if (!hasContent) {
-        return (
-          <Text style={detailsVariant ? localStyles.detailsInfoText : localStyles.mobileInfoSubtitle}>
-            {localInvoicesEmptyText}
-          </Text>
-        )
-      }
-
       return (
-        <View style={localStyles.detailsTabStack}>
-          {renderPaymentCards(marketplacePaymentCards)}
-
-          {!!localFinancialLines.length && (
-            <View style={localStyles.detailsSection}>
-              <Text style={localStyles.detailsSectionTitle}>
-                {global.t?.t('orders', 'title', 'payments') || 'Financeiro'}
-              </Text>
-              {renderDetailsLines(localFinancialLines)}
-            </View>
-          )}
-
-          {!!marketplaceFinancialLines.length && (
-            <View style={localStyles.detailsSection}>
-              <Text style={localStyles.detailsSectionTitle}>
-                {marketplaceSummary.summary?.financeTitle ||
-                  global.t?.t('orders', 'title', 'payments') ||
-                  'Financeiro da integração'}
-              </Text>
-              {renderDetailsLines(marketplaceFinancialLines)}
-            </View>
-          )}
-
-          {!!marketplaceDeliveryPaymentLines.length && (
-            <View style={localStyles.detailsSection}>
-              <Text style={localStyles.detailsSectionTitle}>
-                {global.t?.t('orders', 'label', 'paymentMethod') || 'Cobrança'}
-              </Text>
-              {renderDetailsLines(marketplaceDeliveryPaymentLines)}
-            </View>
-          )}
-
-          <View style={localStyles.detailsSection}>
-            <Text style={localStyles.detailsSectionTitle}>
-              {localInvoicesSectionTitle}
-            </Text>
-            {renderLocalInvoiceCards(detailsVariant ? 'details' : 'mobile')}
-          </View>
-        </View>
+        <OrderInvoices
+          localFinancialLines={localFinancialLines}
+          localInvoiceCards={localInvoiceCards}
+          localInvoicesEmptyText={localInvoicesEmptyText}
+          localInvoicesSectionTitle={localInvoicesSectionTitle}
+          marketplaceSummary={marketplaceSummary}
+          renderLocalInvoiceCards={renderLocalInvoiceCards}
+          routeOrderIri={routeOrderIri}
+          variant={variant}
+        />
       )
     },
     [
       localFinancialLines,
-      localInvoiceCards.length,
+      localInvoiceCards,
       localInvoicesEmptyText,
       localInvoicesSectionTitle,
-      localStyles.detailsInfoText,
-      localStyles.detailsSection,
-      localStyles.detailsSectionTitle,
-      localStyles.detailsTabStack,
-      localStyles.mobileInfoSubtitle,
-      marketplaceSummary.summary,
-      renderDetailsLines,
+      marketplaceSummary,
       renderLocalInvoiceCards,
-      renderPaymentCards,
+      routeOrderIri,
     ],
   )
-  const renderItemsTabContent = useCallback(
+  const renderItemsTab = useCallback(
     variant => {
-      const detailsVariant = variant === 'details'
-      const productStyles = detailsVariant
-        ? defaultOrderProductsStyles
-        : kdsOrderProductsStyles
-
       return (
-        <View style={localStyles.detailsTabStack}>
-          <View style={inlineStyle_2116_14}>
-            <Text style={[localStyles.mobileProductsTitle, {flex: 1}]}>
-              {global.t?.t('orders', 'title', 'orderItems')}
-            </Text>
-            {canAddProductsToOrder && !detailsVariant && (
-              <TouchableOpacity
-                onPress={handleAddProduct}
-                style={inlineStyle_2121_14({
-                  ppcColors: ppcColors,
-                })}
-              >
-                <Icon name="add-circle" size={14} color="#fff" />
-                <Text style={inlineStyle_2128_20}>
-                  {addProductsButtonLabel}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View
-            style={[
-              cssStyles.itemsSection,
-              detailsVariant && localStyles.detailsItemsSection,
-            ]}
-          >
-            <OrderProducts
-              order={resolvedDisplayOrder || item}
-              orderProducts={resolvedDisplayOrderProductsWithProductDetails}
-              styles={productStyles}
-              showDetails
-              showPricing
-              renderActions={canEditItems ? renderOrderProductActions : null}
-            />
-          </View>
-        </View>
+        <OrderItemsTab
+          addProductsButtonLabel={addProductsButtonLabel}
+          canAddProductsToOrder={canAddProductsToOrder}
+          onAddProduct={handleAddProduct}
+          order={resolvedDisplayOrder || item}
+          orderProducts={resolvedDisplayOrderProductsWithProductDetails}
+          renderOrderProductActions={canEditItems ? renderOrderProductActions : null}
+          routeOrderId={routeOrderId}
+          variant={variant}
+        />
       )
     },
     [
       addProductsButtonLabel,
       canAddProductsToOrder,
       canEditItems,
-      cssStyles.itemsSection,
-      defaultOrderProductsStyles,
       handleAddProduct,
       item,
-      kdsOrderProductsStyles,
-      localStyles.detailsItemsSection,
-      localStyles.detailsTabStack,
-      localStyles.mobileProductsTitle,
-      ppcColors,
       renderOrderProductActions,
       resolvedDisplayOrder,
       resolvedDisplayOrderProductsWithProductDetails,
+      routeOrderId,
     ],
   )
   const detailsTabs = useMemo(
@@ -2344,17 +2207,17 @@ const OrderDetails = ({ route, navigation }) => {
       {
         key: 'items',
         label: global.t?.t('orders', 'title', 'orderItems') || 'Itens',
-        content: renderItemsTabContent('main'),
+        content: renderItemsTab('main'),
       },
       {
         key: 'financial',
         label: global.t?.t('orders', 'title', 'payments') || 'Financeiro',
-        content: renderFinancialTabContent('main'),
+        content: renderFinancialTab('main'),
       },
     ],
     [
-      renderFinancialTabContent,
-      renderItemsTabContent,
+      renderFinancialTab,
+      renderItemsTab,
     ],
   )
   const modalDetailsTabs = useMemo(
@@ -2362,17 +2225,17 @@ const OrderDetails = ({ route, navigation }) => {
       {
         key: 'items',
         label: global.t?.t('orders', 'title', 'orderItems') || 'Itens',
-        content: renderItemsTabContent('details'),
+        content: renderItemsTab('details'),
       },
       {
         key: 'financial',
         label: global.t?.t('orders', 'title', 'payments') || 'Financeiro',
-        content: renderFinancialTabContent('details'),
+        content: renderFinancialTab('details'),
       },
     ],
     [
-      renderFinancialTabContent,
-      renderItemsTabContent,
+      renderFinancialTab,
+      renderItemsTab,
     ],
   )
 
@@ -2395,12 +2258,12 @@ const OrderDetails = ({ route, navigation }) => {
           {
             key: 'local-status',
             label: global.t?.t('orders', 'label', 'localStatus'),
-            value: effectiveLocalStatusNameKey || item?.status?.status || '-',
+            value: translatedLocalStatusLabel || '-',
           },
           {
             key: 'local-real-status',
             label: global.t?.t('orders', 'label', 'localRealStatus') || 'Real status local',
-            value: effectiveLocalRealStatusKey || item?.status?.realStatus || '-',
+            value: translatedLocalRealStatusLabel || '-',
           },
           {
             key: 'payments',
@@ -2480,13 +2343,9 @@ const OrderDetails = ({ route, navigation }) => {
       marketplace: marketplaceSummary.summary,
     }
   }, [
-    effectiveLocalRealStatusKey,
-    effectiveLocalStatusNameKey,
     formatOrderDateTime,
     item?.alterDate,
     item?.app,
-    item?.status?.realStatus,
-    item?.status?.status,
     localInvoiceCards.length,
     localOrderAddressParts,
     localOrderTotal,
@@ -2502,6 +2361,8 @@ const OrderDetails = ({ route, navigation }) => {
     resolvedPrimaryKdsAction,
     shouldShowOrderAddress,
     summaryInformationEntries,
+    translatedLocalRealStatusLabel,
+    translatedLocalStatusLabel,
   ])
 
   const renderKdsMobileContent = () => (
@@ -2601,7 +2462,95 @@ const OrderDetails = ({ route, navigation }) => {
               <Icon name="info" size={14} color={ppcColors.accent} />
               <Text style={localStyles.mobileNoteLabel}>{global.t?.t('orders', 'label', 'customerObservation')}</Text>
             </View>
-            <Text style={localStyles.mobileNoteText}>{baseOrderObservationText}</Text>
+            {observationEditing ? (
+              <>
+                <TextInput
+                  value={observationDraft}
+                  onChangeText={setObservationDraft}
+                  editable={!observationSaving}
+                  multiline
+                  numberOfLines={3}
+                  placeholder={global.t?.t('orders', 'label', 'customerObservation')}
+                  placeholderTextColor={ppcColors.textSecondary}
+                  style={[
+                    localStyles.assignmentFormInput,
+                    {minHeight: 96, textAlignVertical: 'top', marginBottom: 8},
+                  ]}
+                />
+
+                <View style={localStyles.inlineActionRow}>
+                  <TouchableOpacity
+                    onPress={handleCancelObservationEdit}
+                    disabled={observationSaving}
+                    style={[
+                      localStyles.inlineActionButton,
+                      observationSaving && localStyles.inlineActionButtonDisabled,
+                    ]}
+                  >
+                    <Icon name="close" size={15} color={ppcColors.textSecondary} />
+                    <Text style={[localStyles.inlineActionButtonText, {color: ppcColors.textSecondary}]}>
+                      {global.t?.t('orders', 'button', 'close') || 'Cancelar'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handleSaveObservation}
+                    disabled={observationSaving}
+                    style={[
+                      localStyles.inlineActionButton,
+                      localStyles.inlineActionButtonPrimary,
+                      observationSaving && localStyles.inlineActionButtonDisabled,
+                    ]}
+                  >
+                    {observationSaving ? (
+                      <ActivityIndicator size="small" color={ppcColors.accentInfo} />
+                    ) : (
+                      <>
+                        <Icon name="check" size={15} color={ppcColors.accentInfo} />
+                        <Text style={localStyles.inlineActionButtonText}>
+                          {global.t?.t('orders', 'button', 'save') || 'Salvar'}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : !!baseOrderObservationText ? (
+              <>
+                <Text style={localStyles.mobileNoteText}>{baseOrderObservationText}</Text>
+                {canEditItems && (
+                  <View style={[localStyles.inlineActionRow, {marginTop: 8}]}>
+                    <TouchableOpacity
+                      onPress={handleStartObservationEdit}
+                      style={[
+                        localStyles.inlineActionButton,
+                        localStyles.inlineActionButtonPrimary,
+                      ]}
+                    >
+                      <Icon name="edit" size={15} color={ppcColors.accentInfo} />
+                      <Text style={localStyles.inlineActionButtonText}>
+                        {global.t?.t('orders', 'button', 'edit') || 'Editar'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
+            ) : canEditItems ? (
+              <View style={localStyles.inlineActionRow}>
+                <TouchableOpacity
+                  onPress={handleStartObservationEdit}
+                  style={[
+                    localStyles.inlineActionButton,
+                    localStyles.inlineActionButtonPrimary,
+                  ]}
+                >
+                  <Icon name="add-comment" size={15} color={ppcColors.accentInfo} />
+                  <Text style={localStyles.inlineActionButtonText}>
+                    {global.t?.t('orders', 'button', 'addObservation') || 'Adicionar observacao'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
         )}
       </View>

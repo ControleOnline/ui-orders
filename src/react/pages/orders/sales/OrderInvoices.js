@@ -1,92 +1,167 @@
-import React from 'react';
-import {Text, View} from 'react-native';
-import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {useStore} from '@store';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import React, {useEffect} from 'react'
+import {ActivityIndicator, Text, View} from 'react-native'
 
-const OrderDetails = () => {
-  const ordersStore = useStore('orders');
-  const getters = ordersStore.getters;
-  const {item: order, isLoading, error} = getters;
+import Formatter from '@controleonline/ui-common/src/utils/formatter'
+import {useStore} from '@store'
+
+import useOrderDetailsVisuals from './useOrderDetailsVisuals'
+
+const renderDetailsLines = (lines, localStyles) => {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return null
+  }
+
+  return lines.map(line => {
+    const value = line?.money
+      ? Formatter.formatMoney(Number(line?.value || 0))
+      : String(line?.value ?? '').trim()
+
+    if (!value) {
+      return null
+    }
+
+    const textStyle = line?.strong
+      ? localStyles.detailsInfoTextStrong
+      : localStyles.detailsInfoText
+
+    return (
+      <Text key={line.key} style={textStyle}>
+        {!!line.label ? `${line.label}: ` : ''}
+        {value}
+      </Text>
+    )
+  })
+}
+
+const renderPaymentCards = (cards, localStyles) => {
+  if (!Array.isArray(cards) || cards.length === 0) {
+    return null
+  }
 
   return (
-    <>
-      <StateStore store="orders" />
-      {!isLoading &&
-        order &&
-        order.invoices &&
-        order.invoices.length > 0 &&
-        !error && (
-          <>
-            <View style={componentStyles.orderContainer}>
-              {order.invoices.map(invoice => (
-                <View key={invoice.id} style={componentStyles.card}>
-                  <Text style={componentStyles.headerText}>
-                    Fatura #{invoice.id}
-                  </Text>
-                  <View style={componentStyles.row}>
-                    <Text style={componentStyles.cardText}>
-                      {Formatter.formatMoney(invoice.price)}
-                    </Text>
-                    <Text
-                      style={[
-                        componentStyles.cardText,
-                        {color: invoice.status?.color},
-                      ]}>
-                      {t.t('invoice', 'status', invoice.status?.status)}
-                    </Text>
-                  </View>
-                  <View style={componentStyles.row}>
-                    <Text style={componentStyles.cardText}>
-                      {invoice.destinationWallet?.wallet}
-                    </Text>
-                    <Text style={componentStyles.cardText}>
-                      {invoice.paymentType?.paymentType}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </>
+    <View style={localStyles.detailsGrid}>
+      {cards.map(card => (
+        <View key={card.key} style={localStyles.detailsCard}>
+          <Text style={localStyles.detailsCardLabel}>{card.label}</Text>
+          <Text style={localStyles.detailsCardValue}>
+            {Formatter.formatMoney(Number(card.value || 0))}
+          </Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+const OrderInvoices = ({
+  localFinancialLines = [],
+  localInvoiceCards = [],
+  localInvoicesEmptyText = '',
+  localInvoicesSectionTitle = '',
+  marketplaceSummary = {},
+  renderLocalInvoiceCards,
+  routeOrderIri = '',
+  variant = 'main',
+}) => {
+  const {styles: localStyles, ppcColors} = useOrderDetailsVisuals()
+  const invoiceStore = useStore('invoice')
+  const {actions: invoiceActions, getters: invoiceGetters} = invoiceStore
+  const detailsVariant = variant === 'details'
+
+  useEffect(() => {
+    if (!routeOrderIri) {
+      return
+    }
+
+    // Financial data is loaded only when the tab is mounted.
+    invoiceActions.getItems({'order.order': routeOrderIri}).catch(() => null)
+  }, [invoiceActions, routeOrderIri])
+
+  const marketplaceFinancialLines = marketplaceSummary.summary?.financial || []
+  const marketplaceDeliveryPaymentLines =
+    marketplaceSummary.summary?.deliveryPaymentLines || []
+  const marketplacePaymentCards = marketplaceSummary.summary?.paymentCards || []
+  const hasStaticContent =
+    localFinancialLines.length > 0 ||
+    marketplaceFinancialLines.length > 0 ||
+    marketplaceDeliveryPaymentLines.length > 0 ||
+    marketplacePaymentCards.length > 0
+  const hasContent = hasStaticContent || localInvoiceCards.length > 0
+  const isLoadingInvoices =
+    !hasContent && !!invoiceGetters?.isLoading
+
+  if (isLoadingInvoices) {
+    return (
+      <View style={localStyles.detailsLoadingState}>
+        <ActivityIndicator size="small" color={ppcColors.accentInfo} />
+        <Text style={localStyles.detailsLoadingText}>
+          {global.t?.t('orders', 'label', 'loading') || 'Carregando financeiro...'}
+        </Text>
+      </View>
+    )
+  }
+
+  if (!hasContent) {
+    return (
+      <Text
+        style={
+          detailsVariant ? localStyles.detailsInfoText : localStyles.mobileInfoSubtitle
+        }
+      >
+        {localInvoicesEmptyText}
+      </Text>
+    )
+  }
+
+  return (
+    <View style={localStyles.detailsTabStack}>
+      {renderPaymentCards(marketplacePaymentCards, localStyles)}
+
+      {!!localFinancialLines.length && (
+        <View style={localStyles.detailsSection}>
+          <Text style={localStyles.detailsSectionTitle}>
+            {global.t?.t('orders', 'title', 'payments') || 'Financeiro'}
+          </Text>
+          {renderDetailsLines(localFinancialLines, localStyles)}
+        </View>
+      )}
+
+      {!!marketplaceFinancialLines.length && (
+        <View style={localStyles.detailsSection}>
+          <Text style={localStyles.detailsSectionTitle}>
+            {marketplaceSummary.summary?.financeTitle ||
+              global.t?.t('orders', 'title', 'payments') ||
+              'Financeiro da integracao'}
+          </Text>
+          {renderDetailsLines(marketplaceFinancialLines, localStyles)}
+        </View>
+      )}
+
+      {!!marketplaceDeliveryPaymentLines.length && (
+        <View style={localStyles.detailsSection}>
+          <Text style={localStyles.detailsSectionTitle}>
+            {global.t?.t('orders', 'label', 'paymentMethod') || 'Cobranca'}
+          </Text>
+          {renderDetailsLines(marketplaceDeliveryPaymentLines, localStyles)}
+        </View>
+      )}
+
+      <View style={localStyles.detailsSection}>
+        <Text style={localStyles.detailsSectionTitle}>
+          {localInvoicesSectionTitle}
+        </Text>
+        {invoiceGetters?.isLoading && !localInvoiceCards.length ? (
+          <View style={localStyles.detailsLoadingState}>
+            <ActivityIndicator size="small" color={ppcColors.accentInfo} />
+            <Text style={localStyles.detailsLoadingText}>
+              {global.t?.t('orders', 'label', 'loading') || 'Carregando invoices...'}
+            </Text>
+          </View>
+        ) : (
+          renderLocalInvoiceCards(detailsVariant ? 'details' : 'mobile')
         )}
-    </>
-  );
-};
+      </View>
+    </View>
+  )
+}
 
-// Styles
-const componentStyles = {
-  container: {
-    flex: 1,
-  },
-  orderContainer: {
-    padding: 15,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 2,
-  },
-  headerText: {
-    fontSize: 18,
-    color: '#333',
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  cardText: {
-    fontSize: 16,
-    color: '#333',
-  },
-};
-
-export default OrderDetails;
+export default OrderInvoices

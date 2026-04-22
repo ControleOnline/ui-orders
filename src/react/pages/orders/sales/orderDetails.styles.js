@@ -22,9 +22,11 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       opacity: 0.5,
     },
     topBarTitleWrap: {
+      flex: 1,
       alignItems: 'flex-start',
       justifyContent: 'center',
       minWidth: 180,
+      paddingRight: 12,
       marginTop: 1,
     },
     topBarTitleText: {
@@ -42,10 +44,26 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     topBarTitleSubText: {
       marginTop: 1,
+      marginLeft: 18,
       color: palette.textSecondary,
       fontSize: 11,
       fontWeight: '700',
       lineHeight: 14,
+    },
+    topBarStatusBadge: {
+      marginTop: 6,
+      marginLeft: 18,
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+    },
+    topBarStatusText: {
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.2,
+      textTransform: 'uppercase',
     },
     mobileOrderScrollContent: {
       paddingBottom: 126,
