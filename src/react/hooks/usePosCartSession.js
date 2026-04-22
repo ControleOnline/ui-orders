@@ -4,6 +4,7 @@ import {api} from '@controleonline/ui-common/src/api'
 import {useStore} from '@store'
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
+const DRAFT_SALE_ORDER_TYPE = 'cart'
 
 const buildStatusIriFromId = value => {
   const normalizedId = String(value || '').replace(/\D/g, '')
@@ -143,42 +144,11 @@ export default function usePosCartSession({
     return normalizeId(localStorage.getItem(storageKey))
   }, [storageKey])
 
-  const refreshActiveOrder = useCallback(async orderId => {
-    const targetId = normalizeId(
-      orderId ||
-      activeOrderIdRef.current ||
-      storedOrderIdRef.current,
-    )
-
-    if (!targetId) {
-      return syncActiveOrderState(null)
-    }
-
-    try {
-      const refreshedOrder = await ordersActions.get(targetId)
-      return syncActiveOrderState(refreshedOrder)
-    } catch {
-      return syncActiveOrderState(null)
-    }
-  }, [
-    ordersActions,
-    syncActiveOrderState,
-  ])
-
-  const loadStoredDraftOrder = useCallback(async () => {
-    const storedOrderId = readStoredDraftOrderId()
-    if (!storedOrderId) {
-      return syncActiveOrderState(null)
-    }
-
-    return refreshActiveOrder(storedOrderId)
-  }, [readStoredDraftOrderId, refreshActiveOrder, syncActiveOrderState])
-
   const buildOrderPayload = useCallback((
     statusIri,
     peopleIri = null,
     orderId = null,
-    orderType = 'quote',
+    orderType = DRAFT_SALE_ORDER_TYPE,
   ) => {
     const payload = {
       app: 'POS',
@@ -202,9 +172,72 @@ export default function usePosCartSession({
     return payload
   }, [companyId, deviceId])
 
+  const normalizeDraftOrderType = useCallback(async order => {
+    if (
+      !isOpenPosCartOrder(order) ||
+      normalizeStatusKey(order?.orderType) === DRAFT_SALE_ORDER_TYPE
+    ) {
+      return order
+    }
+
+    const orderId = normalizeId(order?.id || order?.['@id'])
+    const statusIri =
+      order?.status?.['@id'] ||
+      buildStatusIriFromId(order?.status?.id)
+
+    if (!orderId || !statusIri) {
+      return order
+    }
+
+    try {
+      return await ordersActions.save(
+        buildOrderPayload(
+          statusIri,
+          getOrderPeopleValue(order)?.['@id'] || null,
+          orderId,
+          DRAFT_SALE_ORDER_TYPE,
+        ),
+      )
+    } catch {
+      return order
+    }
+  }, [buildOrderPayload, ordersActions])
+
+  const refreshActiveOrder = useCallback(async orderId => {
+    const targetId = normalizeId(
+      orderId ||
+      activeOrderIdRef.current ||
+      storedOrderIdRef.current,
+    )
+
+    if (!targetId) {
+      return syncActiveOrderState(null)
+    }
+
+    try {
+      const refreshedOrder = await ordersActions.get(targetId)
+      return syncActiveOrderState(await normalizeDraftOrderType(refreshedOrder))
+    } catch {
+      return syncActiveOrderState(null)
+    }
+  }, [
+    normalizeDraftOrderType,
+    ordersActions,
+    syncActiveOrderState,
+  ])
+
+  const loadStoredDraftOrder = useCallback(async () => {
+    const storedOrderId = readStoredDraftOrderId()
+    if (!storedOrderId) {
+      return syncActiveOrderState(null)
+    }
+
+    return refreshActiveOrder(storedOrderId)
+  }, [readStoredDraftOrderId, refreshActiveOrder, syncActiveOrderState])
+
   const ensureActiveOrder = useCallback(async (peopleIri = getOrderPeopleValue(activeOrder)?.['@id'] || null) => {
     if (activeOrder) {
-      return activeOrder
+      return syncActiveOrderState(await normalizeDraftOrderType(activeOrder))
     }
 
     const storedDraftOrder = await loadStoredDraftOrder()
@@ -223,7 +256,7 @@ export default function usePosCartSession({
     }
 
     const createdOrder = await ordersActions.save(
-      buildOrderPayload(orderOpenStatusIri, peopleIri, null, 'quote'),
+      buildOrderPayload(orderOpenStatusIri, peopleIri, null, DRAFT_SALE_ORDER_TYPE),
     )
 
     return syncActiveOrderState(createdOrder)
@@ -233,6 +266,7 @@ export default function usePosCartSession({
     companyId,
     defaultStatusId,
     loadStoredDraftOrder,
+    normalizeDraftOrderType,
     ordersActions,
     syncActiveOrderState,
   ])
@@ -266,7 +300,7 @@ export default function usePosCartSession({
         currentStatusIri,
         nextPeopleIri,
         currentOrder.id,
-        currentOrder?.orderType || 'quote',
+        DRAFT_SALE_ORDER_TYPE,
       ),
     )
 

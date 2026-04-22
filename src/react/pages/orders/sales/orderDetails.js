@@ -92,9 +92,21 @@ const formatApiError = error => {
 }
 
 const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
+const DRAFT_SALE_ORDER_TYPE = 'cart'
+const LEGACY_DRAFT_SALE_ORDER_TYPE = 'quote'
 
 const isTerminalOrderStatus = value =>
   TERMINAL_ORDER_STATUSES.includes(String(value ?? '').trim().toLowerCase())
+
+const resolveEditableOrderType = value => {
+  const normalizedOrderType = String(value || '').trim().toLowerCase()
+
+  if (!normalizedOrderType || normalizedOrderType === LEGACY_DRAFT_SALE_ORDER_TYPE) {
+    return DRAFT_SALE_ORDER_TYPE
+  }
+
+  return normalizedOrderType
+}
 
 const resolveInvoiceStatusPresentation = invoice => {
   const rawStatus = normalizeText(invoice?.status?.status)
@@ -522,7 +534,7 @@ const OrderDetails = ({ route, navigation }) => {
     return {
       id: Number(orderId),
       app: baseOrder?.app || 'POS',
-      orderType: baseOrder?.orderType || 'quote',
+      orderType: resolveEditableOrderType(baseOrder?.orderType),
       ...(providerIri ? { provider: providerIri } : {}),
       ...(statusIri ? { status: statusIri } : {}),
       ...changes,

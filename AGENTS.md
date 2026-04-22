@@ -10,6 +10,7 @@
 
 ## Regra central
 - Todo pedido de venda deve ser pago pela barra unica de pagamento do sistema.
+- O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
 - Essa barra precisa existir em todos os devices que podem cobrar pedido.
 - Nao criar fluxo paralelo de pagamento fora dessa barra.
 - Primeiro o usuario escolhe onde a cobranca vai acontecer. Depois escolhe o meio de pagamento.
