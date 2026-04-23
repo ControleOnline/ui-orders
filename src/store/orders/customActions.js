@@ -56,10 +56,12 @@ const commitSyncedOrder = ({commit, getters}, order, options = {}) => {
 
 export const fetchHistoryPage = ({commit, getters}, {query = {}, append = false, loadedKey = ''} = {}) => {
   commit(types.SET_ISLOADINGLIST, true);
+  commit(types.SET_ERROR, null);
 
   return api
     .fetch(getters.resourceEndpoint, {params: query})
     .then(response => {
+      commit(types.SET_ERROR, null);
       const pageItems = extractCollectionItems(response);
       const nextItems = append ? appendOrdersPage(getters.items, pageItems) : pageItems;
 
@@ -119,10 +121,12 @@ export const addProducts = ({commit, getters}, order, products) => {
     body: products,
   };
   commit(types.SET_ISSAVING, true);
+  commit(types.SET_ERROR, null);
 
   return api
     .fetch(getters.resourceEndpoint + '/' + order + '/add-products', options)
     .then(data => {
+      commit(types.SET_ERROR, null);
       return commitSyncedOrder({commit, getters}, data, {
         prependIfMissing: true,
       });

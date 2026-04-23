@@ -23,6 +23,21 @@ import {
 const hasOrderProducts = orderProducts =>
   Array.isArray(orderProducts) && orderProducts.length > 0
 
+const hasGroupingMetadata = orderProducts =>
+  Array.isArray(orderProducts) &&
+  orderProducts.some(
+    orderProduct =>
+      !!(
+        orderProduct?.orderProduct ||
+        orderProduct?.parentProduct ||
+        orderProduct?.productGroup
+      ),
+  )
+
+const needsDetailedOrderProductsFetch = orderProducts =>
+  !hasOrderProducts(orderProducts) ||
+  (!hasGroupingMetadata(orderProducts) && orderProducts.length > 1)
+
 const getEntityId = entity => {
   if (!entity) return null
 
@@ -78,20 +93,40 @@ const OrderItemsTab = ({
     [normalizedRouteOrderId, storeOrderProducts],
   )
 
+  const requiresDetailedFallback = needsDetailedOrderProductsFetch(orderProducts)
+  const shouldUseFallbackOrderProducts =
+    requiresDetailedFallback && fallbackOrderProducts.length > 0
+
   const resolvedOrderProducts = useMemo(
-    () => (hasOrderProducts(orderProducts) ? orderProducts : fallbackOrderProducts),
-    [fallbackOrderProducts, orderProducts],
+    () =>
+      shouldUseFallbackOrderProducts
+        ? fallbackOrderProducts
+        : hasOrderProducts(orderProducts)
+          ? orderProducts
+          : fallbackOrderProducts,
+    [fallbackOrderProducts, orderProducts, shouldUseFallbackOrderProducts],
   )
 
-  const resolvedOrderProductsSource = hasOrderProducts(orderProducts)
-    ? 'props'
-    : fallbackOrderProducts.length > 0
-      ? 'store'
-      : 'empty'
+  const resolvedOrderProductsSource = shouldUseFallbackOrderProducts
+    ? 'store-enriched'
+    : hasOrderProducts(orderProducts)
+      ? 'props'
+      : fallbackOrderProducts.length > 0
+        ? 'store'
+        : 'empty'
+
+  const skipFallbackReason = !routeOrderId
+    ? 'missing-route-order-id'
+    : !requiresDetailedFallback
+      ? 'embedded-order-products-sufficient'
+      : fallbackOrderProducts.length > 0
+        ? 'fallback-order-products-already-loaded'
+        : ''
 
   useEffect(() => {
-    // Fallback for domains where /orders/{id} does not embed orderProducts.
-    if (!routeOrderId || hasOrderProducts(orderProducts)) {
+    // Use /order_products only when the embedded order payload is missing or
+    // lacks the grouping metadata required to rebuild customization hierarchy.
+    if (skipFallbackReason) {
       sendFrontendDebugLog({
         channel: 'ui-orders',
         class: 'ControleOnline\\Entity\\Order',
@@ -99,10 +134,12 @@ const OrderItemsTab = ({
         level: 'notice',
         message: 'OrderItemsTab skipped fallback fetch',
         context: {
-          reason: !routeOrderId ? 'missing-route-order-id' : 'embedded-order-products-present',
+          reason: skipFallbackReason,
           routeOrderId: normalizedRouteOrderId || null,
           propCount: Array.isArray(orderProducts) ? orderProducts.length : 0,
+          propHasGroupingMetadata: hasGroupingMetadata(orderProducts),
           storeCount: storeOrderProducts.length,
+          fallbackCount: fallbackOrderProducts.length,
           variant,
         },
       })
@@ -118,6 +155,7 @@ const OrderItemsTab = ({
       context: {
         routeOrderId: normalizedRouteOrderId || null,
         propCount: Array.isArray(orderProducts) ? orderProducts.length : 0,
+        propHasGroupingMetadata: hasGroupingMetadata(orderProducts),
         storeCount: storeOrderProducts.length,
         variant,
       },
@@ -140,6 +178,7 @@ const OrderItemsTab = ({
             fetchedCount: Array.isArray(fetchedOrderProducts)
               ? fetchedOrderProducts.length
               : 0,
+            fetchedHasGroupingMetadata: hasGroupingMetadata(fetchedOrderProducts),
             variant,
           },
         }),
@@ -160,10 +199,13 @@ const OrderItemsTab = ({
       )
       .catch(() => null)
   }, [
+    fallbackOrderProducts.length,
+    requiresDetailedFallback,
     normalizedRouteOrderId,
     orderProducts,
     orderProductsActions,
     routeOrderId,
+    skipFallbackReason,
     storeOrderProducts.length,
     variant,
   ])
@@ -175,6 +217,8 @@ const OrderItemsTab = ({
       propCount: Array.isArray(orderProducts) ? orderProducts.length : 0,
       storeCount: storeOrderProducts.length,
       fallbackCount: fallbackOrderProducts.length,
+      propHasGroupingMetadata: hasGroupingMetadata(orderProducts),
+      fallbackHasGroupingMetadata: hasGroupingMetadata(fallbackOrderProducts),
       resolvedCount: resolvedOrderProducts.length,
       resolvedSource: resolvedOrderProductsSource,
       firstResolvedId: resolvedOrderProducts[0]?.id || null,

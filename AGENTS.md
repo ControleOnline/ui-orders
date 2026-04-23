@@ -11,6 +11,7 @@
 ## Regra central
 - Todo pedido de venda deve ser pago pela barra unica de pagamento do sistema.
 - A listagem de produtos dentro do pedido deve sair de um unico componente compartilhado entre `OrderDetails`, `POS` e visoes operacionais que mostrem itens do pedido. Diferencas entre telas entram apenas por acoes de contexto.
+- O renderer compartilhado de itens deve agrupar filhos customizaveis pelos vinculos vindos do backend (`orderProduct`, `parentProduct` e `productGroup`). Nao criar mapeamento paralelo por tela para encaixar adicionais dentro do item pai.
 - O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
 - Essa barra precisa existir em todos os devices que podem cobrar pedido.
 - Nao criar fluxo paralelo de pagamento fora dessa barra.
@@ -28,14 +29,15 @@
 - Itens do pedido com fila devem exibir na propria linha o status atual da fila com a cor da etapa corrente para indicar preparo.
 - Itens customizaveis devem reabrir `CustomizeScreen` apenas enquanto o fluxo de producao do proprio item ainda nao chegou ao status final da fila (`realStatus = out`).
 - Quando um item ja chegou ao fim da fila, a customizacao e a edicao inline daquele item devem ficar bloqueadas, mesmo que o pedido ainda esteja aberto.
-- Componentes filhos precisam continuar editaveis individualmente pelo pedido enquanto o item pai ainda nao estiver bloqueado pela fila.
+- Componentes filhos agrupados nao devem receber edicao inline propria na lista do pedido. Quando precisarem mudar, a tela deve reabrir a customizacao do item pai e respeitar as regras de cada grupo.
 - Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o codigo que a retirada realmente procura, como `pickup_code` ou `handover_code`. Hashes e outros ids tecnicos da integracao ficam apenas no summary.
 - `OrderDetails` deve manter o summary como area de informacoes secundarias. As abas operacionais sao `Itens` e `Financeiro`, com invoices dentro de `Financeiro`.
 - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
 - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
 - Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.
 - `Additional Information` nao deve poluir a tela principal do pedido. Informacoes secundarias e ids tecnicos ficam no summary/modal, nao acima do bloco de cliente.
-- O detalhe do pedido nao deve depender da colecao `/order_products` para abrir a lista principal. Quando `GET /orders/{id}` ja trouxer `orderProducts`, esse payload deve ser a fonte primaria dos itens da tela.
+- O detalhe do pedido deve abrir primeiro com `GET /orders/{id}`. A colecao `/order_products` entra apenas como enriquecimento da aba `Itens` quando o payload embutido vier ausente ou sem metadados suficientes para remontar a hierarquia de customizacao.
+- Quando a aba `Itens` precisar buscar `/order_products`, ela deve reaproveitar o mesmo renderer compartilhado e trocar para o payload enriquecido sem criar normalizacao exclusiva de `OrderDetails`.
 - Cada aba operacional de `OrderDetails` deve ser um componente proprio. `Itens` e `Financeiro` carregam os dados do proprio modulo apenas quando a aba correspondente for montada/ativada.
 - O status visivel do pedido deve aparecer traduzido na tela e em summaries/modais. Nao exibir `open`, `pending`, `closed` ou equivalentes crus para o usuario final.
 

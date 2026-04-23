@@ -1779,6 +1779,12 @@ const OrderDetails = ({ route, navigation }) => {
       return null
     }
 
+    // Grouped children must be edited through the parent customization flow so
+    // the group constraints remain consistent.
+    if (entryType === 'group') {
+      return null
+    }
+
     const rootOrderProduct = card?.rootItem || orderProduct
     if (isOrderProductProductionCompleted(rootOrderProduct)) {
       return null
