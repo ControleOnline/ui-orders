@@ -148,6 +148,82 @@ const resolveEmbeddedOrderProducts = sourceOrder => {
   }
 }
 
+const hasOrderProducts = orderProducts =>
+  Array.isArray(orderProducts) && orderProducts.length > 0
+
+const hasGroupingMetadata = orderProducts =>
+  Array.isArray(orderProducts) &&
+  orderProducts.some(
+    orderProduct =>
+      !!(
+        orderProduct?.orderProduct ||
+        orderProduct?.parentProduct ||
+        orderProduct?.productGroup
+      ),
+  )
+
+const hasCollectionOrderReference = orderProducts =>
+  Array.isArray(orderProducts) &&
+  orderProducts.some(orderProduct => !!orderProduct?.order)
+
+const hasDetailedOrderProductsPayload = orderProducts =>
+  hasGroupingMetadata(orderProducts) || hasCollectionOrderReference(orderProducts)
+
+const filterOrderProductsByOrderId = (orderProducts, orderId) =>
+  (Array.isArray(orderProducts) ? orderProducts : []).filter(orderProduct => {
+    const orderProductOrderId = getEntityId(orderProduct?.order)
+    if (!orderId || !orderProductOrderId) return true
+    return orderProductOrderId === orderId
+  })
+
+const choosePreferredOrderProducts = ({
+  primaryOrderProducts,
+  fallbackOrderProducts,
+}) => {
+  if (hasOrderProducts(primaryOrderProducts)) {
+    if (
+      !hasDetailedOrderProductsPayload(primaryOrderProducts) &&
+      hasDetailedOrderProductsPayload(fallbackOrderProducts)
+    ) {
+      return fallbackOrderProducts
+    }
+
+    return primaryOrderProducts
+  }
+
+  if (hasOrderProducts(fallbackOrderProducts)) {
+    return fallbackOrderProducts
+  }
+
+  return []
+}
+
+const getOrderProductCollectionSignature = orderProducts =>
+  (Array.isArray(orderProducts) ? orderProducts : [])
+    .map(orderProduct =>
+      [
+        getEntityId(orderProduct),
+        getEntityId(orderProduct?.product),
+        getEntityId(orderProduct?.order),
+        getEntityId(orderProduct?.orderProduct),
+        getEntityId(orderProduct?.parentProduct),
+        getEntityId(orderProduct?.productGroup),
+        Number(orderProduct?.quantity || 0),
+        (Array.isArray(orderProduct?.orderProductComponents)
+          ? orderProduct.orderProductComponents
+          : []
+        )
+          .map(component => getEntityId(component))
+          .filter(Boolean)
+          .join(','),
+      ].join(':'),
+    )
+    .join('|')
+
+const areOrderProductCollectionsEquivalent = (leftOrderProducts, rightOrderProducts) =>
+  getOrderProductCollectionSignature(leftOrderProducts) ===
+  getOrderProductCollectionSignature(rightOrderProducts)
+
 const resolveInvoiceStatusPresentation = invoice => {
   const rawStatus = normalizeText(invoice?.status?.status)
   const rawRealStatus = normalizeText(invoice?.status?.realStatus || invoice?.status?.real_status)
@@ -481,6 +557,9 @@ const OrderDetails = ({ route, navigation }) => {
 
   const [confirmRemoveItemId, setConfirmRemoveItemId] = useState(null)
   const currentOrderProductsRef = useRef([])
+  const storedOrderProductsRef = useRef([])
+  const ordersActionsRef = useRef(ordersActions)
+  const orderProductsActionsRef = useRef(orderProductsStore.actions)
   const [customerModalVisible, setCustomerModalVisible] = useState(false)
   const [customerCreateModalVisible, setCustomerCreateModalVisible] = useState(false)
   const [customerSearch, setCustomerSearch] = useState('')
@@ -497,30 +576,67 @@ const OrderDetails = ({ route, navigation }) => {
   const [observationDraft, setObservationDraft] = useState('')
   const [observationEditing, setObservationEditing] = useState(false)
   const [observationSaving, setObservationSaving] = useState(false)
+  const currentDisplayOrderId = Number(item?.id || orderParam?.id || routeOrderId || 0)
+  const filteredStoredOrderProducts = useMemo(
+    () => filterOrderProductsByOrderId(storedOrderProducts, currentDisplayOrderId),
+    [currentDisplayOrderId, storedOrderProducts],
+  )
+
+  useEffect(() => {
+    ordersActionsRef.current = ordersActions
+  }, [ordersActions])
+
+  useEffect(() => {
+    orderProductsActionsRef.current = orderProductsStore.actions
+  }, [orderProductsStore.actions])
 
   const commitResolvedOrderProducts = useCallback(sourceOrder => {
     const {hasOwnOrderProducts, orderProducts} = resolveEmbeddedOrderProducts(sourceOrder)
+    const sourceOrderId = getEntityId(sourceOrder) || currentDisplayOrderId
+    const preferredOrderProducts = choosePreferredOrderProducts({
+      primaryOrderProducts: orderProducts,
+      fallbackOrderProducts: filterOrderProductsByOrderId(
+        storedOrderProductsRef.current,
+        sourceOrderId,
+      ),
+    })
 
     if (!hasOwnOrderProducts) {
       return currentOrderProductsRef.current
     }
 
-    const normalizedOrderProducts = Array.isArray(orderProducts)
-      ? orderProducts
-      : []
+    currentOrderProductsRef.current = preferredOrderProducts
 
-    currentOrderProductsRef.current = normalizedOrderProducts
-    orderProductsStore.actions.setItems(normalizedOrderProducts)
+    if (
+      !areOrderProductCollectionsEquivalent(
+        storedOrderProductsRef.current,
+        preferredOrderProducts,
+      )
+    ) {
+      orderProductsActionsRef.current.setItems(preferredOrderProducts)
+    }
 
-    return normalizedOrderProducts
-  }, [orderProductsStore.actions])
+    return preferredOrderProducts
+  }, [
+    currentDisplayOrderId,
+  ])
+
+  useEffect(() => {
+    storedOrderProductsRef.current = filteredStoredOrderProducts
+
+    if (!hasDetailedOrderProductsPayload(filteredStoredOrderProducts)) {
+      return
+    }
+
+    currentOrderProductsRef.current = filteredStoredOrderProducts
+  }, [filteredStoredOrderProducts])
 
   useFocusEffect(
     useCallback(() => {
       let active = true
 
       if (routeOrderId) {
-        ordersActions
+        ordersActionsRef.current
           .get(routeOrderId)
           .then(fetchedOrder => {
             if (!active) {
@@ -535,7 +651,7 @@ const OrderDetails = ({ route, navigation }) => {
       return () => {
         active = false
       }
-    }, [commitResolvedOrderProducts, ordersActions, routeOrderId]),
+    }, [commitResolvedOrderProducts, routeOrderId]),
   )
 
   const handleAddProduct = () => {
@@ -552,10 +668,10 @@ const OrderDetails = ({ route, navigation }) => {
 
   const refreshCurrentOrder = useCallback(async () => {
     if (routeOrderId) {
-      const refreshedOrder = await ordersActions.get(routeOrderId)
+      const refreshedOrder = await ordersActionsRef.current.get(routeOrderId)
       commitResolvedOrderProducts(refreshedOrder)
     }
-  }, [commitResolvedOrderProducts, ordersActions, routeOrderId])
+  }, [commitResolvedOrderProducts, routeOrderId])
 
   const marketplaceSummary = useOrderMarketplaceSummary({
     order: item,
@@ -611,15 +727,13 @@ const OrderDetails = ({ route, navigation }) => {
     }
 
     if (Array.isArray(orderParam?.orderProducts)) {
-      currentOrderProductsRef.current = orderParam.orderProducts
-      orderProductsStore.actions.setItems(orderParam.orderProducts)
+      commitResolvedOrderProducts(orderParam)
     }
   }, [
     commitResolvedOrderProducts,
     item,
     item?.orderProducts,
     orderParam?.orderProducts,
-    orderProductsStore.actions,
   ])
 
   const syncCurrentOrderProducts = useCallback(nextOrderProducts => {
@@ -874,39 +988,27 @@ const OrderDetails = ({ route, navigation }) => {
     navigation,
   ])
   const resolvedDisplayOrderProducts = useMemo(() => {
-    const currentOrderId = Number(item?.id || orderParam?.id || 0)
-    const currentOrderProducts = Array.isArray(item?.orderProducts) ? item.orderProducts : []
-    const locallyFetchedOrderProducts = Array.isArray(storedOrderProducts)
-      ? storedOrderProducts.filter(orderProduct => {
-          const orderProductOrderId = getEntityId(orderProduct?.order)
-          if (!currentOrderId || !orderProductOrderId) return true
-          return orderProductOrderId === currentOrderId
-        })
-      : []
-
-    if (currentOrderProducts.length) {
-      return currentOrderProducts
-    }
-
-    if (locallyFetchedOrderProducts.length) {
-      return locallyFetchedOrderProducts
-    }
-
-    const initialOrderProducts = Array.isArray(orderParam?.orderProducts) ? orderParam.orderProducts : []
-    if (initialOrderProducts.length) {
-      return initialOrderProducts
-    }
-
-    return Array.isArray(marketplaceSummary.fallbackOrderProducts)
+    const currentOrderProducts = resolveEmbeddedOrderProducts(item).orderProducts
+    const initialOrderProducts = resolveEmbeddedOrderProducts(orderParam).orderProducts
+    const marketplaceOrderProducts = Array.isArray(marketplaceSummary.fallbackOrderProducts)
       ? marketplaceSummary.fallbackOrderProducts
       : []
+
+    return choosePreferredOrderProducts({
+      primaryOrderProducts: currentOrderProducts,
+      fallbackOrderProducts: choosePreferredOrderProducts({
+        primaryOrderProducts: filteredStoredOrderProducts,
+        fallbackOrderProducts: choosePreferredOrderProducts({
+          primaryOrderProducts: initialOrderProducts,
+          fallbackOrderProducts: marketplaceOrderProducts,
+        }),
+      }),
+    })
   }, [
-    item?.id,
     item?.orderProducts,
+    filteredStoredOrderProducts,
     marketplaceSummary.fallbackOrderProducts,
-    orderParam?.id,
     orderParam?.orderProducts,
-    storedOrderProducts,
   ])
   const resolvedProductCandidatesById = useMemo(() => {
     const candidates = {}
@@ -1940,7 +2042,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderActionLoading === resolvedPrimaryKdsAction.loadingKey
 
   useEffect(() => {
-    if (!shouldShowMobilePaymentBar || route?.params?.showBottomCart === false) {
+    if (route?.params?.showBottomCart === false) {
       return
     }
 
@@ -1948,12 +2050,12 @@ const OrderDetails = ({ route, navigation }) => {
   }, [
     navigation,
     route?.params?.showBottomCart,
-    shouldShowMobilePaymentBar,
   ])
 
   useLayoutEffect(() => {
     navigation.setOptions({
       title: global.t?.t('orders', 'title', 'order'),
+      showBottomCart: false,
       showBottomToolBar: !shouldHideBottomToolBar,
       headerTitle: () => (
         <View style={localStyles.topBarTitleWrap}>

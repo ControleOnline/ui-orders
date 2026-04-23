@@ -32,12 +32,14 @@
 - Componentes filhos agrupados nao devem receber edicao inline propria na lista do pedido. Quando precisarem mudar, a tela deve reabrir a customizacao do item pai e respeitar as regras de cada grupo.
 - Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o codigo que a retirada realmente procura, como `pickup_code` ou `handover_code`. Hashes e outros ids tecnicos da integracao ficam apenas no summary.
 - `OrderDetails` deve manter o summary como area de informacoes secundarias. As abas operacionais sao `Itens` e `Financeiro`, com invoices dentro de `Financeiro`.
+- `OrderDetails` nao deve exibir o `BottomCart` global com acao `Conferir pedido`. Quando a tela estiver aberta, ela mesma controla a barra operacional necessaria e o layout deve manter `showBottomCart: false`.
 - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
 - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
 - Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.
 - `Additional Information` nao deve poluir a tela principal do pedido. Informacoes secundarias e ids tecnicos ficam no summary/modal, nao acima do bloco de cliente.
 - O detalhe do pedido deve abrir primeiro com `GET /orders/{id}`. A colecao `/order_products` entra apenas como enriquecimento da aba `Itens` quando o payload embutido vier ausente ou sem metadados suficientes para remontar a hierarquia de customizacao.
 - Quando a aba `Itens` precisar buscar `/order_products`, ela deve reaproveitar o mesmo renderer compartilhado e trocar para o payload enriquecido sem criar normalizacao exclusiva de `OrderDetails`.
+- Quando `OrderDetails` estiver editando quantidade de itens, o estado local e o merge otimista devem continuar baseados na colecao rica de `/order_products` sempre que ela ja existir. Nao sobrescrever essa colecao com o payload raso de `GET /orders/{id}`, senao os filhos customizaveis se soltam do item pai.
 - Cada aba operacional de `OrderDetails` deve ser um componente proprio. `Itens` e `Financeiro` carregam os dados do proprio modulo apenas quando a aba correspondente for montada/ativada.
 - O status visivel do pedido deve aparecer traduzido na tela e em summaries/modais. Nao exibir `open`, `pending`, `closed` ou equivalentes crus para o usuario final.
 
