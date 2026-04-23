@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef} from 'react'
+import React, {useEffect, useMemo} from 'react'
 import {
   ActivityIndicator,
   Text,
@@ -10,7 +10,6 @@ import {useStore} from '@store'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
 import Icon from 'react-native-vector-icons/MaterialIcons'
-import {sendFrontendDebugLog} from '@controleonline/ui-common/src/react/utils/frontendDebugLog'
 
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 
@@ -33,6 +32,10 @@ const hasGroupingMetadata = orderProducts =>
         orderProduct?.productGroup
       ),
   )
+
+const hasCollectionOrderReference = orderProducts =>
+  Array.isArray(orderProducts) &&
+  orderProducts.some(orderProduct => !!orderProduct?.order)
 
 const needsDetailedOrderProductsFetch = orderProducts =>
   !hasOrderProducts(orderProducts) ||
@@ -73,11 +76,12 @@ const OrderItemsTab = ({
   const orderProductsStore = useStore('order_products')
   const {actions: orderProductsActions, getters: orderProductsGetters} =
     orderProductsStore
-  const latestSnapshotRef = useRef('')
   const storeOrderProducts = Array.isArray(orderProductsGetters?.items)
     ? orderProductsGetters.items
     : []
   const normalizedRouteOrderId = Number(routeOrderId || 0)
+  const isFallbackFetchLoading = Boolean(orderProductsGetters?.isLoading)
+  const hasFallbackFetchError = !!orderProductsGetters?.error
 
   const fallbackOrderProducts = useMemo(
     () =>
@@ -94,8 +98,13 @@ const OrderItemsTab = ({
   )
 
   const requiresDetailedFallback = needsDetailedOrderProductsFetch(orderProducts)
+  const fallbackHasDetailedPayload =
+    hasGroupingMetadata(fallbackOrderProducts) ||
+    hasCollectionOrderReference(fallbackOrderProducts)
   const shouldUseFallbackOrderProducts =
-    requiresDetailedFallback && fallbackOrderProducts.length > 0
+    requiresDetailedFallback &&
+    fallbackOrderProducts.length > 0 &&
+    fallbackHasDetailedPayload
 
   const resolvedOrderProducts = useMemo(
     () =>
@@ -107,19 +116,15 @@ const OrderItemsTab = ({
     [fallbackOrderProducts, orderProducts, shouldUseFallbackOrderProducts],
   )
 
-  const resolvedOrderProductsSource = shouldUseFallbackOrderProducts
-    ? 'store-enriched'
-    : hasOrderProducts(orderProducts)
-      ? 'props'
-      : fallbackOrderProducts.length > 0
-        ? 'store'
-        : 'empty'
-
   const skipFallbackReason = !routeOrderId
     ? 'missing-route-order-id'
     : !requiresDetailedFallback
       ? 'embedded-order-products-sufficient'
-      : fallbackOrderProducts.length > 0
+      : isFallbackFetchLoading
+        ? 'fallback-order-products-loading'
+        : hasFallbackFetchError
+          ? 'fallback-order-products-error'
+      : fallbackOrderProducts.length > 0 && fallbackHasDetailedPayload
         ? 'fallback-order-products-already-loaded'
         : ''
 
@@ -127,124 +132,26 @@ const OrderItemsTab = ({
     // Use /order_products only when the embedded order payload is missing or
     // lacks the grouping metadata required to rebuild customization hierarchy.
     if (skipFallbackReason) {
-      sendFrontendDebugLog({
-        channel: 'ui-orders',
-        class: 'ControleOnline\\Entity\\Order',
-        entityRow: normalizedRouteOrderId || null,
-        level: 'notice',
-        message: 'OrderItemsTab skipped fallback fetch',
-        context: {
-          reason: skipFallbackReason,
-          routeOrderId: normalizedRouteOrderId || null,
-          propCount: Array.isArray(orderProducts) ? orderProducts.length : 0,
-          propHasGroupingMetadata: hasGroupingMetadata(orderProducts),
-          storeCount: storeOrderProducts.length,
-          fallbackCount: fallbackOrderProducts.length,
-          variant,
-        },
-      })
       return
     }
-
-    sendFrontendDebugLog({
-      channel: 'ui-orders',
-      class: 'ControleOnline\\Entity\\Order',
-      entityRow: normalizedRouteOrderId || null,
-      level: 'notice',
-      message: 'OrderItemsTab starting fallback fetch',
-      context: {
-        routeOrderId: normalizedRouteOrderId || null,
-        propCount: Array.isArray(orderProducts) ? orderProducts.length : 0,
-        propHasGroupingMetadata: hasGroupingMetadata(orderProducts),
-        storeCount: storeOrderProducts.length,
-        variant,
-      },
-    })
 
     orderProductsActions
       .getItems({
         'order.id': normalizedRouteOrderId,
         itemsPerPage: 200,
       })
-      .then(fetchedOrderProducts =>
-        sendFrontendDebugLog({
-          channel: 'ui-orders',
-          class: 'ControleOnline\\Entity\\Order',
-          entityRow: normalizedRouteOrderId || null,
-          level: 'notice',
-          message: 'OrderItemsTab fallback fetch completed',
-          context: {
-            routeOrderId: normalizedRouteOrderId || null,
-            fetchedCount: Array.isArray(fetchedOrderProducts)
-              ? fetchedOrderProducts.length
-              : 0,
-            fetchedHasGroupingMetadata: hasGroupingMetadata(fetchedOrderProducts),
-            variant,
-          },
-        }),
-      )
-      .catch(error =>
-        sendFrontendDebugLog({
-          channel: 'ui-orders',
-          class: 'ControleOnline\\Entity\\Order',
-          entityRow: normalizedRouteOrderId || null,
-          level: 'error',
-          message: 'OrderItemsTab fallback fetch failed',
-          context: {
-            routeOrderId: normalizedRouteOrderId || null,
-            error: error?.message || String(error || ''),
-            variant,
-          },
-        }),
-      )
       .catch(() => null)
   }, [
     fallbackOrderProducts.length,
+    fallbackHasDetailedPayload,
+    hasFallbackFetchError,
+    isFallbackFetchLoading,
     requiresDetailedFallback,
     normalizedRouteOrderId,
     orderProducts,
     orderProductsActions,
     routeOrderId,
     skipFallbackReason,
-    storeOrderProducts.length,
-    variant,
-  ])
-
-  useEffect(() => {
-    const snapshot = JSON.stringify({
-      routeOrderId: normalizedRouteOrderId || null,
-      variant,
-      propCount: Array.isArray(orderProducts) ? orderProducts.length : 0,
-      storeCount: storeOrderProducts.length,
-      fallbackCount: fallbackOrderProducts.length,
-      propHasGroupingMetadata: hasGroupingMetadata(orderProducts),
-      fallbackHasGroupingMetadata: hasGroupingMetadata(fallbackOrderProducts),
-      resolvedCount: resolvedOrderProducts.length,
-      resolvedSource: resolvedOrderProductsSource,
-      firstResolvedId: resolvedOrderProducts[0]?.id || null,
-      firstResolvedName: resolvedOrderProducts[0]?.product?.product || null,
-    })
-
-    if (latestSnapshotRef.current === snapshot) {
-      return
-    }
-
-    latestSnapshotRef.current = snapshot
-
-    sendFrontendDebugLog({
-      channel: 'ui-orders',
-      class: 'ControleOnline\\Entity\\Order',
-      entityRow: normalizedRouteOrderId || null,
-      level: 'notice',
-      message: 'OrderItemsTab render snapshot',
-      context: JSON.parse(snapshot),
-    })
-  }, [
-    fallbackOrderProducts.length,
-    normalizedRouteOrderId,
-    orderProducts,
-    resolvedOrderProducts,
-    resolvedOrderProductsSource,
     storeOrderProducts.length,
     variant,
   ])

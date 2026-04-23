@@ -783,9 +783,8 @@ const OrderDetails = ({ route, navigation }) => {
     }
 
     navigation.navigate('CustomizeScreen', {
-      product,
       productId,
-      orderProduct: rootOrderProduct,
+      orderProductId: getEntityId(rootOrderProduct),
       returnDepth: 1,
       interactionMode: route?.params?.interactionMode,
     })
