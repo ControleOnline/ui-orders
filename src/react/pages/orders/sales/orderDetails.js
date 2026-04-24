@@ -683,6 +683,7 @@ const OrderDetails = ({ route, navigation }) => {
     showSuccess,
   })
   const hasMarketplaceIntegration = marketplaceSummary.hasMarketplaceIntegration
+  const openMarketplaceCancelFlow = marketplaceSummary.summary?.cancelFlow?.onOpen
 
   const buildOrderUpdatePayload = useCallback(changes => {
     const baseOrder = item || orderParam
@@ -1859,12 +1860,19 @@ const OrderDetails = ({ route, navigation }) => {
       return
     }
 
+    if (hasMarketplaceIntegration && typeof openMarketplaceCancelFlow === 'function') {
+      void openMarketplaceCancelFlow()
+      return
+    }
+
     confirmCancelOrder(() => {
       void runOrderAction('cancel')
     })
   }, [
-    confirmCancelOrder,
     canGenericCancelOrder,
+    confirmCancelOrder,
+    hasMarketplaceIntegration,
+    openMarketplaceCancelFlow,
     runOrderAction,
     showError,
   ])

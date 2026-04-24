@@ -693,6 +693,7 @@ const useOrderMarketplaceSummary = ({
           merchant_subsidy: fallbackSummary.financial.storeDiscountTotal ?? 0,
           ifood_subsidy:
             fallbackSummary.financial.platformDiscountTotal ?? 0,
+          voucher_code: fallbackSummary.financial.voucherCode ?? '',
           payment_brand: '',
           change_for: 0,
         }
@@ -767,6 +768,7 @@ const useOrderMarketplaceSummary = ({
       ),
     };
   }, [fallbackSummary?.financial, remoteState?.financial]);
+  const remoteNegotiation = remoteState?.negotiation || null;
 
   const remotePayment = useMemo(() => {
     const fallbackPayment = fallbackSummary?.payment
@@ -1412,13 +1414,9 @@ const useOrderMarketplaceSummary = ({
       return;
     }
 
-    const cancelReasonsPath = is99FoodOrder
-      ? `/marketplace/integrations/99food/orders/${orderId}/cancel-reasons`
-      : `/marketplace/integrations/ifood/orders/${orderId}/cancel-reasons`;
-
     try {
       setCancelReasonsLoading(true);
-      const response = await api.fetch(cancelReasonsPath);
+      const response = await api.fetch(`/orders/${orderId}/cancel-reasons`);
       const result = response?.result || response;
 
       if (normalizeErrno(result?.errno) !== '0') {
@@ -1451,7 +1449,6 @@ const useOrderMarketplaceSummary = ({
   }, [
     canCancelRemoteOrder,
     cancelReasonsLoading,
-    is99FoodOrder,
     orderId,
     platformLabel,
     remoteActionLoading,
@@ -1737,7 +1734,111 @@ const useOrderMarketplaceSummary = ({
     void runRemoteAction('delivered');
   }, [isHandoverFlow, openDeliveryFlow, requiresDeliveryLocator, runRemoteAction]);
 
-  const actionButtons = useMemo(() => [], []);
+  const handleRespondNegotiation = useCallback(async decision => {
+    const normalizedDecision = decision === 'reject' ? 'reject' : 'accept';
+    if (!orderId || !isiFoodOrder || remoteActionLoading || !remoteNegotiation?.dispute_id) {
+      return;
+    }
+
+    try {
+      setRemoteActionLoading(`negotiation_${normalizedDecision}`);
+
+      const response = await api.fetch(
+        `/marketplace/integrations/ifood/orders/${orderId}/negotiation/${normalizedDecision}`,
+        {
+          method: 'POST',
+          body: normalizedDecision === 'reject'
+            ? {reason: 'UNKNOWN_ISSUE'}
+            : {},
+        },
+      );
+
+      const actionResult = response?.result || response;
+      if (normalizeErrno(actionResult?.errno) !== '0') {
+        throw actionResult || response;
+      }
+
+      if (response?.state) {
+        setRemoteState(response.state);
+      }
+
+      await refreshOrder();
+      await loadMarketplaceState({silent: true});
+
+      showSuccess(
+        normalizedDecision === 'reject'
+          ? global.t?.t('orders', 'message', 'ifoodNegotiationRejected') ||
+            'Negociacao iFood rejeitada.'
+          : global.t?.t('orders', 'message', 'ifoodNegotiationAccepted') ||
+            'Negociacao iFood aceita.',
+      );
+    } catch (actionError) {
+      showError(formatApiError(actionError));
+    } finally {
+      setRemoteActionLoading('');
+    }
+  }, [
+    isiFoodOrder,
+    loadMarketplaceState,
+    orderId,
+    refreshOrder,
+    remoteActionLoading,
+    remoteNegotiation?.dispute_id,
+    showError,
+    showSuccess,
+  ]);
+
+  const actionButtons = useMemo(() => {
+    const actions = [];
+
+    if (canCancelRemoteOrder) {
+      actions.push({
+        key: 'marketplace-cancel',
+        label: 'Cancelar pedido',
+        icon: 'close',
+        tone: 'danger',
+        loading: remoteActionLoading === 'cancel' || cancelReasonsLoading,
+        disabled: !!remoteActionLoading || cancelReasonsLoading,
+        onPress: handleOpenCancelFlow,
+      });
+    }
+
+    if (!isiFoodOrder || !remoteNegotiation?.has_open_dispute || !remoteNegotiation?.dispute_id) {
+      return actions;
+    }
+
+    actions.push(
+      {
+        key: 'ifood-accept-negotiation',
+        label: 'Aceitar cancelamento',
+        icon: 'check',
+        tone: 'danger',
+        loading: remoteActionLoading === 'negotiation_accept',
+        disabled: !!remoteActionLoading,
+        onPress: () => handleRespondNegotiation('accept'),
+      },
+      {
+        key: 'ifood-reject-negotiation',
+        label: 'Rejeitar cancelamento',
+        icon: 'close',
+        tone: 'neutral',
+        loading: remoteActionLoading === 'negotiation_reject',
+        disabled: !!remoteActionLoading,
+        onPress: () => handleRespondNegotiation('reject'),
+      },
+    );
+
+    return actions;
+  }, [
+    canCancelRemoteOrder,
+    cancelReasonsLoading,
+    handleOpenCancelFlow,
+    handleRespondNegotiation,
+    isiFoodOrder,
+    remoteActionLoading,
+    remoteNegotiation?.dispute_id,
+    remoteNegotiation?.has_open_dispute,
+  ]);
 
   const summary = useMemo(() => {
     if (!hasMarketplaceIntegration) {
@@ -1875,6 +1976,37 @@ const useOrderMarketplaceSummary = ({
         label: global.t?.t('orders', 'label', 'cancellationReason'),
         value: remoteIntegration.cancel_reason,
       });
+    }
+
+    if (remoteIntegration?.cancellation_requested) {
+      operationLines.push({
+        key: 'cancellation-requested',
+        label: global.t?.t('orders', 'label', 'status') || 'Status',
+        value:
+          global.t?.t('orders', 'message', 'cancellationRequestedByPlatform') ||
+          'Cancelamento solicitado pela plataforma',
+        strong: true,
+      });
+    }
+
+    if (remoteNegotiation?.has_open_dispute) {
+      operationLines.push({
+        key: 'ifood-negotiation',
+        label: global.t?.t('orders', 'label', 'status') || 'Status',
+        value:
+          remoteNegotiation.message ||
+          global.t?.t('orders', 'message', 'ifoodNegotiationRequested') ||
+          'Negociacao iFood solicitada',
+        strong: true,
+      });
+
+      if (remoteNegotiation.expires_at) {
+        operationLines.push({
+          key: 'ifood-negotiation-expires',
+          label: global.t?.t('orders', 'label', 'expiresAt') || 'Expira em',
+          value: formatScheduledDate(remoteNegotiation.expires_at),
+        });
+      }
     }
 
     const remoteStateAgeLabel = formatAgeMinutes(
@@ -2025,6 +2157,14 @@ const useOrderMarketplaceSummary = ({
             money: true,
           },
         );
+      }
+
+      if (isiFoodOrder && remoteFinancial.voucher_code) {
+        financialLines.push({
+          key: 'ifood-voucher-code',
+          label: global.t?.t('orders', 'label', 'coupon') || 'Cupom',
+          value: remoteFinancial.voucher_code,
+        });
       }
 
       if (Number(remoteFinancial.store_discount_total || 0)) {
@@ -2423,6 +2563,7 @@ const useOrderMarketplaceSummary = ({
         requiresReasonText: requiresCancelReasonText,
         reasonText: cancelReasonText,
         actionLoading: remoteActionLoading,
+        onOpen: handleOpenCancelFlow,
         onClose: resetCancelFlow,
         onSelectReason: setSelectedCancelReasonId,
         onChangeReasonText: setCancelReasonText,
@@ -2488,6 +2629,7 @@ const useOrderMarketplaceSummary = ({
     handleConfirmDelivery,
     handleCopyHandoverLink,
     handleCopyLocator,
+    handleOpenCancelFlow,
     handleOpenHandoverLink,
     handleShareHandoverWhatsapp,
     handleVerifyLocator,
@@ -2514,6 +2656,7 @@ const useOrderMarketplaceSummary = ({
     remoteFinancial,
     remoteFulfillmentLabel,
     remoteIntegration,
+    remoteNegotiation,
     remoteNotes,
     remoteObservability,
     remotePayment,
