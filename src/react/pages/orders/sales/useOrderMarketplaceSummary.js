@@ -1803,6 +1803,18 @@ const useOrderMarketplaceSummary = ({
       });
     }
 
+    if (canDeliverRemoteOrder) {
+      actions.push({
+        key: 'marketplace-deliver',
+        label: global.t?.t('orders', 'button', 'deliverOrder') || 'Entregar pedido',
+        icon: 'local-shipping',
+        tone: 'success',
+        loading: remoteActionLoading === 'delivered',
+        disabled: !!remoteActionLoading,
+        onPress: handleDeliverPress,
+      });
+    }
+
     if (!isiFoodOrder || !remoteNegotiation?.has_open_dispute || !remoteNegotiation?.dispute_id) {
       return actions;
     }
@@ -1831,7 +1843,9 @@ const useOrderMarketplaceSummary = ({
     return actions;
   }, [
     canCancelRemoteOrder,
+    canDeliverRemoteOrder,
     cancelReasonsLoading,
+    handleDeliverPress,
     handleOpenCancelFlow,
     handleRespondNegotiation,
     isiFoodOrder,
@@ -2605,6 +2619,7 @@ const useOrderMarketplaceSummary = ({
         onCopyLink: handleCopyHandoverLink,
         onShareWhatsapp: handleShareHandoverWhatsapp,
         onVerifyLocator: handleVerifyLocator,
+        onOpen: handleDeliverPress,
         onSubmit: handleConfirmDelivery,
       },
     };
@@ -2629,6 +2644,7 @@ const useOrderMarketplaceSummary = ({
     handleConfirmDelivery,
     handleCopyHandoverLink,
     handleCopyLocator,
+    handleDeliverPress,
     handleOpenCancelFlow,
     handleOpenHandoverLink,
     handleShareHandoverWhatsapp,

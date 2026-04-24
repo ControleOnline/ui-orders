@@ -684,6 +684,7 @@ const OrderDetails = ({ route, navigation }) => {
   })
   const hasMarketplaceIntegration = marketplaceSummary.hasMarketplaceIntegration
   const openMarketplaceCancelFlow = marketplaceSummary.summary?.cancelFlow?.onOpen
+  const openMarketplaceDeliveryFlow = marketplaceSummary.summary?.deliveryFlow?.onOpen
 
   const buildOrderUpdatePayload = useCallback(changes => {
     const baseOrder = item || orderParam
@@ -1725,7 +1726,13 @@ const OrderDetails = ({ route, navigation }) => {
     (
       isPosOrShopOrder
         ? isPosOrShopPreparingWorkflowState
-        : true
+        : (
+            !hasMarketplaceIntegration ||
+            (
+              isOpenLocalWorkflowState &&
+              effectiveLocalStatusNameKey === 'preparing'
+            )
+        )
     )
   const canGenericDeliveredOrder =
     isGenericLocalOrder &&
@@ -1734,7 +1741,13 @@ const OrderDetails = ({ route, navigation }) => {
     (
       isPosOrShopOrder
         ? isPosOrShopDeliveringWorkflowState
-        : true
+        : (
+            !hasMarketplaceIntegration ||
+            (
+              isPendingLocalWorkflowState &&
+              effectiveLocalStatusNameKey === 'way'
+            )
+        )
     )
 
   const canFinalizeGenericOrder =
@@ -1800,10 +1813,17 @@ const OrderDetails = ({ route, navigation }) => {
       return
     }
 
+    if (hasMarketplaceIntegration && typeof openMarketplaceDeliveryFlow === 'function') {
+      void openMarketplaceDeliveryFlow()
+      return
+    }
+
     void runOrderAction('delivered')
   }, [
+    hasMarketplaceIntegration,
     item?.id,
     isTerminalOrder,
+    openMarketplaceDeliveryFlow,
     orderActionLoading,
     runOrderAction,
   ])
