@@ -1416,7 +1416,10 @@ const useOrderMarketplaceSummary = ({
 
     try {
       setCancelReasonsLoading(true);
-      const response = await api.fetch(`/orders/${orderId}/cancel-reasons`);
+      const cancelReasonsPath = is99FoodOrder
+        ? `/marketplace/integrations/99food/orders/${orderId}/cancel-reasons`
+        : `/marketplace/integrations/ifood/orders/${orderId}/cancel-reasons`;
+      const response = await api.fetch(cancelReasonsPath);
       const result = response?.result || response;
 
       if (normalizeErrno(result?.errno) !== '0') {
@@ -1449,6 +1452,7 @@ const useOrderMarketplaceSummary = ({
   }, [
     canCancelRemoteOrder,
     cancelReasonsLoading,
+    is99FoodOrder,
     orderId,
     platformLabel,
     remoteActionLoading,
