@@ -45,7 +45,7 @@ const PosKioskBarcodeListener = ({
   const peopleStore = useStore('people');
   const {currentCompany} = peopleStore.getters;
 
-  const {showToast} = useMessage();
+  const {showError} = useMessage();
   const {materializeOrderWithProducts, openOrderDetails} = usePosOrderMaterialization({
     interactionParams,
     navigation,
@@ -96,7 +96,7 @@ const PosKioskBarcodeListener = ({
         }
       } catch (error) {
         if (isProductNotFoundError(error)) {
-          showToast(
+          showError(
             `Codigo ${String(scannedCode || '').trim()}: produto nao encontrado.`,
             {
               duration: 4000,
@@ -106,7 +106,7 @@ const PosKioskBarcodeListener = ({
           return;
         }
 
-        showToast(
+        showError(
           error?.message || 'Nao foi possivel adicionar o produto pelo codigo de barras.',
           {position: 'center'},
         );
@@ -117,7 +117,7 @@ const PosKioskBarcodeListener = ({
       currentRouteName,
       materializeOrderWithProducts,
       openOrderDetails,
-      showToast,
+      showError,
     ],
   );
 
