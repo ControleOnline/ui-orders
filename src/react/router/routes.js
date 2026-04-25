@@ -118,7 +118,7 @@ const ordersRoutes = [
       headerShown: true,
       headerBackVisible: false,
       showBottomCart: true,
-      showBottomToolBar: true,
+      showBottomToolBar: false,
       title: global.t?.t('orders', 'title', 'chooseCategory'),
     },
     initialParams: { store: 'categories' },
