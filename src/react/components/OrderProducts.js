@@ -1,17 +1,38 @@
 import React, { useMemo } from 'react'
-import { Text, View } from 'react-native'
+import { Image, Text, View } from 'react-native'
 
 import { withOpacity } from '@controleonline/../../src/styles/branding'
+import { resolveFileImageUrl } from '@controleonline/ui-common/src/react/utils/fileUrl'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 
 import sharedStyles from './OrderProducts.styles'
 import {
   buildOrderProductCards,
   formatOrderProductQuantityPrefix,
+  getOrderProductFiles,
   normalizeOrderProductQuantity,
 } from './OrderProducts.utils'
 
 const REMOVAL_COLOR = '#EF4444'
+
+const resolveCardImageUrl = card => {
+  const productFiles = getOrderProductFiles(card?.rootItem)
+
+  for (const productFile of productFiles) {
+    const imageUrl = resolveFileImageUrl(productFile?.file || productFile)
+    if (imageUrl) {
+      return imageUrl
+    }
+  }
+
+  return ''
+}
+
+const resolveCardInitial = card =>
+  String(card?.name || card?.rootItem?.product?.product || '?')
+    .trim()
+    .charAt(0)
+    .toUpperCase() || '?'
 
 const QueueBadge = ({ presentation, styles }) => {
   if (!presentation?.label) {
@@ -79,6 +100,7 @@ const OrderProducts = ({
   showPricing = showDetails,
   maxCards = null,
   renderActions = null,
+  showImages = false,
 }) => {
   const resolvedOrderProducts = Array.isArray(orderProducts)
     ? orderProducts
@@ -109,6 +131,7 @@ const OrderProducts = ({
         const hasRootItem = Object.keys(rootItem).length > 0
         const isRootZero = hasRootItem && Number(rootItem?.quantity || 0) === 0
         const itemColor = isRootZero ? REMOVAL_COLOR : (card.itemColor || order?.status?.color || '#333')
+        const cardImageUrl = showImages ? resolveCardImageUrl(card) : ''
         const rootActions = renderEntryActions({
           renderActions,
           entryType: 'root',
@@ -139,43 +162,73 @@ const OrderProducts = ({
               ]}
             >
               <View style={[sharedStyles.itemMainRow, styles.itemMainRow]}>
-                <View style={[sharedStyles.itemContent, styles.itemContent]}>
-                  <Text style={styles.text} numberOfLines={2}>
-                    <Text style={[styles.statusMarker, { color: itemColor }]}>* </Text>
-                    {isRootZero ? (
-                      <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
-                    ) : null}
-                    {!isRootZero ? (
-                      <Text style={styles.qtyText}>{normalizeOrderProductQuantity(card.quantity)}x </Text>
-                    ) : null}
-                    {card.name || `Item #${index + 1}`}
-                  </Text>
+                <View style={[sharedStyles.itemLead, styles.itemLead]}>
+                  {showImages ? (
+                    <View style={[sharedStyles.itemThumbWrap, styles.itemThumbWrap]}>
+                      {cardImageUrl ? (
+                        <Image
+                          source={{ uri: cardImageUrl }}
+                          style={[sharedStyles.itemThumbImage, styles.itemThumbImage]}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            sharedStyles.itemThumbPlaceholder,
+                            styles.itemThumbPlaceholder,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              sharedStyles.itemThumbPlaceholderText,
+                              styles.itemThumbPlaceholderText,
+                            ]}
+                          >
+                            {resolveCardInitial(card)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : null}
 
-                  <View style={[sharedStyles.metaWrap, styles.metaWrap]}>
-                    <QueueBadge presentation={card.queuePresentation} styles={styles} />
+                  <View style={[sharedStyles.itemContent, styles.itemContent]}>
+                    <Text style={styles.text} numberOfLines={2}>
+                      <Text style={[styles.statusMarker, { color: itemColor }]}>* </Text>
+                      {isRootZero ? (
+                        <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
+                      ) : null}
+                      {!isRootZero ? (
+                        <Text style={styles.qtyText}>{normalizeOrderProductQuantity(card.quantity)}x </Text>
+                      ) : null}
+                      {card.name || `Item #${index + 1}`}
+                    </Text>
 
-                    {showDetails && !!card.description && (
-                      <Text style={styles.subText} numberOfLines={2}>
-                        {card.description}
-                      </Text>
-                    )}
+                    <View style={[sharedStyles.metaWrap, styles.metaWrap]}>
+                      <QueueBadge presentation={card.queuePresentation} styles={styles} />
 
-                    {showDetails && !!card.observation && (
-                      <Text style={styles.subText} numberOfLines={2}>
-                        Obs: {card.observation}
-                      </Text>
-                    )}
-
-                    {showPricing && card.unitPrice > 0 && (
-                      <View style={[sharedStyles.priceRow, styles.priceRow]}>
-                        <Text style={styles.subText}>
-                          {Formatter.formatMoney(card.unitPrice)} / un
+                      {showDetails && !!card.description && (
+                        <Text style={styles.subText} numberOfLines={2}>
+                          {card.description}
                         </Text>
-                        <Text style={styles.subText}>
-                          {Formatter.formatMoney(card.totalPrice || 0)}
+                      )}
+
+                      {showDetails && !!card.observation && (
+                        <Text style={styles.subText} numberOfLines={2}>
+                          Obs: {card.observation}
                         </Text>
-                      </View>
-                    )}
+                      )}
+
+                      {showPricing && card.unitPrice > 0 && (
+                        <View style={[sharedStyles.priceRow, styles.priceRow]}>
+                          <Text style={styles.subText}>
+                            {Formatter.formatMoney(card.unitPrice)} / un
+                          </Text>
+                          <Text style={styles.subText}>
+                            {Formatter.formatMoney(card.totalPrice || 0)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
 

@@ -2,6 +2,7 @@ import React, {useEffect, useMemo} from 'react'
 import {
   ActivityIndicator,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
@@ -64,11 +65,17 @@ const OrderItemsTab = ({
   addProductsButtonLabel,
   canAddProductsToOrder = false,
   onAddProduct,
+  onQuickAddProduct = null,
   order = null,
   orderProducts = [],
+  productSearchLoading = false,
+  productSearchResults = [],
+  productSearchSelectionId = '',
+  productSearchText = '',
   renderOrderProductActions = null,
   routeOrderId = '',
   variant = 'main',
+  setProductSearchText = null,
 }) => {
   const {styles: cssStyles} = css()
   const {ppcColors, styles: localStyles} = useOrderDetailsVisuals()
@@ -162,6 +169,11 @@ const OrderItemsTab = ({
         ? {
             itemRow: localStyles.itemRow,
             itemMainRow: localStyles.orderProductItemMainRow,
+            itemLead: localStyles.orderProductItemLead,
+            itemThumbWrap: localStyles.orderProductThumbWrap,
+            itemThumbImage: localStyles.orderProductThumbImage,
+            itemThumbPlaceholder: localStyles.orderProductThumbPlaceholder,
+            itemThumbPlaceholderText: localStyles.orderProductThumbPlaceholderText,
             itemContent: localStyles.orderProductItemContent,
             metaWrap: localStyles.orderProductMetaWrap,
             queueBadge: localStyles.orderProductQueueBadge,
@@ -188,6 +200,11 @@ const OrderItemsTab = ({
         : {
             itemRow: localStyles.mobileProductItemRow,
             itemMainRow: localStyles.orderProductItemMainRow,
+            itemLead: localStyles.orderProductItemLead,
+            itemThumbWrap: localStyles.orderProductThumbWrap,
+            itemThumbImage: localStyles.orderProductThumbImage,
+            itemThumbPlaceholder: localStyles.orderProductThumbPlaceholder,
+            itemThumbPlaceholderText: localStyles.orderProductThumbPlaceholderText,
             itemContent: localStyles.orderProductItemContent,
             metaWrap: localStyles.orderProductMetaWrap,
             queueBadge: localStyles.orderProductQueueBadge,
@@ -238,6 +255,92 @@ const OrderItemsTab = ({
         )}
       </View>
 
+      {canAddProductsToOrder && typeof setProductSearchText === 'function' && (
+        <View style={localStyles.detailsProductSearchStack}>
+          <View
+            style={[
+              localStyles.assignmentSearchBox,
+              localStyles.detailsProductSearchBox,
+            ]}
+          >
+            <Icon name="search" size={18} color={ppcColors.textSecondary} />
+            <TextInput
+              value={productSearchText}
+              onChangeText={setProductSearchText}
+              placeholder="Pesquisar e adicionar produto"
+              placeholderTextColor={ppcColors.textSecondary}
+              autoCapitalize="none"
+              returnKeyType="search"
+              style={localStyles.assignmentSearchInput}
+            />
+            {productSearchLoading && (
+              <ActivityIndicator size="small" color={ppcColors.primary} />
+            )}
+          </View>
+
+          <Text style={localStyles.detailsProductSearchHelper}>
+            Pesquise por nome ou SKU e toque no produto para adicionar ao pedido.
+          </Text>
+
+          {String(productSearchText || '').trim().length >= 2 && (
+            <View style={localStyles.detailsProductSearchResults}>
+              {Array.isArray(productSearchResults) && productSearchResults.length > 0 ? (
+                productSearchResults.map(product => {
+                  const productId = String(product?.id || product?.['@id'] || '')
+                  const isSelecting = productSearchSelectionId === productId
+
+                  return (
+                    <TouchableOpacity
+                      key={productId || product?.sku || product?.product}
+                      onPress={() => onQuickAddProduct?.(product)}
+                      disabled={isSelecting}
+                      style={[
+                        localStyles.assignmentOptionCard,
+                        isSelecting && localStyles.inlineActionButtonDisabled,
+                      ]}
+                    >
+                      <View style={localStyles.assignmentOptionTextWrap}>
+                        <Text
+                          style={localStyles.assignmentOptionTitle}
+                          numberOfLines={1}
+                        >
+                          {product?.product || 'Produto sem nome'}
+                        </Text>
+                        <Text
+                          style={localStyles.assignmentOptionMeta}
+                          numberOfLines={1}
+                        >
+                          {[
+                            product?.sku ? `SKU ${product.sku}` : '',
+                            product?.description || '',
+                          ]
+                            .filter(Boolean)
+                            .join(' • ')}
+                        </Text>
+                      </View>
+                      {isSelecting ? (
+                        <ActivityIndicator size="small" color={ppcColors.primary} />
+                      ) : (
+                        <Icon name="add-circle" size={20} color={ppcColors.accentInfo} />
+                      )}
+                    </TouchableOpacity>
+                  )
+                })
+              ) : !productSearchLoading ? (
+                <View style={localStyles.assignmentEmptyState}>
+                  <Text style={localStyles.assignmentEmptyStateTitle}>
+                    Nenhum produto encontrado
+                  </Text>
+                  <Text style={localStyles.assignmentEmptyStateText}>
+                    Refine o nome ou SKU para encontrar o produto que deseja adicionar.
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </View>
+      )}
+
       <View
         style={[
           cssStyles.itemsSection,
@@ -258,6 +361,7 @@ const OrderItemsTab = ({
             styles={productStyles}
             showDetails
             showPricing
+            showImages
             renderActions={renderOrderProductActions}
           />
         )}

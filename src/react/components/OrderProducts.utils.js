@@ -135,6 +135,26 @@ export const getOrderProductComponents = orderProduct => {
   return []
 }
 
+export const getOrderProductFiles = orderProduct => {
+  const collections = [
+    orderProduct?.product?.productFiles,
+    orderProduct?.product?.product_files,
+    orderProduct?.productFiles,
+    orderProduct?.product_files,
+    orderProduct?.product?.files,
+    orderProduct?.files,
+  ]
+
+  for (const collection of collections) {
+    const items = getHydraCollectionItems(collection)
+    if (items.length > 0) {
+      return items
+    }
+  }
+
+  return []
+}
+
 export const isCustomizableOrderProduct = orderProduct => {
   const productType = normalizeOrderProductText(orderProduct?.product?.type).toLowerCase()
 

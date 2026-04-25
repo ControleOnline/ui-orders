@@ -1,9 +1,8 @@
-import React, {useCallback, useEffect, useMemo, useRef} from 'react';
+import React, {useCallback, useEffect, useRef} from 'react';
 import {Platform} from 'react-native';
 import {useStore} from '@store';
 import {api} from '@controleonline/ui-common/src/api';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
-import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization';
 
 const SCAN_IDLE_TIMEOUT_MS = 90;
@@ -25,11 +24,7 @@ const PosKioskBarcodeListener = ({
   const peopleStore = useStore('people');
   const {currentCompany} = peopleStore.getters;
 
-  const deviceConfigStore = useStore('device_config');
-  const {item: device} = deviceConfigStore.getters;
-
   const {showToast} = useMessage();
-  const isKioskMode = useMemo(() => isPosKioskMode(device?.configs), [device?.configs]);
   const {materializeOrderWithProducts, openOrderDetails} = usePosOrderMaterialization({
     interactionParams,
     navigation,
@@ -119,7 +114,7 @@ const PosKioskBarcodeListener = ({
   }, [clearScanBuffer, enqueueProductByBarcode]);
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || !enabled || !isKioskMode || !currentCompany?.id) {
+    if (Platform.OS !== 'web' || !enabled || !currentCompany?.id) {
       clearScanBuffer();
       return undefined;
     }
@@ -178,7 +173,6 @@ const PosKioskBarcodeListener = ({
     currentCompany?.id,
     enabled,
     finalizeBufferedScan,
-    isKioskMode,
   ]);
 
   return null;

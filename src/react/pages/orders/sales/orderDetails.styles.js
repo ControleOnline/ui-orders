@@ -830,6 +830,41 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       justifyContent: 'space-between',
       gap: 10,
     },
+    orderProductItemLead: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+    },
+    orderProductThumbWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 12,
+      overflow: 'hidden',
+      backgroundColor: palette.cardBg,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    orderProductThumbImage: {
+      width: '100%',
+      height: '100%',
+    },
+    orderProductThumbPlaceholder: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: palette.cardBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    orderProductThumbPlaceholderText: {
+      color: palette.textSecondary,
+      fontSize: 18 * scale,
+      fontWeight: '900',
+    },
     orderProductItemContent: {
       flex: 1,
       minWidth: 0,
@@ -1387,6 +1422,21 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     detailsTabStack: {
       gap: 12,
+    },
+    detailsProductSearchStack: {
+      gap: 8,
+    },
+    detailsProductSearchBox: {
+      marginBottom: 0,
+    },
+    detailsProductSearchHelper: {
+      color: palette.textSecondary,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: '600',
+    },
+    detailsProductSearchResults: {
+      gap: 0,
     },
     detailsGrid: {
       flexDirection: 'row',

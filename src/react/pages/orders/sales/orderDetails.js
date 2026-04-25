@@ -19,6 +19,8 @@ import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import { withOpacity } from '@controleonline/../../src/styles/branding'
+import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
+import {searchCompanyProducts} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 
 import {
   buildAddressOptionSummary,
@@ -55,6 +57,7 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 import { env } from '@env'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
+import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
 import { getPlatformCapabilities } from '@assets/ppc/channels'
 
 import {
@@ -523,6 +526,7 @@ const OrderDetails = ({ route, navigation }) => {
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
+  const isPosKioskOperationMode = isPosKioskMode(device?.configs)
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
@@ -565,6 +569,10 @@ const OrderDetails = ({ route, navigation }) => {
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerSearchResults, setCustomerSearchResults] = useState([])
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false)
+  const [productSearchText, setProductSearchText] = useState('')
+  const [productSearchResults, setProductSearchResults] = useState([])
+  const [productSearchLoading, setProductSearchLoading] = useState(false)
+  const [productSearchSelectionId, setProductSearchSelectionId] = useState('')
   const [customerLinkingId, setCustomerLinkingId] = useState('')
   const [addressModalVisible, setAddressModalVisible] = useState(false)
   const [addressModalMode, setAddressModalMode] = useState('select')
@@ -581,6 +589,14 @@ const OrderDetails = ({ route, navigation }) => {
     () => filterOrderProductsByOrderId(storedOrderProducts, currentDisplayOrderId),
     [currentDisplayOrderId, storedOrderProducts],
   )
+  const normalizedProductSearch = useMemo(
+    () => String(productSearchText || '').trim(),
+    [productSearchText],
+  )
+  const {materializeOrderWithProducts} = usePosOrderMaterialization({
+    interactionParams: route?.params,
+    navigation,
+  })
 
   useEffect(() => {
     ordersActionsRef.current = ordersActions
@@ -1194,6 +1210,104 @@ const OrderDetails = ({ route, navigation }) => {
   const canAddProductsToOrder = canEditItems
   const addProductsButtonLabel =
     global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
+
+  useEffect(() => {
+    if (!canAddProductsToOrder) {
+      setProductSearchText('')
+      setProductSearchResults([])
+      setProductSearchLoading(false)
+      setProductSearchSelectionId('')
+      return undefined
+    }
+
+    if (!normalizedProductSearch || normalizedProductSearch.length < 2 || !orderCompanyId) {
+      setProductSearchResults([])
+      setProductSearchLoading(false)
+      return undefined
+    }
+
+    let isMounted = true
+    const timeoutId = setTimeout(async () => {
+      try {
+        setProductSearchLoading(true)
+        const results = await searchCompanyProducts({
+          companyId: orderCompanyId,
+          query: normalizedProductSearch,
+          itemsPerPage: 8,
+        })
+
+        if (isMounted) {
+          setProductSearchResults(Array.isArray(results) ? results : [])
+        }
+      } catch {
+        if (isMounted) {
+          setProductSearchResults([])
+        }
+      } finally {
+        if (isMounted) {
+          setProductSearchLoading(false)
+        }
+      }
+    }, 180)
+
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
+    }
+  }, [canAddProductsToOrder, normalizedProductSearch, orderCompanyId])
+
+  const handleQuickAddProductFromSearch = useCallback(
+    async product => {
+      if (!canAddProductsToOrder) {
+        return
+      }
+
+      const nextProductId = getEntityId(product)
+      if (!nextProductId) {
+        showError('Nao foi possivel identificar o produto selecionado.')
+        return
+      }
+
+      try {
+        setProductSearchSelectionId(String(product?.id || product?.['@id'] || nextProductId))
+        await flushPendingOrderProductChanges()
+
+        const updatedOrder = await materializeOrderWithProducts({
+          products: [{product: nextProductId, quantity: 1}],
+        })
+
+        if (updatedOrder) {
+          if (typeof ordersActions.syncOrder === 'function') {
+            ordersActions.syncOrder(updatedOrder)
+          } else {
+            ordersActions.setItem(updatedOrder)
+          }
+
+          commitResolvedOrderProducts(updatedOrder)
+        }
+
+        await refreshCurrentOrder()
+
+        setProductSearchText('')
+        setProductSearchResults([])
+        showSuccess('Produto adicionado ao pedido.')
+      } catch (error) {
+        showError(formatApiError(error))
+      } finally {
+        setProductSearchSelectionId('')
+      }
+    },
+    [
+      canAddProductsToOrder,
+      commitResolvedOrderProducts,
+      flushPendingOrderProductChanges,
+      materializeOrderWithProducts,
+      ordersActions,
+      refreshCurrentOrder,
+      showError,
+      showSuccess,
+    ],
+  )
   const canAddOrderPayment =
     !hasMarketplaceIntegration &&
     !!item?.id &&
@@ -2054,8 +2168,11 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const shouldShowMobileCancelAction = shouldShowKdsCancel
   const shouldShowMobileBottomActions =
-    shouldShowMobileCancelAction ||
-    !!resolvedPrimaryKdsAction
+    !isPosKioskOperationMode &&
+    (
+      shouldShowMobileCancelAction ||
+      !!resolvedPrimaryKdsAction
+    )
   const shouldShowMobilePaymentBar =
     useUnifiedKdsLayout &&
     !hasTerminalOrderState &&
@@ -2327,10 +2444,16 @@ const OrderDetails = ({ route, navigation }) => {
           addProductsButtonLabel={addProductsButtonLabel}
           canAddProductsToOrder={canAddProductsToOrder}
           onAddProduct={handleAddProduct}
+          onQuickAddProduct={handleQuickAddProductFromSearch}
           order={resolvedDisplayOrder || item}
           orderProducts={resolvedDisplayOrderProductsWithProductDetails}
+          productSearchLoading={productSearchLoading}
+          productSearchResults={productSearchResults}
+          productSearchSelectionId={productSearchSelectionId}
+          productSearchText={productSearchText}
           renderOrderProductActions={canEditItems ? renderOrderProductActions : null}
           routeOrderId={routeOrderId}
+          setProductSearchText={setProductSearchText}
           variant={variant}
         />
       )
@@ -2339,12 +2462,18 @@ const OrderDetails = ({ route, navigation }) => {
       addProductsButtonLabel,
       canAddProductsToOrder,
       canEditItems,
+      handleQuickAddProductFromSearch,
       handleAddProduct,
       item,
+      productSearchLoading,
+      productSearchResults,
+      productSearchSelectionId,
+      productSearchText,
       renderOrderProductActions,
       resolvedDisplayOrder,
       resolvedDisplayOrderProductsWithProductDetails,
       routeOrderId,
+      setProductSearchText,
     ],
   )
   const detailsTabs = useMemo(
@@ -2464,7 +2593,7 @@ const OrderDetails = ({ route, navigation }) => {
       },
       tabs: modalDetailsTabs,
       primaryAction:
-        resolvedPrimaryKdsAction
+        !isPosKioskOperationMode && resolvedPrimaryKdsAction
           ? {
               disabled: orderActionLoading === resolvedPrimaryKdsAction.loadingKey,
               onPress: resolvedPrimaryKdsAction.onPress,
@@ -2501,6 +2630,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderCustomerName,
     orderCustomerPhone,
     orderActionLoading,
+    isPosKioskOperationMode,
     orderIdentitySource,
     resolvedOrderDateValue,
     resolvedPrimaryKdsAction,
@@ -2519,186 +2649,188 @@ const OrderDetails = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={localStyles.mobileOrderLayout}>
-      <View style={localStyles.mobileInfoCard}>
-        <View style={localStyles.mobileInfoHeader}>
-          <View style={localStyles.mobileInfoIconWrap}>
-            <Icon name={isPurchaseOrder ? 'local-shipping' : 'person'} size={16} color={ppcColors.accentInfo} />
-          </View>
-          <View style={localStyles.mobileInfoTextWrap}>
-            <Text style={localStyles.mobileInfoLabel}>{isPurchaseOrder ? global.t?.t('orders', 'label', 'supplier') : global.t?.t('orders', 'label', 'customer')}</Text>
-            <Text style={localStyles.mobileInfoTitle}>
-              {isPurchaseOrder
-                ? (item?.client?.alias || item?.client?.name || orderParam?.client?.alias || orderParam?.client?.name || global.t?.t('orders', 'message', 'supplierNotInformed'))
-                : (orderCustomerName || global.t?.t('orders', 'message', 'customerNotIdentified'))
-              }
-            </Text>
-            {!isPurchaseOrder && !!orderCustomerPhone && (
-              <Text style={localStyles.mobileInfoSubtitle}>{orderCustomerPhone}</Text>
-            )}
-            {!isPurchaseOrder && !!localOrderCustomerDocument && (
-              <Text style={localStyles.mobileInfoSubtitle}>
-                {orderCustomerDocumentLabel}: {localOrderCustomerDocument}
+      {!isPosKioskOperationMode && (
+        <View style={localStyles.mobileInfoCard}>
+          <View style={localStyles.mobileInfoHeader}>
+            <View style={localStyles.mobileInfoIconWrap}>
+              <Icon name={isPurchaseOrder ? 'local-shipping' : 'person'} size={16} color={ppcColors.accentInfo} />
+            </View>
+            <View style={localStyles.mobileInfoTextWrap}>
+              <Text style={localStyles.mobileInfoLabel}>{isPurchaseOrder ? global.t?.t('orders', 'label', 'supplier') : global.t?.t('orders', 'label', 'customer')}</Text>
+              <Text style={localStyles.mobileInfoTitle}>
+                {isPurchaseOrder
+                  ? (item?.client?.alias || item?.client?.name || orderParam?.client?.alias || orderParam?.client?.name || global.t?.t('orders', 'message', 'supplierNotInformed'))
+                  : (orderCustomerName || global.t?.t('orders', 'message', 'customerNotIdentified'))
+                }
               </Text>
-            )}
-          </View>
-        </View>
-
-        {!isPurchaseOrder && canEditItems && (
-          <View style={localStyles.inlineActionRow}>
-            <TouchableOpacity
-              onPress={openCustomerModal}
-              disabled={!!customerLinkingId}
-              style={[
-                localStyles.inlineActionButton,
-                localStyles.inlineActionButtonPrimary,
-                !!customerLinkingId &&
-                  localStyles.inlineActionButtonDisabled,
-              ]}
-            >
-              <Icon name="search" size={15} color={ppcColors.accentInfo} />
-              <Text style={localStyles.inlineActionButtonText}>
-                {orderCustomerName ? 'Trocar cliente' : 'Vincular cliente'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {shouldShowOrderAddress && (
-          <View style={localStyles.mobileAddressCard}>
-            <Icon name="place" size={15} color={ppcColors.accentInfo} />
-            <View style={localStyles.mobileAddressTextWrap}>
-              <Text style={localStyles.mobileAddressPrimary}>
-                {orderAddressPrimary || global.t?.t('orders', 'message', 'addressNotInformed')}
-              </Text>
-              {!!orderAddressSecondary && (
-                <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
+              {!isPurchaseOrder && !!orderCustomerPhone && (
+                <Text style={localStyles.mobileInfoSubtitle}>{orderCustomerPhone}</Text>
+              )}
+              {!isPurchaseOrder && !!localOrderCustomerDocument && (
+                <Text style={localStyles.mobileInfoSubtitle}>
+                  {orderCustomerDocumentLabel}: {localOrderCustomerDocument}
+                </Text>
               )}
             </View>
           </View>
-        )}
 
-        {!isPurchaseOrder && shouldShowOrderAddress && canEditItems && (
-          <View style={localStyles.inlineActionRow}>
-            <TouchableOpacity
-              onPress={openAddressModal}
-              disabled={addressSaveLoading || !!addressSelectingId}
-              style={[
-                localStyles.inlineActionButton,
-                localStyles.inlineActionButtonPrimary,
-                (addressSaveLoading || !!addressSelectingId) &&
-                  localStyles.inlineActionButtonDisabled,
-              ]}
-            >
-              <Icon
-                name={selectedOrderClientIri ? 'place' : 'add-location'}
-                size={15}
-                color={ppcColors.accentInfo}
-              />
-              <Text style={localStyles.inlineActionButtonText}>
-                {selectedOrderClientIri ? 'Escolher endereco' : 'Novo endereco'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!isPurchaseOrder && showBaseOrderObservationCard && (
-          <View style={localStyles.mobileNoteCard}>
-            <View style={localStyles.mobileNoteHeader}>
-              <Icon name="info" size={14} color={ppcColors.accent} />
-              <Text style={localStyles.mobileNoteLabel}>{global.t?.t('orders', 'label', 'customerObservation')}</Text>
+          {!isPurchaseOrder && canEditItems && (
+            <View style={localStyles.inlineActionRow}>
+              <TouchableOpacity
+                onPress={openCustomerModal}
+                disabled={!!customerLinkingId}
+                style={[
+                  localStyles.inlineActionButton,
+                  localStyles.inlineActionButtonPrimary,
+                  !!customerLinkingId &&
+                    localStyles.inlineActionButtonDisabled,
+                ]}
+              >
+                <Icon name="search" size={15} color={ppcColors.accentInfo} />
+                <Text style={localStyles.inlineActionButtonText}>
+                  {orderCustomerName ? 'Trocar cliente' : 'Vincular cliente'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            {observationEditing ? (
-              <>
-                <TextInput
-                  value={observationDraft}
-                  onChangeText={setObservationDraft}
-                  editable={!observationSaving}
-                  multiline
-                  numberOfLines={3}
-                  placeholder={global.t?.t('orders', 'label', 'customerObservation')}
-                  placeholderTextColor={ppcColors.textSecondary}
-                  style={[
-                    localStyles.assignmentFormInput,
-                    {minHeight: 96, textAlignVertical: 'top', marginBottom: 8},
-                  ]}
+          )}
+
+          {shouldShowOrderAddress && (
+            <View style={localStyles.mobileAddressCard}>
+              <Icon name="place" size={15} color={ppcColors.accentInfo} />
+              <View style={localStyles.mobileAddressTextWrap}>
+                <Text style={localStyles.mobileAddressPrimary}>
+                  {orderAddressPrimary || global.t?.t('orders', 'message', 'addressNotInformed')}
+                </Text>
+                {!!orderAddressSecondary && (
+                  <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
+                )}
+              </View>
+            </View>
+          )}
+
+          {!isPurchaseOrder && shouldShowOrderAddress && canEditItems && (
+            <View style={localStyles.inlineActionRow}>
+              <TouchableOpacity
+                onPress={openAddressModal}
+                disabled={addressSaveLoading || !!addressSelectingId}
+                style={[
+                  localStyles.inlineActionButton,
+                  localStyles.inlineActionButtonPrimary,
+                  (addressSaveLoading || !!addressSelectingId) &&
+                    localStyles.inlineActionButtonDisabled,
+                ]}
+              >
+                <Icon
+                  name={selectedOrderClientIri ? 'place' : 'add-location'}
+                  size={15}
+                  color={ppcColors.accentInfo}
                 />
+                <Text style={localStyles.inlineActionButtonText}>
+                  {selectedOrderClientIri ? 'Escolher endereco' : 'Novo endereco'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-                <View style={localStyles.inlineActionRow}>
-                  <TouchableOpacity
-                    onPress={handleCancelObservationEdit}
-                    disabled={observationSaving}
+          {!isPurchaseOrder && showBaseOrderObservationCard && (
+            <View style={localStyles.mobileNoteCard}>
+              <View style={localStyles.mobileNoteHeader}>
+                <Icon name="info" size={14} color={ppcColors.accent} />
+                <Text style={localStyles.mobileNoteLabel}>{global.t?.t('orders', 'label', 'customerObservation')}</Text>
+              </View>
+              {observationEditing ? (
+                <>
+                  <TextInput
+                    value={observationDraft}
+                    onChangeText={setObservationDraft}
+                    editable={!observationSaving}
+                    multiline
+                    numberOfLines={3}
+                    placeholder={global.t?.t('orders', 'label', 'customerObservation')}
+                    placeholderTextColor={ppcColors.textSecondary}
                     style={[
-                      localStyles.inlineActionButton,
-                      observationSaving && localStyles.inlineActionButtonDisabled,
+                      localStyles.assignmentFormInput,
+                      {minHeight: 96, textAlignVertical: 'top', marginBottom: 8},
                     ]}
-                  >
-                    <Icon name="close" size={15} color={ppcColors.textSecondary} />
-                    <Text style={[localStyles.inlineActionButtonText, {color: ppcColors.textSecondary}]}>
-                      {global.t?.t('orders', 'button', 'close') || 'Cancelar'}
-                    </Text>
-                  </TouchableOpacity>
+                  />
 
-                  <TouchableOpacity
-                    onPress={handleSaveObservation}
-                    disabled={observationSaving}
-                    style={[
-                      localStyles.inlineActionButton,
-                      localStyles.inlineActionButtonPrimary,
-                      observationSaving && localStyles.inlineActionButtonDisabled,
-                    ]}
-                  >
-                    {observationSaving ? (
-                      <ActivityIndicator size="small" color={ppcColors.accentInfo} />
-                    ) : (
-                      <>
-                        <Icon name="check" size={15} color={ppcColors.accentInfo} />
-                        <Text style={localStyles.inlineActionButtonText}>
-                          {global.t?.t('orders', 'button', 'save') || 'Salvar'}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : !!baseOrderObservationText ? (
-              <>
-                <Text style={localStyles.mobileNoteText}>{baseOrderObservationText}</Text>
-                {canEditItems && (
-                  <View style={[localStyles.inlineActionRow, {marginTop: 8}]}>
+                  <View style={localStyles.inlineActionRow}>
                     <TouchableOpacity
-                      onPress={handleStartObservationEdit}
+                      onPress={handleCancelObservationEdit}
+                      disabled={observationSaving}
+                      style={[
+                        localStyles.inlineActionButton,
+                        observationSaving && localStyles.inlineActionButtonDisabled,
+                      ]}
+                    >
+                      <Icon name="close" size={15} color={ppcColors.textSecondary} />
+                      <Text style={[localStyles.inlineActionButtonText, {color: ppcColors.textSecondary}]}>
+                        {global.t?.t('orders', 'button', 'close') || 'Cancelar'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleSaveObservation}
+                      disabled={observationSaving}
                       style={[
                         localStyles.inlineActionButton,
                         localStyles.inlineActionButtonPrimary,
+                        observationSaving && localStyles.inlineActionButtonDisabled,
                       ]}
                     >
-                      <Icon name="edit" size={15} color={ppcColors.accentInfo} />
-                      <Text style={localStyles.inlineActionButtonText}>
-                        {global.t?.t('orders', 'button', 'edit') || 'Editar'}
-                      </Text>
+                      {observationSaving ? (
+                        <ActivityIndicator size="small" color={ppcColors.accentInfo} />
+                      ) : (
+                        <>
+                          <Icon name="check" size={15} color={ppcColors.accentInfo} />
+                          <Text style={localStyles.inlineActionButtonText}>
+                            {global.t?.t('orders', 'button', 'save') || 'Salvar'}
+                          </Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   </View>
-                )}
-              </>
-            ) : canEditItems ? (
-              <View style={localStyles.inlineActionRow}>
-                <TouchableOpacity
-                  onPress={handleStartObservationEdit}
-                  style={[
-                    localStyles.inlineActionButton,
-                    localStyles.inlineActionButtonPrimary,
-                  ]}
-                >
-                  <Icon name="add-comment" size={15} color={ppcColors.accentInfo} />
-                  <Text style={localStyles.inlineActionButtonText}>
-                    {global.t?.t('orders', 'button', 'addObservation') || 'Adicionar observacao'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-        )}
-      </View>
+                </>
+              ) : !!baseOrderObservationText ? (
+                <>
+                  <Text style={localStyles.mobileNoteText}>{baseOrderObservationText}</Text>
+                  {canEditItems && (
+                    <View style={[localStyles.inlineActionRow, {marginTop: 8}]}>
+                      <TouchableOpacity
+                        onPress={handleStartObservationEdit}
+                        style={[
+                          localStyles.inlineActionButton,
+                          localStyles.inlineActionButtonPrimary,
+                        ]}
+                      >
+                        <Icon name="edit" size={15} color={ppcColors.accentInfo} />
+                        <Text style={localStyles.inlineActionButtonText}>
+                          {global.t?.t('orders', 'button', 'edit') || 'Editar'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              ) : canEditItems ? (
+                <View style={localStyles.inlineActionRow}>
+                  <TouchableOpacity
+                    onPress={handleStartObservationEdit}
+                    style={[
+                      localStyles.inlineActionButton,
+                      localStyles.inlineActionButtonPrimary,
+                    ]}
+                  >
+                    <Icon name="add-comment" size={15} color={ppcColors.accentInfo} />
+                    <Text style={localStyles.inlineActionButtonText}>
+                      {global.t?.t('orders', 'button', 'addObservation') || 'Adicionar observacao'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={localStyles.mobileInfoCard}>
         <OrderSectionTabs
@@ -2736,190 +2868,192 @@ const OrderDetails = ({ route, navigation }) => {
     >
       {showBarcodeInput && <BarcodeInput />}
       <StateStore store="orders" />
-      <Modal
-        transparent
-        animationType="slide"
-        visible={customerModalVisible}
-        onRequestClose={closeCustomerModal}
-        statusBarTranslucent
-        presentationStyle="overFullScreen"
-      >
-        <View style={localStyles.modalSheetRoot}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={localStyles.modalSheetBackdrop}
-            onPress={closeCustomerModal}
-          />
-          <View style={localStyles.modalSheetWrap}>
-            <View
-              style={[
-                localStyles.deliveryCodeModal,
-                { paddingBottom: 14 + modalBottomInset },
-              ]}
-            >
-              <View style={localStyles.deliveryCodeHeader}>
-                <Text style={localStyles.deliveryCodeStepBadge}>
-                  Clientes
-                </Text>
-                <TouchableOpacity
-                  onPress={closeCustomerModal}
-                  disabled={!!customerLinkingId}
-                  style={localStyles.deliveryCodeCloseButton}
-                >
-                  <Icon name="close" size={22} color={ppcColors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={localStyles.deliveryCodeModalTitle}>
-                {orderCustomerName ? 'Trocar cliente do pedido' : 'Vincular cliente ao pedido'}
-              </Text>
-
-              <ScrollView
-                style={localStyles.deliveryCodeScroll}
-                contentContainerStyle={localStyles.deliveryCodeScrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                <Text style={localStyles.deliveryCodeDescription}>
-                  Pesquise por nome, email, telefone, documento ou endereco. Se nao encontrar, use o cadastro rapido abaixo sem sair deste modal.
-                </Text>
-
-                <View style={localStyles.assignmentSearchBox}>
-                  <Icon name="search" size={18} color={ppcColors.textSecondary} />
-                  <TextInput
-                    value={customerSearch}
-                    onChangeText={setCustomerSearch}
-                    editable={!customerLinkingId}
-                    placeholder="Buscar cliente"
-                    placeholderTextColor={ppcColors.textSecondary}
-                    autoCapitalize="none"
-                    style={localStyles.assignmentSearchInput}
-                  />
-                  {customerSearchLoading && (
-                    <ActivityIndicator size="small" color={ppcColors.primary} />
-                  )}
-                </View>
-
-                {customerSearch.trim().length === 0 ? (
-                  <View style={localStyles.assignmentEmptyState}>
-                    <Text style={localStyles.assignmentEmptyStateTitle}>
-                      Digite para buscar
-                    </Text>
-                    <Text style={localStyles.assignmentEmptyStateText}>
-                      A busca considera nome, email, telefone, documento e enderecos do cliente.
-                    </Text>
-                  </View>
-                ) : customerSearchLoading ? (
-                  <View style={localStyles.assignmentEmptyState}>
-                    <ActivityIndicator size="small" color={ppcColors.primary} />
-                    <Text style={localStyles.assignmentEmptyStateText}>
-                      Buscando clientes...
-                    </Text>
-                  </View>
-                ) : customerSearchResults.length > 0 ? (
-                  customerSearchResults.map(customer => {
-                    const customerId = String(getEntityId(customer) || '')
-                    const customerIri = toEntityIri(customer, 'people')
-                    const customerMeta = buildCustomerSearchMeta(customer)
-                    const customerTitle = resolvePreferredText(
-                      customer?.alias,
-                      customer?.name,
-                    ) || `Cliente #${customerId || '--'}`
-                    const isCurrent = customerIri === selectedOrderClientIri
-                    const isSaving = customerLinkingId === customerId
-
-                    return (
-                      <TouchableOpacity
-                        key={customerIri || customerId || customerTitle}
-                        onPress={() => handleSelectCustomer(customer)}
-                        disabled={!!customerLinkingId}
-                        style={[
-                          localStyles.assignmentOptionCard,
-                          isCurrent && localStyles.assignmentOptionCardSelected,
-                        ]}
-                      >
-                        <View style={localStyles.assignmentOptionTextWrap}>
-                          <Text style={localStyles.assignmentOptionTitle}>
-                            {customerTitle}
-                          </Text>
-                          {!!customerMeta && (
-                            <Text style={localStyles.assignmentOptionMeta}>
-                              {customerMeta}
-                            </Text>
-                          )}
-                        </View>
-
-                        {isSaving ? (
-                          <ActivityIndicator size="small" color={ppcColors.primary} />
-                        ) : isCurrent ? (
-                          <Text style={localStyles.assignmentOptionBadge}>Atual</Text>
-                        ) : (
-                          <Icon name="chevron-right" size={20} color={ppcColors.textSecondary} />
-                        )}
-                      </TouchableOpacity>
-                    )
-                  })
-                ) : (
-                  <View style={localStyles.assignmentEmptyState}>
-                    <Text style={localStyles.assignmentEmptyStateTitle}>
-                      Nenhum cliente encontrado
-                    </Text>
-                    <Text style={localStyles.assignmentEmptyStateText}>
-                      Use o cadastro rapido para criar e vincular um novo cliente.
-                    </Text>
-                  </View>
-                )}
-
-                <TouchableOpacity
-                  onPress={openCustomerCreateModal}
-                  disabled={!!customerLinkingId}
-                  style={localStyles.assignmentQuickActionCard}
-                >
-                  <View style={localStyles.assignmentQuickActionHeader}>
-                    <Icon name="person-add" size={18} color={ppcColors.accentInfo} />
-                    <Text style={localStyles.assignmentQuickActionTitle}>
-                      Cadastro rapido de cliente
-                    </Text>
-                  </View>
-                  <Text style={localStyles.assignmentQuickActionText}>
-                    Abre o cadastro compartilhado de clientes do CRM e vincula o resultado neste pedido.
-                  </Text>
-                </TouchableOpacity>
-              </ScrollView>
-
-              <View style={localStyles.deliveryCodeActions}>
-                <TouchableOpacity
-                  onPress={closeCustomerModal}
-                  disabled={!!customerLinkingId}
+      {!isPosKioskOperationMode && (
+        <>
+          <Modal
+            transparent
+            animationType="slide"
+            visible={customerModalVisible}
+            onRequestClose={closeCustomerModal}
+            statusBarTranslucent
+            presentationStyle="overFullScreen"
+          >
+            <View style={localStyles.modalSheetRoot}>
+              <TouchableOpacity
+                activeOpacity={1}
+                style={localStyles.modalSheetBackdrop}
+                onPress={closeCustomerModal}
+              />
+              <View style={localStyles.modalSheetWrap}>
+                <View
                   style={[
-                    localStyles.deliveryCodeButton,
-                    localStyles.deliveryCodeButtonSecondary,
+                    localStyles.deliveryCodeModal,
+                    { paddingBottom: 14 + modalBottomInset },
                   ]}
                 >
-                  <Text style={localStyles.deliveryCodeButtonSecondaryText}>
-                    {global.t?.t('orders', 'button', 'close') || 'Fechar'}
+                  <View style={localStyles.deliveryCodeHeader}>
+                    <Text style={localStyles.deliveryCodeStepBadge}>
+                      Clientes
+                    </Text>
+                    <TouchableOpacity
+                      onPress={closeCustomerModal}
+                      disabled={!!customerLinkingId}
+                      style={localStyles.deliveryCodeCloseButton}
+                    >
+                      <Icon name="close" size={22} color={ppcColors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={localStyles.deliveryCodeModalTitle}>
+                    {orderCustomerName ? 'Trocar cliente do pedido' : 'Vincular cliente ao pedido'}
                   </Text>
-                </TouchableOpacity>
+
+                  <ScrollView
+                    style={localStyles.deliveryCodeScroll}
+                    contentContainerStyle={localStyles.deliveryCodeScrollContent}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <Text style={localStyles.deliveryCodeDescription}>
+                      Pesquise por nome, email, telefone, documento ou endereco. Se nao encontrar, use o cadastro rapido abaixo sem sair deste modal.
+                    </Text>
+
+                    <View style={localStyles.assignmentSearchBox}>
+                      <Icon name="search" size={18} color={ppcColors.textSecondary} />
+                      <TextInput
+                        value={customerSearch}
+                        onChangeText={setCustomerSearch}
+                        editable={!customerLinkingId}
+                        placeholder="Buscar cliente"
+                        placeholderTextColor={ppcColors.textSecondary}
+                        autoCapitalize="none"
+                        style={localStyles.assignmentSearchInput}
+                      />
+                      {customerSearchLoading && (
+                        <ActivityIndicator size="small" color={ppcColors.primary} />
+                      )}
+                    </View>
+
+                    {customerSearch.trim().length === 0 ? (
+                      <View style={localStyles.assignmentEmptyState}>
+                        <Text style={localStyles.assignmentEmptyStateTitle}>
+                          Digite para buscar
+                        </Text>
+                        <Text style={localStyles.assignmentEmptyStateText}>
+                          A busca considera nome, email, telefone, documento e enderecos do cliente.
+                        </Text>
+                      </View>
+                    ) : customerSearchLoading ? (
+                      <View style={localStyles.assignmentEmptyState}>
+                        <ActivityIndicator size="small" color={ppcColors.primary} />
+                        <Text style={localStyles.assignmentEmptyStateText}>
+                          Buscando clientes...
+                        </Text>
+                      </View>
+                    ) : customerSearchResults.length > 0 ? (
+                      customerSearchResults.map(customer => {
+                        const customerId = String(getEntityId(customer) || '')
+                        const customerIri = toEntityIri(customer, 'people')
+                        const customerMeta = buildCustomerSearchMeta(customer)
+                        const customerTitle = resolvePreferredText(
+                          customer?.alias,
+                          customer?.name,
+                        ) || `Cliente #${customerId || '--'}`
+                        const isCurrent = customerIri === selectedOrderClientIri
+                        const isSaving = customerLinkingId === customerId
+
+                        return (
+                          <TouchableOpacity
+                            key={customerIri || customerId || customerTitle}
+                            onPress={() => handleSelectCustomer(customer)}
+                            disabled={!!customerLinkingId}
+                            style={[
+                              localStyles.assignmentOptionCard,
+                              isCurrent && localStyles.assignmentOptionCardSelected,
+                            ]}
+                          >
+                            <View style={localStyles.assignmentOptionTextWrap}>
+                              <Text style={localStyles.assignmentOptionTitle}>
+                                {customerTitle}
+                              </Text>
+                              {!!customerMeta && (
+                                <Text style={localStyles.assignmentOptionMeta}>
+                                  {customerMeta}
+                                </Text>
+                              )}
+                            </View>
+
+                            {isSaving ? (
+                              <ActivityIndicator size="small" color={ppcColors.primary} />
+                            ) : isCurrent ? (
+                              <Text style={localStyles.assignmentOptionBadge}>Atual</Text>
+                            ) : (
+                              <Icon name="chevron-right" size={20} color={ppcColors.textSecondary} />
+                            )}
+                          </TouchableOpacity>
+                        )
+                      })
+                    ) : (
+                      <View style={localStyles.assignmentEmptyState}>
+                        <Text style={localStyles.assignmentEmptyStateTitle}>
+                          Nenhum cliente encontrado
+                        </Text>
+                        <Text style={localStyles.assignmentEmptyStateText}>
+                          Use o cadastro rapido para criar e vincular um novo cliente.
+                        </Text>
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={openCustomerCreateModal}
+                      disabled={!!customerLinkingId}
+                      style={localStyles.assignmentQuickActionCard}
+                    >
+                      <View style={localStyles.assignmentQuickActionHeader}>
+                        <Icon name="person-add" size={18} color={ppcColors.accentInfo} />
+                        <Text style={localStyles.assignmentQuickActionTitle}>
+                          Cadastro rapido de cliente
+                        </Text>
+                      </View>
+                      <Text style={localStyles.assignmentQuickActionText}>
+                        Abre o cadastro compartilhado de clientes do CRM e vincula o resultado neste pedido.
+                      </Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+
+                  <View style={localStyles.deliveryCodeActions}>
+                    <TouchableOpacity
+                      onPress={closeCustomerModal}
+                      disabled={!!customerLinkingId}
+                      style={[
+                        localStyles.deliveryCodeButton,
+                        localStyles.deliveryCodeButtonSecondary,
+                      ]}
+                    >
+                      <Text style={localStyles.deliveryCodeButtonSecondaryText}>
+                        {global.t?.t('orders', 'button', 'close') || 'Fechar'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
-      </Modal>
-      <AddCompanyModal
-        visible={customerCreateModalVisible}
-        onClose={() => setCustomerCreateModalVisible(false)}
-        context={{ context: 'client' }}
-        onSuccess={savedCustomer => {
-          void handleCustomerCreated(savedCustomer)
-        }}
-      />
-      <Modal
-        transparent
-        animationType="slide"
-        visible={addressModalVisible}
-        onRequestClose={closeAddressModal}
-        statusBarTranslucent
-        presentationStyle="overFullScreen"
-      >
+          </Modal>
+          <AddCompanyModal
+            visible={customerCreateModalVisible}
+            onClose={() => setCustomerCreateModalVisible(false)}
+            context={{ context: 'client' }}
+            onSuccess={savedCustomer => {
+              void handleCustomerCreated(savedCustomer)
+            }}
+          />
+          <Modal
+            transparent
+            animationType="slide"
+            visible={addressModalVisible}
+            onRequestClose={closeAddressModal}
+            statusBarTranslucent
+            presentationStyle="overFullScreen"
+          >
         <View style={localStyles.modalSheetRoot}>
           <TouchableOpacity
             activeOpacity={1}
@@ -3171,6 +3305,8 @@ const OrderDetails = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+        </>
+      )}
       <OrderSummaryModal
         visible={detailsModalVisible}
         onClose={closeDetailsModal}
