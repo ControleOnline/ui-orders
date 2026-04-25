@@ -400,7 +400,7 @@ const Checkout = () => {
   const resetToKioskCatalog = useCallback(() => {
     navigation.reset({
       index: 0,
-      routes: [{name: 'AddProductScreen', params: {forceCreate: true}}],
+      routes: [{name: 'AddProductScreen'}],
     });
   }, [navigation]);
 

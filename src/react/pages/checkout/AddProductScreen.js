@@ -1,11 +1,9 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef} from 'react';
 import {useStore} from '@store';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
-import TotemProducts from '@controleonline/ui-orders/src/react/pages/checkout/TotemProducts';
-import {env} from '@env';
 
 const CheckoutContent = ({navigation, route: routeProp}) => {
   const currentRoute = useRoute();
@@ -24,17 +22,13 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     order?.id ||
     order?.['@id'] ||
     null;
-  const {activeOrder, ensureActiveOrder, loadStoredDraftOrder} = usePosCartSession({
+  const {loadStoredDraftOrder} = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
   });
-
-  const [forceCreate, setForceCreate] = useState(
-    route.params?.forceCreate || false,
-  );
-
-  const Component = env.APP_TYPE === 'TOTEM' ? TotemProducts : Categories;
+  const isLoadingStoredOrderRef = useRef(false);
+  const Component = Categories;
 
   useEffect(() => {
     return () => {
@@ -44,25 +38,26 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (currentOrderId) return undefined;
-      void loadStoredDraftOrder()
-    }, [currentOrderId, loadStoredDraftOrder]),
-  )
+      if (currentOrderId || isLoadingStoredOrderRef.current || !currentCompany?.id) {
+        return undefined;
+      }
 
-  useFocusEffect(
-    useCallback(() => {
-      if (forceCreate && !currentOrderId) {
-        setForceCreate(false)
-        void ensureActiveOrder()
-      }
-    }, [currentOrderId, ensureActiveOrder, forceCreate]),
-  );
-  useFocusEffect(
-    useCallback(() => {
-      if (currentCompany && !activeOrder && !currentOrderId) {
-        setForceCreate(true);
-      }
-    }, [activeOrder, currentCompany, currentOrderId]),
+      isLoadingStoredOrderRef.current = true;
+
+      void (async () => {
+        try {
+          await loadStoredDraftOrder();
+        } finally {
+          isLoadingStoredOrderRef.current = false;
+        }
+      })();
+
+      return undefined;
+    }, [
+      currentCompany?.id,
+      currentOrderId,
+      loadStoredDraftOrder,
+    ]),
   );
 
   return <Component navigation={navigation} route={route} />;

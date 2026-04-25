@@ -4,27 +4,24 @@ import {useStore} from '@store';
 import {api} from '@controleonline/ui-common/src/api';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
 import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
+import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization';
 
 const SCAN_IDLE_TIMEOUT_MS = 90;
 const SCAN_MIN_LENGTH = 4;
 const SCAN_MAX_TOTAL_MS = 700;
 const SCAN_MAX_AVERAGE_INTERVAL_MS = 70;
 
-const normalizeOrderId = order =>
-  String(order?.id || order?.['@id'] || '')
-    .replace(/\D+/g, '')
-    .trim();
-
 const normalizeProductId = product =>
   String(product?.id || product?.['@id'] || '')
     .replace(/\D+/g, '')
     .trim();
 
-const PosKioskBarcodeListener = ({enabled = false}) => {
-  const ordersStore = useStore('orders');
-  const {item: order} = ordersStore.getters;
-  const ordersActions = ordersStore.actions;
-
+const PosKioskBarcodeListener = ({
+  enabled = false,
+  currentRouteName = '',
+  interactionParams = {},
+  navigation = null,
+}) => {
   const peopleStore = useStore('people');
   const {currentCompany} = peopleStore.getters;
 
@@ -33,7 +30,10 @@ const PosKioskBarcodeListener = ({enabled = false}) => {
 
   const {showToast} = useMessage();
   const isKioskMode = useMemo(() => isPosKioskMode(device?.configs), [device?.configs]);
-  const orderId = useMemo(() => normalizeOrderId(order), [order]);
+  const {materializeOrderWithProducts, openOrderDetails} = usePosOrderMaterialization({
+    interactionParams,
+    navigation,
+  });
 
   const bufferRef = useRef('');
   const startedAtRef = useRef(0);
@@ -52,7 +52,7 @@ const PosKioskBarcodeListener = ({enabled = false}) => {
 
   const enqueueProductByBarcode = useCallback(
     async scannedCode => {
-      if (!currentCompany?.id || !orderId) {
+      if (!currentCompany?.id) {
         return;
       }
 
@@ -67,9 +67,17 @@ const PosKioskBarcodeListener = ({enabled = false}) => {
           throw new Error('Produto nao encontrado para o codigo informado.');
         }
 
-        ordersActions.executeQueue(() =>
-          ordersActions.addProducts(orderId, [{product: productId, quantity: 1}]),
-        );
+        const updatedOrder = await materializeOrderWithProducts({
+          products: [{product: productId, quantity: 1}],
+        });
+
+        if (!updatedOrder) {
+          throw new Error('Nao foi possivel preparar o pedido para conferencia.');
+        }
+
+        if (currentRouteName !== 'OrderDetails') {
+          openOrderDetails(updatedOrder);
+        }
       } catch (error) {
         showToast(
           error?.message || 'Nao foi possivel adicionar o produto pelo codigo de barras.',
@@ -77,7 +85,13 @@ const PosKioskBarcodeListener = ({enabled = false}) => {
         );
       }
     },
-    [currentCompany?.id, orderId, ordersActions, showToast],
+    [
+      currentCompany?.id,
+      currentRouteName,
+      materializeOrderWithProducts,
+      openOrderDetails,
+      showToast,
+    ],
   );
 
   const finalizeBufferedScan = useCallback(() => {

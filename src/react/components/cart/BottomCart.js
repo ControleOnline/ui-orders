@@ -1,15 +1,21 @@
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
 import {useStore} from '@store';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
 import {
-  buildManagerPdvRouteParams,
-  buildOrderDetailsRouteParams,
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
+import {
+  ADD_PRODUCT_SELECTION_CHANGE_EVENT,
+  listPendingAddProducts,
+} from '@controleonline/ui-orders/src/react/utils/addProductSession';
+import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
+import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
+import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization';
 import Icon from 'react-native-vector-icons/Feather';
+import {env} from '@env';
 import createStyles from './BottomCart.styles';
 
 const BottomCart = ({
@@ -23,11 +29,17 @@ const BottomCart = ({
 }) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
+  const ordersActions = ordersStore.actions;
   const {item: order} = ordersGetters;
   const themeStore = useStore('theme');
   const themeColors = themeStore?.getters?.colors || {};
   const navigation = useNavigation();
   const route = useRoute();
+  const {showError} = useMessage() || {};
+  const [isMaterializingOrder, setIsMaterializingOrder] = useState(false);
+  const [pendingSelectionsState, setPendingSelectionsState] = useState(() =>
+    listPendingAddProducts(),
+  );
   const primaryColor = themeColors.primary || '#1B5587';
   const cardBg = themeColors['cart-bottom-bg'] || '#FFFFFF';
   const borderColor = themeColors['cart-bottom-border'] || '#D3DFEC';
@@ -48,34 +60,72 @@ const BottomCart = ({
       }),
     [primaryColor, cardBg, borderColor, totalCardBg, labelColor, textColor],
   );
+  const isPosApp = String(env.APP_TYPE || '').trim().toUpperCase() === 'POS';
+  const isPdvMode = isPosApp || isPdvRouteContext(route?.params);
+  const pendingSelections = pendingSelectionsState;
+  const hasPendingSelections = pendingSelections.length > 0;
+  const {materializeOrderWithProducts, openOrderDetails} = usePosOrderMaterialization({
+    interactionParams: route?.params,
+    navigation,
+  });
+
+  useEffect(() => {
+    const syncPendingSelections = () => {
+      setPendingSelectionsState(listPendingAddProducts());
+    };
+
+    eventBus.on(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
+    return () => eventBus.off(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
+  }, []);
 
   const handleDefaultAction = useCallback(item => {
-    ordersStore.actions.syncOrder?.(item);
-    const shouldKeepPdvMode = isPdvRouteContext(route?.params);
-    navigation.navigate(
-      'OrderDetails',
-      buildOrderDetailsRouteParams(
-        item,
-        shouldKeepPdvMode
-          ? buildManagerPdvRouteParams({showBottomCart: false})
-          : {},
-      ),
-    );
-  }, [navigation, ordersStore.actions, route?.params]);
+    ordersActions.syncOrder?.(item);
+    openOrderDetails(item);
+  }, [openOrderDetails, ordersActions]);
 
-  const isActionDisabled = !order?.id || !!actionDisabled;
-  const handleActionPress = useCallback(() => {
-    if (!order || isActionDisabled) {
+  const materializePendingSelections = useCallback(async () => {
+    const resolvedOrder = await materializeOrderWithProducts();
+    setPendingSelectionsState([]);
+    return resolvedOrder;
+  }, [materializeOrderWithProducts]);
+
+  const isActionDisabled =
+    !!actionDisabled || isMaterializingOrder || (!order?.id && !hasPendingSelections);
+  const handleActionPress = useCallback(async () => {
+    if (isActionDisabled) {
       return;
     }
 
-    if (typeof onActionPress === 'function') {
-      onActionPress(order);
-      return;
-    }
+    setIsMaterializingOrder(true);
 
-    handleDefaultAction(order);
-  }, [handleDefaultAction, isActionDisabled, onActionPress, order]);
+    try {
+      const resolvedOrder = isPdvMode
+        ? await materializePendingSelections()
+        : order;
+
+      if (!resolvedOrder) {
+        showError?.('Nao foi possivel preparar o pedido para conferencia.');
+        return;
+      }
+
+      if (typeof onActionPress === 'function') {
+        onActionPress(resolvedOrder);
+        return;
+      }
+
+      handleDefaultAction(resolvedOrder);
+    } catch (error) {
+      showError?.(error?.message || 'Nao foi possivel preparar o pedido para conferencia.');
+    } finally {
+      setIsMaterializingOrder(false);
+    }
+  }, [
+    handleDefaultAction,
+    isActionDisabled,
+    materializePendingSelections,
+    onActionPress,
+    showError,
+  ]);
 
   return (
     <>

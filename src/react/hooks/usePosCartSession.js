@@ -24,6 +24,7 @@ const extractCollectionItems = response => {
 }
 
 let posOpenOrderStatusIriCache = null
+const pendingEnsureActiveOrderRequests = new Map()
 
 export const isOpenPosCartOrder = order =>
   String(order?.app || '').trim().toUpperCase() === 'POS' &&
@@ -240,26 +241,44 @@ export default function usePosCartSession({
       return syncActiveOrderState(await normalizeDraftOrderType(activeOrder))
     }
 
-    const storedDraftOrder = await loadStoredDraftOrder()
-    if (storedDraftOrder) {
-      return storedDraftOrder
+    if (storageKey && pendingEnsureActiveOrderRequests.has(storageKey)) {
+      return pendingEnsureActiveOrderRequests.get(storageKey)
     }
 
-    if (!companyId) {
-      throw new Error('Empresa nao disponivel para criar o carrinho POS.')
+    const ensureRequest = (async () => {
+      const storedDraftOrder = await loadStoredDraftOrder()
+      if (storedDraftOrder) {
+        return storedDraftOrder
+      }
+
+      if (!companyId) {
+        throw new Error('Empresa nao disponivel para criar o carrinho POS.')
+      }
+
+      const orderOpenStatusIri = await resolvePosOpenOrderStatusIri(defaultStatusId)
+
+      if (!orderOpenStatusIri) {
+        throw new Error('Nao foi possivel resolver o status open/open do pedido no PDV.')
+      }
+
+      const createdOrder = await ordersActions.save(
+        buildOrderPayload(orderOpenStatusIri, peopleIri, null, DRAFT_SALE_ORDER_TYPE),
+      )
+
+      return syncActiveOrderState(createdOrder)
+    })()
+
+    if (storageKey) {
+      pendingEnsureActiveOrderRequests.set(storageKey, ensureRequest)
     }
 
-    const orderOpenStatusIri = await resolvePosOpenOrderStatusIri(defaultStatusId)
-
-    if (!orderOpenStatusIri) {
-      throw new Error('Nao foi possivel resolver o status open/open do pedido no PDV.')
+    try {
+      return await ensureRequest
+    } finally {
+      if (storageKey) {
+        pendingEnsureActiveOrderRequests.delete(storageKey)
+      }
     }
-
-    const createdOrder = await ordersActions.save(
-      buildOrderPayload(orderOpenStatusIri, peopleIri, null, DRAFT_SALE_ORDER_TYPE),
-    )
-
-    return syncActiveOrderState(createdOrder)
   }, [
     activeOrder,
     buildOrderPayload,
@@ -268,6 +287,7 @@ export default function usePosCartSession({
     loadStoredDraftOrder,
     normalizeDraftOrderType,
     ordersActions,
+    storageKey,
     syncActiveOrderState,
   ])
 

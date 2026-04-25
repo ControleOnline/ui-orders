@@ -1,7 +1,6 @@
-import React, {useCallback} from 'react';
+import React from 'react';
 import { TouchableOpacity, View, FlatList, ActivityIndicator } from 'react-native';
 import {Text} from 'react-native-animatable';
-import {useFocusEffect} from '@react-navigation/native';
 import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
@@ -39,17 +38,6 @@ export default function HomePage({navigation}) {
       navigation.navigate('OrderHistoryPage');
     }
   };
-
-  useFocusEffect(
-    useCallback(() => {
-      if (isKioskMode) {
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'AddProductScreen', params: {forceCreate: true}}],
-        });
-      }
-    }, [isKioskMode, navigation]),
-  );
 
   const getCheckButtonConfig = () => {
     let icon = 'shopping-cart';
