@@ -1,10 +1,11 @@
-import React, {useState, useCallback} from 'react';
+import React, {useCallback} from 'react';
 import { TouchableOpacity, View, FlatList, ActivityIndicator } from 'react-native';
 import {Text} from 'react-native-animatable';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import styles from './index.styles';
 
 export default function HomePage({navigation}) {
@@ -17,7 +18,7 @@ export default function HomePage({navigation}) {
   const {item: device} = deviceConfigGetters;
   const {colors} = getters;
   const {currentCompany} = peopleGetters;
-  const [posType, setPosType] = useState(null);
+  const isKioskMode = isPosKioskMode(device?.configs);
 
   const checkType = device?.configs?.['check-type'] || 'manual';
 
@@ -41,9 +42,13 @@ export default function HomePage({navigation}) {
 
   useFocusEffect(
     useCallback(() => {
-      if (device?.configs && Object.keys(device.configs).length > 0)
-        setPosType(device.configs['pos-type'] || 'full');
-    }, [device]),
+      if (isKioskMode) {
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'AddProductScreen', params: {forceCreate: true}}],
+        });
+      }
+    }, [isKioskMode, navigation]),
   );
 
   const getCheckButtonConfig = () => {
@@ -105,6 +110,7 @@ export default function HomePage({navigation}) {
   );
 
   if (
+    isKioskMode ||
     !device.configs ||
     !currentCompany ||
     Object.entries(currentCompany).length === 0 ||

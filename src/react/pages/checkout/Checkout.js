@@ -20,6 +20,7 @@ import {
   getOrderRouteId,
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
+import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
@@ -295,6 +296,7 @@ const Checkout = () => {
     () => isPdvRouteContext(route?.params),
     [route?.params],
   );
+  const isKioskMode = useMemo(() => isPosKioskMode(device?.configs), [device?.configs]);
   const canUseLocalOperationalPayment = useMemo(
     () =>
       !isManagerApp &&
@@ -395,6 +397,12 @@ const Checkout = () => {
       ),
     [isPdvInteractionMode],
   );
+  const resetToKioskCatalog = useCallback(() => {
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'AddProductScreen', params: {forceCreate: true}}],
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (!routeOrderId || typeof route.params?.order !== 'object') {
@@ -761,15 +769,28 @@ const Checkout = () => {
             invoiceActions.setItems([]);
             ordersActions.setPayable(0);
             printActions.setReload(true);
-            navigation.navigate('OrderHistoryPage');
+            if (isKioskMode) {
+              resetToKioskCatalog();
+            } else {
+              navigation.navigate('OrderHistoryPage');
+            }
           }
         } else {
+          const nextPayable = Number(payable || 0) + Number(createdInvoice.price || 0);
           appendInvoiceToStore(createdInvoice);
-          ordersActions.syncOrder?.(order);
-          navigation.navigate(
-            'OrderDetails',
-            buildOrderDetailsNavigationParams(order),
-          );
+          if (isKioskMode && nextPayable >= 0) {
+            ordersActions.setItem(null);
+            invoiceActions.setItems([]);
+            ordersActions.setPayable(0);
+            printActions.setReload(true);
+            resetToKioskCatalog();
+          } else {
+            ordersActions.syncOrder?.(order);
+            navigation.navigate(
+              'OrderDetails',
+              buildOrderDetailsNavigationParams(order),
+            );
+          }
         }
 
         return createdInvoice;
@@ -790,11 +811,13 @@ const Checkout = () => {
       defaultCompany?.configs,
       device?.configs,
       invoiceActions,
+      isKioskMode,
       navigation,
       order,
       ordersActions,
       payable,
       printActions,
+      resetToKioskCatalog,
     ],
   );
 
