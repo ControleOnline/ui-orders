@@ -58,6 +58,7 @@ import {
   getOrderRouteId,
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
+import { resolveMarketplaceAppLabel } from '@controleonline/ui-orders/src/react/utils/orderIdentity'
 import { env } from '@env'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
@@ -1107,8 +1108,6 @@ const OrderDetails = ({ route, navigation }) => {
     ),
     [effectiveLocalRealStatusKey, item?.status?.realStatus],
   )
-  const orderStatusLabel =
-    translatedLocalStatusLabel || translatedLocalRealStatusLabel
   const resolvedDisplayOrder = useMemo(() => {
     const baseOrder = item || orderParam
     if (!baseOrder) return null
@@ -1813,6 +1812,48 @@ const OrderDetails = ({ route, navigation }) => {
       orderDiscountTotal,
     ],
   )
+  const orderAppLabel = useMemo(() => {
+    const resolvedApp = resolveMarketplaceAppLabel(item || orderParam)
+    if (resolvedApp) {
+      return resolvedApp
+    }
+
+    return String(env.APP_TYPE || '').trim().toUpperCase()
+  }, [item, orderParam])
+  const compactOrderSummaryItems = useMemo(
+    () => [
+      {
+        key: 'created-at',
+        label: global.t?.t('orders', 'label', 'createdAt') || 'Criado',
+        value: orderDateLabel || '-',
+      },
+      {
+        key: 'status',
+        label: global.t?.t('orders', 'label', 'localStatus') || 'Status',
+        value: translatedLocalStatusLabel || '-',
+      },
+      {
+        key: 'total',
+        label: global.t?.t('orders', 'label', 'localTotal') || 'Total',
+        value: Formatter.formatMoney(localOrderTotal || 0),
+      },
+      {
+        key: 'pending',
+        label: global.t?.t('orders', 'label', 'pending') || 'Pendente',
+        value:
+          localPendingAmount > 0.009
+            ? Formatter.formatMoney(localPendingAmount)
+            : (global.t?.t('orders', 'label', 'paid') || 'Pago'),
+        accent: localPendingAmount > 0.009 ? 'warning' : 'success',
+      },
+    ],
+    [
+      localOrderTotal,
+      localPendingAmount,
+      orderDateLabel,
+      translatedLocalStatusLabel,
+    ],
+  )
   const isGenericLocalOrder = true
   const isOpenLocalWorkflowState = effectiveLocalRealStatusKey === 'open'
   const isPendingLocalWorkflowState = effectiveLocalRealStatusKey === 'pending'
@@ -2250,31 +2291,26 @@ const OrderDetails = ({ route, navigation }) => {
               primaryTextStyle={localStyles.topBarTitleText}
               secondaryTextStyle={localStyles.topBarTitleIdentitySecondary}
             />
-            {(!!orderDateLabel || !!orderStatusLabel) && (
+            {!!orderAppLabel && (
               <View style={localStyles.topBarTitleMetaWrap}>
-                {!!orderDateLabel && (
-                  <Text style={localStyles.topBarTitleSubText}>{orderDateLabel}</Text>
-                )}
-                {!!orderStatusLabel && (
-                  <View
+                <View
+                  style={[
+                    localStyles.topBarAppBadge,
+                    {
+                      borderColor: withOpacity(ppcColors.accentInfo, 0.34),
+                      backgroundColor: withOpacity(ppcColors.accentInfo, 0.12),
+                    },
+                  ]}
+                >
+                  <Text
                     style={[
-                      localStyles.topBarStatusBadge,
-                      {
-                        borderColor: withOpacity(displayOrderStatusColor, 0.34),
-                        backgroundColor: withOpacity(displayOrderStatusColor, 0.12),
-                      },
+                      localStyles.topBarAppText,
+                      { color: ppcColors.accentInfo },
                     ]}
                   >
-                    <Text
-                      style={[
-                        localStyles.topBarStatusText,
-                        { color: displayOrderStatusColor },
-                      ]}
-                    >
-                      {orderStatusLabel}
-                    </Text>
-                  </View>
-                )}
+                    {orderAppLabel}
+                  </Text>
+                </View>
               </View>
             )}
           </View>
@@ -2347,17 +2383,16 @@ const OrderDetails = ({ route, navigation }) => {
     localStyles.topBarTitleContent,
     localStyles.topBarTitleIdentitySecondary,
     localStyles.topBarIconButton,
+    localStyles.topBarAppBadge,
+    localStyles.topBarAppText,
     localStyles.topBarTitleMain,
     localStyles.topBarTitleMetaWrap,
-    localStyles.topBarTitleSubText,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,
     marketplaceSummary.summary,
     navigation,
-    displayOrderStatusColor,
-    orderDateLabel,
+    orderAppLabel,
     orderIdentitySource,
-    orderStatusLabel,
     ppcColors.accentInfo,
     selectedDisplay,
     shouldHideBottomToolBar,
@@ -2570,7 +2605,7 @@ const OrderDetails = ({ route, navigation }) => {
           {
             key: 'application',
             label: global.t?.t('orders', 'label', 'application'),
-            value: item?.app || '-',
+            value: orderAppLabel || '-',
           },
           {
             key: 'local-status',
@@ -2662,12 +2697,12 @@ const OrderDetails = ({ route, navigation }) => {
   }, [
     formatOrderDateTime,
     item?.alterDate,
-    item?.app,
     localInvoiceCards.length,
     localOrderAddressParts,
     localOrderTotal,
     marketplaceSummary.summary,
     modalDetailsTabs,
+    orderAppLabel,
     orderCustomerDocument,
     orderCustomerDocumentLabel,
     orderCustomerName,
@@ -2874,6 +2909,39 @@ const OrderDetails = ({ route, navigation }) => {
           )}
         </View>
       )}
+
+      <View style={localStyles.mobileCompactSummaryCard}>
+        <View style={localStyles.mobileCompactSummaryGrid}>
+          {compactOrderSummaryItems.map(summaryItem => (
+            <View
+              key={summaryItem.key}
+              style={[
+                localStyles.mobileCompactSummaryItem,
+                summaryItem.accent === 'warning' &&
+                  localStyles.mobileCompactSummaryItemWarning,
+                summaryItem.accent === 'success' &&
+                  localStyles.mobileCompactSummaryItemSuccess,
+              ]}
+            >
+              <Text style={localStyles.mobileCompactSummaryLabel}>
+                {summaryItem.label}
+              </Text>
+              <Text
+                style={[
+                  localStyles.mobileCompactSummaryValue,
+                  summaryItem.accent === 'warning' &&
+                    localStyles.mobileCompactSummaryValueWarning,
+                  summaryItem.accent === 'success' &&
+                    localStyles.mobileCompactSummaryValueSuccess,
+                ]}
+                numberOfLines={2}
+              >
+                {summaryItem.value}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
 
       <View style={localStyles.mobileInfoCard}>
         <OrderSectionTabs
@@ -3445,7 +3513,12 @@ const OrderDetails = ({ route, navigation }) => {
               actionIcon="credit-card"
               actionDisabled={!canAddOrderPayment}
               collapsePayableWhenPaid={false}
+              paymentPendingAmount={localPendingAmount}
+              paymentPendingLabel={global.t?.t('orders', 'label', 'pending') || 'Pendente'}
+              paymentPaidLabel={global.t?.t('orders', 'label', 'paid') || 'Paga'}
               onActionPress={handleAddPayment}
+              showPayableBadge={false}
+              variant="payment-status"
             />
           )}
 

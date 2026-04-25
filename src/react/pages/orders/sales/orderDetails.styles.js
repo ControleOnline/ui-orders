@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native'
+import { withOpacity } from '@controleonline/../../src/styles/branding'
 
 const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => {
   const isCompactMobile = windowWidth < 360
@@ -45,7 +46,7 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       alignItems: 'flex-start',
     },
     topBarTitleMetaWrap: {
-      minWidth: isUltraCompactMobile ? 76 : isCompactMobile ? 92 : 120,
+      minWidth: isUltraCompactMobile ? 58 : isCompactMobile ? 72 : 88,
       alignItems: 'flex-end',
       justifyContent: 'flex-start',
       paddingTop: isCompactMobile ? 0 : 2,
@@ -63,13 +64,19 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       fontWeight: '800',
       lineHeight: isCompactMobile ? 13 : 14,
     },
-    topBarTitleSubText: {
-      marginTop: 0,
-      color: palette.textSecondary,
+    topBarAppBadge: {
+      marginTop: 2,
+      alignSelf: 'flex-end',
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: isCompactMobile ? 7 : 9,
+      paddingVertical: isCompactMobile ? 2 : 3,
+    },
+    topBarAppText: {
       fontSize: isCompactMobile ? 10 : 11,
-      fontWeight: '700',
-      lineHeight: isCompactMobile ? 13 : 14,
-      textAlign: 'right',
+      fontWeight: '900',
+      letterSpacing: 0.25,
+      textTransform: 'uppercase',
     },
     topBarStatusBadge: {
       marginTop: 4,
@@ -90,6 +97,57 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
     },
     mobileOrderLayout: {
       gap: isCompactMobile ? 8 : 10,
+    },
+    mobileCompactSummaryCard: {
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: palette.borderSoft,
+      backgroundColor: palette.cardBg,
+      paddingHorizontal: isCompactMobile ? 10 : 12,
+      paddingVertical: isCompactMobile ? 9 : 10,
+    },
+    mobileCompactSummaryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: isCompactMobile ? 6 : 8,
+    },
+    mobileCompactSummaryItem: {
+      flexGrow: 1,
+      minWidth: isUltraCompactMobile ? 108 : 122,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.cardBgSoft,
+      paddingHorizontal: isCompactMobile ? 9 : 10,
+      paddingVertical: isCompactMobile ? 7 : 8,
+      gap: 3,
+    },
+    mobileCompactSummaryItemWarning: {
+      borderColor: palette.accent,
+      backgroundColor: withOpacity(palette.accent, 0.08),
+    },
+    mobileCompactSummaryItemSuccess: {
+      borderColor: palette.success,
+      backgroundColor: withOpacity(palette.success, 0.08),
+    },
+    mobileCompactSummaryLabel: {
+      color: palette.textSecondary,
+      fontSize: isCompactMobile ? 10 : 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.45,
+    },
+    mobileCompactSummaryValue: {
+      color: palette.textPrimary,
+      fontSize: isCompactMobile ? 12 : 13,
+      fontWeight: '800',
+      lineHeight: isCompactMobile ? 16 : 17,
+    },
+    mobileCompactSummaryValueWarning: {
+      color: palette.accent,
+    },
+    mobileCompactSummaryValueSuccess: {
+      color: palette.success,
     },
     mobileSummaryCard: {
       borderRadius: 18,

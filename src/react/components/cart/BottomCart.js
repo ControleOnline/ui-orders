@@ -4,6 +4,7 @@ import {useStore} from '@store';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
 import OrderTotalToolbar from '@controleonline/ui-orders/src/react/components/OrderTotalToolbar';
+import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
@@ -26,6 +27,11 @@ const BottomCart = ({
   onActionPress,
   collapsePayableWhenPaid = true,
   showActionButton = true,
+  showPayableBadge = true,
+  variant = 'default',
+  paymentPendingAmount = 0,
+  paymentPendingLabel,
+  paymentPaidLabel = 'Paga',
 }) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
@@ -47,9 +53,18 @@ const BottomCart = ({
   const totalCardBg = themeColors['cart-bottom-total-bg'] || '#F8FBFF';
   const labelColor = themeColors['cart-bottom-label'] || '#64748B';
   const textColor = themeColors['cart-bottom-text'] || '#0F172A';
+  const successColor = themeColors.success || '#16A34A';
+  const warningColor = '#D97706';
   const isCompact = width < 360;
   const isUltraCompact = width < 330;
-  const cartHeight = isCompact ? 58 : 64;
+  const isPaymentStatusVariant = variant === 'payment-status';
+  const resolvedPendingAmount = Math.max(Number(paymentPendingAmount || 0), 0);
+  const hasPendingPayment = resolvedPendingAmount > 0.009;
+  const shouldShowActionButton = showActionButton && (!isPaymentStatusVariant || hasPendingPayment);
+  const isPaidStateBar = isPaymentStatusVariant && !hasPendingPayment;
+  const cartHeight = isPaidStateBar
+    ? (isCompact ? 34 : 38)
+    : (isCompact ? 58 : 64);
 
   const styles = useMemo(
     () =>
@@ -60,6 +75,8 @@ const BottomCart = ({
         totalCardBg,
         labelColor,
         textColor,
+        successColor,
+        warningColor,
         compact: isCompact,
         ultraCompact: isUltraCompact,
       }),
@@ -70,6 +87,8 @@ const BottomCart = ({
       totalCardBg,
       labelColor,
       textColor,
+      successColor,
+      warningColor,
       isCompact,
       isUltraCompact,
     ],
@@ -143,34 +162,80 @@ const BottomCart = ({
 
   return (
     <>
-      <PayableToolbar
-        bottomOffset={bottomOffset}
-        cartHeight={cartHeight + (isCompact ? 8 : 10)}
-        collapseWhenPaid={collapsePayableWhenPaid}
-      />
-      <View
-        style={[
-          styles.toolbar,
-          {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
-        ]}
-      >
-        <View style={styles.totalWrap}>
-          <Text style={styles.totalLabel}>{global.t?.t('orders', 'label', 'orderTotal')}</Text>
-          <OrderTotalToolbar />
+      {showPayableBadge && (
+        <PayableToolbar
+          bottomOffset={bottomOffset}
+          cartHeight={cartHeight + (isCompact ? 8 : 10)}
+          collapseWhenPaid={collapsePayableWhenPaid}
+        />
+      )}
+      {isPaidStateBar ? (
+        <View
+          style={[
+            styles.paidToolbar,
+            {bottom: bottomOffset + (isCompact ? 6 : 8)},
+          ]}
+        >
+          <Icon color={successColor} name="check-circle" size={isCompact ? 14 : 15} />
+          <Text style={styles.paidToolbarText}>{paymentPaidLabel}</Text>
         </View>
-        {showActionButton && (
-          <TouchableOpacity
-            disabled={isActionDisabled}
-            onPress={handleActionPress}
-            style={[
-              styles.checkoutButton,
-              isActionDisabled && styles.checkoutButtonDisabled,
-            ]}>
-            <Icon color="#fff" name={actionIcon} size={isCompact ? 15 : 16} />
-            <Text style={styles.checkoutButtonText}>{actionLabel}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      ) : (
+        <View
+          style={[
+            styles.toolbar,
+            {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+          ]}
+        >
+          {isPaymentStatusVariant ? (
+            <View
+              style={[
+                styles.paymentSummaryWrap,
+                hasPendingPayment
+                  ? styles.paymentSummaryPending
+                  : styles.paymentSummaryPaid,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.paymentSummaryLabel,
+                  {color: hasPendingPayment ? warningColor : successColor},
+                ]}
+              >
+                {hasPendingPayment
+                  ? (paymentPendingLabel || global.t?.t('orders', 'label', 'pending') || 'Pendente')
+                  : paymentPaidLabel}
+              </Text>
+              {hasPendingPayment && (
+                <Text
+                  style={[
+                    styles.paymentSummaryValue,
+                    {color: warningColor},
+                  ]}
+                >
+                  {Formatter.formatMoney(resolvedPendingAmount)}
+                </Text>
+              )}
+            </View>
+          ) : (
+            <View style={styles.totalWrap}>
+              <Text style={styles.totalLabel}>{global.t?.t('orders', 'label', 'orderTotal')}</Text>
+              <OrderTotalToolbar />
+            </View>
+          )}
+          {shouldShowActionButton && (
+            <TouchableOpacity
+              disabled={isActionDisabled}
+              onPress={handleActionPress}
+              style={[
+                styles.checkoutButton,
+                isActionDisabled && styles.checkoutButtonDisabled,
+              ]}>
+              <Icon color="#fff" name={actionIcon} size={isCompact ? 15 : 16} />
+              <Text style={styles.checkoutButtonText}>{actionLabel}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </>
   );
 };
