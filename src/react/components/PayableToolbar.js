@@ -1,5 +1,5 @@
 import React, {useCallback, useState, useEffect, useMemo} from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, useWindowDimensions } from 'react-native';
 import {useStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
@@ -23,6 +23,7 @@ const PayableToolbar = ({
   const invoiceGetters = invoiceStore.getters;
   const {isLoading, items: invoices} = invoiceGetters;
   const {items: orders, item: order, payable} = ordersGetters;
+  const {width} = useWindowDimensions();
   const safeOrders = useMemo(
     () => (Array.isArray(orders) ? orders : []),
     [orders],
@@ -32,6 +33,8 @@ const PayableToolbar = ({
   const primaryColor = colors.primary || '#1B5587';
   const dangerColor = colors['danger'] || '#DC2626';
   const successColor = colors['success'] || '#16A34A';
+  const isCompact = width < 360;
+  const isUltraCompact = width < 330;
   const food99Summary = useMemo(() => buildFood99OrderSummary(order), [order]);
   const resolvedPrice = Number.isFinite(Number(food99Summary?.financial?.customerTotal))
     ? Number(food99Summary.financial.customerTotal)
@@ -42,8 +45,10 @@ const PayableToolbar = ({
         primaryColor,
         dangerColor,
         successColor,
+        compact: isCompact,
+        ultraCompact: isUltraCompact,
       }),
-    [primaryColor, dangerColor, successColor],
+    [primaryColor, dangerColor, successColor, isCompact, isUltraCompact],
   );
 
   useFocusEffect(
@@ -101,7 +106,7 @@ const PayableToolbar = ({
 
   const payableValue = Number.isFinite(Number(payable)) ? Number(payable) : 0;
   const isDebt = payableValue < 0;
-  const statusText = isDebt ? 'Saldo devedor' : 'Pago';
+  const statusText = isDebt ? (isUltraCompact ? 'Devedor' : 'Saldo devedor') : 'Pago';
   const amountText = isDebt
     ? Formatter.formatMoney(payableValue)
     : Formatter.formatMoney(payableValue + parseFloat(price || 0));
@@ -113,8 +118,8 @@ const PayableToolbar = ({
       {
         bottom:
           collapseWhenPaid && payable != undefined && payable == 0
-            ? bottomOffset + 8
-            : cartHeight + bottomOffset + 12,
+            ? bottomOffset + (isCompact ? 6 : 8)
+            : cartHeight + bottomOffset + (isCompact ? 8 : 12),
       },
     ]}>
     {isLoading ? (

@@ -278,10 +278,6 @@ const OrderItemsTab = ({
             )}
           </View>
 
-          <Text style={localStyles.detailsProductSearchHelper}>
-            Pesquise por nome ou SKU e toque no produto para adicionar ao pedido.
-          </Text>
-
           {String(productSearchText || '').trim().length >= 2 && (
             <View style={localStyles.detailsProductSearchResults}>
               {Array.isArray(productSearchResults) && productSearchResults.length > 0 ? (

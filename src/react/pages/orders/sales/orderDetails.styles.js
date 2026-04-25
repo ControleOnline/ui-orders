@@ -1,17 +1,21 @@
 import { StyleSheet } from 'react-native'
 
-const createStyles = (scale, palette, windowHeight = 800) =>
+const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => {
+  const isCompactMobile = windowWidth < 360
+  const isUltraCompactMobile = windowWidth < 330
+
+  return (
   StyleSheet.create({
     topBarActions: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      marginRight: 6,
+      gap: isCompactMobile ? 6 : 8,
+      marginRight: isCompactMobile ? 0 : 6,
     },
     topBarIconButton: {
-      width: 34,
-      height: 34,
-      borderRadius: 10,
+      width: isCompactMobile ? 30 : 34,
+      height: isCompactMobile ? 30 : 34,
+      borderRadius: isCompactMobile ? 9 : 10,
       borderWidth: 1,
       borderColor: palette.borderSoft,
       backgroundColor: palette.cardBg,
@@ -33,7 +37,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
-      gap: 12,
+      gap: isCompactMobile ? 8 : 12,
     },
     topBarTitleMain: {
       flex: 1,
@@ -41,30 +45,30 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       alignItems: 'flex-start',
     },
     topBarTitleMetaWrap: {
-      minWidth: 120,
+      minWidth: isUltraCompactMobile ? 76 : isCompactMobile ? 92 : 120,
       alignItems: 'flex-end',
       justifyContent: 'flex-start',
-      paddingTop: 2,
+      paddingTop: isCompactMobile ? 0 : 2,
     },
     topBarTitleText: {
       color: palette.textPrimary,
-      fontSize: 23 * scale,
+      fontSize: (isCompactMobile ? 20 : 23) * scale,
       fontWeight: '900',
-      lineHeight: 24 * scale,
+      lineHeight: (isCompactMobile ? 21 : 24) * scale,
     },
     topBarTitleIdentitySecondary: {
       marginTop: 2,
       color: palette.textSecondary,
-      fontSize: 11,
+      fontSize: isCompactMobile ? 10 : 11,
       fontWeight: '800',
-      lineHeight: 14,
+      lineHeight: isCompactMobile ? 13 : 14,
     },
     topBarTitleSubText: {
       marginTop: 0,
       color: palette.textSecondary,
-      fontSize: 11,
+      fontSize: isCompactMobile ? 10 : 11,
       fontWeight: '700',
-      lineHeight: 14,
+      lineHeight: isCompactMobile ? 13 : 14,
       textAlign: 'right',
     },
     topBarStatusBadge: {
@@ -72,20 +76,20 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       alignSelf: 'flex-end',
       borderWidth: 1,
       borderRadius: 999,
-      paddingHorizontal: 9,
-      paddingVertical: 3,
+      paddingHorizontal: isCompactMobile ? 7 : 9,
+      paddingVertical: isCompactMobile ? 2 : 3,
     },
     topBarStatusText: {
-      fontSize: 11,
+      fontSize: isCompactMobile ? 10 : 11,
       fontWeight: '800',
       letterSpacing: 0.2,
       textTransform: 'uppercase',
     },
     mobileOrderScrollContent: {
-      paddingBottom: 126,
+      paddingBottom: isCompactMobile ? 138 : 126,
     },
     mobileOrderLayout: {
-      gap: 10,
+      gap: isCompactMobile ? 8 : 10,
     },
     mobileSummaryCard: {
       borderRadius: 18,
@@ -343,9 +347,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       borderWidth: 1,
       borderColor: palette.borderSoft,
       backgroundColor: palette.cardBg,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      gap: 10,
+      paddingHorizontal: isCompactMobile ? 10 : 12,
+      paddingVertical: isCompactMobile ? 10 : 12,
+      gap: isCompactMobile ? 8 : 10,
     },
     mobileInfoHeader: {
       flexDirection: 'row',
@@ -353,9 +357,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       gap: 8,
     },
     mobileInfoIconWrap: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
+      width: isCompactMobile ? 28 : 30,
+      height: isCompactMobile ? 28 : 30,
+      borderRadius: isCompactMobile ? 14 : 15,
       borderWidth: 1,
       borderColor: palette.borderSoft,
       backgroundColor: palette.cardBgSoft,
@@ -367,7 +371,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     mobileInfoLabel: {
       color: palette.textSecondary,
-      fontSize: 10,
+      fontSize: isCompactMobile ? 9 : 10,
       fontWeight: '800',
       textTransform: 'uppercase',
       letterSpacing: 0.7,
@@ -375,14 +379,14 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     mobileInfoTitle: {
       color: palette.textPrimary,
-      fontSize: 21 * scale,
+      fontSize: (isCompactMobile ? 18 : 21) * scale,
       fontWeight: '900',
     },
     mobileInfoSubtitle: {
       color: palette.textSecondary,
-      fontSize: 12,
+      fontSize: isCompactMobile ? 11 : 12,
       fontWeight: '700',
-      lineHeight: 18,
+      lineHeight: isCompactMobile ? 16 : 18,
       marginTop: 2,
     },
     inlineActionRow: {
@@ -393,13 +397,13 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     inlineActionButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: isCompactMobile ? 5 : 6,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 11,
-      paddingVertical: 8,
+      paddingHorizontal: isCompactMobile ? 9 : 11,
+      paddingVertical: isCompactMobile ? 6 : 8,
     },
     inlineActionButtonPrimary: {
       borderColor: palette.accentInfo,
@@ -410,7 +414,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     inlineActionButtonText: {
       color: palette.accentInfo,
-      fontSize: 12,
+      fontSize: isCompactMobile ? 11 : 12,
       fontWeight: '800',
     },
     orderInvoiceBlockHeader: {
@@ -434,9 +438,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 11,
-      paddingVertical: 10,
-      gap: 6,
+      paddingHorizontal: isCompactMobile ? 10 : 11,
+      paddingVertical: isCompactMobile ? 8 : 10,
+      gap: isCompactMobile ? 5 : 6,
     },
     orderInvoiceCardDetails: {
       backgroundColor: palette.cardBg,
@@ -661,8 +665,8 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       borderWidth: 1,
       borderColor: palette.borderSoft,
       backgroundColor: palette.cardBg,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
+      paddingHorizontal: isCompactMobile ? 8 : 10,
+      paddingVertical: isCompactMobile ? 8 : 10,
       marginTop: 4,
       marginBottom: 6,
     },
@@ -731,12 +735,12 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     editQtyRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: isCompactMobile ? 3 : 4,
     },
     editQtyBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
+      width: isCompactMobile ? 30 : 32,
+      height: isCompactMobile ? 30 : 32,
+      borderRadius: isCompactMobile ? 7 : 8,
       borderWidth: 1,
       borderColor: palette.borderSoft,
       alignItems: 'center',
@@ -744,9 +748,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       backgroundColor: palette.cardBgSoft,
     },
     editQtyBox: {
-      minWidth: 38,
-      height: 32,
-      borderRadius: 8,
+      minWidth: isCompactMobile ? 34 : 38,
+      height: isCompactMobile ? 30 : 32,
+      borderRadius: isCompactMobile ? 7 : 8,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: palette.cardBg,
@@ -754,7 +758,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       borderColor: palette.borderSoft,
     },
     editQtyText: {
-      fontSize: 15 * scale,
+      fontSize: (isCompactMobile ? 13 : 15) * scale,
       fontWeight: '900',
       color: palette.textPrimary,
     },
@@ -786,35 +790,35 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     orderProductActionStack: {
       alignItems: 'flex-end',
-      gap: 6,
+      gap: isCompactMobile ? 4 : 6,
     },
     orderProductCustomizeButton: {
-      minWidth: 34,
-      height: 34,
-      borderRadius: 9,
+      minWidth: isCompactMobile ? 30 : 34,
+      height: isCompactMobile ? 30 : 34,
+      borderRadius: isCompactMobile ? 8 : 9,
       borderWidth: 1,
       borderColor: palette.borderSoft,
       backgroundColor: palette.cardBgSoft,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 8,
+      paddingHorizontal: isCompactMobile ? 6 : 8,
     },
     mobileProductItemRow: {
       marginTop: 4,
-      paddingVertical: 9,
-      paddingHorizontal: 10,
+      paddingVertical: isCompactMobile ? 7 : 9,
+      paddingHorizontal: isCompactMobile ? 8 : 10,
       borderLeftWidth: 4,
-      borderRadius: 10,
+      borderRadius: isCompactMobile ? 9 : 10,
       backgroundColor: palette.cardBgSoft,
     },
     mobileProductText: {
       color: palette.textPrimary,
-      fontSize: 16 * scale,
+      fontSize: (isCompactMobile ? 14 : 16) * scale,
       fontWeight: '800',
     },
     mobileProductSubText: {
       color: palette.textSecondary,
-      fontSize: 13 * scale,
+      fontSize: (isCompactMobile ? 12 : 13) * scale,
       fontWeight: '700',
     },
     mobileProductQtyText: {
@@ -838,9 +842,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       gap: 10,
     },
     orderProductThumbWrap: {
-      width: 56,
-      height: 56,
-      borderRadius: 12,
+      width: isCompactMobile ? 48 : 56,
+      height: isCompactMobile ? 48 : 56,
+      borderRadius: isCompactMobile ? 10 : 12,
       overflow: 'hidden',
       backgroundColor: palette.cardBg,
       borderWidth: 1,
@@ -862,7 +866,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     orderProductThumbPlaceholderText: {
       color: palette.textSecondary,
-      fontSize: 18 * scale,
+      fontSize: (isCompactMobile ? 15 : 18) * scale,
       fontWeight: '900',
     },
     orderProductItemContent: {
@@ -870,8 +874,8 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       minWidth: 0,
     },
     orderProductMetaWrap: {
-      marginTop: 6,
-      gap: 4,
+      marginTop: isCompactMobile ? 4 : 6,
+      gap: isCompactMobile ? 3 : 4,
     },
     orderProductQueueBadge: {
       alignSelf: 'flex-start',
@@ -879,9 +883,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       alignItems: 'center',
       borderWidth: 1,
       borderRadius: 999,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      gap: 6,
+      paddingHorizontal: isCompactMobile ? 7 : 8,
+      paddingVertical: isCompactMobile ? 2 : 3,
+      gap: isCompactMobile ? 4 : 6,
     },
     orderProductQueueBadgeDot: {
       width: 7,
@@ -889,7 +893,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       borderRadius: 999,
     },
     orderProductQueueBadgeText: {
-      fontSize: 10 * scale,
+      fontSize: (isCompactMobile ? 9 : 10) * scale,
       fontWeight: '800',
     },
     orderProductItemActions: {
@@ -902,9 +906,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       gap: 10,
     },
     orderProductGroupWrap: {
-      marginTop: 7,
-      paddingLeft: 6,
-      gap: 4,
+      marginTop: isCompactMobile ? 5 : 7,
+      paddingLeft: isCompactMobile ? 4 : 6,
+      gap: isCompactMobile ? 3 : 4,
     },
     orderProductGroupTitlePill: {
       alignSelf: 'flex-start',
@@ -912,7 +916,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       borderWidth: 1,
       borderColor: palette.borderSoft,
       backgroundColor: palette.cardBg,
-      paddingHorizontal: 7,
+      paddingHorizontal: isCompactMobile ? 6 : 7,
       paddingVertical: 2,
       marginBottom: 1,
     },
@@ -948,21 +952,21 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     orderProductGroupItemText: {
       flex: 1,
       color: palette.textPrimary,
-      fontSize: 13 * scale,
+      fontSize: (isCompactMobile ? 12 : 13) * scale,
       fontWeight: '700',
-      lineHeight: 18,
+      lineHeight: isCompactMobile ? 16 : 18,
     },
     orderProductGroupItemMetaText: {
       color: palette.textSecondary,
-      fontSize: 12 * scale,
+      fontSize: (isCompactMobile ? 11 : 12) * scale,
       fontWeight: '600',
-      lineHeight: 17,
+      lineHeight: isCompactMobile ? 15 : 17,
     },
     orderProductGroupItemPriceText: {
       color: palette.textSecondary,
-      fontSize: 12 * scale,
+      fontSize: (isCompactMobile ? 11 : 12) * scale,
       fontWeight: '700',
-      lineHeight: 18,
+      lineHeight: isCompactMobile ? 16 : 18,
     },
     mobileBottomActionsWrap: {
       position: 'absolute',
@@ -971,11 +975,11 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       bottom: 0,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: isCompactMobile ? 6 : 8,
       backgroundColor: palette.panelBg,
-      paddingTop: 8,
-      paddingBottom: 10,
-      paddingHorizontal: 12,
+      paddingTop: isCompactMobile ? 6 : 8,
+      paddingBottom: isCompactMobile ? 8 : 10,
+      paddingHorizontal: isCompactMobile ? 10 : 12,
       borderTopWidth: 1,
       borderTopColor: palette.border,
       shadowColor: '#000',
@@ -985,9 +989,9 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       elevation: 10,
     },
     mobileCancelActionButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 12,
+      width: isCompactMobile ? 44 : 48,
+      height: isCompactMobile ? 44 : 48,
+      borderRadius: isCompactMobile ? 10 : 12,
       borderWidth: 1,
       borderColor: palette.danger,
       backgroundColor: palette.dangerBg,
@@ -996,8 +1000,8 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     mobilePrimaryActionButton: {
       flex: 1,
-      minHeight: 48,
-      borderRadius: 12,
+      minHeight: isCompactMobile ? 44 : 48,
+      borderRadius: isCompactMobile ? 10 : 12,
       borderWidth: 1,
       borderColor: palette.primary,
       backgroundColor: palette.primary,
@@ -1013,7 +1017,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     mobilePrimaryActionText: {
       color: '#FFFFFF',
-      fontSize: 17 * scale,
+      fontSize: (isCompactMobile ? 15 : 17) * scale,
       fontWeight: '900',
       letterSpacing: 0.2,
     },
@@ -1392,16 +1396,18 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     detailsTabsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 8,
-      marginBottom: 12,
+      gap: isCompactMobile ? 6 : 8,
+      marginBottom: isCompactMobile ? 10 : 12,
     },
     detailsTabButton: {
+      flex: isCompactMobile ? 1 : undefined,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: isCompactMobile ? 10 : 12,
+      paddingVertical: isCompactMobile ? 7 : 8,
+      alignItems: 'center',
     },
     detailsTabButtonActive: {
       borderColor: palette.accentInfo,
@@ -1409,7 +1415,7 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     detailsTabButtonText: {
       color: palette.textSecondary,
-      fontSize: 12,
+      fontSize: isCompactMobile ? 11 : 12,
       fontWeight: '800',
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -1421,18 +1427,18 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       width: '100%',
     },
     detailsTabStack: {
-      gap: 12,
+      gap: isCompactMobile ? 10 : 12,
     },
     detailsProductSearchStack: {
-      gap: 8,
+      gap: isCompactMobile ? 6 : 8,
     },
     detailsProductSearchBox: {
       marginBottom: 0,
     },
     detailsProductSearchHelper: {
       color: palette.textSecondary,
-      fontSize: 12,
-      lineHeight: 18,
+      fontSize: isCompactMobile ? 11 : 12,
+      lineHeight: isCompactMobile ? 16 : 18,
       fontWeight: '600',
     },
     detailsProductSearchResults: {
@@ -1644,19 +1650,19 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     assignmentSearchBox: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      borderRadius: 12,
+      gap: isCompactMobile ? 6 : 8,
+      borderRadius: isCompactMobile ? 10 : 12,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 12,
-      minHeight: 48,
-      marginBottom: 14,
+      paddingHorizontal: isCompactMobile ? 10 : 12,
+      minHeight: isCompactMobile ? 42 : 48,
+      marginBottom: isCompactMobile ? 10 : 14,
     },
     assignmentSearchInput: {
       flex: 1,
       color: palette.textPrimary,
-      fontSize: 14,
+      fontSize: isCompactMobile ? 13 : 14,
       paddingVertical: 0,
     },
     assignmentEmptyState: {
@@ -1664,8 +1670,8 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 14,
-      paddingVertical: 14,
+      paddingHorizontal: isCompactMobile ? 12 : 14,
+      paddingVertical: isCompactMobile ? 12 : 14,
       gap: 6,
       marginBottom: 12,
       alignItems: 'flex-start',
@@ -1684,14 +1690,14 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     assignmentOptionCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: isCompactMobile ? 8 : 10,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.cardBgSoft,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 10,
+      paddingHorizontal: isCompactMobile ? 12 : 14,
+      paddingVertical: isCompactMobile ? 10 : 12,
+      marginBottom: isCompactMobile ? 8 : 10,
     },
     assignmentOptionCardSelected: {
       borderColor: palette.accentInfo,
@@ -1703,15 +1709,15 @@ const createStyles = (scale, palette, windowHeight = 800) =>
     },
     assignmentOptionTitle: {
       color: palette.textPrimary,
-      fontSize: 14,
+      fontSize: isCompactMobile ? 13 : 14,
       fontWeight: '800',
-      lineHeight: 19,
+      lineHeight: isCompactMobile ? 18 : 19,
     },
     assignmentOptionMeta: {
       color: palette.textSecondary,
-      fontSize: 12,
+      fontSize: isCompactMobile ? 11 : 12,
       fontWeight: '600',
-      lineHeight: 18,
+      lineHeight: isCompactMobile ? 16 : 18,
     },
     assignmentOptionBadge: {
       color: palette.accentInfo,
@@ -1948,6 +1954,8 @@ const createStyles = (scale, palette, windowHeight = 800) =>
       fontWeight: '800',
     },
   })
+  )
+}
 
 export default createStyles
 

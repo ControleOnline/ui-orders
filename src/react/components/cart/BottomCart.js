@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import { Text, View, TouchableOpacity } from 'react-native';
+import { Text, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import {useStore} from '@store';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import PayableToolbar from '@controleonline/ui-orders/src/react/components/PayableToolbar';
@@ -36,6 +36,7 @@ const BottomCart = ({
   const navigation = useNavigation();
   const route = useRoute();
   const {showError} = useMessage() || {};
+  const {width} = useWindowDimensions();
   const [isMaterializingOrder, setIsMaterializingOrder] = useState(false);
   const [pendingSelectionsState, setPendingSelectionsState] = useState(() =>
     listPendingAddProducts(),
@@ -46,7 +47,9 @@ const BottomCart = ({
   const totalCardBg = themeColors['cart-bottom-total-bg'] || '#F8FBFF';
   const labelColor = themeColors['cart-bottom-label'] || '#64748B';
   const textColor = themeColors['cart-bottom-text'] || '#0F172A';
-  const cartHeight = 64;
+  const isCompact = width < 360;
+  const isUltraCompact = width < 330;
+  const cartHeight = isCompact ? 58 : 64;
 
   const styles = useMemo(
     () =>
@@ -57,8 +60,19 @@ const BottomCart = ({
         totalCardBg,
         labelColor,
         textColor,
+        compact: isCompact,
+        ultraCompact: isUltraCompact,
       }),
-    [primaryColor, cardBg, borderColor, totalCardBg, labelColor, textColor],
+    [
+      primaryColor,
+      cardBg,
+      borderColor,
+      totalCardBg,
+      labelColor,
+      textColor,
+      isCompact,
+      isUltraCompact,
+    ],
   );
   const isPosApp = String(env.APP_TYPE || '').trim().toUpperCase() === 'POS';
   const isPdvMode = isPosApp || isPdvRouteContext(route?.params);
@@ -131,10 +145,15 @@ const BottomCart = ({
     <>
       <PayableToolbar
         bottomOffset={bottomOffset}
-        cartHeight={cartHeight + 10}
+        cartHeight={cartHeight + (isCompact ? 8 : 10)}
         collapseWhenPaid={collapsePayableWhenPaid}
       />
-      <View style={[styles.toolbar, {bottom: bottomOffset + 8, minHeight: cartHeight}]}>
+      <View
+        style={[
+          styles.toolbar,
+          {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+        ]}
+      >
         <View style={styles.totalWrap}>
           <Text style={styles.totalLabel}>{global.t?.t('orders', 'label', 'orderTotal')}</Text>
           <OrderTotalToolbar />
@@ -147,7 +166,7 @@ const BottomCart = ({
               styles.checkoutButton,
               isActionDisabled && styles.checkoutButtonDisabled,
             ]}>
-            <Icon color="#fff" name={actionIcon} size={16} />
+            <Icon color="#fff" name={actionIcon} size={isCompact ? 15 : 16} />
             <Text style={styles.checkoutButtonText}>{actionLabel}</Text>
           </TouchableOpacity>
         )}

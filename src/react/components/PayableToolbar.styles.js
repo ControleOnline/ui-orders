@@ -13,24 +13,32 @@ const withAlpha = (color, alphaHex) => {
   return color || '#1B5587';
 };
 
-const createStyles = ({primaryColor, dangerColor, successColor}) =>
+const createStyles = ({
+  primaryColor,
+  dangerColor,
+  successColor,
+  compact = false,
+  ultraCompact = false,
+}) =>
   StyleSheet.create({
     toolbarWrap: {
       position: 'absolute',
-      left: 10,
-      right: 10,
-      alignItems: 'center',
+      left: compact ? 8 : 10,
+      right: compact ? 8 : 10,
+      alignItems: compact ? 'stretch' : 'center',
       zIndex: 12,
     },
     badge: {
-      minHeight: 34,
+      minHeight: compact ? 30 : 34,
       borderRadius: 999,
       borderWidth: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: compact ? 10 : 12,
+      paddingVertical: compact ? 5 : 6,
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'center',
-      gap: 6,
+      justifyContent: 'center',
+      gap: compact ? 4 : 6,
       shadowColor: '#0F172A',
       shadowOpacity: 0.1,
       shadowRadius: 8,
@@ -38,6 +46,7 @@ const createStyles = ({primaryColor, dangerColor, successColor}) =>
       elevation: 3,
       backgroundColor: withAlpha(primaryColor, '10'),
       borderColor: withAlpha(primaryColor, '30'),
+      maxWidth: '100%',
     },
     badgeDanger: {
       backgroundColor: withAlpha(dangerColor, '12'),
@@ -48,9 +57,10 @@ const createStyles = ({primaryColor, dangerColor, successColor}) =>
       borderColor: withAlpha(successColor, '45'),
     },
     badgeText: {
-      fontSize: 12,
+      fontSize: ultraCompact ? 11 : 12,
       fontWeight: '800',
       textAlign: 'center',
+      flexShrink: 1,
     },
   });
 
@@ -59,4 +69,3 @@ export default createStyles;
 export const inlineStyle_125_12 = {
   paddingVertical: 6,
 };
-

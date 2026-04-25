@@ -499,7 +499,7 @@ const OrderDetails = ({ route, navigation }) => {
   const { actions: addressActions } = addressStore
 
   const { styles: cssStyles, globalStyles } = css()
-  const { ppcColors, styles: localStyles } = useOrderDetailsVisuals()
+  const { ppcColors, styles: localStyles, width: viewportWidth } = useOrderDetailsVisuals()
   const selectedDisplay = useMemo(() => {
     if (!isKds) {
       return null
@@ -2196,10 +2196,17 @@ const OrderDetails = ({ route, navigation }) => {
     useUnifiedKdsLayout &&
     !hasTerminalOrderState &&
     !hasMarketplaceIntegration
-  const mobileBottomCartOffset = shouldShowMobileBottomActions ? 74 : 0
+  const isCompactMobileViewport = viewportWidth < 360
+  const mobileBottomCartOffset = shouldShowMobileBottomActions
+    ? (isCompactMobileViewport ? 68 : 74)
+    : 0
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
-    ? (shouldShowMobileBottomActions ? 206 : 132)
-    : (shouldShowMobileBottomActions ? 98 : 24)
+    ? (shouldShowMobileBottomActions
+      ? (isCompactMobileViewport ? 216 : 206)
+      : (isCompactMobileViewport ? 148 : 132))
+    : (shouldShowMobileBottomActions
+      ? (isCompactMobileViewport ? 104 : 98)
+      : 24)
 
   const isResolvedPrimaryKdsActionLoading =
     !!resolvedPrimaryKdsAction &&

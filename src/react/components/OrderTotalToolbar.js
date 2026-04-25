@@ -1,10 +1,11 @@
-import React, {useCallback, useState, useRef} from 'react';
-import {Text, ActivityIndicator} from 'react-native';
+import React, {useCallback, useState, useRef, useMemo} from 'react';
+import {Text, ActivityIndicator, useWindowDimensions} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
+import createStyles from './OrderTotalToolbar.styles';
 import { inlineStyle_79_6 } from './OrderTotalToolbar.styles';
 
 const OrderTotalToolbar = () => {
@@ -13,8 +14,10 @@ const OrderTotalToolbar = () => {
   const ordersActions = ordersStore.actions;
   const {item: order} = ordersGetters;
   const {styles} = css();
+  const {width} = useWindowDimensions();
   const [price, setPrice] = useState(0);
   const timeoutId = useRef(null);
+  const totalStyles = useMemo(() => createStyles(width < 360), [width]);
   let products = [];
 
   const persistProducts = currentProducts => {
@@ -79,7 +82,7 @@ const OrderTotalToolbar = () => {
       style={inlineStyle_79_6}
     />
   ) : (
-    <Text style={[styles.primary, {flex: 1, textAlign: 'center'}]}>
+    <Text style={[styles.primary, totalStyles.valueText]}>
       {Formatter.formatMoney(price)}
     </Text>
   );

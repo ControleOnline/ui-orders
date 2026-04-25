@@ -8,14 +8,16 @@ export const useOrderDetailsVisuals = () => {
   const {width, height} = useWindowDimensions();
 
   const scale = useMemo(() => {
+    if (width < 340) return 0.78;
+    if (width < 380) return 0.84;
     if (width >= 1700) return 1.05;
     if (width >= 1300) return 0.97;
     return 0.92;
   }, [width]);
 
   const styles = useMemo(
-    () => createStyles(scale, ppcColors, height),
-    [scale, ppcColors, height],
+    () => createStyles(scale, ppcColors, height, width),
+    [scale, ppcColors, height, width],
   );
 
   return {
