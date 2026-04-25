@@ -15,6 +15,27 @@ const normalizeProductId = product =>
     .replace(/\D+/g, '')
     .trim();
 
+const buildProductNotFoundError = scannedCode => {
+  const error = new Error(
+    `Produto nao encontrado para o codigo ${String(scannedCode || '').trim()}.`,
+  );
+  error.code = 'PRODUCT_NOT_FOUND';
+  return error;
+};
+
+const isProductNotFoundError = error => {
+  const normalizedMessage = String(error?.message || '')
+    .trim()
+    .toLowerCase();
+
+  return (
+    error?.code === 'PRODUCT_NOT_FOUND' ||
+    normalizedMessage.includes('nao encontrado') ||
+    normalizedMessage.includes('não encontrado') ||
+    normalizedMessage.includes('not found')
+  );
+};
+
 const PosKioskBarcodeListener = ({
   enabled = false,
   currentRouteName = '',
@@ -59,7 +80,7 @@ const PosKioskBarcodeListener = ({
         const productId = normalizeProductId(product);
 
         if (!productId) {
-          throw new Error('Produto nao encontrado para o codigo informado.');
+          throw buildProductNotFoundError(scannedCode);
         }
 
         const updatedOrder = await materializeOrderWithProducts({
@@ -74,6 +95,17 @@ const PosKioskBarcodeListener = ({
           openOrderDetails(updatedOrder);
         }
       } catch (error) {
+        if (isProductNotFoundError(error)) {
+          showToast(
+            `Codigo ${String(scannedCode || '').trim()}: produto nao encontrado.`,
+            {
+              duration: 4000,
+              position: 'center',
+            },
+          );
+          return;
+        }
+
         showToast(
           error?.message || 'Nao foi possivel adicionar o produto pelo codigo de barras.',
           {position: 'center'},

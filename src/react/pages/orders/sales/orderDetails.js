@@ -19,7 +19,10 @@ import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import { withOpacity } from '@controleonline/../../src/styles/branding'
-import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
+import {
+  isDeviceRuntimeDebugInfoEnabled,
+  isPosKioskMode,
+} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {searchCompanyProducts} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 
 import {
@@ -527,6 +530,8 @@ const OrderDetails = ({ route, navigation }) => {
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
   const isPosKioskOperationMode = isPosKioskMode(device?.configs)
+  const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(device?.configs)
+  const canShowDebugActions = !isPosKioskOperationMode || isDeviceDebugEnabled
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
@@ -1882,11 +1887,19 @@ const OrderDetails = ({ route, navigation }) => {
   }, [])
 
   const handleOrderTools = useCallback(async () => {
+    if (!canShowDebugActions) {
+      return
+    }
+
     setDetailsModalVisible(true)
     await marketplaceSummary.ensureMarketplaceSummary()
-  }, [marketplaceSummary])
+  }, [canShowDebugActions, marketplaceSummary])
 
   const handleOrderLogs = useCallback(() => {
+    if (!canShowDebugActions) {
+      return
+    }
+
     const currentOrderId = item?.id || orderParam?.id
     if (!currentOrderId) return
 
@@ -1894,7 +1907,7 @@ const OrderDetails = ({ route, navigation }) => {
       id: currentOrderId,
       store: 'orders',
     })
-  }, [item?.id, navigation, orderParam?.id])
+  }, [canShowDebugActions, item?.id, navigation, orderParam?.id])
 
   const handleConfirmGenericOrder = useCallback(() => {
     if (!item?.id || isTerminalOrder || orderActionLoading === 'confirm') {
@@ -2179,8 +2192,8 @@ const OrderDetails = ({ route, navigation }) => {
     !hasMarketplaceIntegration
   const mobileBottomCartOffset = shouldShowMobileBottomActions ? 74 : 0
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
-    ? (shouldShowMobileBottomActions ? 226 : 156)
-    : 126
+    ? (shouldShowMobileBottomActions ? 206 : 132)
+    : (shouldShowMobileBottomActions ? 98 : 24)
 
   const isResolvedPrimaryKdsActionLoading =
     !!resolvedPrimaryKdsAction &&
@@ -2276,24 +2289,29 @@ const OrderDetails = ({ route, navigation }) => {
             />
           )}
 
-          <TouchableOpacity
-            onPress={handleOrderTools}
-            style={localStyles.topBarIconButton}
-          >
-            <Icon name="view-list" size={20} color={ppcColors.accentInfo} />
-          </TouchableOpacity>
+          {canShowDebugActions && (
+            <>
+              <TouchableOpacity
+                onPress={handleOrderTools}
+                style={localStyles.topBarIconButton}
+              >
+                <Icon name="view-list" size={20} color={ppcColors.accentInfo} />
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={handleOrderLogs}
-            style={localStyles.topBarIconButton}
-            disabled={!(item?.id || orderParam?.id)}
-          >
-            <Icon name="history" size={20} color={ppcColors.accentInfo} />
-          </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleOrderLogs}
+                style={localStyles.topBarIconButton}
+                disabled={!(item?.id || orderParam?.id)}
+              >
+                <Icon name="history" size={20} color={ppcColors.accentInfo} />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       ),
     })
   }, [
+    canShowDebugActions,
     handleOrderLogs,
     handleOrderTools,
     item?.id,
@@ -3307,11 +3325,13 @@ const OrderDetails = ({ route, navigation }) => {
       </Modal>
         </>
       )}
-      <OrderSummaryModal
-        visible={detailsModalVisible}
-        onClose={closeDetailsModal}
-        summary={orderSummaryData}
-      />
+      {canShowDebugActions && (
+        <OrderSummaryModal
+          visible={detailsModalVisible}
+          onClose={closeDetailsModal}
+          summary={orderSummaryData}
+        />
+      )}
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (
         <View style={inlineStyle_2712_14}>
@@ -3344,26 +3364,30 @@ const OrderDetails = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity
-                  onPress={handleOrderLogs}
-                  disabled={!(item?.id || orderParam?.id)}
-                  style={[globalStyles.button, { marginLeft: 5 }]}
-                >
-                  <Icon name="history" size={24} color="#fff" />
-                  <Text style={inlineStyle_2748_24}>
-                    {global.t?.t('orders', 'button', 'logs') || 'Logs'}
-                  </Text>
-                </TouchableOpacity>
+                {canShowDebugActions && (
+                  <>
+                    <TouchableOpacity
+                      onPress={handleOrderLogs}
+                      disabled={!(item?.id || orderParam?.id)}
+                      style={[globalStyles.button, { marginLeft: 5 }]}
+                    >
+                      <Icon name="history" size={24} color="#fff" />
+                      <Text style={inlineStyle_2748_24}>
+                        {global.t?.t('orders', 'button', 'logs') || 'Logs'}
+                      </Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={handleOrderTools}
-                  style={[globalStyles.button, { marginLeft: 5 }]}
-                >
-                  <Icon name="settings" size={24} color="#fff" />
-                  <Text style={inlineStyle_2748_24}>
-                    {global.t?.t('orders', 'button', 'details')}
-                  </Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleOrderTools}
+                      style={[globalStyles.button, { marginLeft: 5 }]}
+                    >
+                      <Icon name="settings" size={24} color="#fff" />
+                      <Text style={inlineStyle_2748_24}>
+                        {global.t?.t('orders', 'button', 'details')}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </>
           )}
