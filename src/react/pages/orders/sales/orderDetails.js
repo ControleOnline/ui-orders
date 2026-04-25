@@ -470,7 +470,13 @@ const OrderDetails = ({ route, navigation }) => {
   const isKds = !!route.params?.kds
   const useUnifiedKdsLayout = true
   const isTvDisplay = String(route.params?.displayType || '').toLowerCase() === 'tv'
-  const shouldHideBottomToolBar = Boolean(route.params?.hideBottomToolBar || isTvDisplay)
+  const shouldDisableLayoutBottomToolBar =
+    useUnifiedKdsLayout && isPdvRouteContext(route?.params)
+  const shouldHideBottomToolBar = Boolean(
+    route.params?.hideBottomToolBar ||
+    isTvDisplay ||
+    shouldDisableLayoutBottomToolBar,
+  )
   const { showError, showSuccess } = useMessage()
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
   const insets = useSafeAreaInsets()
@@ -2208,6 +2214,18 @@ const OrderDetails = ({ route, navigation }) => {
   }, [
     navigation,
     route?.params?.showBottomCart,
+  ])
+
+  useEffect(() => {
+    if (!shouldDisableLayoutBottomToolBar || route?.params?.showBottomToolBar === false) {
+      return
+    }
+
+    navigation.setParams({ showBottomToolBar: false })
+  }, [
+    navigation,
+    route?.params?.showBottomToolBar,
+    shouldDisableLayoutBottomToolBar,
   ])
 
   useLayoutEffect(() => {

@@ -64,6 +64,17 @@
 - O botao principal de pagar no canal remoto deve deixar claro qual equipamento configurado recebera a cobranca.
 - Depois de enviar a cobranca remota, o checkout do web deve permanecer aguardando a resposta do equipamento remoto antes de concluir a tela.
 
+## Regras operacionais de POS e kiosk
+- Nao existe `APP_TYPE=TOTEM`. O totem e sempre `APP_TYPE=POS` com `pos-operation-mode=kiosk`.
+- No `kiosk`, o cliente entra direto no fluxo de compra e nao deve passar por abertura/fechamento de caixa nem por telas administrativas do PDV.
+- Em `kiosk`, `OrderDetails` nao deve mostrar blocos de cliente, endereco, observacoes, sumario ou logs. Logs e summary so podem reaparecer quando o device estiver com `device-runtime-debug-info-enabled`.
+- Em `kiosk`, a faixa operacional de preparo/cancelamento nao deve aparecer junto da barra de pagamento. Quando a propria tela tiver barra operacional propria, o layout nao deve reservar outra barra por baixo.
+- A leitura de codigo de barras por wedge de teclado pode ficar ativa em qualquer tela de contexto `POS`/`PDV`, inclusive dentro de `OrderDetails`.
+- Quando um bip ou a selecao de um produto pelo auto-complete precisar materializar um pedido inexistente, o fluxo deve criar apenas um pedido e reutilizar a mesma promise de criacao concorrente.
+- Fora da conferencia, bip e atalho de auto-complete podem levar o usuario para `OrderDetails` apos adicionar o item. Dentro de `OrderDetails`, novos bipes devem continuar adicionando itens sem sair da tela.
+- `OrderDetails` em contexto `PDV` pode pesquisar e adicionar produto diretamente na aba `Itens`, sem sair da conferencia.
+- A pesquisa de produtos com auto-complete e a leitura de codigo de barras fazem parte do fluxo operacional de `POS`, nao apenas do `kiosk`.
+
 ## Pagar Na Entrega
 - `Pagar na entrega` sempre exige selecionar qual device fara a cobranca.
 - O device escolhido na entrega define o que a barra mostra ao cliente, como maquininha e dinheiro.
