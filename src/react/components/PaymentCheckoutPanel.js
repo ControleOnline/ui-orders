@@ -9,13 +9,13 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import UnifiedPaymentBar from '@controleonline/ui-common/src/react/components/UnifiedPaymentBar';
-import {useStore} from '@store';
+import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 
 import panelStyles from './PaymentCheckoutPanel.styles';
 
 const PaymentCheckoutPanel = ({
   actionLabel,
+  actionIcon = 'credit-card',
   actionLoading = false,
   emptyText = 'A configuracao atual nao liberou meios de pagamento para este modo.',
   emptyTitle = 'Nenhuma opcao de pagamento disponivel',
@@ -24,7 +24,6 @@ const PaymentCheckoutPanel = ({
   isLoadingPayments = false,
   onPay,
   onSelectPayment,
-  paidAmount = 0,
   paymentSections = [],
   payments = [],
   payDisabled = false,
@@ -32,22 +31,8 @@ const PaymentCheckoutPanel = ({
   selectedPayment = {},
   selectedPaymentKey = '',
   topContent = null,
-  totalAmount = 0,
 }) => {
   const {styles} = css();
-  const themeStore = useStore('theme');
-  const colors = themeStore?.getters?.colors || {};
-  const theme = {
-    background: colors.background || '#F8FAFC',
-    cardBorder: '#D6DEE8',
-    muted: '#64748B',
-    onPrimary: '#FFFFFF',
-    primary: colors.primary || '#1B5587',
-    success: colors.success || '#16A34A',
-    surface: '#FFFFFF',
-    text: '#0F172A',
-    warning: colors.warning || '#D97706',
-  };
   const hasError = !!invoiceError || !!error;
   const normalizedSections = Array.isArray(paymentSections)
     ? paymentSections.filter(section => Array.isArray(section?.options) && section.options.length > 0)
@@ -55,11 +40,12 @@ const PaymentCheckoutPanel = ({
   const hasSectionedPayments = normalizedSections.length > 0;
   const hasFlatPayments = Array.isArray(payments) && payments.length > 0;
   const hasPayments = hasSectionedPayments || hasFlatPayments;
+  const primaryColor = '#1B5587';
 
   const renderSelectionIcon = selected => (
     <View style={panelStyles.selectionIconWrap}>
       <Icon
-        color={selected ? theme.primary : '#334155'}
+        color={selected ? primaryColor : '#334155'}
         name={selected ? 'radio-button-checked' : 'radio-button-unchecked'}
         size={22}
       />
@@ -101,7 +87,7 @@ const PaymentCheckoutPanel = ({
 
         {isLoadingPayments && !hasError && !hasPayments ? (
           <View style={panelStyles.feedbackCard}>
-            <ActivityIndicator size="small" color={theme.primary} />
+            <ActivityIndicator size="small" color={primaryColor} />
           </View>
         ) : hasError || !hasPayments ? (
           <View style={panelStyles.feedbackCard}>
@@ -148,21 +134,18 @@ const PaymentCheckoutPanel = ({
         )}
       </ScrollView>
 
-      <UnifiedPaymentBar
-        actions={[
-          {
-            disabled: payDisabled,
-            key: 'pay',
-            label: actionLabel || global.t?.t('orders', 'button', 'pay') || 'Pagar',
-            loading: actionLoading,
-            onPress: onPay,
-            variant: 'primary',
-          },
-        ]}
-        paidAmount={paidAmount}
-        pendingAmount={pendingAmount}
-        theme={theme}
-        totalAmount={totalAmount}
+      <BottomCart
+        actionDisabled={payDisabled || actionLoading}
+        actionIcon={actionIcon}
+        actionLabel={actionLabel || global.t?.t('orders', 'button', 'pay') || 'Pagar'}
+        bottomOffset={-8}
+        collapsePayableWhenPaid={false}
+        onActionPress={onPay}
+        paymentPaidLabel="Pago"
+        paymentPendingAmount={pendingAmount}
+        paymentPendingLabel="Pendente"
+        showPayableBadge={false}
+        variant="payment-status"
       />
     </View>
   );

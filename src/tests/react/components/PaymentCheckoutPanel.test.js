@@ -19,14 +19,6 @@ jest.mock('react-native', () => {
   }
 })
 
-jest.mock('@store', () => ({
-  useStore: () => ({
-    getters: {
-      colors: {},
-    },
-  }),
-}))
-
 jest.mock('@controleonline/ui-orders/src/react/css/orders', () => () => ({
   styles: {
     container: {flex: 1},
@@ -34,8 +26,8 @@ jest.mock('@controleonline/ui-orders/src/react/css/orders', () => () => ({
   },
 }))
 
-jest.mock('@controleonline/ui-common/src/react/components/UnifiedPaymentBar', () => props =>
-  React.createElement('UnifiedPaymentBar', props),
+jest.mock('@controleonline/ui-orders/src/react/components/cart/BottomCart', () => props =>
+  React.createElement('BottomCart', props),
 )
 
 jest.mock('react-native-vector-icons/MaterialIcons', () => 'Icon')
@@ -61,9 +53,9 @@ describe('PaymentCheckoutPanel', () => {
       tree = renderer.create(
         React.createElement(PaymentCheckoutPanel, {
           actionLabel: 'Enviar para PDV principal',
+          actionIcon: 'credit-card',
           onPay,
           onSelectPayment,
-          paidAmount: 0,
           paymentSections: [
             {
               key: 'local',
@@ -92,7 +84,6 @@ describe('PaymentCheckoutPanel', () => {
           ],
           pendingAmount: 47.45,
           selectedPaymentKey: 'local:cash',
-          totalAmount: 47.45,
         }),
       )
     })
@@ -109,7 +100,9 @@ describe('PaymentCheckoutPanel', () => {
     expect(labels).toContain('Trocar')
     expect(labels).not.toContain('Barra unica de pagamento')
 
-    const bar = tree.root.findByType('UnifiedPaymentBar')
-    expect(bar.props.actions[0].label).toBe('Enviar para PDV principal')
+    const bar = tree.root.findByType('BottomCart')
+    expect(bar.props.actionLabel).toBe('Enviar para PDV principal')
+    expect(bar.props.actionIcon).toBe('credit-card')
+    expect(bar.props.variant).toBe('payment-status')
   })
 })

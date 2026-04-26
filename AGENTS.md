@@ -55,9 +55,13 @@
 ## Pagamento remoto
 - Pagamento remoto sempre depende de um device de destino configurado na empresa.
 - Os destinos remotos validos para orders sao apenas PDVs com gateway de pagamento, hoje Cielo e Infinite Pay.
+- Pagamento remoto deve filtrar os meios pelo `payment_code`. O bloco remoto da barra deve listar apenas `payment_type` que tenham `payment_code`, porque isso identifica os meios integrados que o hardware do PDV remoto consegue executar no proprio device.
+- Nao remover item do bloco remoto por ser `dinheiro` ou por classificacao visual semelhante; a regra canonica aqui e ter ou nao `payment_code`.
+- Hoje isso acontece pelos modulos React Native nativos de `Cielo` e `Infinite Pay`, que expõem intents/acoes nativas de pagamento.
+- Esses intents existem apenas no hardware do PDV que tem o modulo embarcado; nenhum outro device ou navegador consegue executar esse pagamento localmente em nome dele.
+- Exemplo atual: somente o PDV com Cielo consegue acionar o modulo Cielo embarcado; o checkout web apenas envia a solicitacao e aguarda a resposta do equipamento remoto.
 - Se houver mais de um device remoto disponivel, o usuario precisa poder escolher qual equipamento recebera a cobranca.
 - No checkout web/manager, o operador escolhe antes no proprio web o meio de pagamento permitido pelas carteiras do equipamento remoto selecionado.
-- Quando o meio selecionado nao depende de gateway, como dinheiro, a conclusao continua sendo responsabilidade do device remoto escolhido e o helper compartilhado deve registrar a invoice no fim do fluxo.
 - O listener remoto deve apenas executar o mesmo helper tecnico usado pelo checkout unificado. Nao renderizar checkout especifico de Cielo ou Infinite Pay para isso.
 - Se `order-payment-devices` estiver preenchido no configurador geral, ele define a ordem global e tem prioridade no checkout remoto.
 - `order-payment-device` fica como fallback por origem quando a empresa nao definiu `order-payment-devices`.

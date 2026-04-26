@@ -42,6 +42,7 @@ import {
 import {
   getPaymentOptionLabel,
   isCashPaymentOption,
+  isIntegratedPaymentOption,
 } from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   createInvoiceForGatewayFreePayment,
@@ -288,10 +289,6 @@ const Checkout = () => {
 
     return Number(order?.price || 0);
   }, [order?.price, payable]);
-  const paidAmount = useMemo(
-    () => Math.max(Number(order?.price || 0) - remainingAmount, 0),
-    [order?.price, remainingAmount],
-  );
   const cashPaymentContext = useMemo(() => {
     if (amountEntryModalMode === 'cash-local') {
       return PAYMENT_CHANNEL_LOCAL;
@@ -340,17 +337,22 @@ const Checkout = () => {
       ...(route.params?.interactionMode
         ? {interactionMode: route.params.interactionMode}
         : {}),
-      ...(typeof route.params?.showBottomToolBar === 'boolean'
-        ? {showBottomToolBar: route.params.showBottomToolBar}
-        : {}),
+      showBottomToolBar: false,
     });
   }, [
     navigation,
     route.params?.interactionMode,
     route.params?.order,
-    route.params?.showBottomToolBar,
     routeOrderId,
   ]);
+
+  useEffect(() => {
+    if (route.params?.showBottomToolBar !== true) {
+      return;
+    }
+
+    navigation.setParams({showBottomToolBar: false});
+  }, [navigation, route.params?.showBottomToolBar]);
 
   const selectedPayment = selectedPaymentOption?.payment || {};
   const selectedPaymentChannel = selectedPaymentOption?.channel || '';
@@ -580,14 +582,16 @@ const Checkout = () => {
           ),
         );
         setRemotePaymentOptions(
-          extractCollectionItems(remoteResponse).map(payment =>
+          extractCollectionItems(remoteResponse)
+            .filter(isIntegratedPaymentOption)
+            .map(payment =>
             buildPaymentSelectionOption({
               channel: PAYMENT_CHANNEL_REMOTE,
               payment,
               targetDeviceId: selectedRemoteDevice?.deviceId,
               targetDeviceLabel: selectedRemoteDevice?.alias || 'Device principal',
             }),
-          ),
+            ),
         );
       } catch (error) {
         if (!isMounted) {
@@ -1074,6 +1078,11 @@ const Checkout = () => {
       : isCashPaymentOption(selectedPayment)
         ? 'Receber em dinheiro'
         : `Pagar com ${getPaymentOptionLabel(selectedPayment)}`;
+  const actionIcon = isRemotePaymentSelected
+    ? 'credit-card'
+    : isCashPaymentOption(selectedPayment)
+      ? 'dollar-sign'
+      : 'credit-card';
   const amountEntryTitle =
     amountEntryModalMode === 'cash-local'
       ? 'Pagamento em dinheiro'
@@ -1142,6 +1151,7 @@ const Checkout = () => {
         <>
           <PaymentCheckoutPanel
             actionLabel={actionLabel}
+            actionIcon={actionIcon}
             actionLoading={submittingPayment}
             emptyText={emptyText}
             emptyTitle={emptyTitle}
@@ -1153,13 +1163,11 @@ const Checkout = () => {
               setSelectedPaymentOption(option);
               setPaymentExplanationVisible(false);
             }}
-            paidAmount={paidAmount}
             paymentSections={paymentSections}
             payDisabled={payDisabled}
             pendingAmount={remainingAmount}
             selectedPaymentKey={selectedPaymentOption?.key}
             topContent={paymentTopContent}
-            totalAmount={Number(order?.price || 0)}
           />
 
           <Modal
