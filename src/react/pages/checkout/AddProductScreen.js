@@ -8,7 +8,10 @@ import {
   isPosKioskMode,
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
+import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
+import usePosCartSession, {
+  isLinkedOrderCodeRequiredError,
+} from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 
 const CheckoutContent = ({navigation, route: routeProp}) => {
   const currentRoute = useRoute();
@@ -18,18 +21,13 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const deviceStore = useStore('device');
   const deviceConfigStore = useStore('device_config');
   const ordersActions = ordersStore.actions;
-  const ordersGetters = ordersStore.getters;
   const peopleGetters = peopleStore.getters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const deviceGetters = deviceStore.getters;
   const deviceConfigGetters = deviceConfigStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
-  const {item: order} = ordersGetters;
-  const currentOrderId =
-    order?.id ||
-    order?.['@id'] ||
-    null;
+  const {showError} = useMessage() || {};
   const isKioskMode = isPosKioskMode(runtimeDeviceConfig?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     runtimeDeviceConfig?.configs,
@@ -37,11 +35,18 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const isCashRegisterClosed = isPosCashRegisterClosed(
     runtimeDeviceConfig?.configs,
   );
-  const {loadStoredDraftOrder, prepareNewDraftOrder} = usePosCartSession({
+  const {
+    activeOrder,
+    ensureActiveOrder,
+    loadStoredDraftOrder,
+    prepareNewDraftOrder,
+    usesLinkedCheckOrders,
+  } = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
   });
+  const activeOrderId = activeOrder?.id || activeOrder?.['@id'] || null;
   const isLoadingStoredOrderRef = useRef(false);
   const Component = Categories;
 
@@ -84,13 +89,28 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       void (async () => {
         try {
           if (route?.params?.startNewOrder === true) {
-            prepareNewDraftOrder();
+            if (usesLinkedCheckOrders) {
+              await ensureActiveOrder(undefined, {forceNew: true});
+            } else {
+              prepareNewDraftOrder();
+            }
             navigation.setParams({startNewOrder: false});
             return;
           }
 
-          if (!currentOrderId) {
-            await loadStoredDraftOrder();
+          if (!activeOrderId) {
+            const storedDraftOrder = await loadStoredDraftOrder();
+
+            if (!storedDraftOrder && usesLinkedCheckOrders) {
+              await ensureActiveOrder();
+            }
+          }
+        } catch (error) {
+          if (!isLinkedOrderCodeRequiredError(error)) {
+            showError?.(
+              error?.message ||
+                'Nao foi possivel preparar o pedido para iniciar a venda.',
+            );
           }
         } finally {
           isLoadingStoredOrderRef.current = false;
@@ -100,13 +120,16 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       return undefined;
     }, [
       currentCompany?.id,
-      currentOrderId,
+      activeOrderId,
+      ensureActiveOrder,
       isCashRegisterClosed,
       loadStoredDraftOrder,
       navigation,
       prepareNewDraftOrder,
       route?.params?.startNewOrder,
+      showError,
       shouldUseCashRegisterLifecycle,
+      usesLinkedCheckOrders,
     ]),
   );
 

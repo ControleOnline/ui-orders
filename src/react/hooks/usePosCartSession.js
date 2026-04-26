@@ -20,6 +20,7 @@ import {
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
 const DRAFT_SALE_ORDER_TYPE = 'cart'
 const LINKED_CHILD_ORDER_TYPE = 'sale'
+const LINKED_ORDER_CODE_REQUIRED_ERROR = 'LINKED_ORDER_CODE_REQUIRED'
 
 const buildStatusIriFromId = value => {
   const normalizedId = String(value || '').replace(/\D/g, '')
@@ -102,6 +103,9 @@ export const getOrderPeopleValue = order =>
   order?.client ||
   order?.customer ||
   null
+
+export const isLinkedOrderCodeRequiredError = error =>
+  error?.code === LINKED_ORDER_CODE_REQUIRED_ERROR
 
 export default function usePosCartSession({
   companyId = null,
@@ -480,19 +484,28 @@ export default function usePosCartSession({
     return refreshActiveOrder(storedOrderId)
   }, [readStoredDraftOrderId, refreshActiveOrder, syncActiveOrderState])
 
-  const ensureActiveOrder = useCallback(async (peopleIri = getOrderPeopleValue(activeOrder)?.['@id'] || null) => {
-    if (activeOrder) {
+  const ensureActiveOrder = useCallback(async (
+    peopleIri = getOrderPeopleValue(activeOrder)?.['@id'] || null,
+    options = {},
+  ) => {
+    const forceNew = options?.forceNew === true
+
+    if (forceNew) {
+      syncActiveOrderState(null)
+    } else if (activeOrder) {
       return syncActiveOrderState(await normalizeDraftOrderType(activeOrder))
     }
 
-    if (storageKey && pendingEnsureActiveOrderRequests.has(storageKey)) {
+    if (!forceNew && storageKey && pendingEnsureActiveOrderRequests.has(storageKey)) {
       return pendingEnsureActiveOrderRequests.get(storageKey)
     }
 
     const ensureRequest = (async () => {
-      const storedDraftOrder = await loadStoredDraftOrder()
-      if (storedDraftOrder) {
-        return storedDraftOrder
+      if (!forceNew) {
+        const storedDraftOrder = await loadStoredDraftOrder()
+        if (storedDraftOrder) {
+          return storedDraftOrder
+        }
       }
 
       if (!companyId) {
@@ -509,10 +522,12 @@ export default function usePosCartSession({
         const externalCode = await requestLinkedOrderCode()
 
         if (!externalCode) {
-          throw new Error(
+          const missingLinkedOrderCodeError = new Error(
             global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
               'A tab or table code is required to continue.',
           )
+          missingLinkedOrderCodeError.code = LINKED_ORDER_CODE_REQUIRED_ERROR
+          throw missingLinkedOrderCodeError
         }
 
         const settlementOrder = await ensureSettlementOrder({
@@ -741,6 +756,7 @@ export default function usePosCartSession({
     canManageLinkedOrders,
     clearStoredDraftOrderId,
     ensureActiveOrder,
+    usesLinkedCheckOrders,
     loadStoredDraftOrder,
     loadOpenPosDraftOrders,
     prepareNewDraftOrder,
