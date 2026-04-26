@@ -1,8 +1,9 @@
-import React, {useCallback, useEffect, useRef} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useStore} from '@store';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
+import LinkedOrderEntrySheet from '@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet';
 import {
   isPosCashRegisterClosed,
   isPosKioskMode,
@@ -35,6 +36,20 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const isCashRegisterClosed = isPosCashRegisterClosed(
     runtimeDeviceConfig?.configs,
   );
+  const isLoadingStoredOrderRef = useRef(false);
+  const linkedOrderEntryResolverRef = useRef(null);
+  const [linkedOrderEntryState, setLinkedOrderEntryState] = useState(null);
+  const requestLinkedOrderInput = useCallback(
+    request =>
+      new Promise(resolve => {
+        linkedOrderEntryResolverRef.current = resolve;
+        setLinkedOrderEntryState({
+          orderType: request?.orderType || 'tab',
+          preferredInputType: request?.preferredInputType || 'manual',
+        });
+      }),
+    [],
+  );
   const {
     activeOrder,
     ensureActiveOrder,
@@ -45,10 +60,33 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+    requestLinkedOrderInput,
   });
   const activeOrderId = activeOrder?.id || activeOrder?.['@id'] || null;
-  const isLoadingStoredOrderRef = useRef(false);
   const Component = Categories;
+
+  const resolveLinkedOrderEntry = useCallback(result => {
+    const resolve = linkedOrderEntryResolverRef.current;
+    linkedOrderEntryResolverRef.current = null;
+    setLinkedOrderEntryState(null);
+    resolve?.(result);
+  }, []);
+
+  const handleCancelLinkedOrderEntry = useCallback(() => {
+    resolveLinkedOrderEntry(null);
+
+    if (!activeOrderId && navigation.canGoBack?.()) {
+      navigation.goBack();
+    }
+  }, [activeOrderId, navigation, resolveLinkedOrderEntry]);
+
+  useEffect(
+    () => () => {
+      linkedOrderEntryResolverRef.current?.(null);
+      linkedOrderEntryResolverRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -133,7 +171,18 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     ]),
   );
 
-  return <Component navigation={navigation} route={route} />;
+  return (
+    <>
+      <Component navigation={navigation} route={route} />
+      <LinkedOrderEntrySheet
+        onCancel={handleCancelLinkedOrderEntry}
+        onSubmit={resolveLinkedOrderEntry}
+        orderType={linkedOrderEntryState?.orderType || 'tab'}
+        preferredInputType={linkedOrderEntryState?.preferredInputType || 'manual'}
+        visible={!!linkedOrderEntryState}
+      />
+    </>
+  );
 };
 
 export default CheckoutContent;

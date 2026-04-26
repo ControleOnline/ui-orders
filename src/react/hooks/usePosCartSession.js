@@ -112,6 +112,7 @@ export default function usePosCartSession({
   deviceId = null,
   defaultStatusId = null,
   allowLinkedOrderManagement = null,
+  requestLinkedOrderInput = null,
 } = {}) {
   const ordersStore = useStore('orders')
   const cartStore = useStore('cart')
@@ -250,6 +251,27 @@ export default function usePosCartSession({
   }, [companyId, deviceId])
 
   const requestLinkedOrderCode = useCallback(async () => {
+    if (typeof requestLinkedOrderInput === 'function') {
+      const requestedInput = await requestLinkedOrderInput({
+        orderType: linkedOrderType,
+        preferredInputType: checkInputType,
+      })
+
+      if (typeof requestedInput === 'string') {
+        return {
+          externalCode: String(requestedInput || '').trim(),
+          inputType: checkInputType,
+        }
+      }
+
+      return {
+        externalCode: String(requestedInput?.externalCode || '').trim(),
+        inputType: String(requestedInput?.inputType || checkInputType)
+          .trim()
+          .toLowerCase(),
+      }
+    }
+
     const orderLabel =
       linkedOrderType === 'table'
         ? global.t?.t('orders', 'title', 'table') || 'Table'
@@ -274,8 +296,16 @@ export default function usePosCartSession({
       cancelLabel: global.t?.t('orders', 'button', 'cancel') || 'Cancel',
     })
 
-    return String(promptValue || '').trim()
-  }, [checkInputType, linkedOrderType, showPrompt])
+    return {
+      externalCode: String(promptValue || '').trim(),
+      inputType: checkInputType,
+    }
+  }, [
+    checkInputType,
+    linkedOrderType,
+    requestLinkedOrderInput,
+    showPrompt,
+  ])
 
   const findOpenSettlementOrder = useCallback(async externalCode => {
     if (!companyId || !linkedOrderType || !externalCode) {
@@ -519,7 +549,13 @@ export default function usePosCartSession({
       }
 
       if (usesLinkedCheckOrders) {
-        const externalCode = await requestLinkedOrderCode()
+        const linkedOrderInput = await requestLinkedOrderCode()
+        const externalCode = String(linkedOrderInput?.externalCode || '').trim()
+        const linkedOrderInputType = String(
+          linkedOrderInput?.inputType || checkInputType,
+        )
+          .trim()
+          .toLowerCase()
 
         if (!externalCode) {
           const missingLinkedOrderCodeError = new Error(
@@ -572,7 +608,7 @@ export default function usePosCartSession({
               mainOrderId: settlementOrder?.id || settlementOrder?.['@id'],
               otherInformations: buildLinkedOrderMetadata({
                 externalCode,
-                inputType: checkInputType,
+                inputType: linkedOrderInputType,
                 mainOrderId: settlementOrder?.id || settlementOrder?.['@id'],
                 orderType: linkedOrderType,
               }),
@@ -618,6 +654,7 @@ export default function usePosCartSession({
     canManageLinkedOrders,
     checkInputType,
     linkedOrderType,
+    requestLinkedOrderInput,
   ])
 
   const syncOrderPeople = useCallback(async nextPeople => {

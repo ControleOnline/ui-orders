@@ -82,6 +82,7 @@
 - Atendimento vinculado por `tab` e `table` deve usar esses nomes canonicos em codigo, configuracoes e metadados internos. Traducao vale apenas para labels visuais.
 - Nao criar sinonimos, aliases ou fallbacks paralelos para tipos, chaves de configuracao ou metadados de `tab/table`. O contrato interno deve ter um unico nome por conceito.
 - A configuracao `check-order-management-mode` define se o `POS` pode abrir e fechar `tab/table` ou se ele apenas pode operar sobre `tab/table` que ja estejam abertas.
+- A identificacao operacional de `tab/table` deve aceitar digitacao manual e leitura por leitor de codigo de barras. Em runtime nativo, a mesma entrada pode expor tambem QR Code e NFC quando o device suportar esses leitores.
 - Fluxos administrativos de liquidacao, consolidacao ou pagamento de `tab/table` no `MANAGER` nao devem herdar a restricao operacional do `POS`; eles podem abrir, vincular, consolidar e fechar `tab/table`.
 - A leitura de codigo de barras por wedge de teclado pode ficar ativa em qualquer tela de contexto `POS`/`PDV`, inclusive dentro de `OrderDetails`.
 - Quando um bip ou a selecao de um produto pelo auto-complete precisar materializar um pedido inexistente, o fluxo deve criar apenas um pedido e reutilizar a mesma promise de criacao concorrente.
