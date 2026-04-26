@@ -27,7 +27,7 @@ const BottomCart = ({
   onActionPress,
   collapsePayableWhenPaid = true,
   showActionButton = true,
-  showPayableBadge = true,
+  showPayableBadge = false,
   variant = 'default',
   paymentPendingAmount = 0,
   paymentPendingLabel,
@@ -62,6 +62,7 @@ const BottomCart = ({
   const hasPendingPayment = resolvedPendingAmount > 0.009;
   const shouldShowActionButton = showActionButton && (!isPaymentStatusVariant || hasPendingPayment);
   const isPaidStateBar = isPaymentStatusVariant && !hasPendingPayment;
+  const pendingLabel = paymentPendingLabel || global.t?.t('orders', 'label', 'pending') || 'Pendente';
   const cartHeight = isPaidStateBar
     ? (isCompact ? 34 : 38)
     : (isCompact ? 58 : 64);
@@ -202,7 +203,7 @@ const BottomCart = ({
                 ]}
               >
                 {hasPendingPayment
-                  ? (paymentPendingLabel || global.t?.t('orders', 'label', 'pending') || 'Pendente')
+                  ? pendingLabel
                   : paymentPaidLabel}
               </Text>
               {hasPendingPayment && (
@@ -217,9 +218,26 @@ const BottomCart = ({
               )}
             </View>
           ) : (
-            <View style={styles.totalWrap}>
-              <Text style={styles.totalLabel}>{global.t?.t('orders', 'label', 'orderTotal')}</Text>
-              <OrderTotalToolbar />
+            <View
+              style={[
+                styles.paymentSummaryWrap,
+                styles.paymentSummaryPending,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.paymentSummaryLabel,
+                  {color: warningColor},
+                ]}
+              >
+                {pendingLabel}
+              </Text>
+              <OrderTotalToolbar
+                textStyle={[
+                  styles.paymentSummaryValue,
+                  styles.paymentSummaryValuePending,
+                ]}
+              />
             </View>
           )}
           {shouldShowActionButton && (

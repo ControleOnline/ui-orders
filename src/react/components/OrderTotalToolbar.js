@@ -8,7 +8,7 @@ import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 import createStyles from './OrderTotalToolbar.styles';
 import { inlineStyle_79_6 } from './OrderTotalToolbar.styles';
 
-const OrderTotalToolbar = () => {
+const OrderTotalToolbar = ({textStyle = null}) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const ordersActions = ordersStore.actions;
@@ -75,14 +75,14 @@ const OrderTotalToolbar = () => {
     }, [price]),
   );
 
-  return !order ? (
+  return !order && price <= 0 ? (
     <ActivityIndicator
       size="small"
       color={styles.primary?.color || '#000'}
       style={inlineStyle_79_6}
     />
   ) : (
-    <Text style={[styles.primary, totalStyles.valueText]}>
+    <Text style={[styles.primary, totalStyles.valueText, textStyle]}>
       {Formatter.formatMoney(price)}
     </Text>
   );

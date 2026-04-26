@@ -104,6 +104,11 @@ const createStyles = ({
       lineHeight: compact ? 18 : 20,
       fontWeight: '900',
     },
+    paymentSummaryValuePending: {
+      color: warningColor,
+      textAlign: 'left',
+      flex: 0,
+    },
     paidToolbar: {
       position: 'absolute',
       left: compact ? 8 : 10,
