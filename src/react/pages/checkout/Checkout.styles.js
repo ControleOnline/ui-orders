@@ -209,6 +209,34 @@ const styles = StyleSheet.create({
     color: '#0EA5E9',
     fontWeight: '700',
   },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 4,
+  },
+  secondaryButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+  },
+  secondaryButtonText: {
+    color: '#334155',
+    fontWeight: '700',
+  },
+  primaryButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#0EA5E9',
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
   installmentsItem: {
     padding: 10,
     borderBottomWidth: 1,

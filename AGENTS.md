@@ -15,8 +15,9 @@
 - O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
 - Essa barra precisa existir em todos os devices que podem cobrar pedido.
 - Nao criar fluxo paralelo de pagamento fora dessa barra.
-- Primeiro o usuario escolhe onde a cobranca vai acontecer. Depois escolhe o meio de pagamento.
-- Os meios exibidos dependem do canal selecionado e do device/gateway configurado.
+- No checkout operacional, a barra deve mostrar primeiro os `payment_type` do device atual e abaixo os do device remoto principal configurado.
+- O canal local/remoto nao aparece como etapa separada nessa barra; ele fica implicito na opcao escolhida e a explicacao detalhada so aparece ao tocar em `Pagar`.
+- Os meios exibidos dependem do device dono de cada bloco e do gateway/carteiras configurados.
 - Quando uma tela ja tiver barra propria de pagamento, o layout nao deve renderizar outra barra por baixo. Deve aparecer uma ou outra, nunca as duas.
 - Rotas de `OrderDetails` e `Checkout` devem carregar o pedido por `id` na URL e pelo store; nao passar objeto do pedido em params.
 - O contexto de `PDV` entre `OrderDetails` e `Checkout` deve permanecer em params primitivos, preservando `interactionMode` e `showBottomToolBar` para o checkout liberar o canal local correto.
