@@ -3,6 +3,7 @@ import {StyleSheet} from 'react-native';
 export default StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   feedbackCard: {
     backgroundColor: '#FFFFFF',
@@ -54,7 +55,7 @@ export default StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 24,
+    paddingBottom: 220,
   },
   scrollView: {
     flex: 1,

@@ -2,8 +2,9 @@ const {
   buildPaymentSections,
   buildPaymentSelectionOption,
 } = require('../../../react/pages/checkout/CheckoutPaymentOptions')
+const {jest} = require('@jest/globals')
 
-const {describe, expect, it, jest} = global
+const {describe, expect, it} = global
 
 describe('CheckoutPaymentOptions', () => {
   it('keeps local options first and remote options after them', () => {

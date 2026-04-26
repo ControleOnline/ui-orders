@@ -40,9 +40,7 @@ import {
   supportsLocalCardPayment,
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
 import {
-  getPaymentOptionId,
   getPaymentOptionLabel,
-  getPaymentOptionWalletId,
   isCashPaymentOption,
 } from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
@@ -83,15 +81,6 @@ const buildStatusIriFromId = value => {
   const normalizedId = String(value || '').replace(/\D/g, '');
   return normalizedId ? `/statuses/${normalizedId}` : null;
 };
-
-const getPaymentOptionKey = payment =>
-  [
-    getPaymentOptionId(payment),
-    getPaymentOptionWalletId(payment),
-    String(payment?.paymentCode || '').trim(),
-  ]
-    .filter(Boolean)
-    .join(':');
 
 let posPaidInvoiceStatusIriCache = null;
 
@@ -193,7 +182,6 @@ const Checkout = () => {
   } = orderProductsGetters;
 
   const [companyDeviceConfigs, setCompanyDeviceConfigs] = useState([]);
-  const [loadingRemoteDevices, setLoadingRemoteDevices] = useState(false);
   const [remoteDeviceModalVisible, setRemoteDeviceModalVisible] =
     useState(false);
   const [amountEntryModalMode, setAmountEntryModalMode] = useState('');
@@ -364,10 +352,6 @@ const Checkout = () => {
     routeOrderId,
   ]);
 
-  const isAwaitingRemotePayment = useMemo(
-    () => !!pendingRemotePaymentRequest?.requestKey,
-    [pendingRemotePaymentRequest?.requestKey],
-  );
   const selectedPayment = selectedPaymentOption?.payment || {};
   const selectedPaymentChannel = selectedPaymentOption?.channel || '';
   const allPaymentOptions = useMemo(
@@ -485,11 +469,9 @@ const Checkout = () => {
     useCallback(() => {
       if (!currentCompany?.id || isCieloPdv) {
         setCompanyDeviceConfigs([]);
-        setLoadingRemoteDevices(false);
         return;
       }
 
-      setLoadingRemoteDevices(true);
       deviceConfigActions
         .getItems({
           people: '/people/' + currentCompany.id,
@@ -501,9 +483,6 @@ const Checkout = () => {
         })
         .catch(() => {
           setCompanyDeviceConfigs([]);
-        })
-        .finally(() => {
-          setLoadingRemoteDevices(false);
         });
     }, [currentCompany?.id, deviceConfigActions, isCieloPdv]),
   );
