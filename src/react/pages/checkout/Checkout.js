@@ -21,8 +21,10 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import {
   isPosAutoPrintEnabled,
+  isPosCounterMode,
   isPosSelfServiceMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
+import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
@@ -248,10 +250,20 @@ const Checkout = () => {
     () => isPosSelfServiceMode(device?.configs),
     [device?.configs],
   );
+  const isCounterMode = useMemo(
+    () => isPosCounterMode(device?.configs),
+    [device?.configs],
+  );
   const isAutoPrintEnabled = useMemo(
     () => isPosAutoPrintEnabled(device?.configs),
     [device?.configs],
   );
+  const {clearStoredDraftOrderId, resolveCounterStartDestination} =
+    usePosCartSession({
+      companyId: currentCompany?.id,
+      deviceId: storagedDevice?.id,
+      defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+    });
   const canUseLocalOperationalPayment = useMemo(
     () =>
       !isManagerApp &&
@@ -335,6 +347,43 @@ const Checkout = () => {
       routes: [{name: 'AddProductScreen'}],
     });
   }, [navigation]);
+  const resetToCounterDestination = useCallback(async () => {
+    try {
+      const destination = await resolveCounterStartDestination();
+
+      if (destination.screen === 'OrderHistoryPage') {
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'OrderHistoryPage'}],
+        });
+        return;
+      }
+
+      if (destination.screen === 'OrderDetails' && destination.order) {
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'OrderDetails',
+              params: buildOrderDetailsNavigationParams(destination.order),
+            },
+          ],
+        });
+        return;
+      }
+    } catch {
+      // o catalogo continua sendo o fallback seguro do balcao
+    }
+
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'AddProductScreen'}],
+    });
+  }, [
+    buildOrderDetailsNavigationParams,
+    navigation,
+    resolveCounterStartDestination,
+  ]);
 
   useEffect(() => {
     if (!routeOrderId || typeof route.params?.order !== 'object') {
@@ -696,13 +745,16 @@ const Checkout = () => {
               buildOrderDetailsNavigationParams(order),
             );
           } else {
+            clearStoredDraftOrderId();
             ordersActions.setItem(null);
             invoiceActions.setItems([]);
             ordersActions.setPayable(0);
             if (isAutoPrintEnabled) {
               printActions.setReload(true);
             }
-            if (isSelfServiceMode) {
+            if (isCounterMode) {
+              await resetToCounterDestination();
+            } else if (isSelfServiceMode) {
               resetToSelfServiceCatalog();
             } else {
               navigation.navigate('OrderHistoryPage');
@@ -711,14 +763,19 @@ const Checkout = () => {
         } else {
           const nextPayable = Number(payable || 0) + Number(createdInvoice.price || 0);
           appendInvoiceToStore(createdInvoice);
-          if (isSelfServiceMode && nextPayable >= 0) {
+          if ((isSelfServiceMode || isCounterMode) && nextPayable >= 0) {
+            clearStoredDraftOrderId();
             ordersActions.setItem(null);
             invoiceActions.setItems([]);
             ordersActions.setPayable(0);
             if (isAutoPrintEnabled) {
               printActions.setReload(true);
             }
-            resetToSelfServiceCatalog();
+            if (isCounterMode) {
+              await resetToCounterDestination();
+            } else {
+              resetToSelfServiceCatalog();
+            }
           } else {
             ordersActions.syncOrder?.(order);
             navigation.navigate(
@@ -742,17 +799,20 @@ const Checkout = () => {
     [
       appendInvoiceToStore,
       buildOrderDetailsNavigationParams,
+      clearStoredDraftOrderId,
       currentCompany?.id,
       defaultCompany?.configs,
       device?.configs,
       invoiceActions,
       isAutoPrintEnabled,
+      isCounterMode,
       isSelfServiceMode,
       navigation,
       order,
       ordersActions,
       payable,
       printActions,
+      resetToCounterDestination,
       resetToSelfServiceCatalog,
     ],
   );

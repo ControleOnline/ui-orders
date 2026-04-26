@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 
 import {api} from '@controleonline/ui-common/src/api'
 import {useStore} from '@store'
+import {resolveCounterDestinationFromOrders} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow'
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
 const DRAFT_SALE_ORDER_TYPE = 'cart'
@@ -80,7 +81,9 @@ export default function usePosCartSession({
   defaultStatusId = null,
 } = {}) {
   const ordersStore = useStore('orders')
+  const cartStore = useStore('cart')
   const ordersActions = ordersStore.actions
+  const cartActions = cartStore.actions
   const {item: storedOrder} = ordersStore.getters
   const [activeOrderState, setActiveOrderState] = useState(null)
 
@@ -203,6 +206,30 @@ export default function usePosCartSession({
       return order
     }
   }, [buildOrderPayload, ordersActions])
+
+  const loadOpenPosDraftOrders = useCallback(async () => {
+    if (!companyId) {
+      return []
+    }
+
+    const items = await cartActions.getItems({
+      app: 'POS',
+      orderType: DRAFT_SALE_ORDER_TYPE,
+      provider: '/people/' + companyId,
+      'status.realStatus': 'open',
+      'status.status': 'open',
+      itemsPerPage: 50,
+      'order[id]': 'DESC',
+      ...(deviceId ? {'device.device': deviceId} : {}),
+    })
+
+    return (Array.isArray(items) ? items : [])
+      .filter(isOpenPosCartOrder)
+      .sort(
+        (left, right) =>
+          Number(right?.id || 0) - Number(left?.id || 0),
+      )
+  }, [cartActions, companyId, deviceId])
 
   const refreshActiveOrder = useCallback(async orderId => {
     const targetId = normalizeId(
@@ -334,12 +361,60 @@ export default function usePosCartSession({
     syncActiveOrderState,
   ])
 
+  const prepareNewDraftOrder = useCallback(() => {
+    syncActiveOrderState(null)
+  }, [syncActiveOrderState])
+
+  const resolveCounterStartDestination = useCallback(async () => {
+    const openDraftOrders = await loadOpenPosDraftOrders()
+    const initialDestination = resolveCounterDestinationFromOrders(
+      openDraftOrders,
+    )
+
+    if (initialDestination.orderCount === 0) {
+      syncActiveOrderState(null)
+      return initialDestination
+    }
+
+    if (initialDestination.orderCount > 1) {
+      syncActiveOrderState(null)
+      return initialDestination
+    }
+
+    const singleOrderId = normalizeId(
+      initialDestination.order?.id || initialDestination.order?.['@id'],
+    )
+    let detailedOrder = initialDestination.order
+
+    if (singleOrderId) {
+      detailedOrder = (await refreshActiveOrder(singleOrderId)) || detailedOrder
+    } else if (detailedOrder) {
+      detailedOrder =
+        syncActiveOrderState(await normalizeDraftOrderType(detailedOrder)) ||
+        detailedOrder
+    }
+
+    const finalDestination = resolveCounterDestinationFromOrders([
+      detailedOrder,
+    ])
+
+    return finalDestination
+  }, [
+    loadOpenPosDraftOrders,
+    normalizeDraftOrderType,
+    refreshActiveOrder,
+    syncActiveOrderState,
+  ])
+
   return {
     activeOrder,
     clearStoredDraftOrderId,
     ensureActiveOrder,
     loadStoredDraftOrder,
+    loadOpenPosDraftOrders,
+    prepareNewDraftOrder,
     refreshActiveOrder,
+    resolveCounterStartDestination,
     syncActiveOrderState,
     syncOrderPeople,
   }

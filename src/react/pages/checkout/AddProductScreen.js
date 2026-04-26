@@ -3,6 +3,11 @@ import {useStore} from '@store';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
+import {
+  isPosCashRegisterClosed,
+  isPosKioskMode,
+  shouldUsePosCashRegisterLifecycle,
+} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 
 const CheckoutContent = ({navigation, route: routeProp}) => {
@@ -11,18 +16,28 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
   const deviceStore = useStore('device');
+  const deviceConfigStore = useStore('device_config');
   const ordersActions = ordersStore.actions;
   const ordersGetters = ordersStore.getters;
   const peopleGetters = peopleStore.getters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const deviceGetters = deviceStore.getters;
+  const deviceConfigGetters = deviceConfigStore.getters;
   const {item: storagedDevice} = deviceGetters;
+  const {item: runtimeDeviceConfig} = deviceConfigGetters;
   const {item: order} = ordersGetters;
   const currentOrderId =
     order?.id ||
     order?.['@id'] ||
     null;
-  const {loadStoredDraftOrder} = usePosCartSession({
+  const isKioskMode = isPosKioskMode(runtimeDeviceConfig?.configs);
+  const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
+    runtimeDeviceConfig?.configs,
+  );
+  const isCashRegisterClosed = isPosCashRegisterClosed(
+    runtimeDeviceConfig?.configs,
+  );
+  const {loadStoredDraftOrder, prepareNewDraftOrder} = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
@@ -37,16 +52,30 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   }, [ordersActions]);
 
   useEffect(() => {
-    if (route?.params?.showBottomToolBar !== true) {
+    if (isKioskMode) {
+      if (route?.params?.showBottomToolBar !== true) {
+        return;
+      }
+
+      navigation.setParams({showBottomToolBar: false});
       return;
     }
 
-    navigation.setParams({showBottomToolBar: false});
-  }, [navigation, route?.params?.showBottomToolBar]);
+    if (route?.params?.showBottomToolBar === true) {
+      return;
+    }
+
+    navigation.setParams({showBottomToolBar: true});
+  }, [isKioskMode, navigation, route?.params?.showBottomToolBar]);
 
   useFocusEffect(
     useCallback(() => {
-      if (currentOrderId || isLoadingStoredOrderRef.current || !currentCompany?.id) {
+      if (!currentCompany?.id || isLoadingStoredOrderRef.current) {
+        return undefined;
+      }
+
+      if (shouldUseCashRegisterLifecycle && isCashRegisterClosed) {
+        navigation.navigate('CloseCashRegister');
         return undefined;
       }
 
@@ -54,7 +83,15 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
       void (async () => {
         try {
-          await loadStoredDraftOrder();
+          if (route?.params?.startNewOrder === true) {
+            prepareNewDraftOrder();
+            navigation.setParams({startNewOrder: false});
+            return;
+          }
+
+          if (!currentOrderId) {
+            await loadStoredDraftOrder();
+          }
         } finally {
           isLoadingStoredOrderRef.current = false;
         }
@@ -64,7 +101,12 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     }, [
       currentCompany?.id,
       currentOrderId,
+      isCashRegisterClosed,
       loadStoredDraftOrder,
+      navigation,
+      prepareNewDraftOrder,
+      route?.params?.startNewOrder,
+      shouldUseCashRegisterLifecycle,
     ]),
   );
 
