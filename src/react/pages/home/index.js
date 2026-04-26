@@ -4,7 +4,7 @@ import {Text} from 'react-native-animatable';
 import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
+import {isPosSelfServiceMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import styles from './index.styles';
 
 export default function HomePage({navigation}) {
@@ -17,7 +17,7 @@ export default function HomePage({navigation}) {
   const {item: device} = deviceConfigGetters;
   const {colors} = getters;
   const {currentCompany} = peopleGetters;
-  const isKioskMode = isPosKioskMode(device?.configs);
+  const isSelfServiceMode = isPosSelfServiceMode(device?.configs);
 
   const checkType = device?.configs?.['check-type'] || 'manual';
 
@@ -98,7 +98,7 @@ export default function HomePage({navigation}) {
   );
 
   if (
-    isKioskMode ||
+    isSelfServiceMode ||
     !device.configs ||
     !currentCompany ||
     Object.entries(currentCompany).length === 0 ||

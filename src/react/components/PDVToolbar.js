@@ -4,6 +4,7 @@ import { View, TouchableOpacity, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { useNavigationState } from '@react-navigation/native';
 import { useStore } from '@store';
+import {isPosCashRegisterClosed} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import createStyles from './PDVToolbar.styles';
 
 const ShopToolbar = ({ navigation }) => {
@@ -20,14 +21,7 @@ const ShopToolbar = ({ navigation }) => {
   const { currentCompany } = peopleGetters;
   const styles = createStyles(colors);
 
-  const isCashRegisterClosed = (() => {
-    const closedId = Number(device?.configs?.['cash-wallet-closed-id']);
-    return (
-      !device?.configs ||
-      device?.configs?.['cash-wallet-closed-id'] === undefined ||
-      (Number.isFinite(closedId) && closedId > 0)
-    );
-  })();
+  const isCashRegisterClosed = isPosCashRegisterClosed(device?.configs);
 
   const handleOrdersPress = () => {
     if (isCashRegisterClosed) {

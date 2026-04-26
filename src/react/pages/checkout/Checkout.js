@@ -19,7 +19,10 @@ import {
   getOrderRouteId,
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
-import {isPosKioskMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
+import {
+  isPosAutoPrintEnabled,
+  isPosSelfServiceMode,
+} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
@@ -241,7 +244,14 @@ const Checkout = () => {
     () => isPdvRouteContext(route?.params),
     [route?.params],
   );
-  const isKioskMode = useMemo(() => isPosKioskMode(device?.configs), [device?.configs]);
+  const isSelfServiceMode = useMemo(
+    () => isPosSelfServiceMode(device?.configs),
+    [device?.configs],
+  );
+  const isAutoPrintEnabled = useMemo(
+    () => isPosAutoPrintEnabled(device?.configs),
+    [device?.configs],
+  );
   const canUseLocalOperationalPayment = useMemo(
     () =>
       !isManagerApp &&
@@ -319,7 +329,7 @@ const Checkout = () => {
       ),
     [isPdvInteractionMode],
   );
-  const resetToKioskCatalog = useCallback(() => {
+  const resetToSelfServiceCatalog = useCallback(() => {
     navigation.reset({
       index: 0,
       routes: [{name: 'AddProductScreen'}],
@@ -689,9 +699,11 @@ const Checkout = () => {
             ordersActions.setItem(null);
             invoiceActions.setItems([]);
             ordersActions.setPayable(0);
-            printActions.setReload(true);
-            if (isKioskMode) {
-              resetToKioskCatalog();
+            if (isAutoPrintEnabled) {
+              printActions.setReload(true);
+            }
+            if (isSelfServiceMode) {
+              resetToSelfServiceCatalog();
             } else {
               navigation.navigate('OrderHistoryPage');
             }
@@ -699,12 +711,14 @@ const Checkout = () => {
         } else {
           const nextPayable = Number(payable || 0) + Number(createdInvoice.price || 0);
           appendInvoiceToStore(createdInvoice);
-          if (isKioskMode && nextPayable >= 0) {
+          if (isSelfServiceMode && nextPayable >= 0) {
             ordersActions.setItem(null);
             invoiceActions.setItems([]);
             ordersActions.setPayable(0);
-            printActions.setReload(true);
-            resetToKioskCatalog();
+            if (isAutoPrintEnabled) {
+              printActions.setReload(true);
+            }
+            resetToSelfServiceCatalog();
           } else {
             ordersActions.syncOrder?.(order);
             navigation.navigate(
@@ -732,13 +746,14 @@ const Checkout = () => {
       defaultCompany?.configs,
       device?.configs,
       invoiceActions,
-      isKioskMode,
+      isAutoPrintEnabled,
+      isSelfServiceMode,
       navigation,
       order,
       ordersActions,
       payable,
       printActions,
-      resetToKioskCatalog,
+      resetToSelfServiceCatalog,
     ],
   );
 

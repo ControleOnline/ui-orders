@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Linking,
   Platform,
 } from 'react-native';
 
@@ -17,6 +18,10 @@ import css from '@controleonline/ui-orders/src/react/css/orders';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
 import Formatter from '@controleonline/ui-common/src/utils/formatter.js';
+import {
+  isPosCashRegisterOpen,
+  shouldUsePosCashRegisterLifecycle,
+} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 
 import {
   inlineStyle_123_20,
@@ -29,12 +34,104 @@ import {
   inlineStyle_192_24,
 } from './CloseCashRegister.styles';
 
+const normalizeNotificationTargets = value => {
+  const source = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(/\r?\n|,/)
+      : [];
+
+  return Array.from(
+    new Set(
+      source
+        .map(item => String(item || '').replace(/\D+/g, '').trim())
+        .filter(Boolean),
+    ),
+  );
+};
+
+const groupCashRegisterItems = items => {
+  const groupedItems = new Map();
+
+  (Array.isArray(items) ? items : []).forEach(item => {
+    const productName = String(item?.product_name || '').trim() || 'Item';
+    const productDescription = String(item?.product_description || '').trim();
+    const productLabel = productDescription
+      ? `${productName} - ${productDescription}`
+      : productName;
+    const currentItem = groupedItems.get(productLabel) || {
+      label: productLabel,
+      quantity: 0,
+      total: 0,
+    };
+
+    currentItem.quantity += Number(item?.quantity || 0);
+    currentItem.total += Number(item?.order_product_total || 0);
+    groupedItems.set(productLabel, currentItem);
+  });
+
+  return Array.from(groupedItems.values()).sort((left, right) =>
+    left.label.localeCompare(right.label, 'pt-BR', {sensitivity: 'base'}),
+  );
+};
+
+const buildCashRegisterWhatsappMessage = ({
+  companyName,
+  deviceLabel,
+  operatorName,
+  orderItems,
+  total,
+}) => {
+  const groupedItems = groupCashRegisterItems(orderItems);
+  const reportLines = groupedItems.map(
+    item =>
+      `- ${item.quantity}x ${item.label}: ${Formatter.formatMoney(item.total)}`,
+  );
+
+  return [
+    'Fechamento de caixa do device',
+    companyName ? `Empresa: ${companyName}` : '',
+    deviceLabel ? `Device: ${deviceLabel}` : '',
+    operatorName ? `Operador: ${operatorName}` : '',
+    `Data: ${new Date().toLocaleString('pt-BR')}`,
+    '',
+    'Vendido no device:',
+    ...(reportLines.length > 0
+      ? reportLines
+      : ['- Nenhum item vendido neste fechamento.']),
+    '',
+    `Total: ${Formatter.formatMoney(total)}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+};
+
+const sendCashRegisterWhatsappReport = async ({targets, message}) => {
+  let openedTargets = 0;
+
+  for (const target of targets) {
+    const whatsappUrl = `https://wa.me/${target}?text=${encodeURIComponent(
+      message,
+    )}`;
+
+    try {
+      await Linking.openURL(whatsappUrl);
+      openedTargets += 1;
+    } catch {
+      // segue para os demais numeros
+    }
+  }
+
+  return openedTargets;
+};
+
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
   const authStore = useStore('auth');
   const authGetters = authStore.getters;
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
+  const configsStore = useStore('configs');
   const invoiceStore = useStore('invoice');
   const invoiceGetters = invoiceStore.getters;
   const invoiceActions = invoiceStore.actions;
@@ -43,12 +140,21 @@ const CloseCashRegister = ({navigation}) => {
   const deviceConfigsActions = device_configStore.actions;
   const {item: device} = deviceConfigGetters;
   const {currentCompany} = peopleGetters;
+  const {items: companyConfigs} = configsStore.getters;
   const {user} = authGetters;
   const deviceStore = useStore('device');
   const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {isLoading, error} = invoiceGetters;
   const [orderItems, setOrderItems] = useState([]);
+  const effectiveCompanyConfigs =
+    companyConfigs && typeof companyConfigs === 'object'
+      ? companyConfigs
+      : currentCompany?.configs || {};
+  const cashRegisterLifecycleEnabled = shouldUsePosCashRegisterLifecycle(
+    device?.configs,
+  );
+  const cashRegisterOpen = isPosCashRegisterOpen(device?.configs);
 
   useFocusEffect(
     useCallback(() => {
@@ -112,7 +218,40 @@ const CloseCashRegister = ({navigation}) => {
             configs: JSON.stringify(configValue),
             people: '/people/' + currentCompany.id,
           })
-          .then(() => {
+          .then(async () => {
+            if (!isOpening && cashRegisterLifecycleEnabled) {
+              const notificationTargets = normalizeNotificationTargets(
+                effectiveCompanyConfigs['cash-register-notifications'],
+              );
+
+              if (notificationTargets.length > 0) {
+                const message = buildCashRegisterWhatsappMessage({
+                  companyName:
+                    currentCompany?.alias || currentCompany?.name || '',
+                  deviceLabel:
+                    device?.alias ||
+                    storagedDevice?.alias ||
+                    storagedDevice?.id ||
+                    '',
+                  operatorName: user?.realname || user?.username || '',
+                  orderItems,
+                  total,
+                });
+
+                const openedTargets = await sendCashRegisterWhatsappReport({
+                  targets: notificationTargets,
+                  message,
+                });
+
+                if (openedTargets === 0) {
+                  Alert.alert(
+                    'Relatorio nao enviado',
+                    'Nao foi possivel abrir o WhatsApp para os numeros configurados neste device.',
+                  );
+                }
+              }
+            }
+
             navigation.reset({
               index: 0,
               routes: [{name: 'HomePage'}],
@@ -180,9 +319,8 @@ const CloseCashRegister = ({navigation}) => {
                 printerSelection={{enabled: true}}
               />
 
-              {!device?.configs ||
-              device?.configs['cash-wallet-closed-id'] === undefined ||
-              device?.configs['cash-wallet-closed-id'] === 0 ? (
+              {cashRegisterLifecycleEnabled ? (
+                cashRegisterOpen ? (
                 <TouchableOpacity
                   onPress={handleConfirmClose}
                   style={[globalStyles.button]}>
@@ -191,7 +329,7 @@ const CloseCashRegister = ({navigation}) => {
                     {global.t?.t('orders', 'button', 'closeCashRegister')}
                   </Text>
                 </TouchableOpacity>
-              ) : (
+                ) : (
                 <TouchableOpacity
                   onPress={handleConfirmOpen}
                   style={[globalStyles.button]}>
@@ -200,6 +338,14 @@ const CloseCashRegister = ({navigation}) => {
                     {global.t?.t('orders', 'button', 'openCashRegister')}
                   </Text>
                 </TouchableOpacity>
+                )
+              ) : (
+                <View style={[globalStyles.button, {opacity: 0.75}]}>
+                  <Icon name="event-note" size={24} color="#fff" />
+                  <Text style={inlineStyle_192_24}>
+                    Fechamento diario configurado
+                  </Text>
+                </View>
               )}
             </View>
           </View>

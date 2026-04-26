@@ -21,7 +21,7 @@ import { useMessage } from '@controleonline/ui-common/src/react/components/Messa
 import { withOpacity } from '@controleonline/../../src/styles/branding'
 import {
   isDeviceRuntimeDebugInfoEnabled,
-  isPosKioskMode,
+  isPosSelfServiceMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {searchCompanyProducts} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 
@@ -536,9 +536,9 @@ const OrderDetails = ({ route, navigation }) => {
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
-  const isPosKioskOperationMode = isPosKioskMode(device?.configs)
+  const isPosSelfServiceOperationMode = isPosSelfServiceMode(device?.configs)
   const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(device?.configs)
-  const canShowDebugActions = !isPosKioskOperationMode || isDeviceDebugEnabled
+  const canShowDebugActions = !isPosSelfServiceOperationMode || isDeviceDebugEnabled
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
@@ -2207,7 +2207,7 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const shouldShowMobileCancelAction = shouldShowKdsCancel
   const shouldShowMobileBottomActions =
-    !isPosKioskOperationMode &&
+    !isPosSelfServiceOperationMode &&
     (
       shouldShowMobileCancelAction ||
       !!resolvedPrimaryKdsAction
@@ -2650,7 +2650,7 @@ const OrderDetails = ({ route, navigation }) => {
       },
       tabs: modalDetailsTabs,
       primaryAction:
-        !isPosKioskOperationMode && resolvedPrimaryKdsAction
+        !isPosSelfServiceOperationMode && resolvedPrimaryKdsAction
           ? {
               disabled: orderActionLoading === resolvedPrimaryKdsAction.loadingKey,
               onPress: resolvedPrimaryKdsAction.onPress,
@@ -2687,7 +2687,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderCustomerName,
     orderCustomerPhone,
     orderActionLoading,
-    isPosKioskOperationMode,
+    isPosSelfServiceOperationMode,
     orderIdentitySource,
     resolvedOrderDateValue,
     resolvedPrimaryKdsAction,
@@ -2706,7 +2706,7 @@ const OrderDetails = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={localStyles.mobileOrderLayout}>
-      {!isPosKioskOperationMode && (
+      {!isPosSelfServiceOperationMode && (
         <View style={localStyles.mobileInfoCard}>
           <View style={localStyles.mobileInfoHeader}>
             <View style={localStyles.mobileInfoIconWrap}>
@@ -2971,7 +2971,7 @@ const OrderDetails = ({ route, navigation }) => {
     >
       {showBarcodeInput && <BarcodeInput />}
       <StateStore store="orders" />
-      {!isPosKioskOperationMode && (
+      {!isPosSelfServiceOperationMode && (
         <>
           <Modal
             transparent
