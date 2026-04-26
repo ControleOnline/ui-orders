@@ -18,6 +18,10 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
     [summary?.tabs],
   );
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key || '');
+  const showBaseLines =
+    !summary?.marketplace?.isIfood &&
+    Array.isArray(summary?.base?.lines) &&
+    summary.base.lines.length > 0;
 
   useEffect(() => {
     if (!visible) {
@@ -100,16 +104,18 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
                 ))}
               </View>
 
-              <View style={styles.detailsSection}>
-                <Text style={styles.detailsSectionTitle}>
-                  {global.t?.t('orders', 'title', 'orderData')}
-                </Text>
-                {summary.base.lines.map(line => (
-                  <Text key={line.key} style={styles.detailsInfoText}>
-                    {line.label}: {line.value}
+              {showBaseLines ? (
+                <View style={styles.detailsSection}>
+                  <Text style={styles.detailsSectionTitle}>
+                    {global.t?.t('orders', 'title', 'orderData')}
                   </Text>
-                ))}
-              </View>
+                  {summary.base.lines.map(line => (
+                    <Text key={line.key} style={styles.detailsInfoText}>
+                      {line.label}: {line.value}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
 
               {tabs.length > 0 ? (
                 <OrderSectionTabs

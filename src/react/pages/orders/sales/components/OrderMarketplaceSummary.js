@@ -31,6 +31,21 @@ const OrderMarketplaceSummary = ({marketplace}) => {
     <>
       <OrderMarketplaceActionBar actions={marketplace.actionButtons} />
 
+      {marketplace.benefitLines?.length > 0 && (
+        <View style={styles.scheduledDeliveryBanner}>
+          <Text style={styles.scheduledDeliveryLabel}>
+            {global.t?.t('orders', 'title', 'vouchersAndDiscounts') ||
+              'Vouchers e descontos'}
+          </Text>
+          {marketplace.benefitLines.map(line => (
+            <Text key={line.key} style={styles.scheduledDeliveryDate}>
+              {line.label}:{' '}
+              {line.money ? Formatter.formatMoney(line.value || 0) : line.value}
+            </Text>
+          ))}
+        </View>
+      )}
+
       <View style={styles.detailsSection}>
         <Text style={styles.detailsSectionTitle}>{marketplace.operationTitle}</Text>
         {marketplace.usingFallback ? (
