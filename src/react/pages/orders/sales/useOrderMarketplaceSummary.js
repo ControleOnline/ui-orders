@@ -1167,7 +1167,16 @@ const useOrderMarketplaceSummary = ({
     ['dispatching', 'delivering', 'courier_to_store', 'picked_up', 'arriving'].includes(
       remoteOrderStateKey || lastEventType,
     );
-  const isHandoverFlow = isiFoodOrder && isMerchantDelivery && (isDispatchLifecycle || isRiderAssigned);
+  const isStoreDeliveryReady =
+    isiFoodOrder &&
+    isMerchantDelivery &&
+    localRealStatusKey === 'pending' &&
+    ['ready', 'way'].includes(localStatusNameKey);
+  const isHandoverFlow = isiFoodOrder && isMerchantDelivery && (
+    isDispatchLifecycle ||
+    isRiderAssigned ||
+    isStoreDeliveryReady
+  );
   const requiresDeliveryLocator =
     is99FoodOrder &&
     (remoteCapabilities.requiresDeliveryLocator ||

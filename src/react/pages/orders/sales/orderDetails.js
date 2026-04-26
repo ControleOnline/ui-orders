@@ -713,6 +713,7 @@ const OrderDetails = ({ route, navigation }) => {
   const hasMarketplaceIntegration = marketplaceSummary.hasMarketplaceIntegration
   const openMarketplaceCancelFlow = marketplaceSummary.summary?.cancelFlow?.onOpen
   const openMarketplaceDeliveryFlow = marketplaceSummary.summary?.deliveryFlow?.onOpen
+  const isMarketplaceHandoverFlow = marketplaceSummary.summary?.deliveryFlow?.isHandoverFlow === true
 
   const buildOrderUpdatePayload = useCallback(changes => {
     const baseOrder = item || orderParam
@@ -1890,7 +1891,10 @@ const OrderDetails = ({ route, navigation }) => {
             !hasMarketplaceIntegration ||
             (
               isPendingLocalWorkflowState &&
-              effectiveLocalStatusNameKey === 'way'
+              (
+                effectiveLocalStatusNameKey === 'way' ||
+                (isMarketplaceHandoverFlow && effectiveLocalStatusNameKey === 'ready')
+              )
             )
         )
     )
