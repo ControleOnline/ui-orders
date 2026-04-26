@@ -1,5 +1,4 @@
 import React from 'react';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   ScrollView,
@@ -94,8 +93,9 @@ const PaymentCheckoutPanel = ({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={panelStyles.container}>
       <ScrollView
+        style={panelStyles.scrollView}
         contentContainerStyle={[styles.scrollContent, panelStyles.scrollContent]}>
         {topContent}
 
@@ -115,12 +115,18 @@ const PaymentCheckoutPanel = ({
         ) : hasSectionedPayments ? (
           normalizedSections.map(section => (
             <View key={section.key} style={panelStyles.sectionCard}>
-              <Text style={panelStyles.sectionTitle}>{section.title}</Text>
-              {section.description ? (
-                <Text style={panelStyles.sectionSubtitle}>
-                  {section.description}
-                </Text>
-              ) : null}
+              <View style={panelStyles.sectionHeader}>
+                <Text style={panelStyles.sectionTitle}>{section.title}</Text>
+                {section.actionLabel ? (
+                  <TouchableOpacity
+                    onPress={section.onPressAction}
+                    style={panelStyles.sectionActionButton}>
+                    <Text style={panelStyles.sectionActionText}>
+                      {section.actionLabel}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
               <View style={panelStyles.sectionOptions}>
                 {section.options.map(renderPaymentOption)}
               </View>
@@ -158,7 +164,7 @@ const PaymentCheckoutPanel = ({
         theme={theme}
         totalAmount={totalAmount}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
