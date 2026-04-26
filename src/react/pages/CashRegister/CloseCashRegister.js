@@ -8,6 +8,7 @@ import {
   Alert,
   Linking,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -127,6 +128,7 @@ const sendCashRegisterWhatsappReport = async ({targets, message}) => {
 
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
+  const {width} = useWindowDimensions();
   const authStore = useStore('auth');
   const authGetters = authStore.getters;
   const peopleStore = useStore('people');
@@ -155,6 +157,29 @@ const CloseCashRegister = ({navigation}) => {
     device?.configs,
   );
   const cashRegisterOpen = isPosCashRegisterOpen(device?.configs);
+  const isCompactWidth = width < 360;
+  const footerButtonContainerStyle = isCompactWidth
+    ? {
+        height: 44,
+        paddingHorizontal: 4,
+        paddingBottom: 4,
+      }
+    : null;
+  const footerButtonStyle = isCompactWidth
+    ? {
+        marginHorizontal: 3,
+        paddingVertical: 8,
+        paddingHorizontal: 6,
+      }
+    : null;
+  const footerButtonTextStyle = isCompactWidth
+    ? {
+        flexShrink: 1,
+        fontSize: 12,
+        marginLeft: 4,
+      }
+    : null;
+  const footerButtonIconSize = isCompactWidth ? 18 : 24;
 
   useFocusEffect(
     useCallback(() => {
@@ -311,39 +336,57 @@ const CloseCashRegister = ({navigation}) => {
               </Text>
             </View>
 
-            <View style={styles.CloseCashRegister.buttonContainer}>
+            <View
+              style={[
+                styles.CloseCashRegister.buttonContainer,
+                footerButtonContainerStyle,
+              ]}>
               <PrintButton
                 job={{type: 'cash-register'}}
                 store={'invoice'}
-                style={[globalStyles.button]}
+                label="Imprimir"
+                iconSize={footerButtonIconSize}
+                style={[globalStyles.button, footerButtonStyle]}
                 printerSelection={{enabled: true}}
+                textStyle={footerButtonTextStyle}
               />
 
               {cashRegisterLifecycleEnabled ? (
                 cashRegisterOpen ? (
                 <TouchableOpacity
                   onPress={handleConfirmClose}
-                  style={[globalStyles.button]}>
-                  <Icon name="print" size={24} color="#fff" />
-                  <Text style={inlineStyle_183_24}>
+                  style={[globalStyles.button, footerButtonStyle]}>
+                  <Icon name="lock" size={footerButtonIconSize} color="#fff" />
+                  <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[inlineStyle_183_24, footerButtonTextStyle]}>
                     {global.t?.t('orders', 'button', 'closeCashRegister')}
                   </Text>
                 </TouchableOpacity>
                 ) : (
                 <TouchableOpacity
                   onPress={handleConfirmOpen}
-                  style={[globalStyles.button]}>
-                  <Icon name="print" size={24} color="#fff" />
-                  <Text style={inlineStyle_192_24}>
+                  style={[globalStyles.button, footerButtonStyle]}>
+                  <Icon name="lock-open" size={footerButtonIconSize} color="#fff" />
+                  <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[inlineStyle_192_24, footerButtonTextStyle]}>
                     {global.t?.t('orders', 'button', 'openCashRegister')}
                   </Text>
                 </TouchableOpacity>
                 )
               ) : (
-                <View style={[globalStyles.button, {opacity: 0.75}]}>
-                  <Icon name="event-note" size={24} color="#fff" />
-                  <Text style={inlineStyle_192_24}>
-                    Fechamento diario configurado
+                <View style={[globalStyles.button, footerButtonStyle, {opacity: 0.75}]}>
+                  <Icon name="event-note" size={footerButtonIconSize} color="#fff" />
+                  <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={[inlineStyle_192_24, footerButtonTextStyle]}>
+                    {isCompactWidth
+                      ? 'Fechamento diario'
+                      : 'Fechamento diario configurado'}
                   </Text>
                 </View>
               )}

@@ -5,4 +5,5 @@ export const inlineStyle_129_16 = (
 ) => ({
   color: iconColor,
   marginLeft: 8,
+  flexShrink: 1,
 });

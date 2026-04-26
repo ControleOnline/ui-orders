@@ -36,6 +36,8 @@ const PrinterButton = ({
   onSuccess = null,
   onError = null,
   label = '',
+  iconSize = null,
+  textStyle = null,
 }) => {
   const {styles, globalStyles} = css();
   const {
@@ -60,6 +62,7 @@ const PrinterButton = ({
 
   const resolvedVariant = layout?.variant || (compact ? 'compact' : 'default');
   const showCompactContent = resolvedVariant === 'compact' || resolvedVariant === 'icon';
+  const resolvedIconSize = iconSize || (showCompactContent ? 19 : 24);
   const resolvedLabel = useMemo(() => {
     if (showCompactContent) {
       return '';
@@ -125,14 +128,20 @@ const PrinterButton = ({
         ) : (
           <Icon
             name="print"
-            size={showCompactContent ? 19 : 24}
+            size={resolvedIconSize}
             color={iconColor}
           />
         )}
         {!showCompactContent && (
-          <Text style={inlineStyle_129_16({
-            iconColor: iconColor,
-          })}>
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[
+              inlineStyle_129_16({
+                iconColor: iconColor,
+              }),
+              textStyle,
+            ]}>
             {resolvedLabel}
           </Text>
         )}
@@ -148,7 +157,7 @@ const PrinterButton = ({
           onPress={openPrinterModal}>
           <Icon
             name="list"
-            size={showCompactContent ? 20 : 24}
+            size={showCompactContent ? 20 : resolvedIconSize}
             color={iconColor}
           />
         </TouchableOpacity>
