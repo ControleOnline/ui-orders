@@ -1,11 +1,24 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 
 import {api} from '@controleonline/ui-common/src/api'
+import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService'
+import {
+  POS_CHECK_ORDER_TYPE_NONE,
+  resolvePosCheckOrderType,
+} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {useStore} from '@store'
 import {resolveCounterDestinationFromOrders} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow'
+import {
+  buildLinkedOrderMetadata,
+  getLinkedOrderContext,
+  isLinkedChildOrder,
+  isLinkedParentOrder,
+  matchesLinkedOrderExternalCode,
+} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
 const DRAFT_SALE_ORDER_TYPE = 'cart'
+const LINKED_CHILD_ORDER_TYPE = 'sale'
 
 const buildStatusIriFromId = value => {
   const normalizedId = String(value || '').replace(/\D/g, '')
@@ -27,10 +40,24 @@ const extractCollectionItems = response => {
 let posOpenOrderStatusIriCache = null
 const pendingEnsureActiveOrderRequests = new Map()
 
-export const isOpenPosCartOrder = order =>
+export const isOpenPosCartOrder = (
+  order,
+  {usesLinkedCheckOrders = false} = {},
+) =>
   String(order?.app || '').trim().toUpperCase() === 'POS' &&
   normalizeStatusKey(order?.status?.realStatus) === 'open' &&
-  normalizeStatusKey(order?.status?.status) === 'open'
+  normalizeStatusKey(order?.status?.status) === 'open' &&
+  !isLinkedParentOrder(order) &&
+  (
+    usesLinkedCheckOrders
+      ? (
+          !!getLinkedOrderContext(order).mainOrderId &&
+          [DRAFT_SALE_ORDER_TYPE, LINKED_CHILD_ORDER_TYPE].includes(
+            normalizeStatusKey(order?.orderType),
+          )
+        )
+      : normalizeStatusKey(order?.orderType) === DRAFT_SALE_ORDER_TYPE
+  )
 
 const buildPosDraftOrderStorageKey = (companyId, deviceId) =>
   `pdv-active-order:${normalizeId(companyId) || '0'}:${normalizeId(deviceId) || '0'}`
