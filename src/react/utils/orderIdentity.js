@@ -136,26 +136,21 @@ export const resolveMarketplaceAppLabel = order => {
 
 export const resolveMarketplaceOrderCode = (order, remoteOrderSummary = null) => {
   const app = normalizeText(order?.app).toLowerCase()
-  const fallbackCode = getRemoteSummaryIdentifier(remoteOrderSummary, ['orderIndex'])
+  const fallbackCode = getRemoteSummaryIdentifier(remoteOrderSummary, [
+    'order_index',
+    'orderIndex',
+  ])
 
   if (app === 'ifood') {
     return normalizeText(
-      getMarketplaceField(order, ['ifood'], 'pickup_code') ||
-        getMarketplaceField(order, ['ifood'], 'pickupCode') ||
-        getMarketplaceField(order, ['ifood'], 'handover_code') ||
-        getMarketplaceField(order, ['ifood'], 'handoverCode') ||
-        getRemoteSummaryIdentifier(remoteOrderSummary, [
-          'pickupCode',
-          'handoverCode',
-          'localizer',
-        ]) ||
-        getMarketplaceField(order, ['ifood'], 'locator') ||
-        getMarketplaceField(order, ['ifood'], 'localizer') ||
-        fallbackCode ||
+      getRemoteSummaryIdentifier(remoteOrderSummary, [
+        'order_index',
+        'orderIndex',
+        'displayId',
+        'display_id',
+      ]) ||
         getMarketplaceField(order, ['ifood'], 'displayId') ||
-        getMarketplaceField(order, ['ifood'], 'display_id') ||
-        getMarketplaceField(order, ['ifood'], 'code') ||
-        getMarketplaceField(order, ['ifood'], 'id'),
+        getMarketplaceField(order, ['ifood'], 'display_id'),
     )
   }
 

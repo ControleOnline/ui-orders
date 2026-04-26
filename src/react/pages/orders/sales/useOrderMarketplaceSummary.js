@@ -1120,12 +1120,16 @@ const useOrderMarketplaceSummary = ({
     remoteDineIn?.delivery_date_time,
     remoteDineIn?.deliveryDateTime,
   );
-  const pickupCode = resolvePreferredText(
+  const rawPickupCode = resolvePreferredText(
     remoteTakeout?.pickup_code,
     remoteTakeout?.pickupCode,
     remoteDelivery?.pickup_code,
     remoteIdentifiers?.pickup_code,
   );
+  const pickupCode =
+    rawPickupCode && rawPickupCode !== remoteIdentifiers?.order_index
+      ? rawPickupCode
+      : '';
   const pickupAreaCode = resolvePreferredText(
     remoteTakeout?.pickup_area_code,
     remoteTakeout?.pickupAreaCode,
@@ -1865,6 +1869,7 @@ const useOrderMarketplaceSummary = ({
 
     const operationLines = [];
     const courierLines = [];
+    const benefitLines = [];
     const financialLines = [];
     const paymentCards = [];
     const deliveryPaymentLines = [];
@@ -2148,45 +2153,81 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (Number(remoteFinancial.discount_total || 0)) {
-        financialLines.push(
-          {
-            key: 'discount-total',
-            label: global.t?.t('orders', 'label', 'totalDiscounts'),
-            value: remoteFinancial.discount_total || 0,
-            money: true,
-          },
-          {
-            key: 'items-discount-total',
-            label: global.t?.t('orders', 'label', 'itemDiscount'),
-            value: remoteFinancial.items_discount_total || 0,
-            money: true,
-          },
-          {
-            key: 'delivery-discount-total',
-            label: global.t?.t('orders', 'label', 'deliveryDiscount'),
-            value: remoteFinancial.delivery_discount_total || 0,
-            money: true,
-          },
-          {
-            key: 'coupon-discount-total',
-            label: global.t?.t('orders', 'label', 'couponDiscount'),
-            value: remoteFinancial.coupon_discount_total || 0,
-            money: true,
-          },
-        );
-      }
-
       if (isiFoodOrder && remoteFinancial.voucher_code) {
-        financialLines.push({
+        benefitLines.push({
           key: 'ifood-voucher-code',
-          label: global.t?.t('orders', 'label', 'coupon') || 'Cupom',
+          label: global.t?.t('orders', 'label', 'voucher') || 'Voucher',
           value: remoteFinancial.voucher_code,
         });
       }
 
+      if (Number(remoteFinancial.discount_total || 0)) {
+        if (isiFoodOrder) {
+          benefitLines.push({
+            key: 'discount-total',
+            label: global.t?.t('orders', 'label', 'totalDiscounts'),
+            value: remoteFinancial.discount_total || 0,
+            money: true,
+          });
+
+          if (Number(remoteFinancial.items_discount_total || 0)) {
+            benefitLines.push({
+              key: 'items-discount-total',
+              label: global.t?.t('orders', 'label', 'itemDiscount'),
+              value: remoteFinancial.items_discount_total || 0,
+              money: true,
+            });
+          }
+
+          if (Number(remoteFinancial.delivery_discount_total || 0)) {
+            benefitLines.push({
+              key: 'delivery-discount-total',
+              label: global.t?.t('orders', 'label', 'deliveryDiscount'),
+              value: remoteFinancial.delivery_discount_total || 0,
+              money: true,
+            });
+          }
+
+          if (Number(remoteFinancial.coupon_discount_total || 0)) {
+            benefitLines.push({
+              key: 'coupon-discount-total',
+              label: global.t?.t('orders', 'label', 'couponDiscount'),
+              value: remoteFinancial.coupon_discount_total || 0,
+              money: true,
+            });
+          }
+        } else {
+          financialLines.push(
+            {
+              key: 'discount-total',
+              label: global.t?.t('orders', 'label', 'totalDiscounts'),
+              value: remoteFinancial.discount_total || 0,
+              money: true,
+            },
+            {
+              key: 'items-discount-total',
+              label: global.t?.t('orders', 'label', 'itemDiscount'),
+              value: remoteFinancial.items_discount_total || 0,
+              money: true,
+            },
+            {
+              key: 'delivery-discount-total',
+              label: global.t?.t('orders', 'label', 'deliveryDiscount'),
+              value: remoteFinancial.delivery_discount_total || 0,
+              money: true,
+            },
+            {
+              key: 'coupon-discount-total',
+              label: global.t?.t('orders', 'label', 'couponDiscount'),
+              value: remoteFinancial.coupon_discount_total || 0,
+              money: true,
+            },
+          );
+        }
+      }
+
       if (Number(remoteFinancial.store_discount_total || 0)) {
-        financialLines.push({
+        const line = {
           key: 'store-discount-total',
           label: global.t?.t(
             'orders',
@@ -2199,11 +2240,12 @@ const useOrderMarketplaceSummary = ({
               0
             : remoteFinancial.store_discount_total || 0,
           money: true,
-        });
+        };
+        (isiFoodOrder ? benefitLines : financialLines).push(line);
       }
 
       if (Number(remoteFinancial.platform_discount_total || 0)) {
-        financialLines.push({
+        const line = {
           key: 'platform-discount-total',
           label: global.t?.t(
             'orders',
@@ -2216,7 +2258,8 @@ const useOrderMarketplaceSummary = ({
               0
             : remoteFinancial.platform_discount_total || 0,
           money: true,
-        });
+        };
+        (isiFoodOrder ? benefitLines : financialLines).push(line);
       }
 
       if (isiFoodOrder && !!remoteFinancial.payment_brand) {
@@ -2562,6 +2605,7 @@ const useOrderMarketplaceSummary = ({
         'Documento para nota fiscal',
       operationLines,
       courierLines,
+      benefitLines,
       financial: financialLines,
       paymentCards,
       deliveryPaymentLines,
