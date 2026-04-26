@@ -1,4 +1,4 @@
-const LINKED_ORDER_TYPE_VALUES = ['comanda', 'mesa']
+const LINKED_ORDER_TYPE_VALUES = ['tab', 'table']
 
 const normalizeText = value => String(value ?? '').trim()
 
@@ -31,8 +31,8 @@ const parseJsonObject = value => {
   }
 }
 
-export const LINKED_ORDER_TYPE_COMANDA = 'comanda'
-export const LINKED_ORDER_TYPE_MESA = 'mesa'
+export const LINKED_ORDER_TYPE_TAB = 'tab'
+export const LINKED_ORDER_TYPE_TABLE = 'table'
 
 export const normalizeEntityId = value => {
   if (value === null || value === undefined) return null
@@ -61,12 +61,12 @@ export const normalizeEntityId = value => {
 export const normalizeLinkedOrderType = value => {
   const normalizedValue = normalizeKey(value)
 
-  if (['comanda', 'tab', 'check', 'ticket'].includes(normalizedValue)) {
-    return LINKED_ORDER_TYPE_COMANDA
+  if (['tab'].includes(normalizedValue)) {
+    return LINKED_ORDER_TYPE_TAB
   }
 
-  if (['mesa', 'table'].includes(normalizedValue)) {
-    return LINKED_ORDER_TYPE_MESA
+  if (['table'].includes(normalizedValue)) {
+    return LINKED_ORDER_TYPE_TABLE
   }
 
   return ''
@@ -78,15 +78,15 @@ export const isLinkedParentOrderType = value =>
 export const resolveLinkedOrderLabel = value => {
   const normalizedType = normalizeLinkedOrderType(value)
 
-  if (normalizedType === LINKED_ORDER_TYPE_MESA) {
-    return global.t?.t('orders', 'title', 'table') || 'Mesa'
+  if (normalizedType === LINKED_ORDER_TYPE_TABLE) {
+    return global.t?.t('orders', 'title', 'table') || 'Table'
   }
 
-  if (normalizedType === LINKED_ORDER_TYPE_COMANDA) {
-    return global.t?.t('orders', 'title', 'tab') || 'Comanda'
+  if (normalizedType === LINKED_ORDER_TYPE_TAB) {
+    return global.t?.t('orders', 'title', 'tab') || 'Tab'
   }
 
-  return global.t?.t('orders', 'title', 'order') || 'Pedido'
+  return global.t?.t('orders', 'title', 'order') || 'Order'
 }
 
 const getOtherInformations = order =>
@@ -102,9 +102,7 @@ const getLinkedOrderRawContext = order => {
   const candidates = [
     otherInformations?.linked_order,
     otherInformations?.linkedOrder,
-    otherInformations?.check,
     otherInformations?.tab,
-    otherInformations?.mesa,
     otherInformations?.table,
   ]
 
@@ -144,8 +142,8 @@ export const getLinkedOrderContext = order => {
   return {
     externalCode,
     inputType,
-    isLinkedChild: !!mainOrderId,
-    isLinkedParent: isLinkedParentOrderType(orderType) && !mainOrderId,
+    isLinkedChild: !!mainOrderId && !isLinkedParentOrderType(orderType),
+    isLinkedParent: isLinkedParentOrderType(orderType),
     label: resolveLinkedOrderLabel(orderType),
     mainOrderId,
     orderType,

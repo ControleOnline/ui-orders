@@ -55,6 +55,10 @@ export default function usePosOrderMaterialization({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+    allowLinkedOrderManagement:
+      typeof interactionParams?.allowLinkedOrderManagement === 'boolean'
+        ? interactionParams.allowLinkedOrderManagement
+        : null,
   });
 
   const materializeOrderWithProducts = useCallback(
