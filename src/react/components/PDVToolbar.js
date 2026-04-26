@@ -5,7 +5,10 @@ import Icon from 'react-native-vector-icons/Feather';
 import { useNavigationState } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '@store';
-import {isPosCashRegisterClosed} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
+import {
+  isPosCashRegisterClosed,
+  shouldUsePosCashRegisterLifecycle,
+} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import createStyles from './PDVToolbar.styles';
 
 const ShopToolbar = ({ navigation }) => {
@@ -24,6 +27,11 @@ const ShopToolbar = ({ navigation }) => {
   const styles = createStyles(colors, insets);
 
   const isCashRegisterClosed = isPosCashRegisterClosed(device?.configs);
+  const shouldShowCashRegisterButton = shouldUsePosCashRegisterLifecycle(
+    device?.configs,
+  );
+  const isCashRegisterTab =
+    activeTab === 'CashRegisterIndex' || activeTab === 'CloseCashRegister';
 
   const handleOrdersPress = () => {
     if (isCashRegisterClosed) {
@@ -32,6 +40,12 @@ const ShopToolbar = ({ navigation }) => {
     }
 
     navigation.navigate('OrderHistoryPage');
+  };
+
+  const handleCashRegisterPress = () => {
+    navigation.navigate(
+      isCashRegisterClosed ? 'CloseCashRegister' : 'CashRegisterIndex',
+    );
   };
 
   return (
@@ -78,9 +92,30 @@ const ShopToolbar = ({ navigation }) => {
                 styles.buttonText,
                 activeTab === 'OrderHistoryPage' && styles.activeText,
               ]}>
-              {global.t?.t('orders', 'label', 'orders')}
-            </Text>
+                {global.t?.t('orders', 'label', 'orders')}
+              </Text>
           </TouchableOpacity>
+          {shouldShowCashRegisterButton && (
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleCashRegisterPress}
+              disabled={
+                !currentCompany || Object.entries(currentCompany).length === 0
+              }>
+              <Icon
+                name="credit-card"
+                size={15}
+                color={isCashRegisterTab ? '#007AFF' : '#666'}
+              />
+              <Text
+                style={[
+                  styles.buttonText,
+                  isCashRegisterTab && styles.activeText,
+                ]}>
+                {global.t?.t('orders', 'title', 'cashRegister')}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.button}
             onPress={() => {

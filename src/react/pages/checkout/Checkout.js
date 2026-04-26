@@ -258,7 +258,7 @@ const Checkout = () => {
     () => isPosAutoPrintEnabled(device?.configs),
     [device?.configs],
   );
-  const {clearStoredDraftOrderId, resolveCounterStartDestination} =
+  const {clearStoredDraftOrderId} =
     usePosCartSession({
       companyId: currentCompany?.id,
       deviceId: storagedDevice?.id,
@@ -347,42 +347,18 @@ const Checkout = () => {
       routes: [{name: 'AddProductScreen'}],
     });
   }, [navigation]);
-  const resetToCounterDestination = useCallback(async () => {
-    try {
-      const destination = await resolveCounterStartDestination();
-
-      if (destination.screen === 'OrderHistoryPage') {
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'OrderHistoryPage'}],
-        });
-        return;
-      }
-
-      if (destination.screen === 'OrderDetails' && destination.order) {
-        navigation.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'OrderDetails',
-              params: buildOrderDetailsNavigationParams(destination.order),
-            },
-          ],
-        });
-        return;
-      }
-    } catch {
-      // o catalogo continua sendo o fallback seguro do balcao
-    }
-
+  const resetToCounterDestination = useCallback(() => {
     navigation.reset({
       index: 0,
-      routes: [{name: 'AddProductScreen'}],
+      routes: [
+        {
+          name: 'OrderHistoryPage',
+          params: {resumeCounterFlow: true},
+        },
+      ],
     });
   }, [
-    buildOrderDetailsNavigationParams,
     navigation,
-    resolveCounterStartDestination,
   ]);
 
   useEffect(() => {
@@ -753,7 +729,7 @@ const Checkout = () => {
               printActions.setReload(true);
             }
             if (isCounterMode) {
-              await resetToCounterDestination();
+              resetToCounterDestination();
             } else if (isSelfServiceMode) {
               resetToSelfServiceCatalog();
             } else {
@@ -772,7 +748,7 @@ const Checkout = () => {
               printActions.setReload(true);
             }
             if (isCounterMode) {
-              await resetToCounterDestination();
+              resetToCounterDestination();
             } else {
               resetToSelfServiceCatalog();
             }

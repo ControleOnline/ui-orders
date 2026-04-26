@@ -10,8 +10,6 @@ import {
   isPosKioskMode,
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import {buildOrderDetailsRouteParams} from '@controleonline/ui-orders/src/react/utils/orderRoute';
-import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import styles from './index.styles';
 
 export default function HomePage({navigation}) {
@@ -19,25 +17,17 @@ export default function HomePage({navigation}) {
   const getters = themeStore.getters;
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
-  const deviceStore = useStore('device');
   const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
-  const deviceGetters = deviceStore.getters;
-  const {item: storagedDevice} = deviceGetters;
   const {colors} = getters;
-  const {currentCompany, defaultCompany} = peopleGetters;
+  const {currentCompany} = peopleGetters;
   const isKioskMode = isPosKioskMode(device?.configs);
   const isCounterMode = isPosCounterMode(device?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     device?.configs,
   );
   const isCashRegisterClosed = isPosCashRegisterClosed(device?.configs);
-  const {resolveCounterStartDestination} = usePosCartSession({
-    companyId: currentCompany?.id,
-    deviceId: storagedDevice?.id,
-    defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
-  });
 
   const checkType = device?.configs?.['check-type'] || 'manual';
 
@@ -70,28 +60,7 @@ export default function HomePage({navigation}) {
       // checkType === 'manual' ou qualquer outro valor
       console.log('📋 [MANUAL] Abrindo lista de comandas manualmente...');
       if (isCounterMode) {
-        void (async () => {
-          try {
-            const destination = await resolveCounterStartDestination();
-
-            if (destination.screen === 'OrderHistoryPage') {
-              navigation.navigate('OrderHistoryPage');
-              return;
-            }
-
-            if (destination.screen === 'OrderDetails' && destination.order) {
-              navigation.navigate(
-                'OrderDetails',
-                buildOrderDetailsRouteParams(destination.order),
-              );
-              return;
-            }
-          } catch {
-            // se a leitura falhar, o catalogo continua sendo a rota segura
-          }
-
-          navigation.navigate('AddProductScreen');
-        })();
+        navigation.navigate('OrderHistoryPage', {resumeCounterFlow: true});
         return;
       }
 
@@ -159,7 +128,7 @@ export default function HomePage({navigation}) {
 
   if (
     isKioskMode ||
-    !device.configs ||
+    !device?.configs ||
     !currentCompany ||
     Object.entries(currentCompany).length === 0 ||
     !colors ||

@@ -71,7 +71,8 @@
 
 ## Regras operacionais de POS e kiosk
 - Nao existe `APP_TYPE=TOTEM`. O totem e sempre `APP_TYPE=POS` com `pos-operation-mode=kiosk`.
-- Em `BALCAO`, o operador pode ter mais de um pedido aberto no device, mas a retomada deve priorizar foco unico: sem pedido aberto vai para `AddProductScreen`; com um pedido aberto vai direto para ele; com mais de um pedido aberto volta para `OrderHistoryPage` para escolha explicita.
+- Em `BALCAO`, a entrada do app deve continuar em `HomePage`. O fluxo continuo de retomada so comeca a partir de `OrderHistoryPage`, nunca pulando a home como no `kiosk`.
+- Em `BALCAO`, quando a lista de pedidos for aberta em modo de retomada, vale a prioridade de foco unico: sem pedido aberto vai para `AddProductScreen`; com um pedido aberto vai direto para ele; com mais de um pedido aberto permanece em `OrderHistoryPage` para escolha explicita.
 - Em `BALCAO`, quando o operador pedir um novo pedido a partir do historico, o fluxo nao deve reabrir automaticamente o rascunho salvo anterior; ele precisa limpar a referencia ativa para materializar um novo `cart` no proximo item adicionado.
 - Em `BALCAO`, depois de concluir o pagamento de um pedido, o proximo destino depende dos pedidos abertos restantes no device: mais de um volta ao historico, um volta direto ao pedido restante, nenhum volta ao catalogo.
 - Em `BALCAO`, quando a configuracao do device exigir abertura e fechamento de caixa, `HomePage`, `AddProductScreen` e atalhos de inicio de venda nao podem liberar o catalogo com o caixa fechado; nesses casos o fluxo deve redirecionar para `CloseCashRegister`.

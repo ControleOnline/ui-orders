@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Linking,
   Platform,
   useWindowDimensions,
 } from 'react-native';
@@ -35,97 +34,6 @@ import {
   inlineStyle_192_24,
 } from './CloseCashRegister.styles';
 
-const normalizeNotificationTargets = value => {
-  const source = Array.isArray(value)
-    ? value
-    : typeof value === 'string'
-      ? value.split(/\r?\n|,/)
-      : [];
-
-  return Array.from(
-    new Set(
-      source
-        .map(item => String(item || '').replace(/\D+/g, '').trim())
-        .filter(Boolean),
-    ),
-  );
-};
-
-const groupCashRegisterItems = items => {
-  const groupedItems = new Map();
-
-  (Array.isArray(items) ? items : []).forEach(item => {
-    const productName = String(item?.product_name || '').trim() || 'Item';
-    const productDescription = String(item?.product_description || '').trim();
-    const productLabel = productDescription
-      ? `${productName} - ${productDescription}`
-      : productName;
-    const currentItem = groupedItems.get(productLabel) || {
-      label: productLabel,
-      quantity: 0,
-      total: 0,
-    };
-
-    currentItem.quantity += Number(item?.quantity || 0);
-    currentItem.total += Number(item?.order_product_total || 0);
-    groupedItems.set(productLabel, currentItem);
-  });
-
-  return Array.from(groupedItems.values()).sort((left, right) =>
-    left.label.localeCompare(right.label, 'pt-BR', {sensitivity: 'base'}),
-  );
-};
-
-const buildCashRegisterWhatsappMessage = ({
-  companyName,
-  deviceLabel,
-  operatorName,
-  orderItems,
-  total,
-}) => {
-  const groupedItems = groupCashRegisterItems(orderItems);
-  const reportLines = groupedItems.map(
-    item =>
-      `- ${item.quantity}x ${item.label}: ${Formatter.formatMoney(item.total)}`,
-  );
-
-  return [
-    'Fechamento de caixa do device',
-    companyName ? `Empresa: ${companyName}` : '',
-    deviceLabel ? `Device: ${deviceLabel}` : '',
-    operatorName ? `Operador: ${operatorName}` : '',
-    `Data: ${new Date().toLocaleString('pt-BR')}`,
-    '',
-    'Vendido no device:',
-    ...(reportLines.length > 0
-      ? reportLines
-      : ['- Nenhum item vendido neste fechamento.']),
-    '',
-    `Total: ${Formatter.formatMoney(total)}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-};
-
-const sendCashRegisterWhatsappReport = async ({targets, message}) => {
-  let openedTargets = 0;
-
-  for (const target of targets) {
-    const whatsappUrl = `https://wa.me/${target}?text=${encodeURIComponent(
-      message,
-    )}`;
-
-    try {
-      await Linking.openURL(whatsappUrl);
-      openedTargets += 1;
-    } catch {
-      // segue para os demais numeros
-    }
-  }
-
-  return openedTargets;
-};
-
 const CloseCashRegister = ({navigation}) => {
   const {styles, globalStyles} = css();
   const {width} = useWindowDimensions();
@@ -133,7 +41,6 @@ const CloseCashRegister = ({navigation}) => {
   const authGetters = authStore.getters;
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
-  const configsStore = useStore('configs');
   const invoiceStore = useStore('invoice');
   const invoiceGetters = invoiceStore.getters;
   const invoiceActions = invoiceStore.actions;
@@ -142,17 +49,12 @@ const CloseCashRegister = ({navigation}) => {
   const deviceConfigsActions = device_configStore.actions;
   const {item: device} = deviceConfigGetters;
   const {currentCompany} = peopleGetters;
-  const {items: companyConfigs} = configsStore.getters;
   const {user} = authGetters;
   const deviceStore = useStore('device');
   const deviceGetters = deviceStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {isLoading, error} = invoiceGetters;
   const [orderItems, setOrderItems] = useState([]);
-  const effectiveCompanyConfigs =
-    companyConfigs && typeof companyConfigs === 'object'
-      ? companyConfigs
-      : currentCompany?.configs || {};
   const cashRegisterLifecycleEnabled = shouldUsePosCashRegisterLifecycle(
     device?.configs,
   );
@@ -195,6 +97,55 @@ const CloseCashRegister = ({navigation}) => {
     }, [storagedDevice, currentCompany]),
   );
 
+  const syncLocalCashRegisterState = useCallback(
+    isOpening => {
+      const currentConfigs =
+        device?.configs && typeof device.configs === 'object'
+          ? device.configs
+          : {};
+      const nextConfigs = {
+        ...currentConfigs,
+        'cash-wallet-closed-id': isOpening
+          ? 0
+          : currentConfigs['cash-wallet-open-id'] || 1,
+      };
+
+      deviceConfigsActions.setItem({
+        ...(device || {}),
+        configs: nextConfigs,
+      });
+    },
+    [device, deviceConfigsActions],
+  );
+
+  const refreshCurrentConfig = useCallback(async () => {
+    if (!currentCompany?.id || !storagedDevice?.id) {
+      return;
+    }
+
+    const items = await deviceConfigsActions.getItems({
+      'device.device': storagedDevice.id,
+      people: `/people/${currentCompany.id}`,
+      type: device?.type || 'PDV',
+    });
+
+    const nextConfig =
+      (Array.isArray(items) ? items : []).find(
+        item =>
+          item?.device?.device === storagedDevice.id ||
+          item?.device?.id === storagedDevice.id,
+      ) || null;
+
+    if (nextConfig) {
+      deviceConfigsActions.setItem(nextConfig);
+    }
+  }, [
+    currentCompany?.id,
+    device?.type,
+    deviceConfigsActions,
+    storagedDevice?.id,
+  ]);
+
   const confirm = (message, callback) => {
     if (Platform.OS === 'web') {
       if (window.confirm(message)) callback();
@@ -218,71 +169,26 @@ const CloseCashRegister = ({navigation}) => {
     );
   };
 
-  const handleCashRegister = isOpening => {
-    invoiceActions
-      .getItems({
-        'order[id]': 'DESC',
-        itemsPerPage: 1,
-      })
-      .then(data => {
-        let openId = 0;
-        if (data && data.length > 0)
-          openId = data[0]['@id'].replace(/\D/g, '');
+  const handleCashRegister = async isOpening => {
+    if (!currentCompany?.id || !storagedDevice?.id) {
+      return;
+    }
 
-        const configValue = isOpening
-          ? {
-              'cash-wallet-open-id': openId,
-              'cash-wallet-closed-id': 0,
-            }
-          : {
-              'cash-wallet-closed-id': openId,
-            };
+    const action = isOpening
+      ? invoiceActions.openCashRegister
+      : invoiceActions.closeCashRegister;
 
-        deviceConfigsActions
-          .addDeviceConfigs({
-            configs: JSON.stringify(configValue),
-            people: '/people/' + currentCompany.id,
-          })
-          .then(async () => {
-            if (!isOpening && cashRegisterLifecycleEnabled) {
-              const notificationTargets = normalizeNotificationTargets(
-                effectiveCompanyConfigs['cash-register-notifications'],
-              );
+    await action({
+      device: storagedDevice.id,
+      provider: currentCompany.id,
+    });
+    syncLocalCashRegisterState(isOpening);
+    void refreshCurrentConfig().catch(() => {});
 
-              if (notificationTargets.length > 0) {
-                const message = buildCashRegisterWhatsappMessage({
-                  companyName:
-                    currentCompany?.alias || currentCompany?.name || '',
-                  deviceLabel:
-                    device?.alias ||
-                    storagedDevice?.alias ||
-                    storagedDevice?.id ||
-                    '',
-                  operatorName: user?.realname || user?.username || '',
-                  orderItems,
-                  total,
-                });
-
-                const openedTargets = await sendCashRegisterWhatsappReport({
-                  targets: notificationTargets,
-                  message,
-                });
-
-                if (openedTargets === 0) {
-                  Alert.alert(
-                    'Relatorio nao enviado',
-                    'Nao foi possivel abrir o WhatsApp para os numeros configurados neste device.',
-                  );
-                }
-              }
-            }
-
-            navigation.reset({
-              index: 0,
-              routes: [{name: 'HomePage'}],
-            });
-          });
-      });
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'HomePage'}],
+    });
   };
 
   const total = orderItems.reduce(
