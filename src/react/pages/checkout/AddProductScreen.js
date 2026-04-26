@@ -36,6 +36,14 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     };
   }, [ordersActions]);
 
+  useEffect(() => {
+    if (route?.params?.showBottomToolBar !== true) {
+      return;
+    }
+
+    navigation.setParams({showBottomToolBar: false});
+  }, [navigation, route?.params?.showBottomToolBar]);
+
   useFocusEffect(
     useCallback(() => {
       if (currentOrderId || isLoadingStoredOrderRef.current || !currentCompany?.id) {
