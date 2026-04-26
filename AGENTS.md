@@ -81,10 +81,12 @@
 - Em `kiosk`, a faixa operacional de preparo/cancelamento nao deve aparecer junto da barra de pagamento. Quando a propria tela tiver barra operacional propria, o layout nao deve reservar outra barra por baixo.
 - Atendimento vinculado por `tab` e `table` deve usar esses nomes canonicos em codigo, configuracoes e metadados internos. Traducao vale apenas para labels visuais.
 - Nao criar sinonimos, aliases ou fallbacks paralelos para tipos, chaves de configuracao ou metadados de `tab/table`. O contrato interno deve ter um unico nome por conceito.
+- As regras operacionais de `tab/table`, identificacao, leitura e vinculo valem para qualquer superficie de `PDV` renderizada por `ui-orders`, inclusive quando a `PdvPage` estiver hospedada dentro de `APP_TYPE=MANAGER`.
+- O fluxo cliente-facing de `SHOP` nao reutiliza essas regras operacionais de `PDV` para `tab/table`.
 - A configuracao `check-order-management-mode` define se o `POS` pode abrir e fechar `tab/table` ou se ele apenas pode operar sobre `tab/table` que ja estejam abertas.
 - A identificacao operacional de `tab/table` deve aceitar digitacao manual e leitura por leitor de codigo de barras. Em runtime nativo, a mesma entrada pode expor tambem QR Code e NFC quando o device suportar esses leitores.
 - Fluxos administrativos de liquidacao, consolidacao ou pagamento de `tab/table` no `MANAGER` nao devem herdar a restricao operacional do `POS`; eles podem abrir, vincular, consolidar e fechar `tab/table`.
-- A leitura de codigo de barras por wedge de teclado pode ficar ativa em qualquer tela de contexto `POS`/`PDV`, inclusive dentro de `OrderDetails`.
+- A leitura de codigo de barras por wedge de teclado pode ficar ativa em qualquer tela de contexto `POS`/`PDV`, inclusive dentro de `OrderDetails` e do `PDV` hospedado no `MANAGER`.
 - Quando um bip ou a selecao de um produto pelo auto-complete precisar materializar um pedido inexistente, o fluxo deve criar apenas um pedido e reutilizar a mesma promise de criacao concorrente.
 - Fora da conferencia, bip e atalho de auto-complete podem levar o usuario para `OrderDetails` apos adicionar o item. Dentro de `OrderDetails`, novos bipes devem continuar adicionando itens sem sair da tela.
 - `OrderDetails` em contexto `PDV` pode pesquisar e adicionar produto diretamente na aba `Itens`, sem sair da conferencia.
