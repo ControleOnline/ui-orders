@@ -107,47 +107,47 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       paddingVertical: isCompactMobile ? 9 : 10,
     },
     mobileCompactSummaryGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: isCompactMobile ? 6 : 8,
+      width: '100%',
     },
     mobileCompactSummaryItem: {
-      flexGrow: 1,
-      minWidth: isUltraCompactMobile ? 108 : 122,
       borderRadius: 10,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.cardBgSoft,
       paddingHorizontal: isCompactMobile ? 9 : 10,
       paddingVertical: isCompactMobile ? 7 : 8,
-      gap: 3,
+      gap: 6,
     },
-    mobileCompactSummaryItemWarning: {
-      borderColor: palette.accent,
-      backgroundColor: withOpacity(palette.accent, 0.08),
+    mobileCompactSummaryTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
     },
-    mobileCompactSummaryItemSuccess: {
-      borderColor: palette.success,
-      backgroundColor: withOpacity(palette.success, 0.08),
+    mobileCompactSummaryMetric: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      minWidth: 0,
     },
-    mobileCompactSummaryLabel: {
-      color: palette.textSecondary,
-      fontSize: isCompactMobile ? 10 : 11,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.45,
+    mobileCompactSummaryMetricFlexible: {
+      flex: 1,
     },
     mobileCompactSummaryValue: {
       color: palette.textPrimary,
       fontSize: isCompactMobile ? 12 : 13,
       fontWeight: '800',
-      lineHeight: isCompactMobile ? 16 : 17,
+      lineHeight: isCompactMobile ? 14 : 15,
+      flexShrink: 1,
     },
-    mobileCompactSummaryValueWarning: {
-      color: palette.accent,
+    mobileCompactSummaryValueStrong: {
+      fontSize: isCompactMobile ? 13 : 14,
+      lineHeight: isCompactMobile ? 15 : 16,
     },
-    mobileCompactSummaryValueSuccess: {
-      color: palette.success,
+    mobileCompactSummaryDateValue: {
+      color: palette.textSecondary,
+      fontSize: isCompactMobile ? 11 : 12,
+      lineHeight: isCompactMobile ? 13 : 14,
     },
     mobileSummaryCard: {
       borderRadius: 18,

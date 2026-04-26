@@ -1820,39 +1820,18 @@ const OrderDetails = ({ route, navigation }) => {
 
     return String(env.APP_TYPE || '').trim().toUpperCase()
   }, [item, orderParam])
-  const compactOrderSummaryItems = useMemo(
-    () => [
-      {
-        key: 'created-at',
-        label: global.t?.t('orders', 'label', 'createdAt') || 'Criado',
-        value: orderDateLabel || '-',
-      },
-      {
-        key: 'status',
-        label: global.t?.t('orders', 'label', 'localStatus') || 'Status',
-        value: translatedLocalStatusLabel || '-',
-      },
-      {
-        key: 'total',
-        label: global.t?.t('orders', 'label', 'localTotal') || 'Total',
-        value: Formatter.formatMoney(localOrderTotal || 0),
-      },
-      {
-        key: 'pending',
-        label: global.t?.t('orders', 'label', 'pending') || 'Pendente',
-        value:
-          localPendingAmount > 0.009
-            ? Formatter.formatMoney(localPendingAmount)
-            : (global.t?.t('orders', 'label', 'paid') || 'Pago'),
-        accent: localPendingAmount > 0.009 ? 'warning' : 'success',
-      },
-    ],
-    [
-      localOrderTotal,
-      localPendingAmount,
-      orderDateLabel,
-      translatedLocalStatusLabel,
-    ],
+  const compactOrderSummary = useMemo(
+    () => ({
+      accessibilityLabel: [
+        `${global.t?.t('orders', 'label', 'localStatus') || 'Status'}: ${translatedLocalStatusLabel || '-'}`,
+        `${global.t?.t('orders', 'label', 'localTotal') || 'Total'}: ${Formatter.formatMoney(localOrderTotal || 0)}`,
+        `${global.t?.t('orders', 'label', 'createdAt') || 'Criado'}: ${orderDateLabel || '-'}`,
+      ].join('. '),
+      statusValue: translatedLocalStatusLabel || '-',
+      totalValue: Formatter.formatMoney(localOrderTotal || 0),
+      dateValue: orderDateLabel || '-',
+    }),
+    [localOrderTotal, orderDateLabel, translatedLocalStatusLabel],
   )
   const isGenericLocalOrder = true
   const isOpenLocalWorkflowState = effectiveLocalRealStatusKey === 'open'
@@ -2912,34 +2891,47 @@ const OrderDetails = ({ route, navigation }) => {
 
       <View style={localStyles.mobileCompactSummaryCard}>
         <View style={localStyles.mobileCompactSummaryGrid}>
-          {compactOrderSummaryItems.map(summaryItem => (
-            <View
-              key={summaryItem.key}
-              style={[
-                localStyles.mobileCompactSummaryItem,
-                summaryItem.accent === 'warning' &&
-                  localStyles.mobileCompactSummaryItemWarning,
-                summaryItem.accent === 'success' &&
-                  localStyles.mobileCompactSummaryItemSuccess,
-              ]}
-            >
-              <Text style={localStyles.mobileCompactSummaryLabel}>
-                {summaryItem.label}
-              </Text>
+          <View
+            accessible
+            accessibilityLabel={compactOrderSummary.accessibilityLabel}
+            style={localStyles.mobileCompactSummaryItem}
+          >
+            <View style={localStyles.mobileCompactSummaryTopRow}>
+              <View style={[localStyles.mobileCompactSummaryMetric, localStyles.mobileCompactSummaryMetricFlexible]}>
+                <Icon name="local-offer" size={15} color={displayOrderStatusColor} />
+                <Text
+                  style={localStyles.mobileCompactSummaryValue}
+                  numberOfLines={1}
+                >
+                  {compactOrderSummary.statusValue}
+                </Text>
+              </View>
+              <View style={localStyles.mobileCompactSummaryMetric}>
+                <Icon name="payments" size={15} color={ppcColors.accentInfo} />
+                <Text
+                  style={[
+                    localStyles.mobileCompactSummaryValue,
+                    localStyles.mobileCompactSummaryValueStrong,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {compactOrderSummary.totalValue}
+                </Text>
+              </View>
+            </View>
+            <View style={localStyles.mobileCompactSummaryMetric}>
+              <Icon name="schedule" size={14} color={ppcColors.textSecondary} />
               <Text
                 style={[
                   localStyles.mobileCompactSummaryValue,
-                  summaryItem.accent === 'warning' &&
-                    localStyles.mobileCompactSummaryValueWarning,
-                  summaryItem.accent === 'success' &&
-                    localStyles.mobileCompactSummaryValueSuccess,
+                  localStyles.mobileCompactSummaryDateValue,
                 ]}
-                numberOfLines={2}
+                numberOfLines={1}
               >
-                {summaryItem.value}
+                {compactOrderSummary.dateValue}
               </Text>
             </View>
-          ))}
+          </View>
         </View>
       </View>
 
