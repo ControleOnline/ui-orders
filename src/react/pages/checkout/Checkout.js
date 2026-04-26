@@ -1088,7 +1088,13 @@ const Checkout = () => {
     !selectedPayment?.paymentType ||
     !allPaymentOptions.length ||
     (isRemotePaymentSelected && !selectedRemoteDevice);
-  const actionLabel = 'Pagar';
+  const actionLabel = !selectedPayment?.paymentType
+    ? 'Pagar'
+    : isRemotePaymentSelected && selectedRemoteDevice?.alias
+      ? `Enviar para ${selectedRemoteDevice.alias}`
+      : isCashPaymentOption(selectedPayment)
+        ? 'Receber em dinheiro'
+        : `Pagar com ${getPaymentOptionLabel(selectedPayment)}`;
   const amountEntryTitle =
     amountEntryModalMode === 'cash-local'
       ? 'Pagamento em dinheiro'

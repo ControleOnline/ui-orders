@@ -1,6 +1,9 @@
 import {StyleSheet} from 'react-native';
 
 export default StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   feedbackCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#D6DEE8',
@@ -51,7 +54,22 @@ export default StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 220,
+    paddingBottom: 24,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  sectionActionButton: {
+    borderColor: '#BAE6FD',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  sectionActionText: {
+    color: '#0EA5E9',
+    fontSize: 12,
+    fontWeight: '700',
   },
   sectionCard: {
     backgroundColor: '#FFFFFF',
@@ -65,6 +83,11 @@ export default StyleSheet.create({
   },
   sectionOptions: {
     gap: 10,
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   sectionSubtitle: {
     color: '#64748B',
