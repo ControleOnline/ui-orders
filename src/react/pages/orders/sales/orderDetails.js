@@ -2558,11 +2558,6 @@ const OrderDetails = ({ route, navigation }) => {
   const modalDetailsTabs = useMemo(
     () => [
       {
-        key: 'items',
-        label: global.t?.t('orders', 'title', 'orderItems') || 'Itens',
-        content: renderItemsTab('details'),
-      },
-      {
         key: 'financial',
         label: global.t?.t('orders', 'title', 'payments') || 'Financeiro',
         content: renderFinancialTab('details'),
@@ -2570,7 +2565,6 @@ const OrderDetails = ({ route, navigation }) => {
     ],
     [
       renderFinancialTab,
-      renderItemsTab,
     ],
   )
 
