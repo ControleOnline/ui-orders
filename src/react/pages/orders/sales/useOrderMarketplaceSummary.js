@@ -1752,7 +1752,9 @@ const useOrderMarketplaceSummary = ({
   }, [isHandoverFlow, openDeliveryFlow, requiresDeliveryLocator, runRemoteAction]);
 
   const handleRespondNegotiation = useCallback(async decision => {
-    const normalizedDecision = decision === 'reject' ? 'reject' : 'accept';
+    const normalizedDecision = ['reject', 'alternative'].includes(decision)
+      ? decision
+      : 'accept';
     if (!orderId || !isiFoodOrder || remoteActionLoading || !remoteNegotiation?.dispute_id) {
       return;
     }
@@ -1764,7 +1766,7 @@ const useOrderMarketplaceSummary = ({
         `/marketplace/integrations/ifood/orders/${orderId}/negotiation/${normalizedDecision}`,
         {
           method: 'POST',
-          body: normalizedDecision === 'reject'
+          body: normalizedDecision === 'reject' || normalizedDecision === 'alternative'
             ? {reason: 'UNKNOWN_ISSUE'}
             : {},
         },
@@ -1782,13 +1784,19 @@ const useOrderMarketplaceSummary = ({
       await refreshOrder();
       await loadMarketplaceState({silent: true});
 
-      showSuccess(
-        normalizedDecision === 'reject'
-          ? global.t?.t('orders', 'message', 'ifoodNegotiationRejected') ||
-            'Negociacao iFood rejeitada.'
-          : global.t?.t('orders', 'message', 'ifoodNegotiationAccepted') ||
-            'Negociacao iFood aceita.',
-      );
+      let negotiationSuccessMessage =
+        global.t?.t('orders', 'message', 'ifoodNegotiationAccepted') ||
+        'Negociacao iFood aceita.';
+      if (normalizedDecision === 'reject') {
+        negotiationSuccessMessage =
+          global.t?.t('orders', 'message', 'ifoodNegotiationRejected') ||
+          'Negociacao iFood rejeitada.';
+      }
+      if (normalizedDecision === 'alternative') {
+        negotiationSuccessMessage = 'Contraproposta iFood enviada.';
+      }
+
+      showSuccess(negotiationSuccessMessage);
     } catch (actionError) {
       showError(formatApiError(actionError));
     } finally {
@@ -1857,6 +1865,18 @@ const useOrderMarketplaceSummary = ({
       },
     );
 
+    if (remoteNegotiation?.alternative?.available) {
+      actions.push({
+        key: 'ifood-alternative-negotiation',
+        label: 'Enviar contraproposta',
+        icon: 'swap-horiz',
+        tone: 'neutral',
+        loading: remoteActionLoading === 'negotiation_alternative',
+        disabled: !!remoteActionLoading,
+        onPress: () => handleRespondNegotiation('alternative'),
+      });
+    }
+
     return actions;
   }, [
     canCancelRemoteOrder,
@@ -1867,6 +1887,7 @@ const useOrderMarketplaceSummary = ({
     handleRespondNegotiation,
     isiFoodOrder,
     remoteActionLoading,
+    remoteNegotiation?.alternative?.available,
     remoteNegotiation?.dispute_id,
     remoteNegotiation?.has_open_dispute,
   ]);
