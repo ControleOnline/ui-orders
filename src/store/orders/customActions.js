@@ -139,3 +139,36 @@ export const addProducts = ({commit, getters}, order, products) => {
       commit(types.SET_ISSAVING, false);
     });
 };
+
+export const requestConferenceAutoPrint = ({commit, getters}, params = {}) => {
+  const orderId = normalizeEntityId(params?.id);
+  if (!orderId) {
+    return Promise.reject(new Error('Order not informed'));
+  }
+
+  commit(types.SET_ERROR, null);
+
+  return api
+    .fetch(`${getters.resourceEndpoint}/${orderId}/conference-print`, {
+      method: 'POST',
+      body: {
+        ...params,
+        id: orderId,
+      },
+    })
+    .then(data => {
+      commit(types.SET_ERROR, null);
+
+      if (data?.order && typeof data.order === 'object') {
+        commitSyncedOrder({commit, getters}, data.order, {
+          prependIfMissing: true,
+        });
+      }
+
+      return data;
+    })
+    .catch(e => {
+      commit(types.SET_ERROR, e.message);
+      throw e;
+    });
+};
