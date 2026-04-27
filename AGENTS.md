@@ -85,6 +85,8 @@
 - O fluxo cliente-facing de `SHOP` nao reutiliza essas regras operacionais de `PDV` para `tab/table`.
 - A configuracao `check-order-management-mode` define se o `POS` pode abrir e fechar `tab/table` ou se ele apenas pode operar sobre `tab/table` que ja estejam abertas.
 - A identificacao operacional de `tab/table` deve aceitar digitacao manual e leitura por leitor de codigo de barras. Em runtime nativo, a mesma entrada pode expor tambem QR Code e NFC quando o device suportar esses leitores.
+- A conciliacao financeira de `tab/table` deve sempre usar o pedido raiz de settlement como referencia de checkout. Nao criar checkout paralelo por pedido filho.
+- Quando mais de uma `tab/table` for vinculada na mesma conciliacao, a secundaria passa a apontar para a principal e as invoices historicas tambem precisam ficar visiveis no pedido raiz.
 - Fluxos administrativos de liquidacao, consolidacao ou pagamento de `tab/table` no `MANAGER` nao devem herdar a restricao operacional do `POS`; eles podem abrir, vincular, consolidar e fechar `tab/table`.
 - A leitura de codigo de barras por wedge de teclado pode ficar ativa em qualquer tela de contexto `POS`/`PDV`, inclusive dentro de `OrderDetails` e do `PDV` hospedado no `MANAGER`.
 - Quando um bip ou a selecao de um produto pelo auto-complete precisar materializar um pedido inexistente, o fluxo deve criar apenas um pedido e reutilizar a mesma promise de criacao concorrente.
