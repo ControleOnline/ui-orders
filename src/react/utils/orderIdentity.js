@@ -1,3 +1,5 @@
+import {buildFood99OrderSummary} from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
+
 const normalizeText = value => String(value ?? '').trim()
 
 const normalizeKey = value =>
@@ -179,10 +181,20 @@ export const resolveMarketplaceOrderCode = (order, remoteOrderSummary = null) =>
   return ''
 }
 
+export const resolveOrderIdentityRemoteSummary = (order, remoteOrderSummary = null) =>
+  remoteOrderSummary || buildFood99OrderSummary(order) || null
+
 export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
+  const effectiveRemoteOrderSummary = resolveOrderIdentityRemoteSummary(
+    order,
+    remoteOrderSummary,
+  )
   const internalId = normalizeText(order?.id)
   const marketplaceLabel = resolveMarketplaceAppLabel(order)
-  const marketplaceOrderCode = resolveMarketplaceOrderCode(order, remoteOrderSummary)
+  const marketplaceOrderCode = resolveMarketplaceOrderCode(
+    order,
+    effectiveRemoteOrderSummary,
+  )
   const hasMarketplaceReference = !!marketplaceLabel && !!marketplaceOrderCode
 
   if (hasMarketplaceReference) {
