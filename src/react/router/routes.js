@@ -88,7 +88,6 @@ const ordersRoutes = [
     component: WrappedCloseCashRegister,
     options: {
       headerShown: true,
-      headerBackVisible: false,
       title: global.t?.t('orders', 'title', 'cashRegister'),
     },
   },
@@ -97,7 +96,6 @@ const ordersRoutes = [
     component: Withdrawal,
     options: {
       headerShown: true,
-      headerBackVisible: false,
       title: global.t?.t('orders', 'title', 'withdrawal'),
     },
   },
@@ -116,9 +114,7 @@ const ordersRoutes = [
     component: WrappedAddProductsPage,
     options: {
       headerShown: true,
-      headerBackVisible: false,
       showBottomCart: true,
-      showBottomToolBar: false,
       title: global.t?.t('orders', 'title', 'chooseCategory'),
     },
     initialParams: { store: 'categories' },
@@ -128,8 +124,6 @@ const ordersRoutes = [
     component: WrappedOrderDetails,
     options: {
       headerShown: true,
-      headerBackVisible: false,
-      showBottomToolBar: false,
       title: global.t?.t('orders', 'title', 'order'),
     },
     initialParams: { store: 'orders' },
@@ -137,7 +131,10 @@ const ordersRoutes = [
   {
     name: 'Checkout',
     component: Checkout,
-    options: { showBottomCart: false, headerShown: false },
+    options: {
+      showBottomCart: false,
+      title: global.t?.t('orders', 'title', 'checkout') || 'Pagamento',
+    },
     initialParams: { store: 'cart' },
   },
 ];
