@@ -477,7 +477,35 @@ const getBestPayload = order => {
 }
 
 export const isFood99Order = order =>
-  /food99|99food|ifood/i.test(normalizeText(order?.app))
+  [
+    normalizeText(order?.app),
+    ...(
+      Array.isArray(order?.extraData)
+        ? order.extraData.flatMap(item => [
+            item?.extra_fields?.context,
+            item?.extraFields?.context,
+            item?.label,
+            item?.key,
+            item?.value,
+          ])
+        : []
+    ),
+    ...(
+      Array.isArray(order?.extra_data)
+        ? order.extra_data.flatMap(item => [
+            item?.extra_fields?.context,
+            item?.extraFields?.context,
+            item?.label,
+            item?.key,
+            item?.value,
+          ])
+        : []
+    ),
+    ...Object.keys(decodeOrderOtherInformations(order) || {}),
+  ]
+    .map(normalizeText)
+    .filter(Boolean)
+    .some(value => /(^99$|food99|99 ?food|ifood)/i.test(value))
 
 const buildIfoodOrderSummary = order => {
   const payload = getBestPayload(order)

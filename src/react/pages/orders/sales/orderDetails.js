@@ -2,9 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 
 import {
   ActivityIndicator,
-  Alert,
   Modal,
-  Platform,
   Text,
   TextInput,
   View,
@@ -15,10 +13,8 @@ import {
 import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '@store'
-import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
-import { withOpacity } from '@controleonline/../../src/styles/branding'
 import {
   isDeviceRuntimeDebugInfoEnabled,
   isTruthyValue,
@@ -64,7 +60,6 @@ import { resolveMarketplaceAppLabel } from '@controleonline/ui-orders/src/react/
 import { env } from '@env'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
-import { getPlatformCapabilities } from '@assets/ppc/channels'
 
 import {
   mergeOrderProductIntoList,
@@ -549,11 +544,6 @@ const OrderDetails = ({ route, navigation }) => {
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
-  const platformCapabilities = getPlatformCapabilities(item || orderParam)
-  const normalizedOrderApp = String(item?.app || orderParam?.app || '').trim().toUpperCase()
-  const isPosOrder = normalizedOrderApp === 'POS'
-  const isShopOrder = normalizedOrderApp === 'SHOP'
-  const isPosOrShopOrder = isPosOrder || isShopOrder
   const localStatusNameKey = String(
     item?.status?.status ||
     orderParam?.status?.status ||
@@ -567,13 +557,8 @@ const OrderDetails = ({ route, navigation }) => {
   const isLocallyTerminalOrder =
     isTerminalOrderStatus(item?.status?.realStatus) ||
     isTerminalOrderStatus(orderParam?.status?.realStatus)
-  const isEditablePosCartOrder =
-    isPosOrder &&
-    localRealStatusKey === 'open' &&
-    (localStatusNameKey === '' || localStatusNameKey === 'open')
   const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
   const shouldShowOrderPartyDetails = isPurchaseOrder || isDeviceDeliveryEnabled
-  const [orderActionLoading, setOrderActionLoading] = useState('')
   const [detailsTabKey, setDetailsTabKey] = useState('items')
 
   const orderProductsStore = useStore('order_products')
@@ -719,9 +704,6 @@ const OrderDetails = ({ route, navigation }) => {
     showSuccess,
   })
   const hasMarketplaceIntegration = marketplaceSummary.hasMarketplaceIntegration
-  const openMarketplaceCancelFlow = marketplaceSummary.summary?.cancelFlow?.onOpen
-  const openMarketplaceDeliveryFlow = marketplaceSummary.summary?.deliveryFlow?.onOpen
-  const isMarketplaceHandoverFlow = marketplaceSummary.summary?.deliveryFlow?.isHandoverFlow === true
 
   const buildOrderUpdatePayload = useCallback(changes => {
     const baseOrder = item || orderParam
@@ -948,84 +930,6 @@ const OrderDetails = ({ route, navigation }) => {
     showError,
   ])
 
-  const runOrderAction = useCallback(async action => {
-    if (!item?.id || orderActionLoading) {
-      return
-    }
-
-    const currentLocalOrderRealStatus = String(
-      item?.status?.realStatus ||
-      orderParam?.status?.realStatus ||
-      '',
-    ).toLowerCase()
-
-    if (isTerminalOrderStatus(currentLocalOrderRealStatus)) {
-      return
-    }
-
-    const actionMap = {
-      confirm: {
-        path: `/orders/${item.id}/confirm`,
-        success: global.t?.t('orders', 'message', 'orderConfirmed'),
-      },
-      ready: {
-        path: `/orders/${item.id}/ready`,
-        success: global.t?.t('orders', 'message', 'orderReady'),
-      },
-      cancel: {
-        path: `/orders/${item.id}/cancel`,
-        success: global.t?.t('orders', 'message', 'orderCanceled'),
-      },
-      delivered: {
-        path: `/orders/${item.id}/delivered`,
-        success: global.t?.t('orders', 'message', 'orderDelivered'),
-      },
-      finalize: {
-        path: `/orders/${item.id}/delivered`,
-        success: global.t?.t('orders', 'message', 'orderDelivered'),
-      },
-    }
-
-    const actionConfig = actionMap[action]
-    if (!actionConfig) {
-      return
-    }
-
-    try {
-      setOrderActionLoading(action)
-
-      const response = await api.fetch(actionConfig.path, {
-        method: 'POST',
-        body: {},
-      })
-
-      const actionResult = response?.result || response
-      if (String(actionResult?.errno ?? '0').trim() !== '0') {
-        throw actionResult
-      }
-
-      await refreshCurrentOrder()
-      showSuccess(actionConfig.success)
-
-      if (isKds && (action === 'cancel' || action === 'delivered' || action === 'finalize')) {
-        navigation.goBack()
-      }
-    } catch (actionError) {
-      showError(formatApiError(actionError))
-    } finally {
-      setOrderActionLoading('')
-    }
-  }, [
-    item?.id,
-    item?.status?.realStatus,
-    orderActionLoading,
-    orderParam?.status?.realStatus,
-    refreshCurrentOrder,
-    showError,
-    showSuccess,
-    isKds,
-    navigation,
-  ])
   const resolvedDisplayOrderProducts = useMemo(() => {
     const currentOrderProducts = resolveEmbeddedOrderProducts(item).orderProducts
     const initialOrderProducts = resolveEmbeddedOrderProducts(orderParam).orderProducts
@@ -1845,84 +1749,6 @@ const OrderDetails = ({ route, navigation }) => {
     }),
     [localOrderTotal, orderDateLabel, translatedLocalStatusLabel],
   )
-  const isGenericLocalOrder = true
-  const isOpenLocalWorkflowState = effectiveLocalRealStatusKey === 'open'
-  const isPendingLocalWorkflowState = effectiveLocalRealStatusKey === 'pending'
-  const isPosOrShopInitialWorkflowState =
-    isPosOrShopOrder &&
-    isOpenLocalWorkflowState &&
-    ['open', 'paid', 'confirmed', ''].includes(effectiveLocalStatusNameKey || 'open')
-  const isPosOrShopPreparingWorkflowState =
-    isPosOrShopOrder &&
-    isOpenLocalWorkflowState &&
-    effectiveLocalStatusNameKey === 'preparing'
-  const isPosOrShopReadyWorkflowState =
-    isPosOrShopOrder &&
-    isPendingLocalWorkflowState &&
-    effectiveLocalStatusNameKey === 'ready'
-  const isPosOrShopDeliveringWorkflowState =
-    isPosOrShopOrder &&
-    isPendingLocalWorkflowState &&
-    effectiveLocalStatusNameKey === 'way'
-  const canGenericConfirmOrder =
-    isGenericLocalOrder &&
-    !isTerminalOrder &&
-    (
-      isPosOrShopInitialWorkflowState ||
-      (isPosOrder && isEditablePosCartOrder)
-    )
-  const canGenericCancelOrder =
-    isGenericLocalOrder &&
-    !isTerminalOrder &&
-    platformCapabilities.canCancel
-  const shouldShowKdsCancel = canGenericCancelOrder
-  const canGenericReadyOrder =
-    isGenericLocalOrder &&
-    platformCapabilities.canReady &&
-    !isTerminalOrder &&
-    (
-      isPosOrShopOrder
-        ? isPosOrShopPreparingWorkflowState
-        : (
-            !hasMarketplaceIntegration ||
-            (
-              isOpenLocalWorkflowState &&
-              effectiveLocalStatusNameKey === 'preparing'
-            )
-        )
-    )
-  const canGenericDeliveredOrder =
-    isGenericLocalOrder &&
-    platformCapabilities.canDeliver &&
-    !isTerminalOrder &&
-    (
-      isPosOrShopOrder
-        ? isPosOrShopDeliveringWorkflowState
-        : (
-            !hasMarketplaceIntegration ||
-            (
-              isPendingLocalWorkflowState &&
-              (
-                effectiveLocalStatusNameKey === 'way' ||
-                (isMarketplaceHandoverFlow && effectiveLocalStatusNameKey === 'ready')
-              )
-            )
-        )
-    )
-
-  const canFinalizeGenericOrder =
-    isGenericLocalOrder &&
-    !isTerminalOrder &&
-    (
-      isPosOrShopOrder
-        ? isPosOrShopReadyWorkflowState
-        : (
-            !shouldShowKdsCancel &&
-            !canGenericReadyOrder &&
-            !canGenericDeliveredOrder
-        )
-    )
-
   const closeDetailsModal = useCallback(() => {
     setDetailsModalVisible(false)
   }, [])
@@ -1949,123 +1775,6 @@ const OrderDetails = ({ route, navigation }) => {
       store: 'orders',
     })
   }, [canShowDebugActions, item?.id, navigation, orderParam?.id])
-
-  const handleConfirmGenericOrder = useCallback(() => {
-    if (!item?.id || isTerminalOrder || orderActionLoading === 'confirm') {
-      return
-    }
-
-    void runOrderAction('confirm')
-  }, [
-    item?.id,
-    isTerminalOrder,
-    orderActionLoading,
-    runOrderAction,
-  ])
-
-  const handleMarkOrderAsReady = useCallback(() => {
-    if (!item?.id || isTerminalOrder || orderActionLoading === 'ready') {
-      return
-    }
-
-    void runOrderAction('ready')
-  }, [
-    item?.id,
-    isTerminalOrder,
-    orderActionLoading,
-    runOrderAction,
-  ])
-
-  const handleDeliverGenericOrder = useCallback(() => {
-    if (!item?.id || isTerminalOrder || orderActionLoading === 'delivered') {
-      return
-    }
-
-    if (hasMarketplaceIntegration && typeof openMarketplaceDeliveryFlow === 'function') {
-      void openMarketplaceDeliveryFlow()
-      return
-    }
-
-    void runOrderAction('delivered')
-  }, [
-    hasMarketplaceIntegration,
-    item?.id,
-    isTerminalOrder,
-    openMarketplaceDeliveryFlow,
-    orderActionLoading,
-    runOrderAction,
-  ])
-
-  const handleFinalizeGenericOrder = useCallback(() => {
-    if (!item?.id || isTerminalOrder || orderActionLoading === 'finalize') {
-      return
-    }
-
-    void runOrderAction('finalize')
-  }, [
-    item?.id,
-    isTerminalOrder,
-    orderActionLoading,
-    runOrderAction,
-  ])
-
-  const confirmCancelOrder = useCallback((callback) => {
-    if (
-      typeof callback !== 'function' ||
-      isTerminalOrder ||
-      orderActionLoading
-    ) {
-      return
-    }
-
-    const title = global.t?.t('orders', 'title', 'confirmation') || 'Confirmação'
-    const message = global.t?.t('orders', 'message', 'confirmCancelOrder') || 'Confirma o cancelamento deste pedido?'
-    const cancelLabel = global.t?.t('orders', 'button', 'cancel') || 'Cancelar'
-    const confirmLabel = global.t?.t('orders', 'button', 'confirm') || 'Confirmar'
-
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      if (window.confirm(message)) {
-        callback()
-      }
-      return
-    }
-
-    Alert.alert(title, message, [
-      { text: cancelLabel, style: 'cancel' },
-      { text: confirmLabel, style: 'destructive', onPress: callback },
-    ])
-  }, [
-    isTerminalOrder,
-    orderActionLoading,
-  ])
-
-  const handleCancelOrderPress = useCallback(() => {
-    if (!canGenericCancelOrder) {
-      showError(
-        global.t?.t('orders', 'message', 'orderCannotBeCanceledAfterReady') ||
-          'Este pedido nao pode mais ser cancelado depois que saiu do estado editavel.',
-      )
-      return
-    }
-
-    if (hasMarketplaceIntegration && typeof openMarketplaceCancelFlow === 'function') {
-      void openMarketplaceCancelFlow()
-      return
-    }
-
-    confirmCancelOrder(() => {
-      void runOrderAction('cancel')
-    })
-  }, [
-    canGenericCancelOrder,
-    confirmCancelOrder,
-    hasMarketplaceIntegration,
-    openMarketplaceCancelFlow,
-    runOrderAction,
-    showError,
-  ])
-
-  const primaryKdsAction = null
 
   const renderOrderProductActions = useCallback(({
     card,
@@ -2182,70 +1891,15 @@ const OrderDetails = ({ route, navigation }) => {
     ppcColors.textPrimary,
   ])
 
-  const resolvedPrimaryKdsAction = !isTerminalOrder && (
-    primaryKdsAction ||
-    (
-      canGenericConfirmOrder
-        ? {
-            label: global.t?.t('orders', 'label', 'startPreparation') || 'Iniciar preparo',
-            icon: 'play-arrow',
-            loadingKey: 'confirm',
-            disabled: orderActionLoading === 'confirm',
-            onPress: handleConfirmGenericOrder,
-          }
-        : canGenericReadyOrder
-          ? {
-              label: global.t?.t('orders', 'button', 'orderReady'),
-              icon: 'check-circle',
-              loadingKey: 'ready',
-              disabled: orderActionLoading === 'ready',
-              onPress: handleMarkOrderAsReady,
-            }
-          : canGenericDeliveredOrder
-            ? {
-                label: global.t?.t('orders', 'button', 'deliverOrder'),
-                icon: 'local-shipping',
-                loadingKey: 'delivered',
-                disabled: orderActionLoading === 'delivered',
-                onPress: handleDeliverGenericOrder,
-              }
-            : canFinalizeGenericOrder
-              ? {
-                  label: global.t?.t('orders', 'button', 'finalize') || 'Finalizar',
-                  icon: 'task-alt',
-                  loadingKey: 'finalize',
-                  disabled: orderActionLoading === 'finalize',
-                  onPress: handleFinalizeGenericOrder,
-                }
-              : null
-    )
-  )
-  const shouldShowMobileCancelAction = shouldShowKdsCancel
-  const shouldShowMobileBottomActions =
-    !isPosSelfServiceOperationMode &&
-    (
-      shouldShowMobileCancelAction ||
-      !!resolvedPrimaryKdsAction
-    )
   const shouldShowMobilePaymentBar =
     useUnifiedKdsLayout &&
     !hasTerminalOrderState &&
     !hasMarketplaceIntegration
   const isCompactMobileViewport = viewportWidth < 360
-  const mobileBottomCartOffset = shouldShowMobileBottomActions
-    ? (isCompactMobileViewport ? 68 : 74)
-    : 0
+  const mobileBottomCartOffset = 0
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
-    ? (shouldShowMobileBottomActions
-      ? (isCompactMobileViewport ? 216 : 206)
-      : (isCompactMobileViewport ? 148 : 132))
-    : (shouldShowMobileBottomActions
-      ? (isCompactMobileViewport ? 104 : 98)
-      : 24)
-
-  const isResolvedPrimaryKdsActionLoading =
-    !!resolvedPrimaryKdsAction &&
-    orderActionLoading === resolvedPrimaryKdsAction.loadingKey
+    ? (isCompactMobileViewport ? 148 : 132)
+    : 24
 
   useEffect(() => {
     if (route?.params?.showBottomCart === false) {
@@ -2633,28 +2287,7 @@ const OrderDetails = ({ route, navigation }) => {
         ].filter(Boolean),
       },
       tabs: modalDetailsTabs,
-      primaryAction:
-        !isPosSelfServiceOperationMode && resolvedPrimaryKdsAction
-          ? {
-              disabled: orderActionLoading === resolvedPrimaryKdsAction.loadingKey,
-              onPress: resolvedPrimaryKdsAction.onPress,
-              content:
-                orderActionLoading === resolvedPrimaryKdsAction.loadingKey ? (
-                  <ActivityIndicator size="small" color="#F8FAFC" />
-                ) : (
-                  <>
-                    <Icon
-                      name={resolvedPrimaryKdsAction.icon}
-                      size={18}
-                      color="#F8FAFC"
-                    />
-                    <Text style={localStyles.detailsMarkPaidButtonText}>
-                      {resolvedPrimaryKdsAction.label}
-                    </Text>
-                  </>
-                ),
-            }
-          : null,
+      primaryAction: null,
       marketplace: marketplaceSummary.summary,
     }
   }, [
@@ -2670,11 +2303,8 @@ const OrderDetails = ({ route, navigation }) => {
     orderCustomerDocumentLabel,
     orderCustomerName,
     orderCustomerPhone,
-    orderActionLoading,
-    isPosSelfServiceOperationMode,
     orderIdentitySource,
     resolvedOrderDateValue,
-    resolvedPrimaryKdsAction,
     shouldShowOrderAddress,
     shouldShowOrderPartyDetails,
     summaryInformationEntries,
@@ -3501,57 +3131,6 @@ const OrderDetails = ({ route, navigation }) => {
             />
           )}
 
-          {useUnifiedKdsLayout && shouldShowMobileBottomActions && (
-            <View style={localStyles.mobileBottomActionsWrap}>
-              {(() => {
-                const cancelLoading = orderActionLoading === 'cancel'
-
-                return shouldShowMobileCancelAction ? (
-                  <TouchableOpacity
-                    onPress={handleCancelOrderPress}
-                    disabled={cancelLoading}
-                    style={[
-                      localStyles.mobileCancelActionButton,
-                      cancelLoading && localStyles.mobileActionButtonDisabled,
-                    ]}
-                  >
-                    {cancelLoading ? (
-                      <ActivityIndicator size="small" color={ppcColors.dangerText} />
-                    ) : (
-                      <Icon name="close" size={22} color={ppcColors.dangerText} />
-                    )}
-                  </TouchableOpacity>
-                ) : null
-              })()}
-
-              {resolvedPrimaryKdsAction && (
-                <TouchableOpacity
-                  onPress={resolvedPrimaryKdsAction.onPress}
-                  disabled={resolvedPrimaryKdsAction.disabled}
-                  style={[
-                    localStyles.mobilePrimaryActionButton,
-                    resolvedPrimaryKdsAction.disabled &&
-                      localStyles.mobileActionButtonDisabled,
-                  ]}
-                >
-                  {isResolvedPrimaryKdsActionLoading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Icon
-                        name={resolvedPrimaryKdsAction.icon || 'check-circle'}
-                        size={19}
-                        color="#FFFFFF"
-                      />
-                      <Text style={localStyles.mobilePrimaryActionText}>
-                        {resolvedPrimaryKdsAction.label}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
         </View>
       )}
     </SafeAreaView>

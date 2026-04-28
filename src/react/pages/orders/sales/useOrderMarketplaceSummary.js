@@ -1828,6 +1828,20 @@ const useOrderMarketplaceSummary = ({
       });
     }
 
+    if (canReadyRemoteOrder) {
+      actions.push({
+        key: 'marketplace-ready',
+        label: global.t?.t('orders', 'button', 'orderReady'),
+        icon: 'check-circle',
+        tone: 'primary',
+        loading: remoteActionLoading === 'ready',
+        disabled: !!remoteActionLoading,
+        onPress: () => {
+          void runRemoteAction('ready');
+        },
+      });
+    }
+
     if (canDeliverRemoteOrder) {
       actions.push({
         key: 'marketplace-deliver',
@@ -1880,6 +1894,7 @@ const useOrderMarketplaceSummary = ({
     return actions;
   }, [
     canCancelRemoteOrder,
+    canReadyRemoteOrder,
     canDeliverRemoteOrder,
     cancelReasonsLoading,
     handleDeliverPress,
@@ -1890,6 +1905,7 @@ const useOrderMarketplaceSummary = ({
     remoteNegotiation?.alternative?.available,
     remoteNegotiation?.dispute_id,
     remoteNegotiation?.has_open_dispute,
+    runRemoteAction,
   ]);
 
   const summary = useMemo(() => {

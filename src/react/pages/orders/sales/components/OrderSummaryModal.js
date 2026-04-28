@@ -18,6 +18,7 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
     [summary?.tabs],
   );
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key || '');
+  const shouldRenderMarketplaceSummary = !!summary?.marketplace?.enabled;
   const showBaseLines =
     !summary?.marketplace?.isIfood &&
     Array.isArray(summary?.base?.lines) &&
@@ -134,12 +135,12 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
                 />
               ) : null}
 
-              {summary.marketplace?.isIfood ? (
-                <OrderIfoodSummary marketplace={summary.marketplace} />
-              ) : null}
-
-              {summary.marketplace?.isFood99 ? (
-                <OrderFood99Summary marketplace={summary.marketplace} />
+              {shouldRenderMarketplaceSummary ? (
+                summary.marketplace?.isIfood ? (
+                  <OrderIfoodSummary marketplace={summary.marketplace} />
+                ) : (
+                  <OrderFood99Summary marketplace={summary.marketplace} />
+                )
               ) : null}
             </ScrollView>
           </View>
