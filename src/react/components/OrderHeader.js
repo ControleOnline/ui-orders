@@ -3,7 +3,7 @@ import { View, Text, Image, Animated } from 'react-native'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { getOrderChannelLabel, getOrderChannelLogo } from '@assets/ppc/channels'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
-import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
+import OrderCardHeader from '@controleonline/ui-orders/src/react/components/OrderCardHeader'
 import createStyles from './OrderHeader.styles'
 import { inlineStyle_217_16 } from './OrderHeader.styles';
 const BRAND_LOGO = require('@assets/ppc/logo 512x512 r.png')
@@ -171,51 +171,46 @@ const OrderHeader = ({
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
-      <View style={styles.topRow}>
-        <View style={styles.leftInfo}>
+      <OrderCardHeader
+        order={order}
+        containerStyle={styles.topRow}
+        leftSectionStyle={styles.leftInfo}
+        leftContent={
           <Image source={BRAND_LOGO} style={styles.brandLogo} resizeMode="contain" />
-          <View>
-            <OrderIdentityLabel
-              order={order}
-              containerStyle={styles.orderIdentityWrap}
-              primaryTextStyle={styles.orderId}
-              secondaryTextStyle={styles.orderIdSecondary}
-              showSecondary={showSecondaryIdentity}
-            />
-            <View style={styles.timeRow}>
-              <Text style={styles.orderTime}>
-                {Formatter.formatDateYmdTodmY(orderDateValue, true)}
-              </Text>
-
-              {isOpen && (
-                <Animated.Text
-                  style={[
-                    styles.waitingTime,
-                    {
-                      color: waitingConfig?.color,
-                      opacity: waitingConfig?.blink ? blinkAnim : 1,
-                    },
-                  ]}
-                >
-                  {`  •  ${waitingMinutes} min`}
-                </Animated.Text>
-              )}
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.rightInfo}>
-          <View style={[styles.statusBadge, { borderColor: statusColor }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={styles.statusText}>
-              {displayedStatus.label}
-            </Text>
-          </View>
+        }
+        identityContainerStyle={styles.orderIdentityWrap}
+        primaryTextStyle={styles.orderId}
+        secondaryTextStyle={styles.orderIdSecondary}
+        dateRowStyle={styles.timeRow}
+        dateTextStyle={styles.orderTime}
+        dateText={Formatter.formatDateYmdTodmY(orderDateValue, true)}
+        dateTrailingContent={
+          isOpen ? (
+            <Animated.Text
+              style={[
+                styles.waitingTime,
+                {
+                  color: waitingConfig?.color,
+                  opacity: waitingConfig?.blink ? blinkAnim : 1,
+                },
+              ]}
+            >
+              {`  •  ${waitingMinutes} min`}
+            </Animated.Text>
+          ) : null
+        }
+        rightSectionStyle={styles.rightInfo}
+        status={displayedStatus}
+        statusBadgeStyle={[styles.statusBadge, { borderColor: statusColor }]}
+        statusDotStyle={[styles.statusDot, { backgroundColor: statusColor }]}
+        statusTextStyle={styles.statusText}
+        rightContent={
           <Text style={styles.orderPrice}>
             {Formatter.formatMoney(displayPrice)}
           </Text>
-        </View>
-      </View>
+        }
+        showSecondaryIdentity={showSecondaryIdentity}
+      />
       <View style={styles.bottomRow}>
         <View style={styles.channelWrap}>
           {channelLogo && (
