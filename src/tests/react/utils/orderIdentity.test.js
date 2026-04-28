@@ -31,4 +31,29 @@ describe('orderIdentity', () => {
     expect(identity.primaryText).toBe('99 #MOTO123')
     expect(identity.secondaryText).toBe('Pedido #70911')
   })
+
+  it('prioritizes the iFood pickup code over the display id', () => {
+    const order = {
+      id: 70951,
+      app: 'ifood',
+      otherInformations: JSON.stringify({
+        ifood: {
+          latest_event_type: 'PLACED',
+          PLACED: {
+            displayId: '3149',
+            delivery: {
+              pickupCode: 'A1B2',
+            },
+          },
+        },
+      }),
+    }
+
+    const identity = resolveOrderIdentity(order)
+
+    expect(identity.externalLabel).toBe('IFOOD')
+    expect(identity.externalId).toBe('A1B2')
+    expect(identity.primaryText).toBe('IFOOD #A1B2')
+    expect(identity.secondaryText).toBe('Pedido #70951')
+  })
 })

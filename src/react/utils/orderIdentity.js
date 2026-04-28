@@ -122,6 +122,57 @@ const getRemoteSummaryIdentifier = (remoteOrderSummary, fieldNames = []) => {
   return ''
 }
 
+const findNestedField = (value, fieldNames = []) => {
+  if (!value || fieldNames.length === 0) {
+    return ''
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findNestedField(item, fieldNames)
+      if (found) {
+        return found
+      }
+    }
+
+    return ''
+  }
+
+  if (!isObject(value)) {
+    return ''
+  }
+
+  const normalizedFields = fieldNames.map(normalizeKey)
+  for (const [key, item] of Object.entries(value)) {
+    if (normalizedFields.includes(normalizeKey(key))) {
+      const found = normalizeText(item)
+      if (found) {
+        return found
+      }
+    }
+  }
+
+  for (const item of Object.values(value)) {
+    const found = findNestedField(item, fieldNames)
+    if (found) {
+      return found
+    }
+  }
+
+  return ''
+}
+
+const getNestedMarketplaceField = (order, contexts, fieldNames = []) => {
+  for (const context of contexts) {
+    const value = findNestedField(getContextFromOtherInformations(order, context), fieldNames)
+    if (value) {
+      return value
+    }
+  }
+
+  return ''
+}
+
 export const resolveMarketplaceAppLabel = order => {
   const app = normalizeText(order?.app).toLowerCase()
 
@@ -144,15 +195,43 @@ export const resolveMarketplaceOrderCode = (order, remoteOrderSummary = null) =>
   ])
 
   if (app === 'ifood') {
-    return normalizeText(
-      getRemoteSummaryIdentifier(remoteOrderSummary, [
-        'order_index',
-        'orderIndex',
-        'displayId',
-        'display_id',
-      ]) ||
+    const displayCode = normalizeText(
+      fallbackCode ||
+        getRemoteSummaryIdentifier(remoteOrderSummary, [
+          'displayId',
+          'display_id',
+        ]) ||
         getMarketplaceField(order, ['ifood'], 'displayId') ||
-        getMarketplaceField(order, ['ifood'], 'display_id'),
+        getMarketplaceField(order, ['ifood'], 'display_id') ||
+        getMarketplaceField(order, ['ifood'], 'code'),
+    )
+    const pickupCode = normalizeText(
+      getRemoteSummaryIdentifier(remoteOrderSummary, [
+        'pickup_code',
+        'pickupCode',
+        'handover_code',
+        'handoverCode',
+        'locator',
+        'localizer',
+      ]) ||
+        getMarketplaceField(order, ['ifood'], 'pickup_code') ||
+        getMarketplaceField(order, ['ifood'], 'pickupCode') ||
+        getMarketplaceField(order, ['ifood'], 'handover_code') ||
+        getMarketplaceField(order, ['ifood'], 'handoverCode') ||
+        getMarketplaceField(order, ['ifood'], 'locator') ||
+        getMarketplaceField(order, ['ifood'], 'localizer') ||
+        getNestedMarketplaceField(order, ['ifood'], [
+          'pickup_code',
+          'pickupCode',
+          'handover_code',
+          'handoverCode',
+          'locator',
+          'localizer',
+        ]),
+    )
+
+    return normalizeText(
+      pickupCode && pickupCode !== displayCode ? pickupCode : displayCode,
     )
   }
 
@@ -164,9 +243,20 @@ export const resolveMarketplaceOrderCode = (order, remoteOrderSummary = null) =>
         getMarketplaceField(order, ['99', '99food', 'food99'], 'handoverCode') ||
         getRemoteSummaryIdentifier(remoteOrderSummary, [
           'pickupCode',
+          'pickup_code',
           'handoverCode',
+          'handover_code',
           'localizer',
+          'locator',
           'orderIndex',
+        ]) ||
+        getNestedMarketplaceField(order, ['99', '99food', 'food99'], [
+          'pickup_code',
+          'pickupCode',
+          'handover_code',
+          'handoverCode',
+          'locator',
+          'localizer',
         ]) ||
         getMarketplaceField(order, ['99', '99food', 'food99'], 'locator') ||
         getMarketplaceField(order, ['99', '99food', 'food99'], 'localizer') ||
