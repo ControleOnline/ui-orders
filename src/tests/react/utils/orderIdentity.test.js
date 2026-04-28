@@ -5,44 +5,50 @@ const {
 const {describe, expect, it} = global
 
 describe('orderIdentity', () => {
-  it('resolves the highlighted 99Food code from nested marketplace payloads', () => {
+  it('prioritizes the marketplace order index from 99Food extra data', () => {
     const order = {
       id: 70911,
       app: '99Food',
-      otherInformations: JSON.stringify({
-        food99: {
-          data: {
-            order_info: {
-              order_index: '998877',
-              pickup_code: 'MOTO123',
-            },
-            price: {
-              order_price: 3600,
-            },
+      extraData: [
+        {
+          extraFields: {
+            context: 'Food99',
+            name: 'code',
           },
+          value: '70001',
         },
-      }),
+        {
+          extraFields: {
+            context: 'Food99',
+            name: 'handover_code',
+          },
+          value: '0050',
+        },
+      ],
     }
 
     const identity = resolveOrderIdentity(order)
 
     expect(identity.externalLabel).toBe('99')
-    expect(identity.externalId).toBe('MOTO123')
-    expect(identity.primaryText).toBe('99 #MOTO123')
+    expect(identity.externalId).toBe('70001')
+    expect(identity.primaryText).toBe('#70001')
     expect(identity.secondaryText).toBe('Pedido #70911')
   })
 
-  it('prioritizes the iFood pickup code over the display id', () => {
+  it('prioritizes the iFood display id over pickup code', () => {
     const order = {
-      id: 70951,
+      id: 81234,
       app: 'ifood',
       otherInformations: JSON.stringify({
         ifood: {
           latest_event_type: 'PLACED',
           PLACED: {
-            displayId: '3149',
-            delivery: {
-              pickupCode: 'A1B2',
+            order: {
+              id: 'ifood-order-1',
+              displayId: '70002',
+              delivery: {
+                pickupCode: '0176',
+              },
             },
           },
         },
@@ -52,8 +58,8 @@ describe('orderIdentity', () => {
     const identity = resolveOrderIdentity(order)
 
     expect(identity.externalLabel).toBe('IFOOD')
-    expect(identity.externalId).toBe('A1B2')
-    expect(identity.primaryText).toBe('IFOOD #A1B2')
-    expect(identity.secondaryText).toBe('Pedido #70951')
+    expect(identity.externalId).toBe('70002')
+    expect(identity.primaryText).toBe('#70002')
+    expect(identity.secondaryText).toBe('Pedido #81234')
   })
 })
