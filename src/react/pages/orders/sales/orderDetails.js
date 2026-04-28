@@ -21,6 +21,7 @@ import { useMessage } from '@controleonline/ui-common/src/react/components/Messa
 import { withOpacity } from '@controleonline/../../src/styles/branding'
 import {
   isDeviceRuntimeDebugInfoEnabled,
+  isPosDeliveryEnabled,
   isPosSelfServiceMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {searchCompanyProducts} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
@@ -537,6 +538,7 @@ const OrderDetails = ({ route, navigation }) => {
   const device = deviceConfigStore.getters?.item
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
   const isPosSelfServiceOperationMode = isPosSelfServiceMode(device?.configs)
+  const isDeviceDeliveryEnabled = isPosDeliveryEnabled(device?.configs)
   const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(device?.configs)
   const canShowDebugActions = !isPosSelfServiceOperationMode || isDeviceDebugEnabled
 
@@ -565,6 +567,7 @@ const OrderDetails = ({ route, navigation }) => {
     localRealStatusKey === 'open' &&
     (localStatusNameKey === '' || localStatusNameKey === 'open')
   const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
+  const shouldShowOrderPartyDetails = isPurchaseOrder || isDeviceDeliveryEnabled
   const [orderActionLoading, setOrderActionLoading] = useState('')
   const [detailsTabKey, setDetailsTabKey] = useState('items')
 
@@ -1084,7 +1087,9 @@ const OrderDetails = ({ route, navigation }) => {
     }),
     [resolvedDisplayOrderProducts, resolvedProductCandidatesById],
   )
-  const shouldShowOrderAddress = !isPurchaseOrder
+  const shouldShowOrderAddress =
+    !isPurchaseOrder &&
+    shouldShowOrderPartyDetails
   const effectiveDisplayedOperationalStatus = useMemo(
     () => ({
       status: localStatusNameKey,
@@ -1347,7 +1352,8 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const baseOrderObservationText = localOrderObservationSource
   const showBaseOrderObservationCard =
-    !!baseOrderObservationText || canEditItems
+    shouldShowOrderPartyDetails &&
+    (!!baseOrderObservationText || canEditItems)
   const localOrderAddressParts = useMemo(
     () => resolveAddressDisplayParts(localOrderAddress),
     [localOrderAddress],
@@ -2623,17 +2629,17 @@ const OrderDetails = ({ route, navigation }) => {
             label: global.t?.t('orders', 'label', 'localTotal'),
             value: Formatter.formatMoney(localOrderTotal || 0),
           },
-          !!orderCustomerName && {
+          shouldShowOrderPartyDetails && !!orderCustomerName && {
             key: 'customer',
             label: global.t?.t('orders', 'label', 'customer'),
             value: orderCustomerName,
           },
-          !!orderCustomerPhone && {
+          shouldShowOrderPartyDetails && !!orderCustomerPhone && {
             key: 'customer-phone',
             label: global.t?.t('orders', 'label', 'phone'),
             value: orderCustomerPhone,
           },
-          !!orderCustomerDocument && {
+          shouldShowOrderPartyDetails && !!orderCustomerDocument && {
             key: 'customer-document',
             label: orderCustomerDocumentLabel,
             value: orderCustomerDocument,
@@ -2690,6 +2696,7 @@ const OrderDetails = ({ route, navigation }) => {
     resolvedOrderDateValue,
     resolvedPrimaryKdsAction,
     shouldShowOrderAddress,
+    shouldShowOrderPartyDetails,
     summaryInformationEntries,
     translatedLocalRealStatusLabel,
     translatedLocalStatusLabel,
@@ -2704,7 +2711,7 @@ const OrderDetails = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={localStyles.mobileOrderLayout}>
-      {!isPosSelfServiceOperationMode && (
+      {!isPosSelfServiceOperationMode && shouldShowOrderPartyDetails && (
         <View style={localStyles.mobileInfoCard}>
           <View style={localStyles.mobileInfoHeader}>
             <View style={localStyles.mobileInfoIconWrap}>
@@ -2969,7 +2976,9 @@ const OrderDetails = ({ route, navigation }) => {
     >
       {showBarcodeInput && <BarcodeInput />}
       <StateStore store="orders" />
-      {!isPosSelfServiceOperationMode && (
+      {!isPosSelfServiceOperationMode &&
+        !isPurchaseOrder &&
+        shouldShowOrderPartyDetails && (
         <>
           <Modal
             transparent

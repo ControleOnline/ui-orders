@@ -37,6 +37,7 @@
 - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
 - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
 - Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.
+- Em pedidos de venda no `POS`, o bloco `Customer` com cliente, endereco e observacoes so aparece quando o device estiver com `pos-delivery-enabled` ativo. Em `purchase`, o bloco continua visivel para o fornecedor.
 - `Additional Information` nao deve poluir a tela principal do pedido. Informacoes secundarias e ids tecnicos ficam no summary/modal, nao acima do bloco de cliente.
 - Nenhum arquivo deve acumular mais de uma responsabilidade. Helpers compartilhados, resolvers por integracao, componentes visuais e orquestradores devem ficar separados em arquivos pequenos e com funcao unica.
 - O detalhe do pedido deve abrir primeiro com `GET /orders/{id}`. A colecao `/order_products` entra apenas como enriquecimento da aba `Itens` quando o payload embutido vier ausente ou sem metadados suficientes para remontar a hierarquia de customizacao.
@@ -105,6 +106,6 @@
 
 ## Configuracao
 - A barra unica depende das configuracoes centralizadas de empresa e device.
-- Chaves centrais atuais: `pos-gateway`, `order-payment-device`, `order-payment-devices`, `order-payment-device-change-allowed` e `order-charge-on-delivery-enabled`.
+- Chaves centrais atuais: `pos-gateway`, `pos-delivery-enabled`, `order-payment-device`, `order-payment-devices`, `order-payment-device-change-allowed` e `order-charge-on-delivery-enabled`.
 - Carteiras por gateway e dinheiro devem continuar centralizadas na configuracao da empresa, nao espalhadas em componentes.
 - Ao mudar qualquer regra de negocio do checkout, reescrever este arquivo de forma concisa e manter a descricao sincronizada com o codigo.
