@@ -221,9 +221,11 @@ const OrderHeader = ({
           {channelLogo && (
             <Image source={channelLogo} style={styles.channelLogo} resizeMode="contain" />
           )}
-          <Text style={styles.channelText}>
-            {channelLabel}
-          </Text>
+          {!channelLogo && (
+            <Text style={styles.channelText}>
+              {channelLabel}
+            </Text>
+          )}
         </View>
         {!compact && (
           <View style={inlineStyle_217_16}>
