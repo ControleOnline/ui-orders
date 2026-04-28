@@ -51,6 +51,10 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       justifyContent: 'flex-start',
       paddingTop: isCompactMobile ? 0 : 2,
     },
+    topBarChannelLogo: {
+      width: isCompactMobile ? 22 : 26,
+      height: isCompactMobile ? 22 : 26,
+    },
     topBarTitleText: {
       color: palette.textPrimary,
       fontSize: (isCompactMobile ? 20 : 23) * scale,

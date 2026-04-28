@@ -1,44 +1,36 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { View, Text, Image, Animated } from 'react-native'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
+import {Animated, Image, Text, View} from 'react-native'
+import FeatherIcon from 'react-native-vector-icons/Feather'
+
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
-import { getOrderChannelLabel, getOrderChannelLogo } from '@assets/ppc/channels'
-import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton';
-import OrderCardHeader from '@controleonline/ui-orders/src/react/components/OrderCardHeader'
+import {withOpacity} from '@controleonline/../../src/styles/branding'
+import {getOrderChannelLabel, getOrderChannelLogo} from '@assets/ppc/channels'
+
+import OrderCardHeader from './OrderCardHeader'
 import createStyles from './OrderHeader.styles'
-import { inlineStyle_217_16 } from './OrderHeader.styles';
-const BRAND_LOGO = require('@assets/ppc/logo 512x512 r.png')
 
 const WAITING_RULES = [
-  { max: 5, color: '#22C55E', blink: false },
-  { max: 10, color: '#FACC15', blink: false },
-  { max: Infinity, color: '#EF4444', blink: true },
+  {max: 5, color: '#22C55E', blink: false},
+  {max: 10, color: '#FACC15', blink: false},
+  {max: Infinity, color: '#EF4444', blink: true},
 ]
 
 const normalizeText = value => String(value || '').trim()
+const resolveOrderType = order =>
+  normalizeText(order?.orderType || order?.order_type).toLowerCase()
 
 export const resolveDisplayedOrderStatus = (order, fallbackColor = '#6B7280') => {
-  const statusLabel = normalizeText(order?.status?.status) ||
-    normalizeText(order?.status?.realStatus) ||
-    'open'
+  const statusLabel = normalizeText(order?.status?.realStatus) || 'open'
   const statusColor = normalizeText(order?.status?.color) || fallbackColor
-  const realStatus = normalizeText(order?.status?.realStatus).toLowerCase()
+  const statusKey = statusLabel.toLowerCase()
 
   return {
     label: statusLabel,
     labelUpper: statusLabel.toUpperCase(),
     color: statusColor,
-    key: statusLabel.toLowerCase(),
-    isOpen: realStatus === 'open',
+    key: statusKey,
+    isOpen: statusKey === 'open',
   }
-}
-
-const isPrivacyPlaceholder = value => {
-  const normalized = normalizeText(value).toLowerCase()
-  if (!normalized) return false
-
-  return ['privacy protection', 'privacy_protection', 'privacy-protection'].includes(
-    normalized,
-  )
 }
 
 const getWaitingMinutes = orderDate => {
@@ -48,77 +40,67 @@ const getWaitingMinutes = orderDate => {
 }
 
 const resolveOrderDateValue = order =>
-  normalizeText(order?.alterDate || order?.alter_date || order?.orderDate)
+  normalizeText(order?.alterDate || order?.alter_date || order?.orderDate || order?.order_date)
 
 const getWaitingConfig = minutes =>
   WAITING_RULES.find(rule => minutes <= rule.max)
 
-const getCustomerName = order =>
-  {
-    const resolved = normalizeText(
-      order?.client?.name ||
-        order?.person?.name ||
-        order?.customer?.name ||
-        order?.customerName,
-    )
-
-    return isPrivacyPlaceholder(resolved) ? '' : resolved
+const resolveLeadingVisual = (order, orderType, styles) => {
+  if (orderType === 'purchase') {
+    return {
+      wrapStyle: styles.leadingWrapPurchase,
+      content: <FeatherIcon name="truck" size={16} color="#D97706" />,
+    }
   }
 
-const getCustomerContact = order => {
-  const email = Array.isArray(order?.client?.email)
-    ? order?.client?.email?.[0]?.email
-    : order?.client?.email
-
-  const phoneSource = Array.isArray(order?.client?.phone)
-    ? order?.client?.phone?.[0]
-    : order?.client?.phone
-
-  if (phoneSource && typeof phoneSource === 'object' && phoneSource.phone) {
-    return normalizeText(
-      `+${phoneSource.ddi || ''} (${phoneSource.ddd || ''}) ${phoneSource.phone}`,
-    )
+  if (orderType === 'transfer') {
+    return {
+      wrapStyle: styles.leadingWrapTransfer,
+      content: <FeatherIcon name="repeat" size={16} color="#7C3AED" />,
+    }
   }
 
-  return normalizeText(email || phoneSource)
-}
+  if (orderType === 'loss') {
+    return {
+      wrapStyle: styles.leadingWrapLoss,
+      content: <FeatherIcon name="trending-down" size={16} color="#DC2626" />,
+    }
+  }
 
-const DEFAULT_HEADER_PALETTE = {
-  border: '#2A313D',
-  cardBg: '#111821',
-  panelBg: '#0C1219',
-  textPrimary: '#F9FAFB',
-  textSecondary: '#98A2B3',
-  accent: '#FACC15',
-}
-
-const resolveHeaderPalette = palette => {
-  if (!palette || typeof palette !== 'object') {
-    return DEFAULT_HEADER_PALETTE
+  const channelLogo = getOrderChannelLogo(order)
+  if (channelLogo) {
+    return {
+      wrapStyle: null,
+      content: <Image source={channelLogo} style={styles.leadingLogo} resizeMode="contain" />,
+    }
   }
 
   return {
-    border: palette.border || DEFAULT_HEADER_PALETTE.border,
-    cardBg: palette.cardBg || DEFAULT_HEADER_PALETTE.cardBg,
-    panelBg: palette.panelBg || DEFAULT_HEADER_PALETTE.panelBg,
-    textPrimary: palette.textPrimary || DEFAULT_HEADER_PALETTE.textPrimary,
-    textSecondary: palette.textSecondary || DEFAULT_HEADER_PALETTE.textSecondary,
-    accent: palette.accent || DEFAULT_HEADER_PALETTE.accent,
+    wrapStyle: null,
+    content: (
+      <Text numberOfLines={1} style={styles.leadingLabel}>
+        {String(getOrderChannelLabel(order) || 'Balcao').toUpperCase()}
+      </Text>
+    ),
   }
 }
 
-const OrderHeader = ({
-  order,
-  compact = false,
-  showCustomer = false,
-  palette = null,
-  showSecondaryIdentity = true,
-}) => {
+const resolvePriceStyle = (orderType, styles) => {
+  if (orderType === 'purchase') return styles.priceTextPurchase
+  if (orderType === 'transfer') return styles.priceTextTransfer
+  if (orderType === 'loss') return styles.priceTextLoss
+  return null
+}
+
+const OrderHeader = ({order, isKds = false}) => {
   const displayedStatus = useMemo(() => resolveDisplayedOrderStatus(order), [order])
+  const orderType = useMemo(() => resolveOrderType(order), [order?.orderType, order?.order_type])
   const isOpen = displayedStatus.isOpen
-  const headerPalette = useMemo(() => resolveHeaderPalette(palette), [palette])
-  const styles = useMemo(() => createStyles(headerPalette), [headerPalette])
-  const orderDateValue = useMemo(() => resolveOrderDateValue(order), [order?.alterDate, order?.alter_date, order?.orderDate])
+  const styles = useMemo(() => createStyles(isKds), [isKds])
+  const orderDateValue = useMemo(
+    () => resolveOrderDateValue(order),
+    [order?.alterDate, order?.alter_date, order?.orderDate, order?.order_date],
+  )
 
   const [waitingMinutes, setWaitingMinutes] = useState(
     getWaitingMinutes(orderDateValue),
@@ -127,17 +109,17 @@ const OrderHeader = ({
   const blinkAnim = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isKds || !isOpen) return
     const interval = setInterval(() => {
       setWaitingMinutes(getWaitingMinutes(orderDateValue))
     }, 60000)
     return () => clearInterval(interval)
-  }, [orderDateValue, isOpen])
+  }, [isKds, orderDateValue, isOpen])
 
   const waitingConfig = getWaitingConfig(waitingMinutes)
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isKds || !isOpen) {
       blinkAnim.setValue(1)
       return
     }
@@ -160,90 +142,74 @@ const OrderHeader = ({
     } else {
       blinkAnim.setValue(1)
     }
-  }, [waitingConfig?.blink, isOpen])
+  }, [blinkAnim, isKds, waitingConfig?.blink, isOpen])
 
-  const channelLogo = getOrderChannelLogo(order)
-  const channelLabel = getOrderChannelLabel(order)
+  const leadingVisual = useMemo(
+    () => resolveLeadingVisual(order, orderType, styles),
+    [order, orderType, styles],
+  )
   const statusColor = displayedStatus.color
   const displayPrice = Number(order?.price || 0)
-  const customerName = getCustomerName(order)
-  const customerContact = getCustomerContact(order)
+  const showStatus = !['transfer', 'loss'].includes(orderType)
+  const priceStyle = useMemo(() => resolvePriceStyle(orderType, styles), [orderType, styles])
+  const waitingColor = waitingConfig?.color || '#EF4444'
 
   return (
-    <View style={[styles.wrap, compact && styles.wrapCompact]}>
-      <OrderCardHeader
-        order={order}
-        containerStyle={styles.topRow}
-        leftSectionStyle={styles.leftInfo}
-        leftContent={
-          <Image source={BRAND_LOGO} style={styles.brandLogo} resizeMode="contain" />
-        }
-        identityContainerStyle={styles.orderIdentityWrap}
-        primaryTextStyle={styles.orderId}
-        secondaryTextStyle={styles.orderIdSecondary}
-        dateRowStyle={styles.timeRow}
-        dateTextStyle={styles.orderTime}
-        dateText={Formatter.formatDateYmdTodmY(orderDateValue, true)}
-        dateTrailingContent={
-          isOpen ? (
-            <Animated.Text
-              style={[
-                styles.waitingTime,
-                {
-                  color: waitingConfig?.color,
-                  opacity: waitingConfig?.blink ? blinkAnim : 1,
-                },
-              ]}
-            >
-              {`  •  ${waitingMinutes} min`}
-            </Animated.Text>
-          ) : null
-        }
-        rightSectionStyle={styles.rightInfo}
-        status={displayedStatus}
-        statusBadgeStyle={[styles.statusBadge, { borderColor: statusColor }]}
-        statusDotStyle={[styles.statusDot, { backgroundColor: statusColor }]}
-        statusTextStyle={styles.statusText}
-        rightContent={
-          <Text style={styles.orderPrice}>
+    <OrderCardHeader
+      order={order}
+      containerStyle={styles.container}
+      leftSectionStyle={styles.leftSection}
+      leftContent={
+        <View style={[styles.leadingWrap, leadingVisual.wrapStyle]}>
+          {leadingVisual.content}
+        </View>
+      }
+      identityContainerStyle={styles.identityWrap}
+      titleWrapStyle={styles.titleWrap}
+      primaryTextStyle={styles.orderId}
+      secondaryTextStyle={styles.orderIdSecondary}
+      dateTextStyle={styles.orderDate}
+      dateText={Formatter.formatDateYmdTodmY(orderDateValue, true)}
+      rightSectionStyle={styles.rightSection}
+      status={
+        showStatus
+          ? {label: displayedStatus.labelUpper, color: statusColor}
+          : null
+      }
+      statusBadgeStyle={[
+        styles.statusBadge,
+        {
+          borderColor: withOpacity(statusColor, 0.4),
+          backgroundColor: withOpacity(statusColor, 0.08),
+        },
+      ]}
+      statusDotStyle={[styles.statusDot, {backgroundColor: statusColor}]}
+      statusTextStyle={[styles.statusText, {color: statusColor}]}
+      rightContent={
+        isKds ? (
+          <Animated.View
+            style={[
+              styles.waitingChip,
+              {
+                borderColor: withOpacity(waitingColor, 0.28),
+                backgroundColor: withOpacity(waitingColor, 0.12),
+                opacity: waitingConfig?.blink ? blinkAnim : 1,
+              },
+            ]}
+          >
+            <FeatherIcon name="clock" size={12} color={waitingColor} />
+            <Text style={[styles.waitingText, {color: waitingColor}]}>
+              {`${waitingMinutes} min`}
+            </Text>
+          </Animated.View>
+        ) : displayPrice > 0 ? (
+          <Text style={[styles.priceText, priceStyle]}>
             {Formatter.formatMoney(displayPrice)}
           </Text>
-        }
-        showSecondaryIdentity={showSecondaryIdentity}
-      />
-      <View style={styles.bottomRow}>
-        <View style={styles.channelWrap}>
-          {channelLogo && (
-            <Image source={channelLogo} style={styles.channelLogo} resizeMode="contain" />
-          )}
-          {!channelLogo && (
-            <Text style={styles.channelText}>
-              {channelLabel}
-            </Text>
-          )}
-        </View>
-        {!compact && (
-          <View style={inlineStyle_217_16}>
-            <PrintButton
-              job={{type: 'order'}}
-              store={'orders'}
-              printerSelection={{enabled: true}}
-            />
-          </View>
-        )}
-      </View>
-      {showCustomer && !!customerName && (
-        <Text numberOfLines={1} style={styles.customerNameText}>
-          {customerName}
-        </Text>
-      )}
-      {showCustomer && !!customerContact && (
-        <Text numberOfLines={1} style={styles.customerContactText}>
-          {customerContact}
-        </Text>
-      )}
-    </View>
-  );
+        ) : null
+      }
+    />
+  )
 }
 
 export default OrderHeader

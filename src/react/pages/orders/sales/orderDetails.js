@@ -21,7 +21,8 @@ import { useMessage } from '@controleonline/ui-common/src/react/components/Messa
 import { withOpacity } from '@controleonline/../../src/styles/branding'
 import {
   isDeviceRuntimeDebugInfoEnabled,
-  isPosDeliveryEnabled,
+  isTruthyValue,
+  parseConfigsObject,
   isPosSelfServiceMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {searchCompanyProducts} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
@@ -42,7 +43,7 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
-import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
+import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import OrderSectionTabs from '@controleonline/ui-orders/src/react/components/OrderSectionTabs'
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
 import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
@@ -104,6 +105,7 @@ const formatApiError = error => {
 const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
 const DRAFT_SALE_ORDER_TYPE = 'cart'
 const LEGACY_DRAFT_SALE_ORDER_TYPE = 'quote'
+const POS_DELIVERY_ENABLED_CONFIG_KEY = 'pos-delivery-enabled'
 
 const isTerminalOrderStatus = value =>
   TERMINAL_ORDER_STATUSES.includes(String(value ?? '').trim().toLowerCase())
@@ -536,10 +538,13 @@ const OrderDetails = ({ route, navigation }) => {
   )
   const deviceConfigStore = useStore('device_config')
   const device = deviceConfigStore.getters?.item
+  const deviceConfigs = parseConfigsObject(device?.configs)
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
-  const isPosSelfServiceOperationMode = isPosSelfServiceMode(device?.configs)
-  const isDeviceDeliveryEnabled = isPosDeliveryEnabled(device?.configs)
-  const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(device?.configs)
+  const isPosSelfServiceOperationMode = isPosSelfServiceMode(deviceConfigs)
+  const isDeviceDeliveryEnabled = isTruthyValue(
+    deviceConfigs?.[POS_DELIVERY_ENABLED_CONFIG_KEY],
+  )
+  const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(deviceConfigs)
   const canShowDebugActions = !isPosSelfServiceOperationMode || isDeviceDebugEnabled
 
   const isManualInput = productInputType === 'manual'
@@ -2267,41 +2272,15 @@ const OrderDetails = ({ route, navigation }) => {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: global.t?.t('orders', 'title', 'order'),
+      title: useUnifiedKdsLayout ? '' : global.t?.t('orders', 'title', 'order'),
       showBottomCart: false,
       showBottomToolBar: !shouldHideBottomToolBar,
-      headerTitle: () => (
+      headerTitle: useUnifiedKdsLayout ? () => null : () => (
         <View style={localStyles.topBarTitleWrap}>
           <View style={localStyles.topBarTitleContent}>
-            <OrderIdentityLabel
-              order={orderIdentitySource}
-              remoteSummary={marketplaceSummary.summary}
-              containerStyle={localStyles.topBarTitleMain}
-              primaryTextStyle={localStyles.topBarTitleText}
-              secondaryTextStyle={localStyles.topBarTitleIdentitySecondary}
-            />
-            {!!orderAppLabel && (
-              <View style={localStyles.topBarTitleMetaWrap}>
-                <View
-                  style={[
-                    localStyles.topBarAppBadge,
-                    {
-                      borderColor: withOpacity(ppcColors.accentInfo, 0.34),
-                      backgroundColor: withOpacity(ppcColors.accentInfo, 0.12),
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      localStyles.topBarAppText,
-                      { color: ppcColors.accentInfo },
-                    ]}
-                  >
-                    {orderAppLabel}
-                  </Text>
-                </View>
-              </View>
-            )}
+            <Text style={localStyles.topBarTitleText}>
+              {global.t?.t('orders', 'title', 'order')}
+            </Text>
           </View>
         </View>
       ),
@@ -2369,22 +2348,15 @@ const OrderDetails = ({ route, navigation }) => {
     isKds,
     isTvDisplay,
     localStyles.topBarActions,
-    localStyles.topBarTitleContent,
-    localStyles.topBarTitleIdentitySecondary,
     localStyles.topBarIconButton,
-    localStyles.topBarAppBadge,
-    localStyles.topBarAppText,
-    localStyles.topBarTitleMain,
-    localStyles.topBarTitleMetaWrap,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,
     marketplaceSummary.summary,
     navigation,
-    orderAppLabel,
-    orderIdentitySource,
     ppcColors.accentInfo,
     selectedDisplay,
     shouldHideBottomToolBar,
+    useUnifiedKdsLayout,
   ])
 
   const renderLocalInvoiceCards = useCallback(
@@ -2711,6 +2683,9 @@ const OrderDetails = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={localStyles.mobileOrderLayout}>
+      <View style={localStyles.mobileInfoCard}>
+        <OrderHeader order={orderIdentitySource} isKds />
+      </View>
       {!isPosSelfServiceOperationMode && shouldShowOrderPartyDetails && (
         <View style={localStyles.mobileInfoCard}>
           <View style={localStyles.mobileInfoHeader}>

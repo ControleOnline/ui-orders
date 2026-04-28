@@ -1,5 +1,10 @@
 export const normalizeText = value => String(value ?? '').trim()
 
+export const formatOrderCode = value => {
+  const normalized = normalizeText(value)
+  return normalized ? `#${normalized}` : ''
+}
+
 export const normalizeKey = value =>
   normalizeText(value)
     .normalize('NFD')

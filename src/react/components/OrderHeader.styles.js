@@ -1,64 +1,79 @@
-import { StyleSheet } from 'react-native'
+import {StyleSheet} from 'react-native'
 
-const createStyles = palette =>
+const createStyles = isKds =>
   StyleSheet.create({
-    wrap: {
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.cardBg,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 10,
-    },
-    wrapCompact: {
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderRadius: 12,
-    },
-    topRow: {
+    container: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
     },
-    leftInfo: {
+    leftSection: {
       flexDirection: 'row',
       alignItems: 'center',
+      gap: 10,
+      flex: 1,
+      minWidth: 0,
     },
-    brandLogo: {
-      width: 26,
-      height: 26,
-      marginRight: 10,
+    leadingWrap: {
+      minWidth: isKds ? 40 : 38,
+      height: isKds ? 40 : 38,
+      paddingHorizontal: 6,
+      borderRadius: 12,
+      backgroundColor: '#F8FAFC',
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    leadingWrapPurchase: {
+      backgroundColor: '#FFFBEB',
+      borderColor: '#FCD34D',
+    },
+    leadingWrapTransfer: {
+      backgroundColor: '#F5F3FF',
+      borderColor: '#DDD6FE',
+    },
+    leadingWrapLoss: {
+      backgroundColor: '#FEF2F2',
+      borderColor: '#FECACA',
+    },
+    leadingLogo: {
+      width: 22,
+      height: 22,
+      borderRadius: 4,
+    },
+    leadingLabel: {
+      fontSize: isKds ? 11 : 10,
+      fontWeight: '800',
+      color: '#0F172A',
+      textTransform: 'uppercase',
+    },
+    titleWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    identityWrap: {
+      minWidth: 0,
     },
     orderId: {
-      color: palette.textPrimary,
-      fontSize: 18,
+      color: '#0F172A',
+      fontSize: isKds ? 18 : 15,
       fontWeight: '800',
-    },
-    orderIdentityWrap: {
-      minWidth: 0,
     },
     orderIdSecondary: {
       marginTop: 1,
-      color: palette.textSecondary,
+      color: '#475569',
       fontSize: 12,
       fontWeight: '700',
     },
-    timeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 2,
+    orderDate: {
+      color: '#64748B',
+      fontSize: 12,
+      marginTop: 1,
     },
-    orderTime: {
-      color: palette.textSecondary,
-      fontSize: 13,
-    },
-    waitingTime: {
-      fontSize: 13,
-      fontWeight: '800',
-    },
-    rightInfo: {
+    rightSection: {
       alignItems: 'flex-end',
+      marginLeft: 12,
     },
     statusBadge: {
       flexDirection: 'row',
@@ -66,90 +81,48 @@ const createStyles = palette =>
       borderWidth: 1,
       borderRadius: 999,
       paddingHorizontal: 10,
-      paddingVertical: 3,
-      backgroundColor: palette.panelBg,
+      paddingVertical: 4,
+      gap: 5,
     },
     statusDot: {
-      width: 8,
-      height: 8,
+      width: 7,
+      height: 7,
       borderRadius: 999,
-      marginRight: 6,
     },
     statusText: {
-      color: palette.textPrimary,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
       textTransform: 'uppercase',
     },
-    orderPrice: {
-      color: palette.accent,
-      fontSize: 16,
+    priceText: {
+      fontSize: 15,
       fontWeight: '800',
-      marginTop: 6,
-    },
-    bottomRow: {
-      marginTop: 10,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    channelWrap: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      maxWidth: '52%',
-    },
-    channelLogo: {
-      width: 22,
-      height: 22,
-      marginRight: 8,
-      borderRadius: 4,
-    },
-    channelText: {
-      color: palette.textSecondary,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    customerNameText: {
-      marginTop: 6,
-      color: palette.textPrimary,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    customerContactText: {
-      marginTop: 2,
-      color: palette.textSecondary,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    chipsRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
+      color: '#16A34A',
       marginTop: 8,
     },
-    chip: {
+    priceTextPurchase: {
+      color: '#D97706',
+    },
+    priceTextTransfer: {
+      color: '#7C3AED',
+    },
+    priceTextLoss: {
+      color: '#DC2626',
+    },
+    waitingChip: {
+      marginTop: 8,
       flexDirection: 'row',
       alignItems: 'center',
+      gap: 4,
       borderWidth: 1,
       borderRadius: 999,
       paddingHorizontal: 8,
-      paddingVertical: 3,
-      gap: 4,
+      paddingVertical: 4,
     },
-    chipDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 999,
-    },
-    chipText: {
-      fontSize: 11,
-      fontWeight: '700',
+    waitingText: {
+      fontSize: 12,
+      fontWeight: '800',
     },
   })
 
 export default createStyles
-
-export const inlineStyle_217_16 = {
-  flexDirection: 'row',
-  alignItems: 'center',
-};

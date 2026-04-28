@@ -1,7 +1,7 @@
 import {buildFood99OrderSummary} from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
 
 import {resolveMarketplaceResolver} from './orderIdentity/marketplaces'
-import {normalizeText} from './orderIdentity/shared'
+import {formatOrderCode, normalizeText} from './orderIdentity/shared'
 
 export const resolveMarketplaceAppLabel = order => {
   const resolver = resolveMarketplaceResolver(order)
@@ -39,10 +39,8 @@ export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
       externalId: marketplaceOrderCode,
       externalLabel: marketplaceLabel,
       hasMarketplaceReference: true,
-      primaryText: `#${marketplaceOrderCode}`,
-      secondaryText: internalId
-        ? `${global.t?.t('orders', 'title', 'order') || 'Pedido'} #${internalId}`
-        : '',
+      primaryText: formatOrderCode(marketplaceOrderCode),
+      secondaryText: formatOrderCode(internalId),
     }
   }
 
@@ -51,9 +49,7 @@ export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
     externalId: '',
     externalLabel: '',
     hasMarketplaceReference: false,
-    primaryText: internalId
-      ? `${global.t?.t('orders', 'title', 'order') || 'Pedido'} #${internalId}`
-      : global.t?.t('orders', 'title', 'order') || 'Pedido',
+    primaryText: formatOrderCode(internalId) || global.t?.t('orders', 'title', 'order') || 'Pedido',
     secondaryText: '',
   }
 }

@@ -32,7 +32,7 @@ describe('orderIdentity', () => {
     expect(identity.externalLabel).toBe('99')
     expect(identity.externalId).toBe('70001')
     expect(identity.primaryText).toBe('#70001')
-    expect(identity.secondaryText).toBe('Pedido #70911')
+    expect(identity.secondaryText).toBe('#70911')
   })
 
   it('prioritizes the iFood display id over pickup code', () => {
@@ -60,6 +60,20 @@ describe('orderIdentity', () => {
     expect(identity.externalLabel).toBe('IFOOD')
     expect(identity.externalId).toBe('70002')
     expect(identity.primaryText).toBe('#70002')
-    expect(identity.secondaryText).toBe('Pedido #81234')
+    expect(identity.secondaryText).toBe('#81234')
+  })
+
+  it('uses only the hash-prefixed local id for non-marketplace orders', () => {
+    const order = {
+      id: 70700,
+      app: 'shop',
+    }
+
+    const identity = resolveOrderIdentity(order)
+
+    expect(identity.externalLabel).toBe('')
+    expect(identity.externalId).toBe('')
+    expect(identity.primaryText).toBe('#70700')
+    expect(identity.secondaryText).toBe('')
   })
 })
