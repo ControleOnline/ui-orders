@@ -2275,15 +2275,21 @@ const OrderDetails = ({ route, navigation }) => {
       title: useUnifiedKdsLayout ? '' : global.t?.t('orders', 'title', 'order'),
       showBottomCart: false,
       showBottomToolBar: !shouldHideBottomToolBar,
-      headerTitle: useUnifiedKdsLayout ? () => null : () => (
-        <View style={localStyles.topBarTitleWrap}>
-          <View style={localStyles.topBarTitleContent}>
-            <Text style={localStyles.topBarTitleText}>
-              {global.t?.t('orders', 'title', 'order')}
-            </Text>
+      headerTitle: useUnifiedKdsLayout
+        ? () => (
+          <View style={localStyles.topBarTitleWrap}>
+            <OrderHeader order={orderIdentitySource} isKds />
           </View>
-        </View>
-      ),
+        )
+        : () => (
+          <View style={localStyles.topBarTitleWrap}>
+            <View style={localStyles.topBarTitleContent}>
+              <Text style={localStyles.topBarTitleText}>
+                {global.t?.t('orders', 'title', 'order')}
+              </Text>
+            </View>
+          </View>
+        ),
       headerRight: () => (
         <View style={localStyles.topBarActions}>
           {isKds ? (
@@ -2347,12 +2353,14 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam?.id,
     isKds,
     isTvDisplay,
+    localStyles.topBarTitleContent,
     localStyles.topBarActions,
     localStyles.topBarIconButton,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,
     marketplaceSummary.summary,
     navigation,
+    orderIdentitySource,
     ppcColors.accentInfo,
     selectedDisplay,
     shouldHideBottomToolBar,
@@ -2683,9 +2691,6 @@ const OrderDetails = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
     >
       <View style={localStyles.mobileOrderLayout}>
-      <View style={localStyles.mobileInfoCard}>
-        <OrderHeader order={orderIdentitySource} isKds />
-      </View>
       {!isPosSelfServiceOperationMode && shouldShowOrderPartyDetails && (
         <View style={localStyles.mobileInfoCard}>
           <View style={localStyles.mobileInfoHeader}>
