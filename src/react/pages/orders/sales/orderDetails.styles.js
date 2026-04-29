@@ -1,5 +1,4 @@
 import { StyleSheet } from 'react-native'
-import { withOpacity } from '@controleonline/../../src/styles/branding'
 
 const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => {
   const isCompactMobile = windowWidth < 360
@@ -32,6 +31,15 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       minWidth: 0,
       paddingRight: 8,
       marginTop: 1,
+    },
+    topBarTitleWrapStacked: {
+      flex: 1,
+      justifyContent: 'center',
+      minWidth: 0,
+      width: '100%',
+      paddingRight: 0,
+      marginTop: 1,
+      gap: isCompactMobile ? 6 : 8,
     },
     topBarTitleContent: {
       width: '100%',
@@ -95,6 +103,14 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       fontWeight: '800',
       letterSpacing: 0.2,
       textTransform: 'uppercase',
+    },
+    topBarActionsStacked: {
+      width: '100%',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: isCompactMobile ? 6 : 8,
+      paddingTop: isCompactMobile ? 4 : 6,
     },
     mobileOrderScrollContent: {
       paddingBottom: isCompactMobile ? 138 : 126,

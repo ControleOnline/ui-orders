@@ -1896,10 +1896,80 @@ const OrderDetails = ({ route, navigation }) => {
     !hasTerminalOrderState &&
     !hasMarketplaceIntegration
   const isCompactMobileViewport = viewportWidth < 360
+  const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 390
   const mobileBottomCartOffset = 0
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
     : 24
+
+  const renderTopBarActions = useCallback(
+    containerStyle => (
+      <View style={containerStyle}>
+        {isKds ? (
+          !isTvDisplay ? (
+            <PrintButton
+              job={{type: 'order', orderId: item?.id || orderParam?.id}}
+              store="orders"
+              layout={{variant: 'icon'}}
+              compact
+              iconColor={ppcColors.accentInfo}
+              compactButtonStyle={localStyles.topBarIconButton}
+              compactSelectStyle={localStyles.topBarIconButton}
+              printerSelection={{
+                enabled: true,
+                context: 'display',
+                display: selectedDisplay,
+                displayId: selectedDisplay?.id,
+              }}
+              disabled={!(item?.id || orderParam?.id)}
+            />
+          ) : null
+        ) : (
+          <PrintButton
+            job={{type: 'order'}}
+            store="orders"
+            compact
+            iconColor={ppcColors.accentInfo}
+            compactButtonStyle={localStyles.topBarIconButton}
+            compactSelectStyle={localStyles.topBarIconButton}
+            printerSelection={{enabled: true}}
+            disabled={!item?.id}
+          />
+        )}
+
+        {canShowDebugActions && (
+          <>
+            <TouchableOpacity
+              onPress={handleOrderTools}
+              style={localStyles.topBarIconButton}
+            >
+              <Icon name="view-list" size={20} color={ppcColors.accentInfo} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleOrderLogs}
+              style={localStyles.topBarIconButton}
+              disabled={!(item?.id || orderParam?.id)}
+            >
+              <Icon name="history" size={20} color={ppcColors.accentInfo} />
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+    ),
+    [
+      canShowDebugActions,
+      handleOrderLogs,
+      handleOrderTools,
+      isKds,
+      isTvDisplay,
+      item?.id,
+      localStyles.topBarIconButton,
+      orderParam?.id,
+      ppcColors.accentInfo,
+      selectedDisplay,
+    ],
+  )
 
   useEffect(() => {
     if (route?.params?.showBottomCart === false) {
@@ -1929,10 +1999,19 @@ const OrderDetails = ({ route, navigation }) => {
       title: useUnifiedKdsLayout ? '' : global.t?.t('orders', 'title', 'order'),
       showBottomCart: false,
       showBottomToolBar: !shouldHideBottomToolBar,
+      headerStyle: shouldStackHeaderActions ? {height: 108} : undefined,
       headerTitle: useUnifiedKdsLayout
         ? () => (
-          <View style={localStyles.topBarTitleWrap}>
+          <View
+            style={
+              shouldStackHeaderActions
+                ? localStyles.topBarTitleWrapStacked
+                : localStyles.topBarTitleWrap
+            }
+          >
             <OrderHeader order={orderIdentitySource} isKds />
+            {shouldStackHeaderActions &&
+              renderTopBarActions(localStyles.topBarActionsStacked)}
           </View>
         )
         : () => (
@@ -1944,60 +2023,9 @@ const OrderDetails = ({ route, navigation }) => {
             </View>
           </View>
         ),
-      headerRight: () => (
-        <View style={localStyles.topBarActions}>
-          {isKds ? (
-            !isTvDisplay ? (
-              <PrintButton
-                job={{type: 'order', orderId: item?.id || orderParam?.id}}
-                store="orders"
-                layout={{variant: 'icon'}}
-                compact
-                iconColor={ppcColors.accentInfo}
-                compactButtonStyle={localStyles.topBarIconButton}
-                compactSelectStyle={localStyles.topBarIconButton}
-                printerSelection={{
-                  enabled: true,
-                  context: 'display',
-                  display: selectedDisplay,
-                  displayId: selectedDisplay?.id,
-                }}
-                disabled={!(item?.id || orderParam?.id)}
-              />
-            ) : null
-          ) : (
-            <PrintButton
-              job={{type: 'order'}}
-              store="orders"
-              compact
-              iconColor={ppcColors.accentInfo}
-              compactButtonStyle={localStyles.topBarIconButton}
-              compactSelectStyle={localStyles.topBarIconButton}
-              printerSelection={{enabled: true}}
-              disabled={!item?.id}
-            />
-          )}
-
-          {canShowDebugActions && (
-            <>
-              <TouchableOpacity
-                onPress={handleOrderTools}
-                style={localStyles.topBarIconButton}
-              >
-                <Icon name="view-list" size={20} color={ppcColors.accentInfo} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleOrderLogs}
-                style={localStyles.topBarIconButton}
-                disabled={!(item?.id || orderParam?.id)}
-              >
-                <Icon name="history" size={20} color={ppcColors.accentInfo} />
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      ),
+      headerRight: shouldStackHeaderActions
+        ? () => null
+        : () => renderTopBarActions(localStyles.topBarActions),
     })
   }, [
     canShowDebugActions,
@@ -2016,8 +2044,10 @@ const OrderDetails = ({ route, navigation }) => {
     navigation,
     orderIdentitySource,
     ppcColors.accentInfo,
+    renderTopBarActions,
     selectedDisplay,
     shouldHideBottomToolBar,
+    shouldStackHeaderActions,
     useUnifiedKdsLayout,
   ])
 
