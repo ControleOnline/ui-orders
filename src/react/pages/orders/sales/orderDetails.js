@@ -1999,7 +1999,10 @@ const OrderDetails = ({ route, navigation }) => {
       title: useUnifiedKdsLayout ? '' : global.t?.t('orders', 'title', 'order'),
       showBottomCart: false,
       showBottomToolBar: !shouldHideBottomToolBar,
-      headerStyle: shouldStackHeaderActions ? {height: 108} : undefined,
+      headerStyle: shouldStackHeaderActions ? {height: 122} : undefined,
+      headerBackVisible: !shouldStackHeaderActions,
+      headerLeft: shouldStackHeaderActions ? () => null : undefined,
+      headerTitleAlign: shouldStackHeaderActions ? 'left' : undefined,
       headerTitle: useUnifiedKdsLayout
         ? () => (
           <View
@@ -2009,9 +2012,30 @@ const OrderDetails = ({ route, navigation }) => {
                 : localStyles.topBarTitleWrap
             }
           >
-            <OrderHeader order={orderIdentitySource} isKds />
-            {shouldStackHeaderActions &&
-              renderTopBarActions(localStyles.topBarActionsStacked)}
+            {shouldStackHeaderActions ? (
+              <>
+                <View style={localStyles.topBarHeaderRowStacked}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => navigation.goBack()}
+                    style={localStyles.topBarBackButton}
+                  >
+                    <Icon name="arrow-back" size={20} color={ppcColors.textPrimary || '#0F172A'} />
+                  </TouchableOpacity>
+
+                  <View style={localStyles.topBarHeaderContentStacked}>
+                    <View style={localStyles.topBarHeaderSectionStacked}>
+                      <OrderHeader order={orderIdentitySource} isKds />
+                    </View>
+                  </View>
+                </View>
+                <View style={localStyles.topBarActionSectionStacked}>
+                  {renderTopBarActions(localStyles.topBarActionsStacked)}
+                </View>
+              </>
+            ) : (
+              <OrderHeader order={orderIdentitySource} isKds />
+            )}
           </View>
         )
         : () => (
@@ -2037,13 +2061,20 @@ const OrderDetails = ({ route, navigation }) => {
     isTvDisplay,
     localStyles.topBarTitleContent,
     localStyles.topBarActions,
+    localStyles.topBarActionSectionStacked,
+    localStyles.topBarBackButton,
+    localStyles.topBarHeaderContentStacked,
+    localStyles.topBarHeaderRowStacked,
+    localStyles.topBarHeaderSectionStacked,
     localStyles.topBarIconButton,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,
+    localStyles.topBarTitleWrapStacked,
     marketplaceSummary.summary,
     navigation,
     orderIdentitySource,
     ppcColors.accentInfo,
+    ppcColors.textPrimary,
     renderTopBarActions,
     selectedDisplay,
     shouldHideBottomToolBar,
