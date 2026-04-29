@@ -1971,6 +1971,42 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
+  const renderCompactInlineTopBar = useCallback(() => (
+    <View style={localStyles.topBarInlineWrap}>
+      <View style={localStyles.topBarHeaderRowStacked}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.goBack()}
+          style={localStyles.topBarBackButton}
+        >
+          <Icon name="arrow-back" size={20} color={ppcColors.textPrimary || '#0F172A'} />
+        </TouchableOpacity>
+
+        <View style={localStyles.topBarHeaderContentStacked}>
+          <View style={localStyles.topBarHeaderSectionStacked}>
+            <OrderHeader order={orderIdentitySource} isKds />
+          </View>
+        </View>
+      </View>
+
+      <View style={localStyles.topBarActionSectionStacked}>
+        {renderTopBarActions(localStyles.topBarActionsStacked)}
+      </View>
+    </View>
+  ), [
+    localStyles.topBarActionSectionStacked,
+    localStyles.topBarActionsStacked,
+    localStyles.topBarBackButton,
+    localStyles.topBarHeaderContentStacked,
+    localStyles.topBarHeaderRowStacked,
+    localStyles.topBarHeaderSectionStacked,
+    localStyles.topBarInlineWrap,
+    navigation,
+    orderIdentitySource,
+    ppcColors.textPrimary,
+    renderTopBarActions,
+  ])
+
   useEffect(() => {
     if (route?.params?.showBottomCart === false) {
       return
@@ -1999,43 +2035,21 @@ const OrderDetails = ({ route, navigation }) => {
       title: useUnifiedKdsLayout ? '' : global.t?.t('orders', 'title', 'order'),
       showBottomCart: false,
       showBottomToolBar: !shouldHideBottomToolBar,
-      headerStyle: shouldStackHeaderActions ? {height: 122} : undefined,
+      headerShown: !shouldStackHeaderActions,
+      headerStyle: shouldStackHeaderActions ? undefined : undefined,
       headerBackVisible: !shouldStackHeaderActions,
-      headerLeft: shouldStackHeaderActions ? () => null : undefined,
-      headerTitleAlign: shouldStackHeaderActions ? 'left' : undefined,
-      headerTitle: useUnifiedKdsLayout
+      headerLeft: shouldStackHeaderActions ? undefined : undefined,
+      headerTitleAlign: shouldStackHeaderActions ? undefined : undefined,
+      headerTitle: shouldStackHeaderActions
+        ? undefined
+        : useUnifiedKdsLayout
         ? () => (
           <View
             style={
-              shouldStackHeaderActions
-                ? localStyles.topBarTitleWrapStacked
-                : localStyles.topBarTitleWrap
+              localStyles.topBarTitleWrap
             }
           >
-            {shouldStackHeaderActions ? (
-              <>
-                <View style={localStyles.topBarHeaderRowStacked}>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => navigation.goBack()}
-                    style={localStyles.topBarBackButton}
-                  >
-                    <Icon name="arrow-back" size={20} color={ppcColors.textPrimary || '#0F172A'} />
-                  </TouchableOpacity>
-
-                  <View style={localStyles.topBarHeaderContentStacked}>
-                    <View style={localStyles.topBarHeaderSectionStacked}>
-                      <OrderHeader order={orderIdentitySource} isKds />
-                    </View>
-                  </View>
-                </View>
-                <View style={localStyles.topBarActionSectionStacked}>
-                  {renderTopBarActions(localStyles.topBarActionsStacked)}
-                </View>
-              </>
-            ) : (
-              <OrderHeader order={orderIdentitySource} isKds />
-            )}
+            <OrderHeader order={orderIdentitySource} isKds />
           </View>
         )
         : () => (
@@ -2061,20 +2075,13 @@ const OrderDetails = ({ route, navigation }) => {
     isTvDisplay,
     localStyles.topBarTitleContent,
     localStyles.topBarActions,
-    localStyles.topBarActionSectionStacked,
-    localStyles.topBarBackButton,
-    localStyles.topBarHeaderContentStacked,
-    localStyles.topBarHeaderRowStacked,
-    localStyles.topBarHeaderSectionStacked,
     localStyles.topBarIconButton,
     localStyles.topBarTitleText,
     localStyles.topBarTitleWrap,
-    localStyles.topBarTitleWrapStacked,
     marketplaceSummary.summary,
     navigation,
     orderIdentitySource,
     ppcColors.accentInfo,
-    ppcColors.textPrimary,
     renderTopBarActions,
     selectedDisplay,
     shouldHideBottomToolBar,
@@ -2645,6 +2652,7 @@ const OrderDetails = ({ route, navigation }) => {
         useUnifiedKdsLayout && localStyles.kdsContainer,
       ]}
     >
+      {shouldStackHeaderActions && renderCompactInlineTopBar()}
       {showBarcodeInput && <BarcodeInput />}
       <StateStore store="orders" />
       {!isPosSelfServiceOperationMode &&

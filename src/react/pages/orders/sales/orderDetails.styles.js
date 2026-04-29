@@ -40,6 +40,15 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       paddingLeft: 0,
       marginLeft: 0,
     },
+    topBarInlineWrap: {
+      width: '100%',
+      backgroundColor: palette.cardBg,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.borderSoft,
+      paddingHorizontal: isCompactMobile ? 12 : 14,
+      paddingTop: isCompactMobile ? 8 : 10,
+      paddingBottom: isCompactMobile ? 10 : 12,
+    },
     topBarHeaderRowStacked: {
       width: '100%',
       flexDirection: 'row',
@@ -69,6 +78,8 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       width: '100%',
       marginTop: isCompactMobile ? 4 : 5,
       paddingTop: isCompactMobile ? 10 : 12,
+      minHeight: isCompactMobile ? 56 : 62,
+      justifyContent: 'center',
       borderTopWidth: 1,
       borderTopColor: palette.borderSoft,
     },
@@ -137,7 +148,7 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
     },
     topBarActionsStacked: {
       width: '100%',
-      minHeight: isCompactMobile ? 42 : 46,
+      minHeight: isCompactMobile ? 46 : 50,
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
@@ -148,7 +159,7 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       borderRadius: isCompactMobile ? 12 : 13,
       backgroundColor: palette.cardBgSoft,
       paddingHorizontal: isCompactMobile ? 9 : 10,
-      paddingVertical: isCompactMobile ? 7 : 8,
+      paddingVertical: isCompactMobile ? 8 : 9,
     },
     mobileOrderScrollContent: {
       paddingBottom: isCompactMobile ? 138 : 126,
