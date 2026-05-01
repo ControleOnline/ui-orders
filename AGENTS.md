@@ -36,6 +36,7 @@
 - Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o numero operacional curto vindo de `extraData` ou do payload canonico da integracao, como `order_index`, `code` ou `displayId`. `pickup_code` e `handover_code` ficam como fallback, e hashes ou ids tecnicos continuam apenas no summary.
 - `OrderDetails` deve manter o summary como area de informacoes secundarias. As abas operacionais sao `Itens` e `Financeiro`, com invoices dentro de `Financeiro`.
 - `OrderDetails` nao deve exibir o `BottomCart` global com acao `Conferir pedido`. Quando a tela estiver aberta, ela mesma controla a barra operacional necessaria e o layout deve manter `showBottomCart: false`.
+- O param `kds` em `OrderDetails` pertence apenas aos fluxos reais de `PPC`/KDS. Modulos administrativos ou historicos comuns nao devem forcar esse param ao abrir o detalhe.
 - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
 - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
 - Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.

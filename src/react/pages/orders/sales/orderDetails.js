@@ -76,6 +76,11 @@ import OrderTopBarActions, {
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
+import {
+  shouldRenderOrderDetailsInlineTotal,
+  shouldRenderOrderDetailsPaymentAction,
+  shouldRenderOrderDetailsPaymentBar,
+} from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetailsPaymentBar'
 
 import {
   inlineStyle_2712_14,
@@ -495,11 +500,29 @@ const OrderDetails = ({ route, navigation }) => {
 
     return routeOrder
   }, [route.params?.order, routeOrderId])
-  const isKds = !!route.params?.kds
   const useUnifiedKdsLayout = true
+  const hasKdsOrigin =
+    String(env.APP_TYPE || '').trim().toUpperCase() === 'PPC' ||
+    !!route.params?.displayId ||
+    !!route.params?.display?.id ||
+    String(
+      route.params?.displayType || route.params?.display?.displayType || '',
+    ).trim() !== ''
+  const isKds = Boolean(route.params?.kds && hasKdsOrigin)
   const isTvDisplay = String(route.params?.displayType || '').toLowerCase() === 'tv'
+  const shouldShowMobilePaymentBar = shouldRenderOrderDetailsPaymentBar({
+    useUnifiedKdsLayout,
+    isKds,
+    isTvDisplay,
+  })
+  const shouldShowInlineOrderTotal = shouldRenderOrderDetailsInlineTotal({
+    useUnifiedKdsLayout,
+    isKds,
+    isTvDisplay,
+  })
   const shouldDisableLayoutBottomToolBar =
-    useUnifiedKdsLayout && isPdvRouteContext(route?.params)
+    shouldShowMobilePaymentBar ||
+    (useUnifiedKdsLayout && isPdvRouteContext(route?.params))
   const shouldHideBottomToolBar = Boolean(
     route.params?.hideBottomToolBar ||
     isTvDisplay ||
@@ -1915,10 +1938,6 @@ const OrderDetails = ({ route, navigation }) => {
     ppcColors.textPrimary,
   ])
 
-  const shouldShowMobilePaymentBar =
-    useUnifiedKdsLayout &&
-    !hasTerminalOrderState &&
-    !hasMarketplaceIntegration
   const isCompactMobileViewport = viewportWidth < 360
   const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 390
   const mobileBottomCartOffset = 0
@@ -2573,35 +2592,37 @@ const OrderDetails = ({ route, navigation }) => {
         </View>
       )}
 
-      <View style={localStyles.mobileCompactSummaryCard}>
-        <View style={localStyles.mobileCompactSummaryGrid}>
-          <View
-            accessible
-            accessibilityLabel={compactOrderSummary.accessibilityLabel}
-            style={localStyles.mobileCompactSummaryItem}
-          >
+      {shouldShowInlineOrderTotal && (
+        <View style={localStyles.mobileCompactSummaryCard}>
+          <View style={localStyles.mobileCompactSummaryGrid}>
             <View
-              style={[
-                localStyles.mobileCompactSummaryTopRow,
-                {justifyContent: 'flex-end'},
-              ]}
+              accessible
+              accessibilityLabel={compactOrderSummary.accessibilityLabel}
+              style={localStyles.mobileCompactSummaryItem}
             >
-              <View style={localStyles.mobileCompactSummaryMetric}>
-                <Icon name="payments" size={15} color={ppcColors.accentInfo} />
-                <Text
-                  style={[
-                    localStyles.mobileCompactSummaryValue,
-                    localStyles.mobileCompactSummaryValueStrong,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {compactOrderSummary.totalValue}
-                </Text>
+              <View
+                style={[
+                  localStyles.mobileCompactSummaryTopRow,
+                  {justifyContent: 'flex-end'},
+                ]}
+              >
+                <View style={localStyles.mobileCompactSummaryMetric}>
+                  <Icon name="payments" size={15} color={ppcColors.accentInfo} />
+                  <Text
+                    style={[
+                      localStyles.mobileCompactSummaryValue,
+                      localStyles.mobileCompactSummaryValueStrong,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {compactOrderSummary.totalValue}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
         </View>
-      </View>
+      )}
 
       <View style={localStyles.mobileInfoCard}>
         <OrderSectionTabs
@@ -3180,6 +3201,7 @@ const OrderDetails = ({ route, navigation }) => {
               paymentPendingLabel={global.t?.t('orders', 'label', 'pending') || 'Pendente'}
               paymentPaidLabel={global.t?.t('orders', 'label', 'paid') || 'Paga'}
               onActionPress={handleAddPayment}
+              showActionButton={shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}
               showPayableBadge={false}
               variant="payment-status"
             />
