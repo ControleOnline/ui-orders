@@ -42,7 +42,6 @@ import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/Bar
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import OrderSectionTabs from '@controleonline/ui-orders/src/react/components/OrderSectionTabs'
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
-import PrintButton from '@controleonline/ui-orders/src/react/components/PrintButton'
 import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
 import OrderInvoices from './OrderInvoices'
 import OrderItemsTab from './OrderItemsTab'
@@ -71,6 +70,10 @@ import { extractVisibleOrderExtraEntries } from '@controleonline/ui-orders/src/r
 
 import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
 import OrderSummaryModal from './components/OrderSummaryModal'
+import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
+import OrderTopBarActions, {
+  ORDER_TOP_BAR_ACTIONS,
+} from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
 
@@ -1922,110 +1925,87 @@ const OrderDetails = ({ route, navigation }) => {
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
     : 24
+  const topBarButtons = useMemo(() => {
+    const buttons = [ORDER_TOP_BAR_ACTIONS.PRINT]
+
+    if (canShowDebugActions) {
+      buttons.push(ORDER_TOP_BAR_ACTIONS.TOOLS, ORDER_TOP_BAR_ACTIONS.LOGS)
+    }
+
+    return buttons
+  }, [canShowDebugActions])
+  const topBarOrderId = item?.id || orderParam?.id
+  const topBarPrintJob = isKds
+    ? {type: 'order', orderId: topBarOrderId}
+    : {type: 'order'}
+  const topBarPrinterSelection = isKds
+    ? {
+        enabled: true,
+        context: 'display',
+        display: selectedDisplay,
+        displayId: selectedDisplay?.id,
+      }
+    : {enabled: true}
 
   const renderTopBarActions = useCallback(
     containerStyle => (
-      <View style={containerStyle}>
-        {isKds ? (
-          !isTvDisplay ? (
-            <PrintButton
-              job={{type: 'order', orderId: item?.id || orderParam?.id}}
-              store="orders"
-              layout={{variant: 'icon'}}
-              compact
-              iconColor={ppcColors.accentInfo}
-              compactButtonStyle={localStyles.topBarIconButton}
-              compactSelectStyle={localStyles.topBarIconButton}
-              printerSelection={{
-                enabled: true,
-                context: 'display',
-                display: selectedDisplay,
-                displayId: selectedDisplay?.id,
-              }}
-              disabled={!(item?.id || orderParam?.id)}
-            />
-          ) : null
-        ) : (
-          <PrintButton
-            job={{type: 'order'}}
-            store="orders"
-            compact
-            iconColor={ppcColors.accentInfo}
-            compactButtonStyle={localStyles.topBarIconButton}
-            compactSelectStyle={localStyles.topBarIconButton}
-            printerSelection={{enabled: true}}
-            disabled={!item?.id}
-          />
-        )}
-
-        {canShowDebugActions && (
-          <>
-            <TouchableOpacity
-              onPress={handleOrderTools}
-              style={localStyles.topBarIconButton}
-            >
-              <Icon name="view-list" size={20} color={ppcColors.accentInfo} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleOrderLogs}
-              style={localStyles.topBarIconButton}
-              disabled={!(item?.id || orderParam?.id)}
-            >
-              <Icon name="history" size={20} color={ppcColors.accentInfo} />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+      <OrderTopBarActions
+        buttons={topBarButtons}
+        containerStyle={containerStyle}
+        iconButtonStyle={localStyles.topBarIconButton}
+        iconButtonDisabledStyle={localStyles.topBarIconButtonDisabled}
+        iconColor={ppcColors.accentInfo}
+        printJob={topBarPrintJob}
+        printDisabled={isKds ? !topBarOrderId : !item?.id}
+        printerSelection={topBarPrinterSelection}
+        isTvDisplay={isTvDisplay}
+        onPressTools={handleOrderTools}
+        onPressLogs={handleOrderLogs}
+        logsDisabled={!topBarOrderId}
+      />
     ),
     [
-      canShowDebugActions,
       handleOrderLogs,
       handleOrderTools,
       isKds,
       isTvDisplay,
       item?.id,
+      localStyles.topBarIconButtonDisabled,
       localStyles.topBarIconButton,
       orderParam?.id,
       ppcColors.accentInfo,
       selectedDisplay,
+      topBarButtons,
+      topBarOrderId,
+      topBarPrintJob,
+      topBarPrinterSelection,
     ],
   )
 
   const renderCompactInlineTopBar = useCallback(() => (
-    <View style={localStyles.topBarInlineWrap}>
-      <View style={localStyles.topBarHeaderRowStacked}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => navigation.goBack()}
-          style={localStyles.topBarBackButton}
-        >
-          <Icon name="arrow-back" size={20} color={ppcColors.textPrimary || '#0F172A'} />
-        </TouchableOpacity>
-
-        <View style={localStyles.topBarHeaderContentStacked}>
-          <View style={localStyles.topBarHeaderSectionStacked}>
-            <OrderHeader order={orderIdentitySource} isKds />
-          </View>
-        </View>
-      </View>
-
-      <View style={localStyles.topBarActionSectionStacked}>
-        {renderTopBarActions(localStyles.topBarActionsStacked)}
-      </View>
-    </View>
+    <OrderStackedTopBar
+      order={orderIdentitySource}
+      isKds
+      onBackPress={() => navigation.goBack()}
+      buttons={topBarButtons}
+      printJob={topBarPrintJob}
+      printDisabled={!topBarOrderId}
+      printerSelection={topBarPrinterSelection}
+      isTvDisplay={isTvDisplay}
+      onPressTools={handleOrderTools}
+      onPressLogs={handleOrderLogs}
+      logsDisabled={!topBarOrderId}
+    />
   ), [
-    localStyles.topBarActionSectionStacked,
-    localStyles.topBarActionsStacked,
-    localStyles.topBarBackButton,
-    localStyles.topBarHeaderContentStacked,
-    localStyles.topBarHeaderRowStacked,
-    localStyles.topBarHeaderSectionStacked,
-    localStyles.topBarInlineWrap,
+    handleOrderLogs,
+    handleOrderTools,
+    isTvDisplay,
     navigation,
     orderIdentitySource,
-    ppcColors.textPrimary,
-    renderTopBarActions,
+    topBarButtons,
+    topBarOrderId,
+    topBarPrintJob,
+    topBarPrinterSelection,
   ])
 
   useEffect(() => {

@@ -12,6 +12,7 @@
 - Todo pedido de venda deve ser pago pela barra unica de pagamento do sistema.
 - A listagem de produtos dentro do pedido deve sair de um unico componente compartilhado entre `OrderDetails`, `POS` e visoes operacionais que mostrem itens do pedido. Diferencas entre telas entram apenas por acoes de contexto.
 - `OrderHeader` e a barra superior usada por `OrderDetails` sao a fonte canonica de cabecalho operacional do pedido. Quando outro modulo abrir popup/modal para consultar ou reimprimir um pedido, ele deve reaproveitar esse mesmo topo e encaixar a impressao na mesma barra de acoes padronizada.
+- `OrderHeader` tambem e o cabecalho canonico para cards e blocos operacionais de pedido. Outros modulos podem adaptar o payload antes de renderizar, mas nao devem reconstruir a identidade visual do pedido com outro JSX.
 - O renderer compartilhado de itens deve agrupar filhos customizaveis pelos vinculos vindos do backend (`orderProduct`, `parentProduct` e `productGroup`). Nao criar mapeamento paralelo por tela para encaixar adicionais dentro do item pai.
 - O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
 - Essa barra precisa existir em todos os devices que podem cobrar pedido.
