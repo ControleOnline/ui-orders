@@ -20,13 +20,20 @@ const resolveOrderType = order =>
   normalizeText(order?.orderType || order?.order_type).toLowerCase()
 
 export const resolveDisplayedOrderStatus = (order, fallbackColor = '#6B7280') => {
-  const statusLabel = normalizeText(order?.status?.realStatus) || 'open'
+  const displayLabel =
+    normalizeText(order?.status?.status) ||
+    normalizeText(order?.status?.realStatus) ||
+    'open'
+  const statusStateKey =
+    normalizeText(order?.status?.realStatus) ||
+    normalizeText(order?.status?.status) ||
+    displayLabel
   const statusColor = normalizeText(order?.status?.color) || fallbackColor
-  const statusKey = statusLabel.toLowerCase()
+  const statusKey = statusStateKey.toLowerCase()
 
   return {
-    label: statusLabel,
-    labelUpper: statusLabel.toUpperCase(),
+    label: displayLabel,
+    labelUpper: displayLabel.toUpperCase(),
     color: statusColor,
     key: statusKey,
     isOpen: statusKey === 'open',

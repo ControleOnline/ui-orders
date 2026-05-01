@@ -11,6 +11,11 @@ import {useStore} from '@store'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import {
+  hasDetailedOrderProductMetadata,
+  hasOrderProducts,
+  needsDetailedOrderProductsFetch,
+} from '@controleonline/ui-orders/src/react/utils/orderProductsFetchPolicy'
 
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 
@@ -19,28 +24,6 @@ import {
   inlineStyle_2121_14,
   inlineStyle_2128_20,
 } from './orderDetails.styles'
-
-const hasOrderProducts = orderProducts =>
-  Array.isArray(orderProducts) && orderProducts.length > 0
-
-const hasGroupingMetadata = orderProducts =>
-  Array.isArray(orderProducts) &&
-  orderProducts.some(
-    orderProduct =>
-      !!(
-        orderProduct?.orderProduct ||
-        orderProduct?.parentProduct ||
-        orderProduct?.productGroup
-      ),
-  )
-
-const hasCollectionOrderReference = orderProducts =>
-  Array.isArray(orderProducts) &&
-  orderProducts.some(orderProduct => !!orderProduct?.order)
-
-const needsDetailedOrderProductsFetch = orderProducts =>
-  !hasOrderProducts(orderProducts) ||
-  (!hasGroupingMetadata(orderProducts) && orderProducts.length > 1)
 
 const getEntityId = entity => {
   if (!entity) return null
@@ -106,8 +89,7 @@ const OrderItemsTab = ({
 
   const requiresDetailedFallback = needsDetailedOrderProductsFetch(orderProducts)
   const fallbackHasDetailedPayload =
-    hasGroupingMetadata(fallbackOrderProducts) ||
-    hasCollectionOrderReference(fallbackOrderProducts)
+    hasDetailedOrderProductMetadata(fallbackOrderProducts)
   const shouldUseFallbackOrderProducts =
     requiresDetailedFallback &&
     fallbackOrderProducts.length > 0 &&

@@ -279,6 +279,8 @@ const resolveEntryColor = (orderProduct, fallbackColor) =>
   normalizeOrderProductText(fallbackColor) ||
   DEFAULT_ITEM_COLOR
 
+const EMBEDDED_COMPONENT_ORDER_STEP = 0.001
+
 const createCard = ({
   cards,
   cardsByRootKey,
@@ -326,6 +328,133 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   const cards = []
   const cardsByRootKey = new Map()
   const cardsByCatalogProductKey = new Map()
+  const groupEntryKeysByCardKey = new Map()
+  const itemsByEntityId = new Map()
+  let embeddedComponentOrderSequence = 0
+
+  items.forEach(item => {
+    const itemEntityId = toOrderProductEntityId(item?.id || item?.['@id'])
+    if (itemEntityId) {
+      itemsByEntityId.set(itemEntityId, item)
+    }
+  })
+
+  const getCardGroupEntryKeys = card => {
+    if (!groupEntryKeysByCardKey.has(card.key)) {
+      groupEntryKeysByCardKey.set(card.key, new Set())
+    }
+
+    return groupEntryKeysByCardKey.get(card.key)
+  }
+
+  const ensureCardGroup = (card, groupKey, groupLabel, order) => {
+    if (!card.groups.has(groupKey)) {
+      card.groups.set(groupKey, {
+        id: groupKey,
+        label: groupLabel,
+        order,
+        items: [],
+      })
+    }
+
+    return card.groups.get(groupKey)
+  }
+
+  const addGroupedItemToCard = ({
+    card,
+    item,
+    groupKey,
+    groupLabel,
+    order,
+    forceRemoval = false,
+  }) => {
+    const resolvedGroupKey =
+      normalizeOrderProductText(groupKey) || getOrderProductBucketKey(item)
+    const resolvedGroupLabel =
+      normalizeOrderProductText(groupLabel) || getChildBucketLabel(item)
+    const itemEntityId = toOrderProductEntityId(item?.id || item?.['@id'])
+    const dedupeKey = itemEntityId
+      ? `${resolvedGroupKey}:id:${itemEntityId}`
+      : ''
+
+    if (dedupeKey) {
+      const cardGroupEntryKeys = getCardGroupEntryKeys(card)
+      if (cardGroupEntryKeys.has(dedupeKey)) {
+        return
+      }
+
+      cardGroupEntryKeys.add(dedupeKey)
+    }
+
+    const quantity = Number(item?.quantity || 0)
+    const unitPrice = toMoney(item?.unitPrice ?? item?.value ?? item?.price)
+    const totalPrice = toMoney(item?.total ?? resolveOrderProductTotal(item))
+
+    ensureCardGroup(card, resolvedGroupKey, resolvedGroupLabel, order).items.push({
+      id: itemEntityId || `${card.key}-${resolvedGroupKey}-${order}`,
+      name: getNodeName(item),
+      quantity,
+      description: getNodeDescription(item),
+      observation: getNodeObservation(item),
+      totalPrice,
+      unitPrice,
+      itemColor: resolveEntryColor(item, fallbackColor),
+      isZero: forceRemoval || quantity === 0,
+      order,
+      orderProduct: item,
+      queuePresentation: resolveOrderProductQueuePresentation(item),
+    })
+  }
+
+  const appendEmbeddedGroupedItems = ({
+    card,
+    sourceItem,
+    baseOrder,
+    fallbackGroupKey = '',
+    fallbackGroupLabel = '',
+    forceRemoval = false,
+  }) => {
+    getOrderProductComponents(sourceItem).forEach(rawComponent => {
+      const componentEntityId = toOrderProductEntityId(
+        rawComponent?.id || rawComponent?.['@id'] || rawComponent,
+      )
+      const component =
+        (componentEntityId && itemsByEntityId.get(componentEntityId)) ||
+        (rawComponent && typeof rawComponent === 'object' ? rawComponent : null)
+
+      if (!component) {
+        return
+      }
+
+      embeddedComponentOrderSequence += 1
+
+      const componentOrder =
+        Number(baseOrder || 0) +
+        embeddedComponentOrderSequence * EMBEDDED_COMPONENT_ORDER_STEP
+      const componentGroupKey =
+        normalizeOrderProductText(fallbackGroupKey) || getOrderProductBucketKey(component)
+      const componentGroupLabel =
+        normalizeOrderProductText(fallbackGroupLabel) || getChildBucketLabel(component)
+
+      addGroupedItemToCard({
+        card,
+        item: component,
+        groupKey: componentGroupKey,
+        groupLabel: componentGroupLabel,
+        order: componentOrder,
+        forceRemoval,
+      })
+
+      appendEmbeddedGroupedItems({
+        card,
+        sourceItem: component,
+        baseOrder: componentOrder,
+        fallbackGroupKey: componentGroupKey,
+        fallbackGroupLabel: componentGroupLabel,
+        forceRemoval: true,
+      })
+    })
+  }
 
   const getOrCreateRootCard = (item, index) => {
     const rootKey = toOrderProductEntityId(item?.id || item?.['@id']) || `root-${index}`
@@ -444,40 +573,36 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     card.totalPrice = toMoney(item?.total ?? resolveOrderProductTotal(item))
     card.itemColor = resolveEntryColor(item, fallbackColor)
     card.queuePresentation = resolveOrderProductQueuePresentation(item)
+
+    appendEmbeddedGroupedItems({
+      card,
+      sourceItem: item,
+      baseOrder: index,
+    })
   })
 
   items.forEach((item, index) => {
     if (!hasGroupedParent(item)) return
 
     const card = resolveCardForGroupedItem(item, index)
-    const quantity = Number(item?.quantity || 0)
-    const unitPrice = toMoney(item?.unitPrice ?? item?.value ?? item?.price)
-    const totalPrice = toMoney(item?.total ?? resolveOrderProductTotal(item))
     const groupLabel = getChildBucketLabel(item)
     const groupKey = getOrderProductBucketKey(item)
 
-    if (!card.groups.has(groupKey)) {
-      card.groups.set(groupKey, {
-        id: groupKey,
-        label: groupLabel,
-        order: index,
-        items: [],
-      })
-    }
-
-    card.groups.get(groupKey).items.push({
-      id: toOrderProductEntityId(item?.id || item?.['@id']) || `${card.key}-${groupKey}-${index}`,
-      name: getNodeName(item),
-      quantity,
-      description: getNodeDescription(item),
-      observation: getNodeObservation(item),
-      totalPrice,
-      unitPrice,
-      itemColor: resolveEntryColor(item, fallbackColor),
-      isZero: quantity === 0,
+    addGroupedItemToCard({
+      card,
+      item,
+      groupKey,
+      groupLabel,
       order: index,
-      orderProduct: item,
-      queuePresentation: resolveOrderProductQueuePresentation(item),
+    })
+
+    appendEmbeddedGroupedItems({
+      card,
+      sourceItem: item,
+      baseOrder: index,
+      fallbackGroupKey: groupKey,
+      fallbackGroupLabel: groupLabel,
+      forceRemoval: true,
     })
   })
 

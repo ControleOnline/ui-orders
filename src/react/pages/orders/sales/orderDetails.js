@@ -156,6 +156,34 @@ const resolveEmbeddedOrderProducts = sourceOrder => {
 const hasOrderProducts = orderProducts =>
   Array.isArray(orderProducts) && orderProducts.length > 0
 
+const getEmbeddedOrderProductComponents = orderProduct => {
+  if (Array.isArray(orderProduct?.orderProductComponents)) {
+    return orderProduct.orderProductComponents
+  }
+
+  if (Array.isArray(orderProduct?.orderProductComponents?.member)) {
+    return orderProduct.orderProductComponents.member
+  }
+
+  if (Array.isArray(orderProduct?.orderProductComponents?.['hydra:member'])) {
+    return orderProduct.orderProductComponents['hydra:member']
+  }
+
+  if (Array.isArray(orderProduct?.order_product_components)) {
+    return orderProduct.order_product_components
+  }
+
+  if (Array.isArray(orderProduct?.order_product_components?.member)) {
+    return orderProduct.order_product_components.member
+  }
+
+  if (Array.isArray(orderProduct?.order_product_components?.['hydra:member'])) {
+    return orderProduct.order_product_components['hydra:member']
+  }
+
+  return []
+}
+
 const hasGroupingMetadata = orderProducts =>
   Array.isArray(orderProducts) &&
   orderProducts.some(
@@ -167,12 +195,13 @@ const hasGroupingMetadata = orderProducts =>
       ),
   )
 
-const hasCollectionOrderReference = orderProducts =>
+const hasEmbeddedOrderProductComponents = orderProducts =>
   Array.isArray(orderProducts) &&
-  orderProducts.some(orderProduct => !!orderProduct?.order)
+  orderProducts.some(orderProduct => getEmbeddedOrderProductComponents(orderProduct).length > 0)
 
 const hasDetailedOrderProductsPayload = orderProducts =>
-  hasGroupingMetadata(orderProducts) || hasCollectionOrderReference(orderProducts)
+  hasGroupingMetadata(orderProducts) ||
+  hasEmbeddedOrderProductComponents(orderProducts)
 
 const filterOrderProductsByOrderId = (orderProducts, orderId) =>
   (Array.isArray(orderProducts) ? orderProducts : []).filter(orderProduct => {
@@ -214,10 +243,7 @@ const getOrderProductCollectionSignature = orderProducts =>
         getEntityId(orderProduct?.parentProduct),
         getEntityId(orderProduct?.productGroup),
         Number(orderProduct?.quantity || 0),
-        (Array.isArray(orderProduct?.orderProductComponents)
-          ? orderProduct.orderProductComponents
-          : []
-        )
+        getEmbeddedOrderProductComponents(orderProduct)
           .map(component => getEntityId(component))
           .filter(Boolean)
           .join(','),
@@ -1242,7 +1268,6 @@ const OrderDetails = ({ route, navigation }) => {
     canAddOrderPayment &&
     !useUnifiedKdsLayout
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
-  const orderDateLabel = formatOrderDateTime(resolvedOrderDateValue)
   const orderWaitingMinutes = resolvedOrderDateValue
     ? Math.max(0, Math.floor((Date.now() - new Date(resolvedOrderDateValue).getTime()) / 60000))
     : null
@@ -1739,15 +1764,11 @@ const OrderDetails = ({ route, navigation }) => {
   const compactOrderSummary = useMemo(
     () => ({
       accessibilityLabel: [
-        `${global.t?.t('orders', 'label', 'localStatus') || 'Status'}: ${translatedLocalStatusLabel || '-'}`,
         `${global.t?.t('orders', 'label', 'localTotal') || 'Total'}: ${Formatter.formatMoney(localOrderTotal || 0)}`,
-        `${global.t?.t('orders', 'label', 'createdAt') || 'Criado'}: ${orderDateLabel || '-'}`,
       ].join('. '),
-      statusValue: translatedLocalStatusLabel || '-',
       totalValue: Formatter.formatMoney(localOrderTotal || 0),
-      dateValue: orderDateLabel || '-',
     }),
-    [localOrderTotal, orderDateLabel, translatedLocalStatusLabel],
+    [localOrderTotal],
   )
   const closeDetailsModal = useCallback(() => {
     setDetailsModalVisible(false)
@@ -2579,16 +2600,12 @@ const OrderDetails = ({ route, navigation }) => {
             accessibilityLabel={compactOrderSummary.accessibilityLabel}
             style={localStyles.mobileCompactSummaryItem}
           >
-            <View style={localStyles.mobileCompactSummaryTopRow}>
-              <View style={[localStyles.mobileCompactSummaryMetric, localStyles.mobileCompactSummaryMetricFlexible]}>
-                <Icon name="local-offer" size={15} color={displayOrderStatusColor} />
-                <Text
-                  style={localStyles.mobileCompactSummaryValue}
-                  numberOfLines={1}
-                >
-                  {compactOrderSummary.statusValue}
-                </Text>
-              </View>
+            <View
+              style={[
+                localStyles.mobileCompactSummaryTopRow,
+                {justifyContent: 'flex-end'},
+              ]}
+            >
               <View style={localStyles.mobileCompactSummaryMetric}>
                 <Icon name="payments" size={15} color={ppcColors.accentInfo} />
                 <Text
@@ -2601,18 +2618,6 @@ const OrderDetails = ({ route, navigation }) => {
                   {compactOrderSummary.totalValue}
                 </Text>
               </View>
-            </View>
-            <View style={localStyles.mobileCompactSummaryMetric}>
-              <Icon name="schedule" size={14} color={ppcColors.textSecondary} />
-              <Text
-                style={[
-                  localStyles.mobileCompactSummaryValue,
-                  localStyles.mobileCompactSummaryDateValue,
-                ]}
-                numberOfLines={1}
-              >
-                {compactOrderSummary.dateValue}
-              </Text>
             </View>
           </View>
         </View>

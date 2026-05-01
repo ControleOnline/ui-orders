@@ -67,7 +67,7 @@ const {
 } = require('../../../react/components/OrderHeader')
 
 describe('OrderHeader', () => {
-  it('uses only realStatus to resolve the displayed label', () => {
+  it('prefers status.status for the displayed label and keeps realStatus as state key', () => {
     const status = resolveDisplayedOrderStatus({
       status: {
         realStatus: 'pending',
@@ -76,23 +76,23 @@ describe('OrderHeader', () => {
       },
     })
 
-    expect(status.label).toBe('pending')
-    expect(status.labelUpper).toBe('PENDING')
+    expect(status.label).toBe('ready')
+    expect(status.labelUpper).toBe('READY')
     expect(status.key).toBe('pending')
     expect(status.isOpen).toBe(false)
     expect(status.color).toBe('#EF4444')
   })
 
-  it('falls back to open when realStatus is absent', () => {
+  it('falls back to status.status when realStatus is absent', () => {
     const status = resolveDisplayedOrderStatus({
       status: {
         status: 'ready',
       },
     })
 
-    expect(status.label).toBe('open')
-    expect(status.labelUpper).toBe('OPEN')
-    expect(status.key).toBe('open')
-    expect(status.isOpen).toBe(true)
+    expect(status.label).toBe('ready')
+    expect(status.labelUpper).toBe('READY')
+    expect(status.key).toBe('ready')
+    expect(status.isOpen).toBe(false)
   })
 })
