@@ -19,6 +19,7 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
   );
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key || '');
   const shouldRenderMarketplaceSummary = !!summary?.marketplace?.enabled;
+  const singleTab = tabs.length === 1 ? tabs[0] : null;
   const showBaseLines =
     !summary?.marketplace?.isIfood &&
     Array.isArray(summary?.base?.lines) &&
@@ -59,7 +60,7 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
             <View style={styles.detailsModalHeader}>
               <View>
                 <Text style={styles.detailsModalEyebrow}>
-                  {global.t?.t('orders', 'title', 'orderSummary')}
+                  {summary?.title || global.t?.t('orders', 'title', 'orderSummary')}
                 </Text>
                 <OrderIdentityLabel
                   order={summary.base.order}
@@ -118,7 +119,11 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
                 </View>
               ) : null}
 
-              {tabs.length > 0 ? (
+              {singleTab ? (
+                <View style={styles.detailsTabContentWrap}>
+                  {singleTab.content}
+                </View>
+              ) : tabs.length > 0 ? (
                 <OrderSectionTabs
                   tabs={tabs}
                   activeKey={activeTabKey}

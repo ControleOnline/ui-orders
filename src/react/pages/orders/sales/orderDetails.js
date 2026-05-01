@@ -40,7 +40,6 @@ import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
-import OrderSectionTabs from '@controleonline/ui-orders/src/react/components/OrderSectionTabs'
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
 import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
 import OrderInvoices from './OrderInvoices'
@@ -70,6 +69,7 @@ import { extractVisibleOrderExtraEntries } from '@controleonline/ui-orders/src/r
 
 import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
 import OrderSummaryModal from './components/OrderSummaryModal'
+import OrderFinancialDetailsModal from './components/OrderFinancialDetailsModal'
 import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
 import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
@@ -89,8 +89,6 @@ import {
   inlineStyle_2737_26,
   inlineStyle_2748_24,
 } from './orderDetails.styles';
-
-import { inlineStyle_2768_24 } from './orderDetails.styles';
 
 const formatApiError = error => {
   if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')
@@ -520,16 +518,9 @@ const OrderDetails = ({ route, navigation }) => {
     isKds,
     isTvDisplay,
   })
-  const shouldDisableLayoutBottomToolBar =
-    shouldShowMobilePaymentBar ||
-    (useUnifiedKdsLayout && isPdvRouteContext(route?.params))
-  const shouldHideBottomToolBar = Boolean(
-    route.params?.hideBottomToolBar ||
-    isTvDisplay ||
-    shouldDisableLayoutBottomToolBar,
-  )
   const { showError, showSuccess } = useMessage()
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
+  const [financialDetailsVisible, setFinancialDetailsVisible] = useState(false)
   const insets = useSafeAreaInsets()
 
   const ordersStore = useStore('orders')
@@ -611,7 +602,6 @@ const OrderDetails = ({ route, navigation }) => {
     isTerminalOrderStatus(orderParam?.status?.realStatus)
   const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
   const shouldShowOrderPartyDetails = isPurchaseOrder || isDeviceDeliveryEnabled
-  const [detailsTabKey, setDetailsTabKey] = useState('items')
 
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
@@ -1799,6 +1789,14 @@ const OrderDetails = ({ route, navigation }) => {
   const closeDetailsModal = useCallback(() => {
     setDetailsModalVisible(false)
   }, [])
+  const closeFinancialDetailsModal = useCallback(() => {
+    setFinancialDetailsVisible(false)
+  }, [])
+
+  const handleOpenFinancialDetails = useCallback(async () => {
+    setFinancialDetailsVisible(true)
+    await marketplaceSummary.ensureMarketplaceSummary()
+  }, [marketplaceSummary])
 
   const handleOrderTools = useCallback(async () => {
     if (!canShowDebugActions) {
@@ -2027,34 +2025,9 @@ const OrderDetails = ({ route, navigation }) => {
     topBarPrinterSelection,
   ])
 
-  useEffect(() => {
-    if (route?.params?.showBottomCart === false) {
-      return
-    }
-
-    navigation.setParams({ showBottomCart: false })
-  }, [
-    navigation,
-    route?.params?.showBottomCart,
-  ])
-
-  useEffect(() => {
-    if (!shouldDisableLayoutBottomToolBar || route?.params?.showBottomToolBar === false) {
-      return
-    }
-
-    navigation.setParams({ showBottomToolBar: false })
-  }, [
-    navigation,
-    route?.params?.showBottomToolBar,
-    shouldDisableLayoutBottomToolBar,
-  ])
-
   useLayoutEffect(() => {
     navigation.setOptions({
       title: useUnifiedKdsLayout ? '' : global.t?.t('orders', 'title', 'order'),
-      showBottomCart: false,
-      showBottomToolBar: !shouldHideBottomToolBar,
       headerShown: !shouldStackHeaderActions,
       headerStyle: shouldStackHeaderActions ? undefined : undefined,
       headerBackVisible: !shouldStackHeaderActions,
@@ -2104,7 +2077,6 @@ const OrderDetails = ({ route, navigation }) => {
     ppcColors.accentInfo,
     renderTopBarActions,
     selectedDisplay,
-    shouldHideBottomToolBar,
     shouldStackHeaderActions,
     useUnifiedKdsLayout,
   ])
@@ -2265,24 +2237,6 @@ const OrderDetails = ({ route, navigation }) => {
       setProductSearchText,
     ],
   )
-  const detailsTabs = useMemo(
-    () => [
-      {
-        key: 'items',
-        label: global.t?.t('orders', 'title', 'orderItems') || 'Itens',
-        content: renderItemsTab('main'),
-      },
-      {
-        key: 'financial',
-        label: global.t?.t('orders', 'title', 'payments') || 'Financeiro',
-        content: renderFinancialTab('main'),
-      },
-    ],
-    [
-      renderFinancialTab,
-      renderItemsTab,
-    ],
-  )
   const modalDetailsTabs = useMemo(
     () => [
       {
@@ -2296,14 +2250,9 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
-  useEffect(() => {
-    if (!detailsTabs.some(tab => tab.key === detailsTabKey)) {
-      setDetailsTabKey(detailsTabs[0]?.key || 'items')
-    }
-  }, [detailsTabKey, detailsTabs])
-
   const orderSummaryData = useMemo(() => {
     return {
+      title: global.t?.t('orders', 'title', 'orderSummary'),
       base: {
         order: orderIdentitySource,
         cards: [
@@ -2399,7 +2348,6 @@ const OrderDetails = ({ route, navigation }) => {
     translatedLocalRealStatusLabel,
     translatedLocalStatusLabel,
   ])
-
   const renderKdsMobileContent = () => (
     <ScrollView
       contentContainerStyle={[
@@ -2625,20 +2573,7 @@ const OrderDetails = ({ route, navigation }) => {
       )}
 
       <View style={localStyles.mobileInfoCard}>
-        <OrderSectionTabs
-          tabs={detailsTabs}
-          activeKey={detailsTabKey}
-          onChange={setDetailsTabKey}
-          styles={{
-            container: localStyles.detailsTabsWrap,
-            tabRow: localStyles.detailsTabsRow,
-            tabButton: localStyles.detailsTabButton,
-            tabButtonActive: localStyles.detailsTabButtonActive,
-            tabButtonText: localStyles.detailsTabButtonText,
-            tabButtonTextActive: localStyles.detailsTabButtonTextActive,
-            contentWrap: localStyles.detailsTabContentWrap,
-          }}
-        />
+        {renderItemsTab('main')}
       </View>
       </View>
     </ScrollView>
@@ -3102,13 +3037,19 @@ const OrderDetails = ({ route, navigation }) => {
       </Modal>
         </>
       )}
-      {canShowDebugActions && (
-        <OrderSummaryModal
-          visible={detailsModalVisible}
-          onClose={closeDetailsModal}
-          summary={orderSummaryData}
-        />
-      )}
+      <OrderSummaryModal
+        visible={detailsModalVisible}
+        onClose={closeDetailsModal}
+        summary={orderSummaryData}
+      />
+      <OrderFinancialDetailsModal
+        visible={financialDetailsVisible}
+        onClose={closeFinancialDetailsModal}
+        title={global.t?.t('orders', 'title', 'payments') || 'Financeiro'}
+        order={orderIdentitySource}
+        marketplace={marketplaceSummary.summary}
+        content={renderFinancialTab('details')}
+      />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (
         <View style={inlineStyle_2712_14}>
@@ -3169,27 +3110,6 @@ const OrderDetails = ({ route, navigation }) => {
             </>
           )}
 
-          {isKds || useUnifiedKdsLayout ? null : (
-            <ScrollView contentContainerStyle={inlineStyle_2768_24}>
-              <View style={localStyles.mobileInfoCard}>
-                <OrderSectionTabs
-                  tabs={detailsTabs}
-                  activeKey={detailsTabKey}
-                  onChange={setDetailsTabKey}
-                  styles={{
-                    container: localStyles.detailsTabsWrap,
-                    tabRow: localStyles.detailsTabsRow,
-                    tabButton: localStyles.detailsTabButton,
-                    tabButtonActive: localStyles.detailsTabButtonActive,
-                    tabButtonText: localStyles.detailsTabButtonText,
-                    tabButtonTextActive: localStyles.detailsTabButtonTextActive,
-                    contentWrap: localStyles.detailsTabContentWrap,
-                  }}
-                />
-              </View>
-            </ScrollView>
-          )}
-
           {shouldShowMobilePaymentBar && (
             <BottomCart
               bottomOffset={mobileBottomCartOffset}
@@ -3200,7 +3120,14 @@ const OrderDetails = ({ route, navigation }) => {
               paymentPendingAmount={localPendingAmount}
               paymentPendingLabel={global.t?.t('orders', 'label', 'pending') || 'Pendente'}
               paymentPaidLabel={global.t?.t('orders', 'label', 'paid') || 'Paga'}
+              paidDetailsLabel={global.t?.t('orders', 'button', 'details') || 'Detalhes'}
+              paidOrderAmount={localOrderTotal}
+              paidOrderLabel={global.t?.t('orders', 'label', 'localTotal') || 'Total do pedido'}
+              paidReceivedAmount={localPaidAmount}
+              paidReceivedLabel={global.t?.t('orders', 'label', 'paid') || 'Recebido'}
               onActionPress={handleAddPayment}
+              onPaidDetailsPress={handleOpenFinancialDetails}
+              showPaidBreakdown
               showActionButton={shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}
               showPayableBadge={false}
               variant="payment-status"

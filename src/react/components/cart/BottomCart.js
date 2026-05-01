@@ -32,6 +32,13 @@ const BottomCart = ({
   paymentPendingAmount = 0,
   paymentPendingLabel,
   paymentPaidLabel = 'Paga',
+  showPaidBreakdown = false,
+  paidOrderAmount = 0,
+  paidOrderLabel,
+  paidReceivedAmount = 0,
+  paidReceivedLabel,
+  paidDetailsLabel,
+  onPaidDetailsPress,
 }) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
@@ -62,8 +69,23 @@ const BottomCart = ({
   const hasPendingPayment = resolvedPendingAmount > 0.009;
   const shouldShowActionButton = showActionButton && (!isPaymentStatusVariant || hasPendingPayment);
   const isPaidStateBar = isPaymentStatusVariant && !hasPendingPayment;
+  const shouldShowDetailsButton =
+    isPaymentStatusVariant &&
+    typeof onPaidDetailsPress === 'function' &&
+    (!shouldShowActionButton || isPaidStateBar);
   const pendingLabel = paymentPendingLabel || global.t?.t('orders', 'label', 'pending') || 'Pendente';
-  const cartHeight = isPaidStateBar
+  const shouldShowPaidBreakdown = isPaidStateBar && showPaidBreakdown;
+  const resolvedPaidOrderAmount = Math.max(Number(paidOrderAmount || 0), 0);
+  const resolvedPaidReceivedAmount = Math.max(Number(paidReceivedAmount || 0), 0);
+  const resolvedPaidOrderLabel =
+    paidOrderLabel || global.t?.t('orders', 'label', 'localTotal') || 'Total do pedido';
+  const resolvedPaidReceivedLabel =
+    paidReceivedLabel || global.t?.t('orders', 'label', 'paid') || 'Recebido';
+  const resolvedPaidDetailsLabel =
+    paidDetailsLabel || global.t?.t('orders', 'button', 'details') || 'Detalhes';
+  const cartHeight = shouldShowPaidBreakdown
+    ? (isCompact ? 72 : 78)
+    : isPaidStateBar
     ? (isCompact ? 34 : 38)
     : (isCompact ? 58 : 64);
 
@@ -171,15 +193,46 @@ const BottomCart = ({
         />
       )}
       {isPaidStateBar ? (
-        <View
-          style={[
-            styles.paidToolbar,
-            {bottom: bottomOffset + (isCompact ? 6 : 8)},
-          ]}
-        >
-          <Icon color={successColor} name="check-circle" size={isCompact ? 14 : 15} />
-          <Text style={styles.paidToolbarText}>{paymentPaidLabel}</Text>
-        </View>
+        shouldShowPaidBreakdown ? (
+          <View
+            style={[
+              styles.paidBreakdownToolbar,
+              {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+            ]}
+          >
+            <View style={styles.paidMetricWrap}>
+              <Text style={styles.paidMetricLabel}>{resolvedPaidOrderLabel}</Text>
+              <Text style={styles.paidMetricValue}>
+                {Formatter.formatMoney(resolvedPaidOrderAmount)}
+              </Text>
+            </View>
+            <View style={styles.paidMetricWrap}>
+              <Text style={styles.paidMetricLabel}>{resolvedPaidReceivedLabel}</Text>
+              <Text style={styles.paidMetricValue}>
+                {Formatter.formatMoney(resolvedPaidReceivedAmount)}
+              </Text>
+            </View>
+            {shouldShowDetailsButton && (
+              <TouchableOpacity
+                onPress={onPaidDetailsPress}
+                style={styles.paidDetailsButton}>
+                <Text style={styles.paidDetailsButtonText}>
+                  {resolvedPaidDetailsLabel}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.paidToolbar,
+              {bottom: bottomOffset + (isCompact ? 6 : 8)},
+            ]}
+          >
+            <Icon color={successColor} name="check-circle" size={isCompact ? 14 : 15} />
+            <Text style={styles.paidToolbarText}>{paymentPaidLabel}</Text>
+          </View>
+        )
       ) : (
         <View
           style={[
@@ -250,6 +303,13 @@ const BottomCart = ({
               ]}>
               <Icon color="#fff" name={actionIcon} size={isCompact ? 15 : 16} />
               <Text style={styles.checkoutButtonText}>{actionLabel}</Text>
+            </TouchableOpacity>
+          )}
+          {!isPaidStateBar && shouldShowDetailsButton && !shouldShowActionButton && (
+            <TouchableOpacity
+              onPress={onPaidDetailsPress}
+              style={styles.checkoutButton}>
+              <Text style={styles.checkoutButtonText}>{resolvedPaidDetailsLabel}</Text>
             </TouchableOpacity>
           )}
         </View>
