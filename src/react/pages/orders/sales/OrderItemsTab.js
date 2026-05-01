@@ -57,6 +57,7 @@ const OrderItemsTab = ({
   productSearchText = '',
   renderOrderProductActions = null,
   routeOrderId = '',
+  showPricing = true,
   variant = 'main',
   setProductSearchText = null,
 }) => {
@@ -338,7 +339,7 @@ const OrderItemsTab = ({
             orderProducts={resolvedOrderProducts}
             styles={productStyles}
             showDetails
-            showPricing
+            showPricing={showPricing}
             showImages
             renderActions={renderOrderProductActions}
           />
