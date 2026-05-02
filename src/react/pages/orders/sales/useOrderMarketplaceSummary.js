@@ -1833,7 +1833,7 @@ const useOrderMarketplaceSummary = ({
 
       showSuccess(
         response?.message ||
-          'Solicitacao de geracao de invoices enviada para o backend.',
+          'Solicitacao de geracao do financeiro enviada para o backend.',
       );
     } catch (actionError) {
       showError(formatApiError(actionError));
@@ -2686,7 +2686,7 @@ const useOrderMarketplaceSummary = ({
       financialAction: orderId
         ? {
             key: 'generate-marketplace-invoices',
-            label: 'Gerar invoices da integracao',
+            label: 'Gerar financeiro da integracao',
             loading: remoteActionLoading === 'generate_invoices',
             disabled: !!remoteActionLoading,
             onPress: handleGenerateIntegrationInvoices,

@@ -13,6 +13,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '@store'
+import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import {
@@ -21,7 +22,11 @@ import {
   parseConfigsObject,
   isPosSelfServiceMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
-import {searchCompanyProducts} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
+import {
+  extractCollectionItems,
+  searchCompanyProducts,
+  toEntityIri,
+} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 
 import {
   buildAddressOptionSummary,
@@ -34,7 +39,6 @@ import {
   resolveAddressDisplayParts,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay'
 
-import { toEntityIri } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
@@ -343,6 +347,32 @@ const getPeopleLabel = entity =>
     entity?.document
   )
 
+const resolveInvoicePartyLabel = (invoice, role) => {
+  if (role === 'payer') {
+    return resolvePreferredText(
+      getPeopleLabel(invoice?.payer),
+      invoice?.sourceWallet?.wallet,
+    )
+  }
+
+  return resolvePreferredText(
+    getPeopleLabel(invoice?.receiver),
+    invoice?.destinationWallet?.wallet,
+  )
+}
+
+const resolveInvoiceDisplayAmount = invoice => {
+  const rawRealPrice = invoice?.realPrice ?? invoice?.real_price
+
+  if (rawRealPrice !== undefined && rawRealPrice !== null && rawRealPrice !== '') {
+    const normalizedRealPrice = Number(rawRealPrice)
+    return Number.isFinite(normalizedRealPrice) ? normalizedRealPrice : 0
+  }
+
+  const normalizedInvoicePrice = Number(invoice?.price || 0)
+  return Number.isFinite(normalizedInvoicePrice) ? normalizedInvoicePrice : 0
+}
+
 const resolveInvoiceKind = (invoice, companyId) => {
   const payerId = getEntityId(invoice?.payer)
   const receiverId = getEntityId(invoice?.receiver)
@@ -369,6 +399,14 @@ const resolveInvoiceKind = (invoice, companyId) => {
     return {
       kind: 'transfer',
       label: 'Transferência interna',
+      counterpartyLabel: '',
+    }
+  }
+
+  if ((payerId || receiverId) && !companyIsPayer && !companyIsReceiver) {
+    return {
+      kind: 'marketplace_flow',
+      label: 'Movimentação financeira',
       counterpartyLabel: '',
     }
   }
@@ -667,8 +705,31 @@ const OrderDetails = ({ route, navigation }) => {
 
     try {
       setOrderInvoicesLoading(true)
-      const response = await invoiceActions.getItems({'order.order': routeOrderIri})
-      const nextInvoices = Array.isArray(response) ? response : []
+      const response = await api.fetch('/order_invoices', {
+        params: {
+          order: routeOrderIri,
+          itemsPerPage: 100,
+        },
+      })
+      const nextInvoices = extractCollectionItems(response)
+        .map(orderInvoice => {
+          const invoice = orderInvoice?.invoice
+          if (!invoice) {
+            return null
+          }
+
+          return {
+            ...invoice,
+            orderInvoiceId: orderInvoice?.id,
+            realPrice:
+              orderInvoice?.realPrice ??
+              orderInvoice?.real_price ??
+              invoice?.realPrice ??
+              invoice?.real_price ??
+              null,
+          }
+        })
+        .filter(Boolean)
       setOrderInvoices(nextInvoices)
       return nextInvoices
     } catch (invoiceError) {
@@ -680,7 +741,7 @@ const OrderDetails = ({ route, navigation }) => {
     } finally {
       setOrderInvoicesLoading(false)
     }
-  }, [invoiceActions, routeOrderIri, showError])
+  }, [routeOrderIri, showError])
 
   const commitResolvedOrderProducts = useCallback(sourceOrder => {
     const {hasOwnOrderProducts, orderProducts} = resolveEmbeddedOrderProducts(sourceOrder)
@@ -1169,16 +1230,22 @@ const OrderDetails = ({ route, navigation }) => {
           invoice?.paymentType?.paymentType,
           invoice?.paymentType?.name,
         ) || (global.t?.t('orders', 'label', 'notInformed') || 'Não informado')
+        const invoiceAmount = resolveInvoiceDisplayAmount(invoice)
 
         return {
           id: invoiceId || `${title}-${invoice?.invoice_date || invoice?.dueDate || 'local'}`,
+          invoiceId,
+          invoiceLinkLabel: invoiceId ? `Invoice #${invoiceId}` : '',
           title,
           subtitle: invoiceId && title !== `Invoice #${invoiceId}` ? `Invoice #${invoiceId}` : '',
-          amount: Number(invoice?.price || 0),
+          amount: invoiceAmount,
+          descriptionLabel: resolvePreferredText(invoice?.description),
           paymentTypeLabel,
           kindLabel: invoiceKind.label,
           counterpartyLabel: invoiceKind.counterpartyLabel,
           kindKey: invoiceKind.kind,
+          payerLabel: resolveInvoicePartyLabel(invoice, 'payer'),
+          receiverLabel: resolveInvoicePartyLabel(invoice, 'receiver'),
           statusLabel: statusPresentation.label,
           statusColor: statusPresentation.color,
           statusBackgroundColor: statusPresentation.backgroundColor,
@@ -1199,7 +1266,7 @@ const OrderDetails = ({ route, navigation }) => {
         invoiceStatusName === 'closed' ||
         invoiceStatusName === 'paid'
 
-      return isInvoicePaid ? sum + Number(invoice?.price || 0) : sum
+      return isInvoicePaid ? sum + resolveInvoiceDisplayAmount(invoice) : sum
     }, 0),
     [activeLocalInvoices],
   )
@@ -1816,6 +1883,19 @@ const OrderDetails = ({ route, navigation }) => {
     }
   }, [loadOrderInvoices, localInvoiceCards.length])
 
+  const handleOpenInvoiceDetails = useCallback(invoiceCard => {
+    const invoiceId = Number(invoiceCard?.invoiceId || 0)
+    if (!invoiceId) {
+      return
+    }
+
+    navigation.navigate('InvoiceDetailsPage', {
+      id: invoiceId,
+      orderId: currentDisplayOrderId || undefined,
+      realPrice: Number(invoiceCard?.amount || 0),
+    })
+  }, [currentDisplayOrderId, navigation])
+
   const handleOrderTools = useCallback(async () => {
     if (!canShowDebugActions) {
       return
@@ -2118,66 +2198,113 @@ const OrderDetails = ({ route, navigation }) => {
 
       return (
         <View style={localStyles.orderInvoiceList}>
-          {localInvoiceCards.map(invoiceCard => (
-            <View
-              key={invoiceCard.id}
-              style={[
-                localStyles.orderInvoiceCard,
-                isDetailsVariant && localStyles.orderInvoiceCardDetails,
-              ]}
-            >
-              <View style={localStyles.orderInvoiceCardHeader}>
-                <View style={localStyles.orderInvoiceTitleWrap}>
-                  <Text style={localStyles.orderInvoiceTitle}>{invoiceCard.title}</Text>
-                  {!!invoiceCard.subtitle && (
-                    <Text style={localStyles.orderInvoiceSubtitle}>{invoiceCard.subtitle}</Text>
-                  )}
-                </View>
+          {localInvoiceCards.map(invoiceCard => {
+            const invoiceLinkLabel = String(invoiceCard.invoiceLinkLabel || '').trim()
+            const shouldLinkTitle =
+              !!invoiceLinkLabel && invoiceLinkLabel === String(invoiceCard.title || '').trim()
+            const shouldLinkSubtitle =
+              !!invoiceLinkLabel && invoiceLinkLabel === String(invoiceCard.subtitle || '').trim()
 
-                <View
-                  style={[
-                    localStyles.orderInvoiceStatusBadge,
-                    {
-                      borderColor: invoiceCard.statusColor,
-                      backgroundColor: invoiceCard.statusBackgroundColor,
-                    },
-                  ]}
-                >
-                  <Text
+            return (
+              <View
+                key={invoiceCard.id}
+                style={[
+                  localStyles.orderInvoiceCard,
+                  isDetailsVariant && localStyles.orderInvoiceCardDetails,
+                ]}
+              >
+                <View style={localStyles.orderInvoiceCardHeader}>
+                  <View style={localStyles.orderInvoiceTitleWrap}>
+                    {shouldLinkTitle ? (
+                      <TouchableOpacity onPress={() => handleOpenInvoiceDetails(invoiceCard)}>
+                        <Text
+                          style={[
+                            localStyles.orderInvoiceTitle,
+                            {
+                              color: ppcColors.accentInfo,
+                              textDecorationLine: 'underline',
+                            },
+                          ]}
+                        >
+                          {invoiceCard.title}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={localStyles.orderInvoiceTitle}>{invoiceCard.title}</Text>
+                    )}
+                    {!!invoiceCard.subtitle && (
+                      shouldLinkSubtitle ? (
+                        <TouchableOpacity onPress={() => handleOpenInvoiceDetails(invoiceCard)}>
+                          <Text
+                            style={[
+                              localStyles.orderInvoiceSubtitle,
+                              {
+                                color: ppcColors.accentInfo,
+                                textDecorationLine: 'underline',
+                              },
+                            ]}
+                          >
+                            {invoiceCard.subtitle}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={localStyles.orderInvoiceSubtitle}>{invoiceCard.subtitle}</Text>
+                      )
+                    )}
+                  </View>
+
+                  <View
                     style={[
-                      localStyles.orderInvoiceStatusText,
-                      { color: invoiceCard.statusColor },
+                      localStyles.orderInvoiceStatusBadge,
+                      {
+                        borderColor: invoiceCard.statusColor,
+                        backgroundColor: invoiceCard.statusBackgroundColor,
+                      },
                     ]}
                   >
-                    {invoiceCard.statusLabel}
-                  </Text>
+                    <Text
+                      style={[
+                        localStyles.orderInvoiceStatusText,
+                        { color: invoiceCard.statusColor },
+                      ]}
+                    >
+                      {invoiceCard.statusLabel}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <Text style={localStyles.orderInvoiceAmount}>
-                {Formatter.formatMoney(invoiceCard.amount || 0)}
-              </Text>
-              <Text style={localStyles.orderInvoiceKind}>
-                {(global.t?.t('orders', 'label', 'invoiceType') || 'Tipo')}: {invoiceCard.kindLabel}
-              </Text>
-              {!!invoiceCard.counterpartyLabel && (
-                <Text style={localStyles.orderInvoiceMeta}>
-                  {invoiceCard.kindKey === 'payable'
-                    ? (global.t?.t('orders', 'label', 'receiver') || 'Recebedor')
-                    : invoiceCard.kindKey === 'receivable'
-                      ? (global.t?.t('orders', 'label', 'payer') || 'Pagador')
-                      : (global.t?.t('orders', 'label', 'counterparty') || 'Contraparte')}: {invoiceCard.counterpartyLabel}
+                <Text style={localStyles.orderInvoiceAmount}>
+                  {Formatter.formatMoney(invoiceCard.amount || 0)}
                 </Text>
-              )}
-              <Text style={localStyles.orderInvoiceMeta}>
-                {(global.t?.t('orders', 'label', 'paymentMethod') || 'Forma de pagamento')}: {invoiceCard.paymentTypeLabel}
-              </Text>
-            </View>
-          ))}
+                <Text style={localStyles.orderInvoiceKind}>
+                  {(global.t?.t('orders', 'label', 'invoiceType') || 'Tipo')}: {invoiceCard.kindLabel}
+                </Text>
+                {!!invoiceCard.descriptionLabel && (
+                  <Text style={localStyles.orderInvoiceMeta}>
+                    {(global.t?.t('orders', 'label', 'description') || 'Descrição')}: {invoiceCard.descriptionLabel}
+                  </Text>
+                )}
+                {!!invoiceCard.payerLabel && (
+                  <Text style={localStyles.orderInvoiceMeta}>
+                    {(global.t?.t('orders', 'label', 'payer') || 'Pagador')}: {invoiceCard.payerLabel}
+                  </Text>
+                )}
+                {!!invoiceCard.receiverLabel && (
+                  <Text style={localStyles.orderInvoiceMeta}>
+                    {(global.t?.t('orders', 'label', 'receiver') || 'Recebedor')}: {invoiceCard.receiverLabel}
+                  </Text>
+                )}
+                <Text style={localStyles.orderInvoiceMeta}>
+                  {(global.t?.t('orders', 'label', 'paymentMethod') || 'Forma de pagamento')}: {invoiceCard.paymentTypeLabel}
+                </Text>
+              </View>
+            )
+          })}
         </View>
       )
     },
     [
+      handleOpenInvoiceDetails,
       localInvoiceCards,
       localInvoicesEmptyText,
       localStyles.detailsInfoText,
@@ -2194,6 +2321,7 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.orderInvoiceSubtitle,
       localStyles.orderInvoiceTitle,
       localStyles.orderInvoiceTitleWrap,
+      ppcColors.accentInfo,
     ],
   )
   const renderInvoiceListOnly = useCallback(
