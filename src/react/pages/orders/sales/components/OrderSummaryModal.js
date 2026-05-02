@@ -19,6 +19,8 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
   );
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key || '');
   const shouldRenderMarketplaceSummary = !!summary?.marketplace?.enabled;
+  const hasBaseCards =
+    Array.isArray(summary?.base?.cards) && summary.base.cards.length > 0;
   const singleTab = tabs.length === 1 ? tabs[0] : null;
   const showBaseLines =
     !summary?.marketplace?.isIfood &&
@@ -97,14 +99,16 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
                 {paddingBottom: 20 + modalBottomInset},
               ]}
               showsVerticalScrollIndicator={false}>
-              <View style={styles.detailsGrid}>
-                {summary.base.cards.map(card => (
-                  <View key={card.key} style={styles.detailsCard}>
-                    <Text style={styles.detailsCardLabel}>{card.label}</Text>
-                    <Text style={styles.detailsCardValue}>{card.value}</Text>
-                  </View>
-                ))}
-              </View>
+              {hasBaseCards ? (
+                <View style={styles.detailsGrid}>
+                  {summary.base.cards.map(card => (
+                    <View key={card.key} style={styles.detailsCard}>
+                      <Text style={styles.detailsCardLabel}>{card.label}</Text>
+                      <Text style={styles.detailsCardValue}>{card.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
 
               {showBaseLines ? (
                 <View style={styles.detailsSection}>

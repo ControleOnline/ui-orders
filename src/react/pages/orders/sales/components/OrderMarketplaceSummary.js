@@ -1,6 +1,7 @@
 import React from 'react';
-import {ActivityIndicator, Text, View} from 'react-native';
+import {ActivityIndicator, Text, TouchableOpacity, View} from 'react-native';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import useOrderDetailsVisuals from '../useOrderDetailsVisuals';
 import OrderMarketplaceActionBar from './OrderMarketplaceActionBar';
 
@@ -9,6 +10,7 @@ const OrderMarketplaceSummary = ({marketplace}) => {
   const {styles} = useOrderDetailsVisuals();
   const hasActionButtons =
     Array.isArray(marketplace?.actionButtons) && marketplace.actionButtons.length > 0;
+  const financialAction = marketplace?.financialAction || null;
 
   if (!marketplace?.enabled) {
     return null;
@@ -33,6 +35,27 @@ const OrderMarketplaceSummary = ({marketplace}) => {
     <>
       {hasActionButtons ? (
         <OrderMarketplaceActionBar actions={marketplace.actionButtons} />
+      ) : null}
+
+      {!!financialAction ? (
+        <TouchableOpacity
+          onPress={financialAction.onPress}
+          disabled={financialAction.disabled}
+          style={[
+            styles.detailsMarkPaidButton,
+            financialAction.disabled && styles.kdsActionButtonDisabled,
+          ]}>
+          {financialAction.loading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Icon name="receipt-long" size={18} color="#FFFFFF" />
+              <Text style={styles.detailsMarkPaidButtonText}>
+                {financialAction.label}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       ) : null}
 
       {marketplace.isLoading && !marketplace.hasVisualData ? (

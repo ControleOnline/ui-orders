@@ -1756,7 +1756,6 @@ const OrderDetails = ({ route, navigation }) => {
     updateCurrentOrder,
   ])
 
-  const orderDiscountTotal = Number(item?.discount || orderParam?.discount || 0)
   const localInvoicesEmptyText =
     global.t?.t('orders', 'message', 'noInvoicesLinkedToOrder') ||
     'Nenhuma invoice vinculada a este pedido.'
@@ -1786,48 +1785,6 @@ const OrderDetails = ({ route, navigation }) => {
     orderWaitingLabel,
     shouldShowPreparationTime,
   ])
-  const localFinancialLines = useMemo(
-    () => [
-      {
-        key: 'local-total',
-        label: global.t?.t('orders', 'label', 'localTotal') || 'Total do pedido',
-        value: localOrderTotal,
-        money: true,
-        strong: true,
-      },
-      orderDiscountTotal > 0 && {
-        key: 'discount',
-        label: global.t?.t('orders', 'label', 'discount') || 'Desconto',
-        value: orderDiscountTotal,
-        money: true,
-      },
-      {
-        key: 'paid',
-        label: global.t?.t('orders', 'label', 'paid') || 'Pago',
-        value: localPaidAmount,
-        money: true,
-      },
-      {
-        key: 'pending',
-        label: global.t?.t('orders', 'label', 'pending') || 'Pendente',
-        value: localPendingAmount,
-        money: true,
-        strong: localPendingAmount > 0.009,
-      },
-      {
-        key: 'invoice-count',
-        label: global.t?.t('orders', 'title', 'payments') || 'Invoices',
-        value: String(localInvoiceCards.length),
-      },
-    ].filter(Boolean),
-    [
-      localInvoiceCards.length,
-      localOrderTotal,
-      localPaidAmount,
-      localPendingAmount,
-      orderDiscountTotal,
-    ],
-  )
   const orderAppLabel = useMemo(() => {
     const resolvedApp = resolveMarketplaceAppLabel(item || orderParam)
     if (resolvedApp) {
@@ -2239,31 +2196,6 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.orderInvoiceTitleWrap,
     ],
   )
-  const renderFinancialTab = useCallback(
-    variant => {
-      return (
-        <OrderInvoices
-          isLoadingInvoices={orderInvoicesLoading}
-          localFinancialLines={localFinancialLines}
-          localInvoiceCards={localInvoiceCards}
-          localInvoicesEmptyText={localInvoicesEmptyText}
-          localInvoicesSectionTitle={localInvoicesSectionTitle}
-          marketplaceSummary={marketplaceSummary}
-          renderLocalInvoiceCards={renderLocalInvoiceCards}
-          variant={variant}
-        />
-      )
-    },
-    [
-      orderInvoicesLoading,
-      localFinancialLines,
-      localInvoiceCards,
-      localInvoicesEmptyText,
-      localInvoicesSectionTitle,
-      marketplaceSummary,
-      renderLocalInvoiceCards,
-    ],
-  )
   const renderInvoiceListOnly = useCallback(
     variant => (
       <OrderInvoices
@@ -2324,25 +2256,11 @@ const OrderDetails = ({ route, navigation }) => {
       setProductSearchText,
     ],
   )
-  const modalDetailsTabs = useMemo(
-    () => [
-      {
-        key: 'financial',
-        label: global.t?.t('orders', 'title', 'payments') || 'Financeiro',
-        content: renderFinancialTab('details'),
-      },
-    ],
-    [
-      renderFinancialTab,
-    ],
-  )
 
   const orderSummaryData = useMemo(() => {
-    return {
-      title: global.t?.t('orders', 'title', 'orderSummary'),
-      base: {
-        order: orderIdentitySource,
-        cards: [
+    const baseCards = hasMarketplaceIntegration
+      ? []
+      : [
           {
             key: 'application',
             label: global.t?.t('orders', 'label', 'application'),
@@ -2355,7 +2273,9 @@ const OrderDetails = ({ route, navigation }) => {
           },
           {
             key: 'local-real-status',
-            label: global.t?.t('orders', 'label', 'localRealStatus') || 'Real status local',
+            label:
+              global.t?.t('orders', 'label', 'localRealStatus') ||
+              'Real status local',
             value: translatedLocalRealStatusLabel || '-',
           },
           {
@@ -2363,8 +2283,11 @@ const OrderDetails = ({ route, navigation }) => {
             label: global.t?.t('orders', 'title', 'payments') || 'Pagamentos',
             value: localInvoiceCards.length,
           },
-        ],
-        lines: [
+        ];
+
+    const baseLines = hasMarketplaceIntegration
+      ? []
+      : [
           {
             key: 'created-at',
             label: global.t?.t('orders', 'label', 'createdAt'),
@@ -2408,20 +2331,27 @@ const OrderDetails = ({ route, navigation }) => {
             value: localOrderAddressParts.primary,
           },
           ...summaryInformationEntries,
-        ].filter(Boolean),
+        ].filter(Boolean);
+
+    return {
+      title: global.t?.t('orders', 'title', 'orderSummary'),
+      base: {
+        order: orderIdentitySource,
+        cards: baseCards,
+        lines: baseLines,
       },
-      tabs: modalDetailsTabs,
+      tabs: [],
       primaryAction: null,
       marketplace: marketplaceSummary.summary,
     }
   }, [
+    hasMarketplaceIntegration,
     formatOrderDateTime,
     item?.alterDate,
     localInvoiceCards.length,
     localOrderAddressParts,
     localOrderTotal,
     marketplaceSummary.summary,
-    modalDetailsTabs,
     orderAppLabel,
     orderCustomerDocument,
     orderCustomerDocumentLabel,

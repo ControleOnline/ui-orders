@@ -1813,6 +1813,41 @@ const useOrderMarketplaceSummary = ({
     showSuccess,
   ]);
 
+  const handleGenerateIntegrationInvoices = useCallback(async () => {
+    if (!orderId || !hasMarketplaceIntegration || remoteActionLoading) {
+      return;
+    }
+
+    try {
+      setRemoteActionLoading('generate_invoices');
+
+      const response = await api.fetch(
+        `/marketplace/integrations/orders/${orderId}/invoices`,
+        {
+          method: 'POST',
+          body: {
+            order_id: orderId,
+          },
+        },
+      );
+
+      showSuccess(
+        response?.message ||
+          'Solicitacao de geracao de invoices enviada para o backend.',
+      );
+    } catch (actionError) {
+      showError(formatApiError(actionError));
+    } finally {
+      setRemoteActionLoading('');
+    }
+  }, [
+    hasMarketplaceIntegration,
+    orderId,
+    remoteActionLoading,
+    showError,
+    showSuccess,
+  ]);
+
   const actionButtons = useMemo(() => {
     const actions = [];
 
@@ -2407,7 +2442,9 @@ const useOrderMarketplaceSummary = ({
       if (shopPaidMoney > 0) {
         deliveryPaymentLines.push({
           key: 'delivery-shop-paid',
-          label: global.t?.t('orders', 'label', 'courierTransferToMerchant'),
+          label:
+            global.t?.t('orders', 'label', 'courierTransferToMerchant') ||
+            'Repasse do motoboy',
           value: shopPaidMoney,
         });
       }
@@ -2646,6 +2683,15 @@ const useOrderMarketplaceSummary = ({
       financeTitle: isiFoodOrder
         ? global.t?.t('orders', 'title', 'ifoodFinance')
         : global.t?.t('orders', 'title', 'food99Finance'),
+      financialAction: orderId
+        ? {
+            key: 'generate-marketplace-invoices',
+            label: 'Gerar invoices da integracao',
+            loading: remoteActionLoading === 'generate_invoices',
+            disabled: !!remoteActionLoading,
+            onPress: handleGenerateIntegrationInvoices,
+          }
+        : null,
       taxDocumentTitle:
         global.t?.t('orders', 'title', 'taxDocumentRequested') ||
         'Documento para nota fiscal',
@@ -2746,6 +2792,7 @@ const useOrderMarketplaceSummary = ({
     handoverCode,
     handoverLink,
     hasMarketplaceIntegration,
+    handleGenerateIntegrationInvoices,
     is99FoodOrder,
     isHandoverFlow,
     isPickupLikeOrder,
@@ -2774,6 +2821,7 @@ const useOrderMarketplaceSummary = ({
     remotePaymentMethod,
     remoteState,
     remoteStateLoading,
+    remoteActionLoading,
     resetCancelFlow,
     selectedCancelReasonId,
     selectedPaymentLabel,
