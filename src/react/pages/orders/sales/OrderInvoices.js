@@ -1,8 +1,7 @@
-import React, {useEffect} from 'react'
+import React from 'react'
 import {ActivityIndicator, Text, View} from 'react-native'
 
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
-import {useStore} from '@store'
 
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 
@@ -58,38 +57,30 @@ const OrderInvoices = ({
   localInvoicesEmptyText = '',
   localInvoicesSectionTitle = '',
   marketplaceSummary = {},
+  isLoadingInvoices = false,
   renderLocalInvoiceCards,
-  routeOrderIri = '',
   variant = 'main',
+  showFinancialSections = true,
+  showInvoicesSectionTitle = true,
 }) => {
   const {styles: localStyles, ppcColors} = useOrderDetailsVisuals()
-  const invoiceStore = useStore('invoice')
-  const {actions: invoiceActions, getters: invoiceGetters} = invoiceStore
   const detailsVariant = variant === 'details'
-
-  useEffect(() => {
-    if (!routeOrderIri) {
-      return
-    }
-
-    // Financial data is loaded only when the tab is mounted.
-    invoiceActions.getItems({'order.order': routeOrderIri}).catch(() => null)
-  }, [invoiceActions, routeOrderIri])
-
   const marketplaceFinancialLines = marketplaceSummary.summary?.financial || []
   const marketplaceDeliveryPaymentLines =
     marketplaceSummary.summary?.deliveryPaymentLines || []
   const marketplacePaymentCards = marketplaceSummary.summary?.paymentCards || []
   const hasStaticContent =
-    localFinancialLines.length > 0 ||
-    marketplaceFinancialLines.length > 0 ||
-    marketplaceDeliveryPaymentLines.length > 0 ||
-    marketplacePaymentCards.length > 0
-  const hasContent = hasStaticContent || localInvoiceCards.length > 0
-  const isLoadingInvoices =
-    !hasContent && !!invoiceGetters?.isLoading
+    showFinancialSections &&
+    (localFinancialLines.length > 0 ||
+      marketplaceFinancialLines.length > 0 ||
+      marketplaceDeliveryPaymentLines.length > 0 ||
+      marketplacePaymentCards.length > 0)
+  const hasInvoiceCards = localInvoiceCards.length > 0
+  const hasContent = hasStaticContent || hasInvoiceCards
+  const shouldRenderLoadingState = isLoadingInvoices && !hasContent
+  const shouldRenderInvoiceSectionLoading = isLoadingInvoices && !hasInvoiceCards
 
-  if (isLoadingInvoices) {
+  if (shouldRenderLoadingState) {
     return (
       <View style={localStyles.detailsLoadingState}>
         <ActivityIndicator size="small" color={ppcColors.accentInfo} />
@@ -112,11 +103,26 @@ const OrderInvoices = ({
     )
   }
 
+  if (!showFinancialSections && !showInvoicesSectionTitle) {
+    if (shouldRenderInvoiceSectionLoading) {
+      return (
+        <View style={localStyles.detailsLoadingState}>
+          <ActivityIndicator size="small" color={ppcColors.accentInfo} />
+          <Text style={localStyles.detailsLoadingText}>
+            {global.t?.t('orders', 'label', 'loading') || 'Carregando invoices...'}
+          </Text>
+        </View>
+      )
+    }
+
+    return renderLocalInvoiceCards(detailsVariant ? 'details' : 'mobile')
+  }
+
   return (
     <View style={localStyles.detailsTabStack}>
-      {renderPaymentCards(marketplacePaymentCards, localStyles)}
+      {showFinancialSections && renderPaymentCards(marketplacePaymentCards, localStyles)}
 
-      {!!localFinancialLines.length && (
+      {showFinancialSections && !!localFinancialLines.length && (
         <View style={localStyles.detailsSection}>
           <Text style={localStyles.detailsSectionTitle}>
             {global.t?.t('orders', 'title', 'payments') || 'Financeiro'}
@@ -125,7 +131,7 @@ const OrderInvoices = ({
         </View>
       )}
 
-      {!!marketplaceFinancialLines.length && (
+      {showFinancialSections && !!marketplaceFinancialLines.length && (
         <View style={localStyles.detailsSection}>
           <Text style={localStyles.detailsSectionTitle}>
             {marketplaceSummary.summary?.financeTitle ||
@@ -136,7 +142,7 @@ const OrderInvoices = ({
         </View>
       )}
 
-      {!!marketplaceDeliveryPaymentLines.length && (
+      {showFinancialSections && !!marketplaceDeliveryPaymentLines.length && (
         <View style={localStyles.detailsSection}>
           <Text style={localStyles.detailsSectionTitle}>
             {global.t?.t('orders', 'label', 'paymentMethod') || 'Cobranca'}
@@ -146,10 +152,12 @@ const OrderInvoices = ({
       )}
 
       <View style={localStyles.detailsSection}>
-        <Text style={localStyles.detailsSectionTitle}>
-          {localInvoicesSectionTitle}
-        </Text>
-        {invoiceGetters?.isLoading && !localInvoiceCards.length ? (
+        {showInvoicesSectionTitle ? (
+          <Text style={localStyles.detailsSectionTitle}>
+            {localInvoicesSectionTitle}
+          </Text>
+        ) : null}
+        {shouldRenderInvoiceSectionLoading ? (
           <View style={localStyles.detailsLoadingState}>
             <ActivityIndicator size="small" color={ppcColors.accentInfo} />
             <Text style={localStyles.detailsLoadingText}>

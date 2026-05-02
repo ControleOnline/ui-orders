@@ -1,9 +1,9 @@
 import React from 'react'
-import {Modal, ScrollView, Text, TouchableOpacity, View} from 'react-native'
+import {Modal, ScrollView, TouchableOpacity, View} from 'react-native'
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 
-import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
+import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 
 import useOrderDetailsVisuals from '../useOrderDetailsVisuals'
 
@@ -11,12 +11,13 @@ const OrderFinancialDetailsModal = ({
   visible = false,
   onClose,
   order = null,
-  marketplace = null,
-  title = '',
+  isKds = false,
+  orderHeaderProps = {},
   content = null,
 }) => {
   const insets = useSafeAreaInsets()
   const {styles, ppcColors} = useOrderDetailsVisuals()
+  const modalTopInset = Math.max(insets?.top || 0, 10)
   const modalBottomInset = Math.max(insets?.bottom || 0, 8)
 
   return (
@@ -27,29 +28,22 @@ const OrderFinancialDetailsModal = ({
       onRequestClose={onClose}
       statusBarTranslucent
       presentationStyle="overFullScreen">
-      <View style={styles.modalSheetRoot}>
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.modalSheetBackdrop}
-          onPress={onClose}
-        />
-        <View style={styles.modalSheetWrap}>
+      <View style={[styles.modalSheetRoot, {paddingTop: 0}]}>
+        <View style={styles.modalSheetFullscreenWrap}>
           <View
             style={[
-              styles.detailsModal,
-              {paddingBottom: 14 + modalBottomInset},
+              styles.detailsModalFullscreen,
+              {
+                paddingTop: 14 + modalTopInset,
+                paddingBottom: 14 + modalBottomInset,
+              },
             ]}>
-            <View style={styles.detailsModalHeader}>
-              <View>
-                <Text style={styles.detailsModalEyebrow}>
-                  {title || global.t?.t('orders', 'title', 'payments') || 'Financeiro'}
-                </Text>
-                <OrderIdentityLabel
+            <View style={styles.detailsModalFullscreenHeader}>
+              <View style={styles.detailsModalFullscreenHeaderContent}>
+                <OrderHeader
                   order={order}
-                  remoteSummary={marketplace}
-                  primaryTextStyle={styles.detailsModalTitle}
-                  secondaryTextStyle={styles.detailsModalIdentitySecondary}
-                  showSecondary={false}
+                  isKds={isKds}
+                  {...orderHeaderProps}
                 />
               </View>
               <TouchableOpacity
@@ -60,9 +54,9 @@ const OrderFinancialDetailsModal = ({
             </View>
 
             <ScrollView
-              style={styles.detailsModalScroll}
+              style={styles.detailsModalFullscreenScroll}
               contentContainerStyle={[
-                styles.detailsModalScrollContent,
+                styles.detailsModalFullscreenScrollContent,
                 {paddingBottom: 20 + modalBottomInset},
               ]}
               showsVerticalScrollIndicator={false}>

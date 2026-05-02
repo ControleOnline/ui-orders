@@ -1464,6 +1464,14 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       paddingTop: 16,
       paddingBottom: 14,
     },
+    detailsModalFullscreen: {
+      flex: 1,
+      width: '100%',
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.modalBg,
+      paddingHorizontal: 16,
+    },
     detailsModalHeader: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -1497,6 +1505,26 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       flex: 1,
     },
     detailsModalScrollContent: {
+      paddingBottom: 20,
+      gap: 12,
+    },
+    detailsModalFullscreenHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      paddingBottom: 12,
+      marginBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.borderSoft,
+    },
+    detailsModalFullscreenHeaderContent: {
+      flex: 1,
+      minWidth: 0,
+    },
+    detailsModalFullscreenScroll: {
+      flex: 1,
+    },
+    detailsModalFullscreenScrollContent: {
       paddingBottom: 20,
       gap: 12,
     },
@@ -1704,6 +1732,10 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       width: '100%',
       maxHeight: windowHeight,
       justifyContent: 'flex-end',
+    },
+    modalSheetFullscreenWrap: {
+      flex: 1,
+      width: '100%',
     },
     deliveryCodeModal: {
       width: '100%',

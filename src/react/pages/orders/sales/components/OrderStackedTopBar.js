@@ -8,6 +8,7 @@ import OrderTopBarActions from '@controleonline/ui-orders/src/react/pages/orders
 const OrderStackedTopBar = ({
     order = null,
     isKds = false,
+    orderHeaderProps = {},
     onBackPress = null,
     backIconName = 'arrow-back',
     buttons = null,
@@ -43,7 +44,11 @@ const OrderStackedTopBar = ({
 
                 <View style={styles.topBarHeaderContentStacked}>
                     <View style={styles.topBarHeaderSectionStacked}>
-                        <OrderHeader order={order} isKds={isKds} />
+                        <OrderHeader
+                            order={order}
+                            isKds={isKds}
+                            {...orderHeaderProps}
+                        />
                     </View>
                 </View>
             </View>

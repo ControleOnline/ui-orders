@@ -532,8 +532,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [routeOrderId, storedOrderItem])
 
   const invoiceStore = useStore('invoice')
-  const { getters: invoiceGetters } = invoiceStore
-  const { items: invoices } = invoiceGetters
+  const { actions: invoiceActions } = invoiceStore
   const peopleStore = useStore('people')
   const { getters: peopleGetters, actions: peopleActions } = peopleStore
   const { defaultCompany, currentCompany } = peopleGetters
@@ -621,6 +620,8 @@ const OrderDetails = ({ route, navigation }) => {
   const [productSearchLoading, setProductSearchLoading] = useState(false)
   const [productSearchSelectionId, setProductSearchSelectionId] = useState('')
   const [customerLinkingId, setCustomerLinkingId] = useState('')
+  const [orderInvoices, setOrderInvoices] = useState([])
+  const [orderInvoicesLoading, setOrderInvoicesLoading] = useState(false)
   const [addressModalVisible, setAddressModalVisible] = useState(false)
   const [addressModalMode, setAddressModalMode] = useState('select')
   const [addressOptions, setAddressOptions] = useState([])
@@ -652,6 +653,34 @@ const OrderDetails = ({ route, navigation }) => {
   useEffect(() => {
     orderProductsActionsRef.current = orderProductsStore.actions
   }, [orderProductsStore.actions])
+
+  useEffect(() => {
+    setOrderInvoices([])
+  }, [routeOrderIri])
+
+  const loadOrderInvoices = useCallback(async ({silent = false} = {}) => {
+    if (!routeOrderIri) {
+      setOrderInvoices([])
+      setOrderInvoicesLoading(false)
+      return []
+    }
+
+    try {
+      setOrderInvoicesLoading(true)
+      const response = await invoiceActions.getItems({'order.order': routeOrderIri})
+      const nextInvoices = Array.isArray(response) ? response : []
+      setOrderInvoices(nextInvoices)
+      return nextInvoices
+    } catch (invoiceError) {
+      setOrderInvoices([])
+      if (!silent) {
+        showError(formatApiError(invoiceError))
+      }
+      return []
+    } finally {
+      setOrderInvoicesLoading(false)
+    }
+  }, [invoiceActions, routeOrderIri, showError])
 
   const commitResolvedOrderProducts = useCallback(sourceOrder => {
     const {hasOwnOrderProducts, orderProducts} = resolveEmbeddedOrderProducts(sourceOrder)
@@ -711,10 +740,12 @@ const OrderDetails = ({ route, navigation }) => {
           .catch(() => {})
       }
 
+      void loadOrderInvoices({silent: true})
+
       return () => {
         active = false
       }
-    }, [commitResolvedOrderProducts, routeOrderId]),
+    }, [commitResolvedOrderProducts, loadOrderInvoices, routeOrderId]),
   )
 
   const handleAddProduct = () => {
@@ -1102,8 +1133,8 @@ const OrderDetails = ({ route, navigation }) => {
   const isTerminalOrder = hasTerminalOrderState
   const activeLocalInvoices = useMemo(
     () => (
-      Array.isArray(invoices)
-        ? invoices.filter(invoice => {
+      Array.isArray(orderInvoices)
+        ? orderInvoices.filter(invoice => {
             const invoiceStatus = String(
               invoice?.status?.realStatus ||
               invoice?.status?.real_status ||
@@ -1115,7 +1146,7 @@ const OrderDetails = ({ route, navigation }) => {
           })
         : []
     ),
-    [invoices],
+    [orderInvoices],
   )
   const localFinancialCompanyId = useMemo(
     () => (
@@ -1367,6 +1398,34 @@ const OrderDetails = ({ route, navigation }) => {
 
     setCustomerModalVisible(true)
   }, [canEditItems])
+
+  const showTopBarCustomerAction =
+    !isPosSelfServiceOperationMode &&
+    !isPurchaseOrder &&
+    shouldShowOrderPartyDetails &&
+    canEditItems
+  const orderHeaderActionProps = useMemo(
+    () =>
+      ({
+        showWaitingTime: isKds,
+        ...(showTopBarCustomerAction
+          ? {
+              onCustomerPress: openCustomerModal,
+              customerActionLabel: orderCustomerName ? 'Trocar' : 'Vincular',
+              customerActionDisabled: !!customerLinkingId,
+            }
+          : {}),
+      }),
+    [
+      canEditItems,
+      customerLinkingId,
+      isKds,
+      openCustomerModal,
+      orderCustomerName,
+      shouldShowOrderPartyDetails,
+      showTopBarCustomerAction,
+    ],
+  )
 
   const openCustomerCreateModal = useCallback(() => {
     setCustomerCreateModalVisible(true)
@@ -1795,8 +1854,10 @@ const OrderDetails = ({ route, navigation }) => {
 
   const handleOpenFinancialDetails = useCallback(async () => {
     setFinancialDetailsVisible(true)
-    await marketplaceSummary.ensureMarketplaceSummary()
-  }, [marketplaceSummary])
+    if (!localInvoiceCards.length) {
+      await loadOrderInvoices({silent: true})
+    }
+  }, [loadOrderInvoices, localInvoiceCards.length])
 
   const handleOrderTools = useCallback(async () => {
     if (!canShowDebugActions) {
@@ -1937,7 +1998,7 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   const isCompactMobileViewport = viewportWidth < 360
-  const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 390
+  const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 600
   const mobileBottomCartOffset = 0
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
@@ -1951,10 +2012,8 @@ const OrderDetails = ({ route, navigation }) => {
 
     return buttons
   }, [canShowDebugActions])
-  const topBarOrderId = item?.id || orderParam?.id
-  const topBarPrintJob = isKds
-    ? {type: 'order', orderId: topBarOrderId}
-    : {type: 'order'}
+  const topBarOrderId = item?.id || orderParam?.id || routeOrderId
+  const topBarPrintJob = {type: 'order', orderId: topBarOrderId}
   const topBarPrinterSelection = isKds
     ? {
         enabled: true,
@@ -1973,7 +2032,7 @@ const OrderDetails = ({ route, navigation }) => {
         iconButtonDisabledStyle={localStyles.topBarIconButtonDisabled}
         iconColor={ppcColors.accentInfo}
         printJob={topBarPrintJob}
-        printDisabled={isKds ? !topBarOrderId : !item?.id}
+        printDisabled={!topBarOrderId}
         printerSelection={topBarPrinterSelection}
         isTvDisplay={isTvDisplay}
         onPressTools={handleOrderTools}
@@ -2000,9 +2059,10 @@ const OrderDetails = ({ route, navigation }) => {
   )
 
   const renderCompactInlineTopBar = useCallback(() => (
-    <OrderStackedTopBar
+      <OrderStackedTopBar
       order={orderIdentitySource}
       isKds
+      orderHeaderProps={orderHeaderActionProps}
       onBackPress={() => navigation.goBack()}
       buttons={topBarButtons}
       printJob={topBarPrintJob}
@@ -2018,6 +2078,7 @@ const OrderDetails = ({ route, navigation }) => {
     handleOrderTools,
     isTvDisplay,
     navigation,
+    orderHeaderActionProps,
     orderIdentitySource,
     topBarButtons,
     topBarOrderId,
@@ -2042,7 +2103,11 @@ const OrderDetails = ({ route, navigation }) => {
               localStyles.topBarTitleWrap
             }
           >
-            <OrderHeader order={orderIdentitySource} isKds />
+            <OrderHeader
+              order={orderIdentitySource}
+              isKds
+              {...orderHeaderActionProps}
+            />
           </View>
         )
         : () => (
@@ -2073,6 +2138,7 @@ const OrderDetails = ({ route, navigation }) => {
     localStyles.topBarTitleWrap,
     marketplaceSummary.summary,
     navigation,
+    orderHeaderActionProps,
     orderIdentitySource,
     ppcColors.accentInfo,
     renderTopBarActions,
@@ -2177,25 +2243,46 @@ const OrderDetails = ({ route, navigation }) => {
     variant => {
       return (
         <OrderInvoices
+          isLoadingInvoices={orderInvoicesLoading}
           localFinancialLines={localFinancialLines}
           localInvoiceCards={localInvoiceCards}
           localInvoicesEmptyText={localInvoicesEmptyText}
           localInvoicesSectionTitle={localInvoicesSectionTitle}
           marketplaceSummary={marketplaceSummary}
           renderLocalInvoiceCards={renderLocalInvoiceCards}
-          routeOrderIri={routeOrderIri}
           variant={variant}
         />
       )
     },
     [
+      orderInvoicesLoading,
       localFinancialLines,
       localInvoiceCards,
       localInvoicesEmptyText,
       localInvoicesSectionTitle,
       marketplaceSummary,
       renderLocalInvoiceCards,
-      routeOrderIri,
+    ],
+  )
+  const renderInvoiceListOnly = useCallback(
+    variant => (
+      <OrderInvoices
+        isLoadingInvoices={orderInvoicesLoading}
+        localInvoiceCards={localInvoiceCards}
+        localInvoicesEmptyText={localInvoicesEmptyText}
+        localInvoicesSectionTitle={localInvoicesSectionTitle}
+        renderLocalInvoiceCards={renderLocalInvoiceCards}
+        showFinancialSections={false}
+        showInvoicesSectionTitle={false}
+        variant={variant}
+      />
+    ),
+    [
+      orderInvoicesLoading,
+      localInvoiceCards,
+      localInvoicesEmptyText,
+      localInvoicesSectionTitle,
+      renderLocalInvoiceCards,
     ],
   )
   const renderItemsTab = useCallback(
@@ -3045,10 +3132,10 @@ const OrderDetails = ({ route, navigation }) => {
       <OrderFinancialDetailsModal
         visible={financialDetailsVisible}
         onClose={closeFinancialDetailsModal}
-        title={global.t?.t('orders', 'title', 'payments') || 'Financeiro'}
         order={orderIdentitySource}
-        marketplace={marketplaceSummary.summary}
-        content={renderFinancialTab('details')}
+        isKds
+        orderHeaderProps={orderHeaderActionProps}
+        content={renderInvoiceListOnly('details')}
       />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (

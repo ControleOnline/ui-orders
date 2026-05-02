@@ -55,6 +55,13 @@ const createStyles = isKds =>
     identityWrap: {
       minWidth: 0,
     },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 1,
+    },
     orderId: {
       color: '#0F172A',
       fontSize: isKds ? 18 : 15,
@@ -69,11 +76,33 @@ const createStyles = isKds =>
     orderDate: {
       color: '#64748B',
       fontSize: 12,
-      marginTop: 1,
+      flexShrink: 1,
+    },
+    customerActionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      borderWidth: 1,
+      borderColor: '#CBD5E1',
+      backgroundColor: '#F8FAFC',
+      borderRadius: 999,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+    },
+    customerActionButtonDisabled: {
+      opacity: 0.45,
+    },
+    customerActionText: {
+      color: '#0F172A',
+      fontSize: 10,
+      fontWeight: '800',
     },
     rightSection: {
       alignItems: 'flex-end',
       marginLeft: 12,
+      minWidth: 0,
+      maxWidth: '36%',
+      flexShrink: 1,
     },
     statusBadge: {
       flexDirection: 'row',
@@ -122,6 +151,26 @@ const createStyles = isKds =>
     waitingText: {
       fontSize: 12,
       fontWeight: '800',
+    },
+    metaChip: {
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      borderWidth: 1,
+      borderColor: '#CBD5E1',
+      backgroundColor: '#F8FAFC',
+      borderRadius: 999,
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      maxWidth: '100%',
+    },
+    metaChipText: {
+      color: '#475569',
+      fontSize: 10,
+      fontWeight: '800',
+      lineHeight: 12,
+      flexShrink: 1,
     },
   })
 

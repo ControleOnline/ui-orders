@@ -42,7 +42,7 @@ const OrderCardHeader = ({
           {hasDateRow && (
             <View style={dateRowStyle}>
               {!!dateText && (
-                <Text style={dateTextStyle}>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={dateTextStyle}>
                   {dateText}
                 </Text>
               )}
