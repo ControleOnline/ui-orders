@@ -38,6 +38,10 @@ import {
   normalizeText,
   resolveAddressDisplayParts,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay'
+import {
+  formatInvoiceTypeLabel,
+  getInvoicePaymentTypeLabel,
+} from '@controleonline/ui-common/src/react/utils/invoicePresentation'
 
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
@@ -568,9 +572,9 @@ const OrderDetails = ({ route, navigation }) => {
     if (!routeOrderId) return storedOrderItem
     return getOrderRouteId(storedOrderItem) === routeOrderId ? storedOrderItem : null
   }, [routeOrderId, storedOrderItem])
-
   const invoiceStore = useStore('invoice')
   const { actions: invoiceActions } = invoiceStore
+
   const peopleStore = useStore('people')
   const { getters: peopleGetters, actions: peopleActions } = peopleStore
   const { defaultCompany, currentCompany } = peopleGetters
@@ -713,13 +717,19 @@ const OrderDetails = ({ route, navigation }) => {
       })
       const nextInvoices = extractCollectionItems(response)
         .map(orderInvoice => {
-          const invoice = orderInvoice?.invoice
-          if (!invoice) {
+          const rawInvoice = orderInvoice?.invoice
+          const invoice =
+            rawInvoice && typeof rawInvoice === 'object' ? rawInvoice : null
+          const invoiceId = getEntityId(rawInvoice)
+
+          if (!invoice && !invoiceId) {
             return null
           }
 
           return {
-            ...invoice,
+            ...(invoice || {}),
+            id: invoice?.id || invoiceId,
+            '@id': invoice?.['@id'] || (invoiceId ? `/invoices/${invoiceId}` : undefined),
             orderInvoiceId: orderInvoice?.id,
             realPrice:
               orderInvoice?.realPrice ??
@@ -1226,11 +1236,11 @@ const OrderDetails = ({ route, navigation }) => {
         const invoiceKind = resolveInvoiceKind(invoice, localFinancialCompanyId)
         const title = resolveInvoiceTitle(invoice)
         const invoiceId = String(invoice?.id || '').trim()
-        const paymentTypeLabel = resolvePreferredText(
-          invoice?.paymentType?.paymentType,
-          invoice?.paymentType?.name,
-        ) || (global.t?.t('orders', 'label', 'notInformed') || 'Não informado')
+        const paymentTypeLabel =
+          getInvoicePaymentTypeLabel(invoice) ||
+          (global.t?.t('orders', 'label', 'notInformed') || 'Não informado')
         const invoiceAmount = resolveInvoiceDisplayAmount(invoice)
+        const invoiceType = resolvePreferredText(invoice?.invoiceType, invoice?.invoice_type)
 
         return {
           id: invoiceId || `${title}-${invoice?.invoice_date || invoice?.dueDate || 'local'}`,
@@ -1241,9 +1251,9 @@ const OrderDetails = ({ route, navigation }) => {
           amount: invoiceAmount,
           descriptionLabel: resolvePreferredText(invoice?.description),
           paymentTypeLabel,
-          kindLabel: invoiceKind.label,
+          kindLabel: invoiceType ? formatInvoiceTypeLabel(invoiceType) : invoiceKind.label,
           counterpartyLabel: invoiceKind.counterpartyLabel,
-          kindKey: invoiceKind.kind,
+          kindKey: invoiceType || invoiceKind.kind,
           payerLabel: resolveInvoicePartyLabel(invoice, 'payer'),
           receiverLabel: resolveInvoicePartyLabel(invoice, 'receiver'),
           statusLabel: statusPresentation.label,
@@ -1889,12 +1899,11 @@ const OrderDetails = ({ route, navigation }) => {
       return
     }
 
+    invoiceActions?.setItem?.(invoiceCard)
     navigation.navigate('InvoiceDetailsPage', {
       id: invoiceId,
-      orderId: currentDisplayOrderId || undefined,
-      realPrice: Number(invoiceCard?.amount || 0),
     })
-  }, [currentDisplayOrderId, navigation])
+  }, [invoiceActions, navigation])
 
   const handleOrderTools = useCallback(async () => {
     if (!canShowDebugActions) {
