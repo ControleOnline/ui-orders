@@ -37,6 +37,7 @@
 - `OrderDetails` deve manter o summary como area de informacoes secundarias. A tela principal mostra `Itens` direto no corpo; `Financeiro` sai da aba principal e abre em modal dedicado acionado pela barra inferior, sem misturar cards de summary no mesmo corpo.
 - O modal financeiro de `OrderDetails` deve carregar a colecao `/order_invoices` quando precisar mostrar invoices ligadas ao pedido. Em invoices agregadas, o valor exibido para aquele pedido deve vir de `order_invoice.real_price`, nunca do total bruto da invoice.
 - No financeiro de `OrderDetails`, o identificador `Invoice #id` deve ser clicavel e abrir a tela de detalhe da invoice. Em fluxos de marketplace, `Pagador` e `Recebedor` precisam aparecer sempre, inclusive quando a empresa atual nao participa diretamente do par.
+- Ao abrir `InvoiceDetailsPage` a partir de `OrderDetails`, passar apenas o `id` da invoice na rota e preaquecer o store com a invoice completa, nunca com um card resumido.
 - Quando `OrderDetails` abrir `InvoiceDetailsPage`, a tela de invoice deve listar os pedidos vinculados reaproveitando `OrderHeader` para cada pedido ligado por `order_invoice`.
 - `OrderDetails` nao deve exibir o `BottomCart` global com acao `Conferir pedido`. Quando a tela estiver aberta, ela mesma controla a barra operacional necessaria e o layout deve manter `showBottomCart: false`.
 - O param `kds` em `OrderDetails` pertence apenas aos fluxos reais de `PPC`/KDS. Modulos administrativos ou historicos comuns nao devem forcar esse param ao abrir o detalhe.

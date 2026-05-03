@@ -1245,6 +1245,7 @@ const OrderDetails = ({ route, navigation }) => {
         return {
           id: invoiceId || `${title}-${invoice?.invoice_date || invoice?.dueDate || 'local'}`,
           invoiceId,
+          invoice,
           invoiceLinkLabel: invoiceId ? `Invoice #${invoiceId}` : '',
           title,
           subtitle: invoiceId && title !== `Invoice #${invoiceId}` ? `Invoice #${invoiceId}` : '',
@@ -1899,7 +1900,15 @@ const OrderDetails = ({ route, navigation }) => {
       return
     }
 
-    invoiceActions?.setItem?.(invoiceCard)
+    const storeInvoice =
+      invoiceCard?.invoice && typeof invoiceCard.invoice === 'object'
+        ? invoiceCard.invoice
+        : {
+            id: invoiceId,
+            '@id': `/invoices/${invoiceId}`,
+          }
+
+    invoiceActions?.setItem?.(storeInvoice)
     navigation.navigate('InvoiceDetailsPage', {
       id: invoiceId,
     })
@@ -2213,6 +2222,36 @@ const OrderDetails = ({ route, navigation }) => {
               !!invoiceLinkLabel && invoiceLinkLabel === String(invoiceCard.title || '').trim()
             const shouldLinkSubtitle =
               !!invoiceLinkLabel && invoiceLinkLabel === String(invoiceCard.subtitle || '').trim()
+            const invoiceInfoCards = [
+              {
+                key: 'type',
+                label: global.t?.t('orders', 'label', 'invoiceType') || 'Tipo',
+                value: invoiceCard.kindLabel,
+              },
+              {
+                key: 'paymentType',
+                label:
+                  global.t?.t('orders', 'label', 'paymentMethod') ||
+                  'Forma de pagamento',
+                value: invoiceCard.paymentTypeLabel,
+              },
+              {
+                key: 'description',
+                label: global.t?.t('orders', 'label', 'description') || 'Descrição',
+                value: invoiceCard.descriptionLabel,
+                wide: true,
+              },
+              {
+                key: 'payer',
+                label: global.t?.t('orders', 'label', 'payer') || 'Pagador',
+                value: invoiceCard.payerLabel,
+              },
+              {
+                key: 'receiver',
+                label: global.t?.t('orders', 'label', 'receiver') || 'Recebedor',
+                value: invoiceCard.receiverLabel,
+              },
+            ].filter(detail => detail.value)
 
             return (
               <View
@@ -2285,27 +2324,23 @@ const OrderDetails = ({ route, navigation }) => {
                 <Text style={localStyles.orderInvoiceAmount}>
                   {Formatter.formatMoney(invoiceCard.amount || 0)}
                 </Text>
-                <Text style={localStyles.orderInvoiceKind}>
-                  {(global.t?.t('orders', 'label', 'invoiceType') || 'Tipo')}: {invoiceCard.kindLabel}
-                </Text>
-                {!!invoiceCard.descriptionLabel && (
-                  <Text style={localStyles.orderInvoiceMeta}>
-                    {(global.t?.t('orders', 'label', 'description') || 'Descrição')}: {invoiceCard.descriptionLabel}
-                  </Text>
-                )}
-                {!!invoiceCard.payerLabel && (
-                  <Text style={localStyles.orderInvoiceMeta}>
-                    {(global.t?.t('orders', 'label', 'payer') || 'Pagador')}: {invoiceCard.payerLabel}
-                  </Text>
-                )}
-                {!!invoiceCard.receiverLabel && (
-                  <Text style={localStyles.orderInvoiceMeta}>
-                    {(global.t?.t('orders', 'label', 'receiver') || 'Recebedor')}: {invoiceCard.receiverLabel}
-                  </Text>
-                )}
-                <Text style={localStyles.orderInvoiceMeta}>
-                  {(global.t?.t('orders', 'label', 'paymentMethod') || 'Forma de pagamento')}: {invoiceCard.paymentTypeLabel}
-                </Text>
+                <View style={localStyles.orderInvoiceInfoGrid}>
+                  {invoiceInfoCards.map(detail => (
+                    <View
+                      key={`${invoiceCard.id}-${detail.key}`}
+                      style={[
+                        localStyles.orderInvoiceInfoCard,
+                        detail.wide && localStyles.orderInvoiceInfoCardWide,
+                      ]}>
+                      <Text style={localStyles.orderInvoiceInfoLabel}>
+                        {detail.label}
+                      </Text>
+                      <Text style={localStyles.orderInvoiceInfoValue}>
+                        {detail.value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             )
           })}
@@ -2322,9 +2357,12 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.orderInvoiceCard,
       localStyles.orderInvoiceCardDetails,
       localStyles.orderInvoiceCardHeader,
-      localStyles.orderInvoiceKind,
+      localStyles.orderInvoiceInfoCard,
+      localStyles.orderInvoiceInfoCardWide,
+      localStyles.orderInvoiceInfoGrid,
+      localStyles.orderInvoiceInfoLabel,
+      localStyles.orderInvoiceInfoValue,
       localStyles.orderInvoiceList,
-      localStyles.orderInvoiceMeta,
       localStyles.orderInvoiceStatusBadge,
       localStyles.orderInvoiceStatusText,
       localStyles.orderInvoiceSubtitle,
