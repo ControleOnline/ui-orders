@@ -1915,10 +1915,23 @@ const OrderDetails = ({ route, navigation }) => {
           }
 
     invoiceActions?.setItem?.(storeInvoice)
-    navigation.navigate('InvoiceDetailsPage', {
-      id: invoiceId,
-    })
-  }, [invoiceActions, navigation])
+    closeFinancialDetailsModal()
+
+    const openInvoiceDetails = () => {
+      navigation.navigate('InvoiceDetailsPage', {
+        id: invoiceId,
+      })
+    }
+
+    const scheduleOpenInvoiceDetails = globalThis?.requestAnimationFrame
+
+    if (typeof scheduleOpenInvoiceDetails === 'function') {
+      scheduleOpenInvoiceDetails(openInvoiceDetails)
+      return
+    }
+
+    setTimeout(openInvoiceDetails, 0)
+  }, [closeFinancialDetailsModal, invoiceActions, navigation])
 
   const handleOrderTools = useCallback(async () => {
     if (!canShowDebugActions) {
@@ -2223,11 +2236,8 @@ const OrderDetails = ({ route, navigation }) => {
       return (
         <View style={localStyles.orderInvoiceList}>
           {localInvoiceCards.map(invoiceCard => {
-            const invoiceLinkLabel = String(invoiceCard.invoiceLinkLabel || '').trim()
-            const shouldLinkTitle =
-              !!invoiceLinkLabel && invoiceLinkLabel === String(invoiceCard.title || '').trim()
-            const shouldLinkSubtitle =
-              !!invoiceLinkLabel && invoiceLinkLabel === String(invoiceCard.subtitle || '').trim()
+            const canOpenInvoiceDetails = Number(invoiceCard?.invoiceId || 0) > 0
+            const InvoiceCardContainer = canOpenInvoiceDetails ? TouchableOpacity : View
             const invoiceInfoCards = [
               {
                 key: 'type',
@@ -2260,70 +2270,56 @@ const OrderDetails = ({ route, navigation }) => {
             ].filter(detail => detail.value)
 
             return (
-              <View
+              <InvoiceCardContainer
                 key={invoiceCard.id}
+                {...(canOpenInvoiceDetails
+                  ? {
+                      activeOpacity: 0.88,
+                      onPress: () => handleOpenInvoiceDetails(invoiceCard),
+                      accessibilityRole: 'button',
+                    }
+                  : {})}
                 style={[
                   localStyles.orderInvoiceCard,
+                  canOpenInvoiceDetails && localStyles.orderInvoiceCardInteractive,
                   isDetailsVariant && localStyles.orderInvoiceCardDetails,
                 ]}
               >
                 <View style={localStyles.orderInvoiceCardHeader}>
                   <View style={localStyles.orderInvoiceTitleWrap}>
-                    {shouldLinkTitle ? (
-                      <TouchableOpacity onPress={() => handleOpenInvoiceDetails(invoiceCard)}>
-                        <Text
-                          style={[
-                            localStyles.orderInvoiceTitle,
-                            {
-                              color: ppcColors.accentInfo,
-                              textDecorationLine: 'underline',
-                            },
-                          ]}
-                        >
-                          {invoiceCard.title}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={localStyles.orderInvoiceTitle}>{invoiceCard.title}</Text>
-                    )}
+                    <Text style={localStyles.orderInvoiceTitle}>{invoiceCard.title}</Text>
                     {!!invoiceCard.subtitle && (
-                      shouldLinkSubtitle ? (
-                        <TouchableOpacity onPress={() => handleOpenInvoiceDetails(invoiceCard)}>
-                          <Text
-                            style={[
-                              localStyles.orderInvoiceSubtitle,
-                              {
-                                color: ppcColors.accentInfo,
-                                textDecorationLine: 'underline',
-                              },
-                            ]}
-                          >
-                            {invoiceCard.subtitle}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <Text style={localStyles.orderInvoiceSubtitle}>{invoiceCard.subtitle}</Text>
-                      )
+                      <Text style={localStyles.orderInvoiceSubtitle}>{invoiceCard.subtitle}</Text>
                     )}
                   </View>
 
-                  <View
-                    style={[
-                      localStyles.orderInvoiceStatusBadge,
-                      {
-                        borderColor: invoiceCard.statusColor,
-                        backgroundColor: invoiceCard.statusBackgroundColor,
-                      },
-                    ]}
-                  >
-                    <Text
+                  <View style={localStyles.orderInvoiceCardHeaderActions}>
+                    <View
                       style={[
-                        localStyles.orderInvoiceStatusText,
-                        { color: invoiceCard.statusColor },
+                        localStyles.orderInvoiceStatusBadge,
+                        {
+                          borderColor: invoiceCard.statusColor,
+                          backgroundColor: invoiceCard.statusBackgroundColor,
+                        },
                       ]}
                     >
-                      {invoiceCard.statusLabel}
-                    </Text>
+                      <Text
+                        style={[
+                          localStyles.orderInvoiceStatusText,
+                          { color: invoiceCard.statusColor },
+                        ]}
+                      >
+                        {invoiceCard.statusLabel}
+                      </Text>
+                    </View>
+
+                    {canOpenInvoiceDetails ? (
+                      <Icon
+                        name="chevron-right"
+                        size={20}
+                        color={ppcColors.textSecondary}
+                      />
+                    ) : null}
                   </View>
                 </View>
 
@@ -2347,7 +2343,7 @@ const OrderDetails = ({ route, navigation }) => {
                     </View>
                   ))}
                 </View>
-              </View>
+              </InvoiceCardContainer>
             )
           })}
         </View>
@@ -2361,8 +2357,10 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.mobileInfoSubtitle,
       localStyles.orderInvoiceAmount,
       localStyles.orderInvoiceCard,
+      localStyles.orderInvoiceCardInteractive,
       localStyles.orderInvoiceCardDetails,
       localStyles.orderInvoiceCardHeader,
+      localStyles.orderInvoiceCardHeaderActions,
       localStyles.orderInvoiceInfoCard,
       localStyles.orderInvoiceInfoCardWide,
       localStyles.orderInvoiceInfoGrid,
@@ -2374,7 +2372,7 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles.orderInvoiceSubtitle,
       localStyles.orderInvoiceTitle,
       localStyles.orderInvoiceTitleWrap,
-      ppcColors.accentInfo,
+      ppcColors.textSecondary,
     ],
   )
   const renderInvoiceListOnly = useCallback(
