@@ -19,6 +19,9 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
   );
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.key || '');
   const shouldRenderMarketplaceSummary = !!summary?.marketplace?.enabled;
+  const hasBaseCards =
+    Array.isArray(summary?.base?.cards) && summary.base.cards.length > 0;
+  const singleTab = tabs.length === 1 ? tabs[0] : null;
   const showBaseLines =
     !summary?.marketplace?.isIfood &&
     Array.isArray(summary?.base?.lines) &&
@@ -59,7 +62,7 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
             <View style={styles.detailsModalHeader}>
               <View>
                 <Text style={styles.detailsModalEyebrow}>
-                  {global.t?.t('orders', 'title', 'orderSummary')}
+                  {summary?.title || global.t?.t('orders', 'title', 'orderSummary')}
                 </Text>
                 <OrderIdentityLabel
                   order={summary.base.order}
@@ -96,14 +99,16 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
                 {paddingBottom: 20 + modalBottomInset},
               ]}
               showsVerticalScrollIndicator={false}>
-              <View style={styles.detailsGrid}>
-                {summary.base.cards.map(card => (
-                  <View key={card.key} style={styles.detailsCard}>
-                    <Text style={styles.detailsCardLabel}>{card.label}</Text>
-                    <Text style={styles.detailsCardValue}>{card.value}</Text>
-                  </View>
-                ))}
-              </View>
+              {hasBaseCards ? (
+                <View style={styles.detailsGrid}>
+                  {summary.base.cards.map(card => (
+                    <View key={card.key} style={styles.detailsCard}>
+                      <Text style={styles.detailsCardLabel}>{card.label}</Text>
+                      <Text style={styles.detailsCardValue}>{card.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
 
               {showBaseLines ? (
                 <View style={styles.detailsSection}>
@@ -118,7 +123,11 @@ const OrderSummaryModal = ({visible, onClose, summary}) => {
                 </View>
               ) : null}
 
-              {tabs.length > 0 ? (
+              {singleTab ? (
+                <View style={styles.detailsTabContentWrap}>
+                  {singleTab.content}
+                </View>
+              ) : tabs.length > 0 ? (
                 <OrderSectionTabs
                   tabs={tabs}
                   activeKey={activeTabKey}

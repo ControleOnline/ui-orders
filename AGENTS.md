@@ -11,6 +11,8 @@
 ## Regra central
 - Todo pedido de venda deve ser pago pela barra unica de pagamento do sistema.
 - A listagem de produtos dentro do pedido deve sair de um unico componente compartilhado entre `OrderDetails`, `POS` e visoes operacionais que mostrem itens do pedido. Diferencas entre telas entram apenas por acoes de contexto.
+- `OrderHeader` e a barra superior usada por `OrderDetails` sao a fonte canonica de cabecalho operacional do pedido. Quando outro modulo abrir popup/modal para consultar ou reimprimir um pedido, ele deve reaproveitar esse mesmo topo e encaixar a impressao na mesma barra de acoes padronizada.
+- `OrderHeader` tambem e o cabecalho canonico para cards e blocos operacionais de pedido. Outros modulos podem adaptar o payload antes de renderizar, mas nao devem reconstruir a identidade visual do pedido com outro JSX.
 - O renderer compartilhado de itens deve agrupar filhos customizaveis pelos vinculos vindos do backend (`orderProduct`, `parentProduct` e `productGroup`). Nao criar mapeamento paralelo por tela para encaixar adicionais dentro do item pai.
 - O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
 - Essa barra precisa existir em todos os devices que podem cobrar pedido.
@@ -32,8 +34,13 @@
 - Quando um item ja chegou ao fim da fila, a customizacao e a edicao inline daquele item devem ficar bloqueadas, mesmo que o pedido ainda esteja aberto.
 - Componentes filhos agrupados nao devem receber edicao inline propria na lista do pedido. Quando precisarem mudar, a tela deve reabrir a customizacao do item pai e respeitar as regras de cada grupo.
 - Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o numero operacional curto vindo de `extraData` ou do payload canonico da integracao, como `order_index`, `code` ou `displayId`. `pickup_code` e `handover_code` ficam como fallback, e hashes ou ids tecnicos continuam apenas no summary.
-- `OrderDetails` deve manter o summary como area de informacoes secundarias. As abas operacionais sao `Itens` e `Financeiro`, com invoices dentro de `Financeiro`.
+- `OrderDetails` deve manter o summary como area de informacoes secundarias. A tela principal mostra `Itens` direto no corpo; `Financeiro` sai da aba principal e abre em modal dedicado acionado pela barra inferior, sem misturar cards de summary no mesmo corpo.
+- O modal financeiro de `OrderDetails` deve carregar a colecao `/order_invoices` quando precisar mostrar invoices ligadas ao pedido. Em invoices agregadas, o valor exibido para aquele pedido deve vir de `order_invoice.real_price`, nunca do total bruto da invoice.
+- No financeiro de `OrderDetails`, o identificador `Invoice #id` deve ser clicavel e abrir a tela de detalhe da invoice. Em fluxos de marketplace, `Pagador` e `Recebedor` precisam aparecer sempre, inclusive quando a empresa atual nao participa diretamente do par.
+- Ao abrir `InvoiceDetailsPage` a partir de `OrderDetails`, passar apenas o `id` da invoice na rota e preaquecer o store com a invoice completa, nunca com um card resumido.
+- Quando `OrderDetails` abrir `InvoiceDetailsPage`, a tela de invoice deve listar os pedidos vinculados reaproveitando `OrderHeader` para cada pedido ligado por `order_invoice`.
 - `OrderDetails` nao deve exibir o `BottomCart` global com acao `Conferir pedido`. Quando a tela estiver aberta, ela mesma controla a barra operacional necessaria e o layout deve manter `showBottomCart: false`.
+- O param `kds` em `OrderDetails` pertence apenas aos fluxos reais de `PPC`/KDS. Modulos administrativos ou historicos comuns nao devem forcar esse param ao abrir o detalhe.
 - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
 - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
 - Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.

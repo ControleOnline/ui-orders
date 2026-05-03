@@ -124,6 +124,8 @@ const ordersRoutes = [
     component: WrappedOrderDetails,
     options: {
       headerShown: true,
+      showBottomCart: false,
+      showBottomToolBar: false,
       title: global.t?.t('orders', 'title', 'order'),
     },
     initialParams: { store: 'orders' },

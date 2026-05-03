@@ -20,6 +20,7 @@ jest.mock('react-native', () => {
     },
     Image: createComponent('Image'),
     Text: createComponent('Text'),
+    TouchableOpacity: createComponent('TouchableOpacity'),
     View: createComponent('View'),
   }
 })
@@ -48,6 +49,9 @@ jest.mock('../../../react/components/OrderHeader.styles', () =>
     leadingWrapLoss: {},
     leadingWrapPurchase: {},
     leadingWrapTransfer: {},
+    metaChip: {},
+    metaChipText: {},
+    metaRow: {},
     orderDate: {},
     orderId: {},
     orderIdSecondary: {},
@@ -57,6 +61,9 @@ jest.mock('../../../react/components/OrderHeader.styles', () =>
     statusDot: {},
     statusText: {},
     titleWrap: {},
+    customerActionButton: {},
+    customerActionButtonDisabled: {},
+    customerActionText: {},
     waitingChip: {},
     waitingText: {},
   })),
@@ -64,6 +71,7 @@ jest.mock('../../../react/components/OrderHeader.styles', () =>
 
 const {
   resolveDisplayedOrderStatus,
+  shouldShowKdsWaitingTime,
 } = require('../../../react/components/OrderHeader')
 
 describe('OrderHeader', () => {
@@ -94,5 +102,25 @@ describe('OrderHeader', () => {
     expect(status.labelUpper).toBe('READY')
     expect(status.key).toBe('ready')
     expect(status.isOpen).toBe(false)
+  })
+
+  it('shows waiting time only for preparation statuses', () => {
+    expect(
+      shouldShowKdsWaitingTime({
+        status: {
+          realStatus: 'working',
+          status: 'Em preparo',
+        },
+      }),
+    ).toBe(true)
+
+    expect(
+      shouldShowKdsWaitingTime({
+        status: {
+          realStatus: 'open',
+          status: 'Open',
+        },
+      }),
+    ).toBe(false)
   })
 })

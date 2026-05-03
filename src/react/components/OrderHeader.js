@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react'
-import {Animated, Image, Text, View} from 'react-native'
+import {Animated, Image, Text, TouchableOpacity, View} from 'react-native'
 import FeatherIcon from 'react-native-vector-icons/Feather'
 
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
@@ -18,6 +18,31 @@ const WAITING_RULES = [
 const normalizeText = value => String(value || '').trim()
 const resolveOrderType = order =>
   normalizeText(order?.orderType || order?.order_type).toLowerCase()
+const resolveOrderCustomerLabel = order =>
+  normalizeText(
+    order?.client?.alias ||
+      order?.client?.name ||
+      order?.customer?.alias ||
+      order?.customer?.name ||
+      order?.customerName ||
+      order?.customer_name,
+  )
+
+export const shouldShowKdsWaitingTime = order => {
+  const statusValues = [
+    order?.status?.realStatus,
+    order?.status?.real_status,
+    order?.status?.status,
+  ]
+    .map(value => normalizeText(value).toLowerCase())
+    .filter(Boolean)
+
+  return statusValues.some(
+    value =>
+      ['working', 'preparing', 'status_working'].includes(value) ||
+      value.includes('prepar'),
+  )
+}
 
 export const resolveDisplayedOrderStatus = (order, fallbackColor = '#6B7280') => {
   const displayLabel =
@@ -44,6 +69,20 @@ const getWaitingMinutes = orderDate => {
   if (!orderDate) return 0
   const diff = Date.now() - new Date(orderDate).getTime()
   return Math.max(0, Math.floor(diff / 60000))
+}
+
+const formatCompactOrderDate = value => {
+  if (!value) return ''
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+
+  return `${day}/${month} ${hour}:${minute}`
 }
 
 const resolveOrderDateValue = order =>
@@ -99,15 +138,34 @@ const resolvePriceStyle = (orderType, styles) => {
   return null
 }
 
-const OrderHeader = ({order, isKds = false}) => {
+const OrderHeader = ({
+  order,
+  isKds = false,
+  showWaitingTime = isKds,
+  onCustomerPress = null,
+  customerActionLabel = '',
+  customerActionDisabled = false,
+  metaText = '',
+}) => {
   const displayedStatus = useMemo(() => resolveDisplayedOrderStatus(order), [order])
   const orderType = useMemo(() => resolveOrderType(order), [order?.orderType, order?.order_type])
-  const isOpen = displayedStatus.isOpen
   const styles = useMemo(() => createStyles(isKds), [isKds])
   const orderDateValue = useMemo(
     () => resolveOrderDateValue(order),
     [order?.alterDate, order?.alter_date, order?.orderDate, order?.order_date],
   )
+  const formattedOrderDate = useMemo(
+    () => formatCompactOrderDate(orderDateValue),
+    [orderDateValue],
+  )
+  const orderCustomerLabel = useMemo(() => resolveOrderCustomerLabel(order), [order])
+  const resolvedMetaText = useMemo(
+    () => normalizeText(metaText) || orderCustomerLabel || formattedOrderDate,
+    [formattedOrderDate, metaText, orderCustomerLabel],
+  )
+  const showWaitingChip = showWaitingTime && shouldShowKdsWaitingTime(order)
+  const showCustomerAction =
+    typeof onCustomerPress === 'function' && !!normalizeText(customerActionLabel)
 
   const [waitingMinutes, setWaitingMinutes] = useState(
     getWaitingMinutes(orderDateValue),
@@ -116,17 +174,21 @@ const OrderHeader = ({order, isKds = false}) => {
   const blinkAnim = useRef(new Animated.Value(1)).current
 
   useEffect(() => {
-    if (!isKds || !isOpen) return
+    setWaitingMinutes(getWaitingMinutes(orderDateValue))
+  }, [orderDateValue])
+
+  useEffect(() => {
+    if (!showWaitingChip) return
     const interval = setInterval(() => {
       setWaitingMinutes(getWaitingMinutes(orderDateValue))
     }, 60000)
     return () => clearInterval(interval)
-  }, [isKds, orderDateValue, isOpen])
+  }, [orderDateValue, showWaitingChip])
 
-  const waitingConfig = getWaitingConfig(waitingMinutes)
+  const waitingConfig = showWaitingChip ? getWaitingConfig(waitingMinutes) : null
 
   useEffect(() => {
-    if (!isKds || !isOpen) {
+    if (!showWaitingChip) {
       blinkAnim.setValue(1)
       return
     }
@@ -149,7 +211,7 @@ const OrderHeader = ({order, isKds = false}) => {
     } else {
       blinkAnim.setValue(1)
     }
-  }, [blinkAnim, isKds, waitingConfig?.blink, isOpen])
+  }, [blinkAnim, showWaitingChip, waitingConfig?.blink])
 
   const leadingVisual = useMemo(
     () => resolveLeadingVisual(order, orderType, styles),
@@ -175,8 +237,28 @@ const OrderHeader = ({order, isKds = false}) => {
       titleWrapStyle={styles.titleWrap}
       primaryTextStyle={styles.orderId}
       secondaryTextStyle={styles.orderIdSecondary}
+      dateRowStyle={styles.metaRow}
       dateTextStyle={styles.orderDate}
-      dateText={Formatter.formatDateYmdTodmY(orderDateValue, true)}
+      dateText={resolvedMetaText}
+      dateTrailingContent={
+        showCustomerAction ? (
+          <TouchableOpacity
+            onPress={onCustomerPress}
+            disabled={customerActionDisabled}
+            style={[
+              styles.customerActionButton,
+              customerActionDisabled && styles.customerActionButtonDisabled,
+            ]}
+          >
+            <FeatherIcon
+              name={orderCustomerLabel ? 'refresh-cw' : 'user-plus'}
+              size={11}
+              color="#0F172A"
+            />
+            <Text style={styles.customerActionText}>{customerActionLabel}</Text>
+          </TouchableOpacity>
+        ) : null
+      }
       rightSectionStyle={styles.rightSection}
       status={
         showStatus
@@ -193,7 +275,7 @@ const OrderHeader = ({order, isKds = false}) => {
       statusDotStyle={[styles.statusDot, {backgroundColor: statusColor}]}
       statusTextStyle={[styles.statusText, {color: statusColor}]}
       rightContent={
-        isKds ? (
+        showWaitingChip ? (
           <Animated.View
             style={[
               styles.waitingChip,
@@ -209,6 +291,13 @@ const OrderHeader = ({order, isKds = false}) => {
               {`${waitingMinutes} min`}
             </Text>
           </Animated.View>
+        ) : isKds && !!formattedOrderDate ? (
+          <View style={styles.metaChip}>
+            <FeatherIcon name="calendar" size={10} color="#475569" />
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.metaChipText}>
+              {formattedOrderDate}
+            </Text>
+          </View>
         ) : displayPrice > 0 ? (
           <Text style={[styles.priceText, priceStyle]}>
             {Formatter.formatMoney(displayPrice)}
