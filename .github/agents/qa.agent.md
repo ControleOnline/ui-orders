@@ -21,7 +21,7 @@ Você conhece o ecossistema completo da ControleOnline. Este checkout define o p
 - Checkout local: `app-community/modules/controleonline/ui-orders`
 - Tipo: submódulo de app-community
 - Família: frontend
-- Branch base operacional: `staging`
+- Branch base operacional: `master`
 - Alvo preferencial de PR: `dev`
 - `AGENTS.md` local: presente
 
