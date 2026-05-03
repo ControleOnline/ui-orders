@@ -13,7 +13,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '@store'
-import { api } from '@controleonline/ui-common/src/api'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import {
@@ -23,7 +22,6 @@ import {
   isPosSelfServiceMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {
-  extractCollectionItems,
   searchCompanyProducts,
   toEntityIri,
 } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
@@ -574,6 +572,15 @@ const OrderDetails = ({ route, navigation }) => {
   }, [routeOrderId, storedOrderItem])
   const invoiceStore = useStore('invoice')
   const { actions: invoiceActions } = invoiceStore
+  const orderInvoicesStore = useStore('order_invoices')
+  const {
+    actions: orderInvoicesActions,
+    getters: orderInvoicesGetters,
+  } = orderInvoicesStore
+  const {
+    items: storedOrderInvoiceItems,
+    isLoading: orderInvoicesLoading,
+  } = orderInvoicesGetters
 
   const peopleStore = useStore('people')
   const { getters: peopleGetters, actions: peopleActions } = peopleStore
@@ -662,8 +669,6 @@ const OrderDetails = ({ route, navigation }) => {
   const [productSearchLoading, setProductSearchLoading] = useState(false)
   const [productSearchSelectionId, setProductSearchSelectionId] = useState('')
   const [customerLinkingId, setCustomerLinkingId] = useState('')
-  const [orderInvoices, setOrderInvoices] = useState([])
-  const [orderInvoicesLoading, setOrderInvoicesLoading] = useState(false)
   const [addressModalVisible, setAddressModalVisible] = useState(false)
   const [addressModalMode, setAddressModalMode] = useState('select')
   const [addressOptions, setAddressOptions] = useState([])
@@ -697,25 +702,13 @@ const OrderDetails = ({ route, navigation }) => {
   }, [orderProductsStore.actions])
 
   useEffect(() => {
-    setOrderInvoices([])
+    orderInvoicesActions?.setItems?.([])
+    orderInvoicesActions?.setError?.('')
   }, [routeOrderIri])
 
-  const loadOrderInvoices = useCallback(async ({silent = false} = {}) => {
-    if (!routeOrderIri) {
-      setOrderInvoices([])
-      setOrderInvoicesLoading(false)
-      return []
-    }
-
-    try {
-      setOrderInvoicesLoading(true)
-      const response = await api.fetch('/order_invoices', {
-        params: {
-          order: routeOrderIri,
-          itemsPerPage: 100,
-        },
-      })
-      const nextInvoices = extractCollectionItems(response)
+  const orderInvoices = useMemo(
+    () =>
+      (Array.isArray(storedOrderInvoiceItems) ? storedOrderInvoiceItems : [])
         .map(orderInvoice => {
           const rawInvoice = orderInvoice?.invoice
           const invoice =
@@ -739,19 +732,32 @@ const OrderDetails = ({ route, navigation }) => {
               null,
           }
         })
-        .filter(Boolean)
-      setOrderInvoices(nextInvoices)
-      return nextInvoices
+        .filter(Boolean),
+    [storedOrderInvoiceItems],
+  )
+
+  const loadOrderInvoices = useCallback(async ({silent = false} = {}) => {
+    if (!routeOrderIri) {
+      orderInvoicesActions?.setItems?.([])
+      orderInvoicesActions?.setError?.('')
+      return []
+    }
+
+    try {
+      const response = await orderInvoicesActions.getItems({
+        order: routeOrderIri,
+        itemsPerPage: 100,
+      })
+
+      return Array.isArray(response) ? response : []
     } catch (invoiceError) {
-      setOrderInvoices([])
+      orderInvoicesActions?.setItems?.([])
       if (!silent) {
         showError(formatApiError(invoiceError))
       }
       return []
-    } finally {
-      setOrderInvoicesLoading(false)
     }
-  }, [routeOrderIri, showError])
+  }, [orderInvoicesActions, routeOrderIri, showError])
 
   const commitResolvedOrderProducts = useCallback(sourceOrder => {
     const {hasOwnOrderProducts, orderProducts} = resolveEmbeddedOrderProducts(sourceOrder)
