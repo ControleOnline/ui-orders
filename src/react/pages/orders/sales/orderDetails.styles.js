@@ -569,6 +569,9 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       paddingVertical: isCompactMobile ? 8 : 10,
       gap: isCompactMobile ? 5 : 6,
     },
+    orderInvoiceCardInteractive: {
+      backgroundColor: palette.cardBg,
+    },
     orderInvoiceCardDetails: {
       backgroundColor: palette.cardBg,
     },
@@ -577,6 +580,12 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: 8,
+    },
+    orderInvoiceCardHeaderActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 4,
     },
     orderInvoiceTitleWrap: {
       flex: 1,
