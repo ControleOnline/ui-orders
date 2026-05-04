@@ -35,6 +35,12 @@
 - Componentes filhos agrupados nao devem receber edicao inline propria na lista do pedido. Quando precisarem mudar, a tela deve reabrir a customizacao do item pai e respeitar as regras de cada grupo.
 - Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o numero operacional curto vindo de `extraData` ou do payload canonico da integracao, como `order_index`, `code` ou `displayId`. `pickup_code` e `handover_code` ficam como fallback, e hashes ou ids tecnicos continuam apenas no summary.
 - `OrderDetails` deve manter o summary como area de informacoes secundarias. A tela principal mostra `Itens` direto no corpo; `Financeiro` sai da aba principal e abre em modal dedicado acionado pela barra inferior, sem misturar cards de summary no mesmo corpo.
+- No summary de iFood, `HANDSHAKE_DISPUTE` deve aparecer como alerta operacional com `disputeId`, tipo, momento, mensagem do cliente, prazo, acao automatica de timeout, evidencias e alternativas recebidas.
+- Acoes de disputa iFood ficam dentro do summary: aceitar, rejeitar e contraproposta. Elas so podem aparecer enquanto `has_open_dispute=true` e `disputeId` existir.
+- `Rejeitar disputa` precisa permitir/mandar `reason` valido de `negotiationReasons`; nao deixar o usuario sem resposta clara se o backend rejeitar motivo invalido.
+- `Aceitar disputa` deve usar motivo vindo de `acceptCancellationReasons` quando a API enviar a lista.
+- `Enviar contraproposta` so deve ficar habilitado quando a alternativa tiver payload suficiente: `REFUND/BENEFIT` com valor e moeda, ou `ADDITIONAL_TIME` com minutos e motivo. Se faltar valor permitido pelo iFood, exibir a alternativa como informacao, mas nao oferecer botao que vai falhar.
+- Disputa encerrada por `HANDSHAKE_SETTLEMENT` deve mostrar o resultado, mas nao deve manter botoes de resposta.
 - O modal financeiro de `OrderDetails` deve carregar a colecao `/order_invoices` quando precisar mostrar invoices ligadas ao pedido. Em invoices agregadas, o valor exibido para aquele pedido deve vir de `order_invoice.real_price`, nunca do total bruto da invoice.
 - No financeiro de `OrderDetails`, o identificador `Invoice #id` deve ser clicavel e abrir a tela de detalhe da invoice. Em fluxos de marketplace, `Pagador` e `Recebedor` precisam aparecer sempre, inclusive quando a empresa atual nao participa diretamente do par.
 - Ao abrir `InvoiceDetailsPage` a partir de `OrderDetails`, passar apenas o `id` da invoice na rota e preaquecer o store com a invoice completa, nunca com um card resumido.
