@@ -112,6 +112,42 @@ const readBooleanFlag = value => {
   return null;
 };
 
+const IFOOD_NEGOTIATION_LABELS = {
+  CANCELLATION: 'Cancelamento total',
+  PARTIAL_CANCELLATION: 'Cancelamento parcial',
+  PROPOSED_AMOUNT_REFUND: 'Proposta de reembolso',
+  PROPOSED_ADDITIONAL_TIME: 'Pedido de tempo adicional',
+  AFTER_DELIVERY: 'Depois da entrega',
+  AFTER_DELIVERY_PARTIALLY: 'Depois da entrega parcial',
+  DELAY: 'Entrega atrasada',
+  PREPARATION_TIME: 'Durante o preparo',
+  CUSTOMER_ORDER_SUPPORT: 'Suporte do cliente',
+  ACCEPT_CANCELLATION: 'Cancela automaticamente se expirar',
+  REJECT_CANCELLATION: 'Rejeita automaticamente se expirar',
+  VOID: 'Sem acao automatica',
+  REFUND: 'Reembolso',
+  BENEFIT: 'Beneficio',
+  ADDITIONAL_TIME: 'Tempo adicional',
+  ACCEPTED: 'Aceita',
+  REJECTED: 'Rejeitada',
+  EXPIRED: 'Expirada',
+  ALTERNATIVE_REPLIED: 'Contraproposta enviada',
+};
+
+const formatIfoodNegotiationLabel = value => {
+  const normalized = String(value ?? '').trim().toUpperCase();
+  return IFOOD_NEGOTIATION_LABELS[normalized] || normalizeText(value);
+};
+
+const formatIfoodMinorMoney = value => {
+  const cents = Number(value);
+  if (!Number.isFinite(cents) || cents <= 0) {
+    return '';
+  }
+
+  return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+};
+
 const hasMeaningfulValue = value => {
   if (value === null || value === undefined) return false;
   if (typeof value === 'number') return Number.isFinite(value);
@@ -1762,13 +1798,24 @@ const useOrderMarketplaceSummary = ({
     try {
       setRemoteActionLoading(`negotiation_${normalizedDecision}`);
 
+      const acceptReason = Array.isArray(remoteNegotiation?.accept_reasons)
+        ? normalizeText(remoteNegotiation.accept_reasons[0])
+        : '';
+      const fallbackReason =
+        normalizeText(remoteNegotiation?.alternative?.reason) || 'UNKNOWN_ISSUE';
+      const body = {};
+      if (normalizedDecision === 'accept' && acceptReason) {
+        body.reason = acceptReason;
+      }
+      if (normalizedDecision === 'reject' || normalizedDecision === 'alternative') {
+        body.reason = fallbackReason;
+      }
+
       const response = await api.fetch(
         `/marketplace/integrations/ifood/orders/${orderId}/negotiation/${normalizedDecision}`,
         {
           method: 'POST',
-          body: normalizedDecision === 'reject' || normalizedDecision === 'alternative'
-            ? {reason: 'UNKNOWN_ISSUE'}
-            : {},
+          body,
         },
       );
 
@@ -1808,6 +1855,8 @@ const useOrderMarketplaceSummary = ({
     orderId,
     refreshOrder,
     remoteActionLoading,
+    remoteNegotiation?.accept_reasons,
+    remoteNegotiation?.alternative?.reason,
     remoteNegotiation?.dispute_id,
     showError,
     showSuccess,
@@ -1893,10 +1942,18 @@ const useOrderMarketplaceSummary = ({
       return actions;
     }
 
+    const negotiationActionLabel = formatIfoodNegotiationLabel(remoteNegotiation?.action);
+    const acceptNegotiationLabel = negotiationActionLabel
+      ? `Aceitar ${negotiationActionLabel.toLowerCase()}`
+      : 'Aceitar disputa';
+    const rejectNegotiationLabel = negotiationActionLabel
+      ? `Rejeitar ${negotiationActionLabel.toLowerCase()}`
+      : 'Rejeitar disputa';
+
     actions.push(
       {
         key: 'ifood-accept-negotiation',
-        label: 'Aceitar cancelamento',
+        label: acceptNegotiationLabel,
         icon: 'check',
         tone: 'danger',
         loading: remoteActionLoading === 'negotiation_accept',
@@ -1905,7 +1962,7 @@ const useOrderMarketplaceSummary = ({
       },
       {
         key: 'ifood-reject-negotiation',
-        label: 'Rejeitar cancelamento',
+        label: rejectNegotiationLabel,
         icon: 'close',
         tone: 'neutral',
         loading: remoteActionLoading === 'negotiation_reject',
@@ -1938,6 +1995,7 @@ const useOrderMarketplaceSummary = ({
     isiFoodOrder,
     remoteActionLoading,
     remoteNegotiation?.alternative?.available,
+    remoteNegotiation?.action,
     remoteNegotiation?.dispute_id,
     remoteNegotiation?.has_open_dispute,
     runRemoteAction,
@@ -1960,6 +2018,7 @@ const useOrderMarketplaceSummary = ({
     const addressLines = [];
     const codesLines = [];
     const observationLines = [];
+    const negotiationLines = [];
 
     if (!!remoteIdentifiers?.order_index) {
       operationLines.push({
@@ -2109,6 +2168,110 @@ const useOrderMarketplaceSummary = ({
           key: 'ifood-negotiation-expires',
           label: global.t?.t('orders', 'label', 'expiresAt') || 'Expira em',
           value: formatScheduledDate(remoteNegotiation.expires_at),
+        });
+      }
+    }
+
+    if (isiFoodOrder && remoteNegotiation?.dispute_id) {
+      negotiationLines.push({
+        key: 'negotiation-status',
+        label: global.t?.t('orders', 'label', 'status') || 'Status',
+        value: remoteNegotiation.has_open_dispute
+          ? 'Disputa iFood aberta'
+          : `Disputa iFood ${formatIfoodNegotiationLabel(remoteNegotiation.settlement_status) || 'respondida'}`,
+        strong: true,
+      });
+
+      negotiationLines.push({
+        key: 'negotiation-id',
+        label: 'Dispute ID',
+        value: remoteNegotiation.dispute_id,
+      });
+
+      if (remoteNegotiation.action) {
+        negotiationLines.push({
+          key: 'negotiation-action',
+          label: 'Tipo',
+          value: formatIfoodNegotiationLabel(remoteNegotiation.action),
+        });
+      }
+
+      if (remoteNegotiation.type) {
+        negotiationLines.push({
+          key: 'negotiation-type',
+          label: 'Momento',
+          value: formatIfoodNegotiationLabel(remoteNegotiation.type),
+        });
+      }
+
+      if (remoteNegotiation.message) {
+        negotiationLines.push({
+          key: 'negotiation-message',
+          label: 'Mensagem do cliente',
+          value: remoteNegotiation.message,
+          strong: true,
+        });
+      }
+
+      if (remoteNegotiation.expires_at && remoteNegotiation.has_open_dispute) {
+        negotiationLines.push({
+          key: 'negotiation-expires',
+          label: 'Prazo para responder',
+          value: formatScheduledDate(remoteNegotiation.expires_at),
+        });
+      }
+
+      if (remoteNegotiation.timeout_action && remoteNegotiation.has_open_dispute) {
+        negotiationLines.push({
+          key: 'negotiation-timeout-action',
+          label: 'Se expirar',
+          value: formatIfoodNegotiationLabel(remoteNegotiation.timeout_action),
+        });
+      }
+
+      if (Array.isArray(remoteNegotiation.accept_reasons) && remoteNegotiation.accept_reasons.length > 0) {
+        negotiationLines.push({
+          key: 'negotiation-accept-reasons',
+          label: 'Motivos para aceitar',
+          value: remoteNegotiation.accept_reasons.map(formatIfoodNegotiationLabel).join(', '),
+        });
+      }
+
+      if (remoteNegotiation.alternative?.available) {
+        const alternativeParts = [
+          formatIfoodNegotiationLabel(remoteNegotiation.alternative.type),
+          formatIfoodMinorMoney(remoteNegotiation.alternative.amount_value),
+          remoteNegotiation.alternative.time_minutes
+            ? `${remoteNegotiation.alternative.time_minutes} min`
+            : '',
+        ].filter(Boolean);
+
+        negotiationLines.push({
+          key: 'negotiation-alternative',
+          label: 'Contraproposta disponivel',
+          value: alternativeParts.join(' - '),
+        });
+      }
+
+      if (Array.isArray(remoteNegotiation.evidences)) {
+        remoteNegotiation.evidences.forEach((evidence, index) => {
+          if (!evidence?.url) {
+            return;
+          }
+
+          negotiationLines.push({
+            key: `negotiation-evidence-${index}`,
+            label: evidence.content_type || 'Evidencia',
+            value: evidence.url,
+          });
+        });
+      }
+
+      if (remoteNegotiation.settlement_reason) {
+        negotiationLines.push({
+          key: 'negotiation-settlement-reason',
+          label: 'Motivo da resposta',
+          value: remoteNegotiation.settlement_reason,
         });
       }
     }
@@ -2696,6 +2859,7 @@ const useOrderMarketplaceSummary = ({
         global.t?.t('orders', 'title', 'taxDocumentRequested') ||
         'Documento para nota fiscal',
       operationLines,
+      negotiationLines,
       courierLines,
       benefitLines,
       financial: financialLines,

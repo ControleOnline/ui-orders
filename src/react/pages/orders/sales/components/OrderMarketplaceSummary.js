@@ -84,6 +84,20 @@ const OrderMarketplaceSummary = ({marketplace}) => {
             </View>
           )}
 
+          {marketplace.negotiationLines?.length > 0 && (
+            <View style={styles.taxDocumentBanner}>
+              <Text style={styles.taxDocumentLabel}>Disputa iFood</Text>
+              {marketplace.negotiationLines.map(line => (
+                <Text
+                  key={line.key}
+                  style={line.strong ? styles.detailsInfoTextStrong : styles.taxDocumentText}>
+                  {line.label ? `${line.label}: ` : ''}
+                  {line.value}
+                </Text>
+              ))}
+            </View>
+          )}
+
           <View style={styles.detailsSection}>
             <Text style={styles.detailsSectionTitle}>{marketplace.operationTitle}</Text>
             {marketplace.usingFallback ? (
