@@ -148,6 +148,40 @@ const formatIfoodMinorMoney = value => {
   return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
 };
 
+const hasValidIfoodAlternativePayload = alternative => {
+  if (!alternative?.available) return false;
+  if (alternative.payload_complete === true) return true;
+  if (alternative.payload_complete === false) return false;
+
+  const type = String(alternative?.type ?? '').trim().toUpperCase();
+  if (['REFUND', 'BENEFIT'].includes(type)) {
+    const amountValue = Number(alternative?.amount_value);
+    return Number.isFinite(amountValue) && amountValue > 0;
+  }
+
+  if (type === 'ADDITIONAL_TIME') {
+    const timeMinutes = Number(alternative?.time_minutes);
+    return Number.isFinite(timeMinutes) && timeMinutes > 0;
+  }
+
+  return false;
+};
+
+const POST_ACTION_REFRESH_TIMEOUT_MS = 8000;
+const waitWithTimeout = (promise, timeoutMs = POST_ACTION_REFRESH_TIMEOUT_MS) =>
+  Promise.race([
+    Promise.resolve(promise),
+    new Promise(resolve => {
+      setTimeout(resolve, timeoutMs);
+    }),
+  ]);
+
+const refreshOrderStateAfterAction = (refreshOrder, loadMarketplaceState) =>
+  Promise.allSettled([
+    waitWithTimeout(refreshOrder()),
+    waitWithTimeout(loadMarketplaceState({silent: true})),
+  ]);
+
 const hasMeaningfulValue = value => {
   if (value === null || value === undefined) return false;
   if (typeof value === 'number') return Number.isFinite(value);
@@ -805,6 +839,9 @@ const useOrderMarketplaceSummary = ({
     };
   }, [fallbackSummary?.financial, remoteState?.financial]);
   const remoteNegotiation = remoteState?.negotiation || null;
+  const canSendNegotiationAlternative = hasValidIfoodAlternativePayload(
+    remoteNegotiation?.alternative,
+  );
 
   const remotePayment = useMemo(() => {
     const fallbackPayment = fallbackSummary?.payment
@@ -1385,7 +1422,9 @@ const useOrderMarketplaceSummary = ({
         },
         cancel: {
           path: `/orders/${orderId}/cancel`,
-          success: global.t?.t('orders', 'message', 'orderCanceled'),
+          success: isiFoodOrder
+            ? 'Cancelamento solicitado ao iFood.'
+            : global.t?.t('orders', 'message', 'orderCanceled'),
         },
         delivered: {
           path: `/orders/${orderId}/delivered`,
@@ -1419,8 +1458,12 @@ const useOrderMarketplaceSummary = ({
           setRemoteState(response.state);
         }
 
-        await refreshOrder();
-        await loadMarketplaceState({silent: true});
+        if (isiFoodOrder) {
+          await refreshOrderStateAfterAction(refreshOrder, loadMarketplaceState);
+        } else {
+          await refreshOrder();
+          await loadMarketplaceState({silent: true});
+        }
 
         if (action === 'delivered') {
           setDeliveryModalVisible(false);
@@ -1445,7 +1488,7 @@ const useOrderMarketplaceSummary = ({
     },
     [
       hasMarketplaceIntegration,
-      is99FoodOrder,
+      isiFoodOrder,
       isKds,
       loadMarketplaceState,
       navigation,
@@ -1828,8 +1871,7 @@ const useOrderMarketplaceSummary = ({
         setRemoteState(response.state);
       }
 
-      await refreshOrder();
-      await loadMarketplaceState({silent: true});
+      await refreshOrderStateAfterAction(refreshOrder, loadMarketplaceState);
 
       let negotiationSuccessMessage =
         global.t?.t('orders', 'message', 'ifoodNegotiationAccepted') ||
@@ -1971,7 +2013,7 @@ const useOrderMarketplaceSummary = ({
       },
     );
 
-    if (remoteNegotiation?.alternative?.available) {
+    if (canSendNegotiationAlternative) {
       actions.push({
         key: 'ifood-alternative-negotiation',
         label: 'Enviar contraproposta',
@@ -1988,13 +2030,13 @@ const useOrderMarketplaceSummary = ({
     canCancelRemoteOrder,
     canReadyRemoteOrder,
     canDeliverRemoteOrder,
+    canSendNegotiationAlternative,
     cancelReasonsLoading,
     handleDeliverPress,
     handleOpenCancelFlow,
     handleRespondNegotiation,
     isiFoodOrder,
     remoteActionLoading,
-    remoteNegotiation?.alternative?.available,
     remoteNegotiation?.action,
     remoteNegotiation?.dispute_id,
     remoteNegotiation?.has_open_dispute,
@@ -2248,8 +2290,12 @@ const useOrderMarketplaceSummary = ({
 
         negotiationLines.push({
           key: 'negotiation-alternative',
-          label: 'Contraproposta disponivel',
-          value: alternativeParts.join(' - '),
+          label: canSendNegotiationAlternative
+            ? 'Contraproposta disponivel'
+            : 'Contraproposta indisponivel',
+          value: canSendNegotiationAlternative
+            ? alternativeParts.join(' - ')
+            : 'O iFood nao informou valor ou tempo suficiente para montar a contraproposta.',
         });
       }
 
@@ -3002,6 +3048,7 @@ const useOrderMarketplaceSummary = ({
     dineInDateTime,
     changeAmount,
     changeFor,
+    canSendNegotiationAlternative,
     cancellationSourceLabel,
     remoteContextLabel,
   ]);
