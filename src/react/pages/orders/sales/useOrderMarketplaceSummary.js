@@ -132,11 +132,28 @@ const IFOOD_NEGOTIATION_LABELS = {
   REJECTED: 'Rejeitada',
   EXPIRED: 'Expirada',
   ALTERNATIVE_REPLIED: 'Contraproposta enviada',
+  HANDSHAKE_ACCEPT: 'Aceita pela loja',
+  HANDSHAKE_REJECT: 'Rejeitada pela loja',
+  HANDSHAKE_ALTERNATIVE: 'Contraproposta enviada pela loja',
 };
 
 const formatIfoodNegotiationLabel = value => {
   const normalized = String(value ?? '').trim().toUpperCase();
   return IFOOD_NEGOTIATION_LABELS[normalized] || normalizeText(value);
+};
+
+const resolveIfoodNegotiationResponseLabel = (negotiation, lastActionType) => {
+  const settlementStatus = formatIfoodNegotiationLabel(negotiation?.settlement_status);
+  if (settlementStatus) return settlementStatus;
+
+  const normalizedLastAction = String(lastActionType ?? '').trim().toUpperCase();
+  if (normalizedLastAction === 'HANDSHAKE_ACCEPT') return 'Aceita pela loja';
+  if (normalizedLastAction === 'HANDSHAKE_REJECT') return 'Rejeitada pela loja';
+  if (normalizedLastAction === 'HANDSHAKE_ALTERNATIVE') {
+    return 'Contraproposta enviada pela loja';
+  }
+
+  return 'Respondida';
 };
 
 const formatIfoodMinorMoney = value => {
@@ -489,13 +506,19 @@ const useOrderMarketplaceSummary = ({
     .trim()
     .toLowerCase();
   const localRealStatusKey = String(
-    order?.status?.realStatus || initialOrder?.status?.realStatus || '',
+    order?.status?.realStatus ||
+      order?.status?.real_status ||
+      initialOrder?.status?.realStatus ||
+      initialOrder?.status?.real_status ||
+      '',
   )
     .trim()
     .toLowerCase();
   const isLocallyTerminalOrder =
     isTerminalOrderStatus(order?.status?.realStatus) ||
-    isTerminalOrderStatus(initialOrder?.status?.realStatus);
+    isTerminalOrderStatus(order?.status?.real_status) ||
+    isTerminalOrderStatus(initialOrder?.status?.realStatus) ||
+    isTerminalOrderStatus(initialOrder?.status?.real_status);
 
   const orderSnapshot = useMemo(
     () => buildOrderSnapshot(order, initialOrder),
@@ -1222,6 +1245,7 @@ const useOrderMarketplaceSummary = ({
       '',
   ).toLowerCase();
   const lastActionType = String(remoteIntegration?.last_action || '').toLowerCase();
+  const lastActionErrno = String(remoteIntegration?.last_action_errno ?? '').trim();
   const isMerchantDelivery =
     isiFoodOrder &&
     !isPickupLikeOrder &&
@@ -1272,12 +1296,28 @@ const useOrderMarketplaceSummary = ({
     hasMarketplaceIntegration &&
     !isRemoteTerminal &&
     remoteCapabilities.canCancel;
+  const hasSyncedIfoodReady =
+    isiFoodOrder &&
+    (['ready', 'dispatching', 'dispatched', 'order_dispatched'].includes(remoteOrderStateKey) ||
+      (lastActionType === 'ready' && lastActionErrno === '0'));
+  const canNotifyIfoodReadyWhilePreparing =
+    isiFoodOrder &&
+    localRealStatusKey === 'open' &&
+    localStatusNameKey === 'preparing' &&
+    !hasSyncedIfoodReady;
+  const canNotifyIfoodReadyFromSummary =
+    isiFoodOrder &&
+    localRealStatusKey === 'pending' &&
+    localStatusNameKey === 'ready' &&
+    !hasSyncedIfoodReady;
   const canReadyRemoteOrder =
     hasMarketplaceIntegration &&
     !isRemoteTerminal &&
-    remoteCapabilities.canReady &&
-    localRealStatusKey === 'open' &&
-    localStatusNameKey === 'preparing';
+    (canNotifyIfoodReadyWhilePreparing ||
+      canNotifyIfoodReadyFromSummary ||
+      (remoteCapabilities.canReady &&
+      localRealStatusKey === 'open' &&
+      localStatusNameKey === 'preparing'));
   const canDeliverRemoteOrder =
     hasMarketplaceIntegration &&
     !isRemoteTerminal &&
@@ -2194,6 +2234,15 @@ const useOrderMarketplaceSummary = ({
       });
     }
 
+    const hasIfoodNegotiationCard =
+      isiFoodOrder &&
+      (!!remoteNegotiation?.dispute_id ||
+        ['handshake_accept', 'handshake_reject', 'handshake_alternative'].includes(lastActionType));
+    const negotiationResponseLabel = resolveIfoodNegotiationResponseLabel(
+      remoteNegotiation,
+      lastActionType,
+    );
+
     if (remoteNegotiation?.has_open_dispute) {
       operationLines.push({
         key: 'ifood-negotiation',
@@ -2214,23 +2263,34 @@ const useOrderMarketplaceSummary = ({
       }
     }
 
-    if (isiFoodOrder && remoteNegotiation?.dispute_id) {
+    if (hasIfoodNegotiationCard) {
       negotiationLines.push({
         key: 'negotiation-status',
         label: global.t?.t('orders', 'label', 'status') || 'Status',
-        value: remoteNegotiation.has_open_dispute
+        value: remoteNegotiation?.has_open_dispute
           ? 'Disputa iFood aberta'
-          : `Disputa iFood ${formatIfoodNegotiationLabel(remoteNegotiation.settlement_status) || 'respondida'}`,
+          : `Disputa iFood ${negotiationResponseLabel.toLowerCase()}`,
         strong: true,
       });
 
-      negotiationLines.push({
-        key: 'negotiation-id',
-        label: 'Dispute ID',
-        value: remoteNegotiation.dispute_id,
-      });
+      if (remoteNegotiation?.dispute_id) {
+        negotiationLines.push({
+          key: 'negotiation-id',
+          label: 'Dispute ID',
+          value: remoteNegotiation.dispute_id,
+        });
+      }
 
-      if (remoteNegotiation.action) {
+      if (!remoteNegotiation?.has_open_dispute && lastActionType.startsWith('handshake_')) {
+        negotiationLines.push({
+          key: 'negotiation-store-response',
+          label: 'Resposta da loja',
+          value: negotiationResponseLabel,
+          strong: true,
+        });
+      }
+
+      if (remoteNegotiation?.action) {
         negotiationLines.push({
           key: 'negotiation-action',
           label: 'Tipo',
@@ -2238,7 +2298,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (remoteNegotiation.type) {
+      if (remoteNegotiation?.type) {
         negotiationLines.push({
           key: 'negotiation-type',
           label: 'Momento',
@@ -2246,7 +2306,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (remoteNegotiation.message) {
+      if (remoteNegotiation?.message) {
         negotiationLines.push({
           key: 'negotiation-message',
           label: 'Mensagem do cliente',
@@ -2255,7 +2315,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (remoteNegotiation.expires_at && remoteNegotiation.has_open_dispute) {
+      if (remoteNegotiation?.expires_at && remoteNegotiation?.has_open_dispute) {
         negotiationLines.push({
           key: 'negotiation-expires',
           label: 'Prazo para responder',
@@ -2263,7 +2323,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (remoteNegotiation.timeout_action && remoteNegotiation.has_open_dispute) {
+      if (remoteNegotiation?.timeout_action && remoteNegotiation?.has_open_dispute) {
         negotiationLines.push({
           key: 'negotiation-timeout-action',
           label: 'Se expirar',
@@ -2271,7 +2331,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (Array.isArray(remoteNegotiation.accept_reasons) && remoteNegotiation.accept_reasons.length > 0) {
+      if (Array.isArray(remoteNegotiation?.accept_reasons) && remoteNegotiation.accept_reasons.length > 0) {
         negotiationLines.push({
           key: 'negotiation-accept-reasons',
           label: 'Motivos para aceitar',
@@ -2279,7 +2339,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (remoteNegotiation.alternative?.available) {
+      if (remoteNegotiation?.alternative?.available) {
         const alternativeParts = [
           formatIfoodNegotiationLabel(remoteNegotiation.alternative.type),
           formatIfoodMinorMoney(remoteNegotiation.alternative.amount_value),
@@ -2299,7 +2359,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (Array.isArray(remoteNegotiation.evidences)) {
+      if (Array.isArray(remoteNegotiation?.evidences)) {
         remoteNegotiation.evidences.forEach((evidence, index) => {
           if (!evidence?.url) {
             return;
@@ -2313,7 +2373,7 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
-      if (remoteNegotiation.settlement_reason) {
+      if (remoteNegotiation?.settlement_reason) {
         negotiationLines.push({
           key: 'negotiation-settlement-reason',
           label: 'Motivo da resposta',
