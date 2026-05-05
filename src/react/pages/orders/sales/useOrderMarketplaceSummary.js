@@ -1310,12 +1310,17 @@ const useOrderMarketplaceSummary = ({
     localRealStatusKey === 'pending' &&
     localStatusNameKey === 'ready' &&
     !hasSyncedIfoodReady;
+  const canReadyIfoodFromSummary =
+    hasMarketplaceIntegration &&
+    isiFoodOrder &&
+    !isLocallyTerminalOrder &&
+    !isTerminalOrderStatus(localRealStatusKey) &&
+    (canNotifyIfoodReadyWhilePreparing || canNotifyIfoodReadyFromSummary);
   const canReadyRemoteOrder =
     hasMarketplaceIntegration &&
-    !isRemoteTerminal &&
-    (canNotifyIfoodReadyWhilePreparing ||
-      canNotifyIfoodReadyFromSummary ||
-      (remoteCapabilities.canReady &&
+    (canReadyIfoodFromSummary ||
+      (!isRemoteTerminal &&
+        remoteCapabilities.canReady &&
       localRealStatusKey === 'open' &&
       localStatusNameKey === 'preparing'));
   const canDeliverRemoteOrder =
