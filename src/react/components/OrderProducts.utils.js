@@ -246,7 +246,9 @@ const hasGroupedParent = node =>
     node?.productGroup?.parentProduct
   )
 
-const shouldShowProductGroupInQueue = node =>
+const shouldShowInParentQueue = node =>
+  node?.showInParentQueue !== false &&
+  node?.show_in_parent_queue !== false &&
   node?.showProductGroupInQueue !== false &&
   node?.show_product_group_in_queue !== false
 
@@ -332,7 +334,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   const renderSingleHiddenGroupedItemAsRoot =
     items.length === 1 &&
     hasGroupedParent(items[0]) &&
-    !shouldShowProductGroupInQueue(items[0])
+    !shouldShowInParentQueue(items[0])
   const cards = []
   const cardsByRootKey = new Map()
   const cardsByCatalogProductKey = new Map()
@@ -591,7 +593,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
 
   items.forEach((item, index) => {
     if (!hasGroupedParent(item)) return
-    if (!shouldShowProductGroupInQueue(item)) return
+    if (!shouldShowInParentQueue(item)) return
 
     const card = resolveCardForGroupedItem(item, index)
     const groupLabel = getChildBucketLabel(item)
