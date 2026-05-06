@@ -12,6 +12,34 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import useOrderDetailsVisuals from '../useOrderDetailsVisuals';
 
+const formatMinorMoney = value => {
+  const cents = Number(value);
+  if (!Number.isFinite(cents) || cents <= 0) {
+    return '';
+  }
+
+  return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+};
+
+const resolveAlternativeId = (alternative, index = 0) =>
+  String(alternative?.id || `alternative-${index}`);
+
+const formatAlternative = alternative => {
+  const metadata = alternative?.metadata || {};
+  const amount = metadata.maxAmount || metadata.amount || {};
+  const times =
+    metadata.allowedsAdditionalTimeInMinutes ||
+    metadata.allowedAdditionalTimeInMinutes ||
+    [];
+  const timeMinutes = alternative?.time_minutes || (Array.isArray(times) && times[0]);
+
+  return [
+    String(alternative?.type || '').replace(/_/g, ' '),
+    formatMinorMoney(alternative?.amount_value ?? amount.value),
+    timeMinutes ? `${timeMinutes} min` : '',
+  ].filter(Boolean).join(' - ');
+};
+
 const OrderMarketplaceOverlayHost = ({marketplace}) => {
   const insets = useSafeAreaInsets();
   const {styles, ppcColors} = useOrderDetailsVisuals();
@@ -23,11 +51,31 @@ const OrderMarketplaceOverlayHost = ({marketplace}) => {
 
   const cancelFlow = marketplace.cancelFlow;
   const deliveryFlow = marketplace.deliveryFlow;
+  const negotiationFlow = marketplace.negotiationFlow;
   const cancelLoading =
     cancelFlow?.actionLoading === 'cancel' || cancelFlow?.reasonsLoading;
   const deliverySubmitLoading =
     deliveryFlow?.actionLoading === 'locator_verify' ||
     deliveryFlow?.actionLoading === 'delivered';
+  const negotiationLoading =
+    typeof negotiationFlow?.actionLoading === 'string' &&
+    negotiationFlow.actionLoading.startsWith('negotiation_');
+  const selectedNegotiationAlternative = negotiationFlow?.alternatives?.find(
+    (alternative, index) =>
+      resolveAlternativeId(alternative, index) ===
+      negotiationFlow?.selectedAlternativeId,
+  );
+  const selectedNegotiationAlternativeType = String(
+    selectedNegotiationAlternative?.type || '',
+  ).toUpperCase();
+  const negotiationNeedsReason =
+    negotiationFlow?.decision === 'reject' ||
+    selectedNegotiationAlternativeType === 'ADDITIONAL_TIME';
+  const negotiationSubmitDisabled =
+    negotiationLoading ||
+    (negotiationFlow?.decision === 'alternative' &&
+      !selectedNegotiationAlternative) ||
+    (negotiationNeedsReason && !String(negotiationFlow?.selectedReason || ''));
 
   return (
     <>
@@ -471,6 +519,146 @@ const OrderMarketplaceOverlayHost = ({marketplace}) => {
                   </TouchableOpacity>
                 </View>
               )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={!!negotiationFlow?.visible}
+        onRequestClose={() => {
+          if (!negotiationLoading) {
+            negotiationFlow?.onClose?.();
+          }
+        }}>
+        <View style={styles.modalSheetRoot}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.modalSheetBackdrop}
+            onPress={() => {
+              if (!negotiationLoading) {
+                negotiationFlow?.onClose?.();
+              }
+            }}
+          />
+          <View style={styles.modalSheetWrap}>
+            <View style={styles.cancelReasonModal}>
+              <Text style={styles.cancelReasonBadge}>NEGOCIACAO IFOOD</Text>
+              <Text style={styles.cancelReasonTitle}>
+                {negotiationFlow?.actionLabel || 'Responder disputa'}
+              </Text>
+              <Text style={styles.cancelReasonDescription}>
+                {negotiationFlow?.description}
+              </Text>
+
+              {negotiationFlow?.decision === 'alternative' ? (
+                <ScrollView
+                  style={styles.cancelReasonList}
+                  contentContainerStyle={styles.cancelReasonListContent}
+                  showsVerticalScrollIndicator={false}>
+                  {negotiationFlow?.alternatives?.map((alternative, index) => {
+                    const alternativeId = resolveAlternativeId(alternative, index);
+                    const isSelected =
+                      negotiationFlow?.selectedAlternativeId === alternativeId;
+
+                    return (
+                      <TouchableOpacity
+                        key={`ifood-negotiation-alternative-${alternativeId}`}
+                        onPress={() =>
+                          negotiationFlow?.onSelectAlternative?.(alternativeId)
+                        }
+                        disabled={negotiationLoading}
+                        style={[
+                          styles.cancelReasonOption,
+                          isSelected && styles.cancelReasonOptionSelected,
+                        ]}>
+                        <View style={styles.cancelReasonOptionHeader}>
+                          <Text style={styles.cancelReasonOptionCode}>
+                            #{alternative?.id || index + 1}
+                          </Text>
+                          <Text style={styles.cancelReasonOptionBadge}>
+                            Contraproposta
+                          </Text>
+                        </View>
+                        <Text style={styles.cancelReasonOptionText}>
+                          {formatAlternative(alternative) ||
+                            'Contraproposta iFood sem descricao'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              ) : null}
+
+              {negotiationNeedsReason ? (
+                <ScrollView
+                  style={styles.cancelReasonList}
+                  contentContainerStyle={styles.cancelReasonListContent}
+                  showsVerticalScrollIndicator={false}>
+                  {negotiationFlow?.reasons?.map(reason => {
+                    const reasonId = String(reason?.id || '');
+                    const isSelected =
+                      String(negotiationFlow?.selectedReason || '') === reasonId;
+
+                    return (
+                      <TouchableOpacity
+                        key={`ifood-negotiation-reason-${reasonId}`}
+                        onPress={() =>
+                          negotiationFlow?.onSelectReason?.(reasonId)
+                        }
+                        disabled={negotiationLoading}
+                        style={[
+                          styles.cancelReasonOption,
+                          isSelected && styles.cancelReasonOptionSelected,
+                        ]}>
+                        <View style={styles.cancelReasonOptionHeader}>
+                          <Text style={styles.cancelReasonOptionCode}>
+                            {reasonId}
+                          </Text>
+                        </View>
+                        <Text style={styles.cancelReasonOptionText}>
+                          {reason?.label || reasonId}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              ) : null}
+
+              <View style={styles.deliveryCodeActions}>
+                <TouchableOpacity
+                  onPress={negotiationFlow?.onClose}
+                  disabled={negotiationLoading}
+                  style={[
+                    styles.deliveryCodeButton,
+                    styles.deliveryCodeButtonSecondary,
+                  ]}>
+                  <Text style={styles.deliveryCodeButtonSecondaryText}>
+                    {global.t?.t('orders', 'button', 'close')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={negotiationFlow?.onSubmit}
+                  disabled={negotiationSubmitDisabled}
+                  style={[
+                    styles.deliveryCodeButton,
+                    negotiationFlow?.decision === 'reject'
+                      ? styles.cancelReasonButtonDanger
+                      : styles.deliveryCodeButtonPrimary,
+                    negotiationSubmitDisabled && styles.kdsActionButtonDisabled,
+                  ]}>
+                  {negotiationLoading ? (
+                    <ActivityIndicator size="small" color="#F8FAFC" />
+                  ) : (
+                    <Text style={styles.deliveryCodeButtonPrimaryText}>
+                      {negotiationFlow?.actionLabel || 'Enviar resposta'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
