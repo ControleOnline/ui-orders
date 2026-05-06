@@ -82,7 +82,10 @@ import OrderTopBarActions, {
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
-import {resolveMarketplaceInvoicePresentation} from './orderMarketplaceFinancialPresentation'
+import {
+  resolveMarketplaceInvoicePresentation,
+  resolveMarketplaceReceivableAmount,
+} from './orderMarketplaceFinancialPresentation'
 import {
   shouldRenderOrderDetailsInlineTotal,
   shouldRenderOrderDetailsPaymentAction,
@@ -1320,6 +1323,17 @@ const OrderDetails = ({ route, navigation }) => {
         : sum
     }, 0),
     [activeLocalInvoices, localFinancialCompanyId],
+  )
+  const localReceivedAmount = useMemo(
+    () => (
+      hasMarketplaceIntegration
+        ? resolveMarketplaceReceivableAmount({
+            localInvoiceCards,
+            fallbackAmount: localPaidAmount,
+          })
+        : localPaidAmount
+    ),
+    [hasMarketplaceIntegration, localInvoiceCards, localPaidAmount],
   )
   const groupedInvoiceSections = useMemo(() => {
     if (!localInvoiceCards.some(invoiceCard => !!invoiceCard?.sectionLabel)) {
@@ -3401,7 +3415,7 @@ const OrderDetails = ({ route, navigation }) => {
                   ? 'Valor do pedido'
                   : global.t?.t('orders', 'label', 'localTotal') || 'Total do pedido'
               }
-              paidReceivedAmount={localPaidAmount}
+              paidReceivedAmount={localReceivedAmount}
               paidReceivedLabel={
                 hasMarketplaceIntegration
                   ? 'Valor do pagamento'
