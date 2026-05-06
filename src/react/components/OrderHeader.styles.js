@@ -7,12 +7,19 @@ const createStyles = isKds =>
       justifyContent: 'space-between',
       alignItems: 'flex-start',
     },
+    containerStackedRightSection: {
+      flexWrap: 'wrap',
+    },
     leftSection: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
       flex: 1,
       minWidth: 0,
+    },
+    leftSectionStackedRightSection: {
+      width: '100%',
+      flexShrink: 0,
     },
     leadingWrap: {
       minWidth: isKds ? 40 : 38,
@@ -104,6 +111,17 @@ const createStyles = isKds =>
       maxWidth: '36%',
       flexShrink: 1,
     },
+    rightSectionStacked: {
+      width: '100%',
+      maxWidth: '100%',
+      marginLeft: 0,
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      flexShrink: 0,
+    },
     statusBadge: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -112,6 +130,10 @@ const createStyles = isKds =>
       paddingHorizontal: 10,
       paddingVertical: 4,
       gap: 5,
+    },
+    statusBadgeStacked: {
+      minWidth: 0,
+      flexShrink: 1,
     },
     statusDot: {
       width: 7,
@@ -148,6 +170,10 @@ const createStyles = isKds =>
       paddingHorizontal: 8,
       paddingVertical: 4,
     },
+    waitingChipStacked: {
+      marginTop: 0,
+      flexShrink: 0,
+    },
     waitingText: {
       fontSize: 12,
       fontWeight: '800',
@@ -164,6 +190,10 @@ const createStyles = isKds =>
       paddingHorizontal: 6,
       paddingVertical: 3,
       maxWidth: '100%',
+    },
+    metaChipStacked: {
+      marginTop: 0,
+      flexShrink: 1,
     },
     metaChipText: {
       color: '#475569',

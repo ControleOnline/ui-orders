@@ -39,7 +39,7 @@
 - Acoes de disputa iFood ficam dentro do summary: aceitar, rejeitar e contraproposta. Elas so podem aparecer enquanto `has_open_dispute=true` e `disputeId` existir.
 - `Rejeitar disputa` precisa permitir/mandar `reason` valido de `negotiationReasons`; nao deixar o usuario sem resposta clara se o backend rejeitar motivo invalido.
 - `Aceitar disputa` deve usar motivo vindo de `acceptCancellationReasons` quando a API enviar a lista.
-- `Enviar contraproposta` so deve ficar habilitado quando a alternativa tiver payload suficiente: `REFUND/BENEFIT` com valor e moeda, ou `ADDITIONAL_TIME` com minutos e motivo. Se faltar valor permitido pelo iFood, exibir a alternativa como informacao, mas nao oferecer botao que vai falhar.
+- `Enviar contraproposta` so deve ficar habilitado quando a alternativa tiver payload suficiente e `alternativeId`: `REFUND/BENEFIT` com valor e moeda, ou `ADDITIONAL_TIME` com minutos e motivo permitido pela alternativa. Se faltar valor permitido pelo iFood, exibir a alternativa como informacao, mas nao oferecer botao que vai falhar.
 - Disputa encerrada por `HANDSHAKE_SETTLEMENT` deve mostrar o resultado, mas nao deve manter botoes de resposta.
 - O modal financeiro de `OrderDetails` deve carregar a colecao `/order_invoices` quando precisar mostrar invoices ligadas ao pedido. Em invoices agregadas, o valor exibido para aquele pedido deve vir de `order_invoice.real_price`, nunca do total bruto da invoice.
 - No financeiro de `OrderDetails`, o identificador `Invoice #id` deve ser clicavel e abrir a tela de detalhe da invoice. Em fluxos de marketplace, `Pagador` e `Recebedor` precisam aparecer sempre, inclusive quando a empresa atual nao participa diretamente do par.

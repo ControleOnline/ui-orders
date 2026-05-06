@@ -136,6 +136,18 @@ const IFOOD_NEGOTIATION_LABELS = {
   HANDSHAKE_REJECT: 'Rejeitada pela loja',
   HANDSHAKE_ALTERNATIVE: 'Contraproposta enviada pela loja',
 };
+const IFOOD_DEFAULT_REJECT_REASON = 'WRONG_ORDER';
+const IFOOD_NEGOTIATION_REASONS = [
+  {id: 'HIGH_STORE_DEMAND', label: 'Alta demanda da loja'},
+  {id: 'UNKNOWN_ISSUE', label: 'Outro problema'},
+  {id: 'CUSTOMER_SATISFACTION', label: 'Satisfacao do cliente'},
+  {id: 'INVENTORY_CHECK', label: 'Conferencia de estoque'},
+  {id: 'SYSTEM_ISSUE', label: 'Problema no sistema'},
+  {id: 'WRONG_ORDER', label: 'Pedido veio errado'},
+  {id: 'PRODUCT_QUALITY', label: 'Qualidade do produto'},
+  {id: 'LATE_DELIVERY', label: 'Entrega atrasada'},
+  {id: 'CUSTOMER_REQUEST', label: 'Solicitacao do cliente'},
+];
 
 const formatIfoodNegotiationLabel = value => {
   const normalized = String(value ?? '').trim().toUpperCase();
@@ -166,22 +178,66 @@ const formatIfoodMinorMoney = value => {
 };
 
 const hasValidIfoodAlternativePayload = alternative => {
-  if (!alternative?.available) return false;
+  if (!alternative || alternative.available === false) return false;
   if (alternative.payload_complete === true) return true;
   if (alternative.payload_complete === false) return false;
 
   const type = String(alternative?.type ?? '').trim().toUpperCase();
+  const metadata = alternative.metadata || {};
   if (['REFUND', 'BENEFIT'].includes(type)) {
-    const amountValue = Number(alternative?.amount_value);
+    const amount = metadata.maxAmount || metadata.amount || {};
+    const amountValue = Number(alternative?.amount_value ?? amount.value);
     return Number.isFinite(amountValue) && amountValue > 0;
   }
 
   if (type === 'ADDITIONAL_TIME') {
-    const timeMinutes = Number(alternative?.time_minutes);
+    const times =
+      metadata.allowedsAdditionalTimeInMinutes ||
+      metadata.allowedAdditionalTimeInMinutes ||
+      [];
+    const timeMinutes = Number(alternative?.time_minutes ?? times[0]);
     return Number.isFinite(timeMinutes) && timeMinutes > 0;
   }
 
   return false;
+};
+
+const formatIfoodAlternative = alternative => {
+  if (!alternative || typeof alternative !== 'object') return '';
+  const metadata = alternative.metadata || {};
+  const amount = metadata.maxAmount || metadata.amount || {};
+  const times =
+    metadata.allowedsAdditionalTimeInMinutes ||
+    metadata.allowedAdditionalTimeInMinutes ||
+    [];
+  return [
+    formatIfoodNegotiationLabel(alternative.type),
+    formatIfoodMinorMoney(amount.value),
+    Array.isArray(times) && times[0] ? `${times[0]} min` : '',
+  ].filter(Boolean).join(' - ');
+};
+
+const resolveIfoodAlternativeId = (alternative, index = 0) =>
+  normalizeText(alternative?.id) || `alternative-${index}`;
+
+const resolveIfoodAlternativeReasonOptions = alternative => {
+  const metadata = alternative?.metadata || {};
+  const reasons =
+    metadata.allowedsAdditionalTimeReasons ||
+    metadata.allowedAdditionalTimeReasons ||
+    [];
+
+  if (!Array.isArray(reasons)) {
+    return [];
+  }
+
+  return reasons
+    .map(reason => normalizeText(reason))
+    .filter(Boolean)
+    .map(reason => ({
+      id: reason,
+      label: formatIfoodNegotiationLabel(reason),
+    }));
 };
 
 const POST_ACTION_REFRESH_TIMEOUT_MS = 8000;
@@ -473,6 +529,7 @@ const useOrderMarketplaceSummary = ({
   order,
   initialOrder,
   refreshOrder,
+  onFinancialGenerated,
   isKds,
   navigation,
   showError,
@@ -499,6 +556,13 @@ const useOrderMarketplaceSummary = ({
   const [deliveryFlowStep, setDeliveryFlowStep] = useState('locator');
   const [deliveryLocator, setDeliveryLocator] = useState('');
   const [deliveryConfirmationCode, setDeliveryConfirmationCode] = useState('');
+  const [negotiationModalVisible, setNegotiationModalVisible] = useState(false);
+  const [negotiationDecision, setNegotiationDecision] = useState('');
+  const [selectedNegotiationReason, setSelectedNegotiationReason] = useState(
+    IFOOD_DEFAULT_REJECT_REASON,
+  );
+  const [selectedNegotiationAlternativeId, setSelectedNegotiationAlternativeId] =
+    useState('');
 
   const localStatusNameKey = String(
     order?.status?.status || initialOrder?.status?.status || '',
@@ -862,9 +926,40 @@ const useOrderMarketplaceSummary = ({
     };
   }, [fallbackSummary?.financial, remoteState?.financial]);
   const remoteNegotiation = remoteState?.negotiation || null;
-  const canSendNegotiationAlternative = hasValidIfoodAlternativePayload(
-    remoteNegotiation?.alternative,
-  );
+  const negotiationAlternatives = useMemo(() => {
+    const alternatives = Array.isArray(remoteNegotiation?.alternatives)
+      ? remoteNegotiation.alternatives
+      : [];
+    const validAlternatives = alternatives.filter(hasValidIfoodAlternativePayload);
+
+    if (validAlternatives.length > 0) {
+      return validAlternatives;
+    }
+
+    return hasValidIfoodAlternativePayload(remoteNegotiation?.alternative)
+      ? [remoteNegotiation.alternative]
+      : [];
+  }, [remoteNegotiation?.alternative, remoteNegotiation?.alternatives]);
+  const canSendNegotiationAlternative = negotiationAlternatives.length > 0;
+  const selectedNegotiationAlternative = negotiationAlternatives.find(
+    (alternative, index) =>
+      resolveIfoodAlternativeId(alternative, index) === selectedNegotiationAlternativeId,
+  ) || negotiationAlternatives[0] || null;
+  const negotiationReasonOptions = useMemo(() => {
+    const selectedAlternativeType = normalizeText(
+      selectedNegotiationAlternative?.type,
+    ).toUpperCase();
+    if (negotiationDecision === 'alternative' && selectedAlternativeType === 'ADDITIONAL_TIME') {
+      const alternativeReasons = resolveIfoodAlternativeReasonOptions(
+        selectedNegotiationAlternative,
+      );
+      return alternativeReasons.length > 0
+        ? alternativeReasons
+        : IFOOD_NEGOTIATION_REASONS;
+    }
+
+    return IFOOD_NEGOTIATION_REASONS;
+  }, [negotiationDecision, selectedNegotiationAlternative]);
 
   const remotePayment = useMemo(() => {
     const fallbackPayment = fallbackSummary?.payment
@@ -1298,11 +1393,12 @@ const useOrderMarketplaceSummary = ({
     remoteCapabilities.canCancel;
   const hasSyncedIfoodReady =
     isiFoodOrder &&
-    (['ready', 'dispatching', 'dispatched', 'order_dispatched'].includes(remoteOrderStateKey) ||
+    ((['ready', 'dispatching', 'dispatched', 'order_dispatched'].includes(remoteOrderStateKey) &&
+      !['delivery_drop_code_requested', 'delivery_drop_code_validating'].includes(lastEventType)) ||
       (lastActionType === 'ready' && lastActionErrno === '0'));
   const canNotifyIfoodReadyWhilePreparing =
     isiFoodOrder &&
-    localRealStatusKey === 'open' &&
+    ['open', 'pending'].includes(localRealStatusKey) &&
     localStatusNameKey === 'preparing' &&
     !hasSyncedIfoodReady;
   const canNotifyIfoodReadyFromSummary =
@@ -1321,7 +1417,7 @@ const useOrderMarketplaceSummary = ({
     (canReadyIfoodFromSummary ||
       (!isRemoteTerminal &&
         remoteCapabilities.canReady &&
-      localRealStatusKey === 'open' &&
+      ['open', 'pending'].includes(localRealStatusKey) &&
       localStatusNameKey === 'preparing'));
   const canDeliverRemoteOrder =
     hasMarketplaceIntegration &&
@@ -1875,12 +1971,12 @@ const useOrderMarketplaceSummary = ({
     void runRemoteAction('delivered');
   }, [isHandoverFlow, openDeliveryFlow, requiresDeliveryLocator, runRemoteAction]);
 
-  const handleRespondNegotiation = useCallback(async decision => {
+  const handleRespondNegotiation = useCallback(async (decision, options = {}) => {
     const normalizedDecision = ['reject', 'alternative'].includes(decision)
       ? decision
       : 'accept';
     if (!orderId || !isiFoodOrder || remoteActionLoading || !remoteNegotiation?.dispute_id) {
-      return;
+      return false;
     }
 
     try {
@@ -1889,14 +1985,35 @@ const useOrderMarketplaceSummary = ({
       const acceptReason = Array.isArray(remoteNegotiation?.accept_reasons)
         ? normalizeText(remoteNegotiation.accept_reasons[0])
         : '';
+      const selectedReason = normalizeText(options?.reason);
+      const selectedAlternative = options?.alternative || remoteNegotiation?.alternative;
       const fallbackReason =
-        normalizeText(remoteNegotiation?.alternative?.reason) || 'UNKNOWN_ISSUE';
+        selectedReason ||
+        normalizeText(selectedAlternative?.reason) ||
+        (normalizedDecision === 'reject' ? IFOOD_DEFAULT_REJECT_REASON : '');
+      const alternativeType = normalizeText(selectedAlternative?.type).toUpperCase();
+      if (
+        (normalizedDecision === 'reject' ||
+          (normalizedDecision === 'alternative' &&
+            alternativeType === 'ADDITIONAL_TIME')) &&
+        !fallbackReason
+      ) {
+        showError('Motivo de negociacao iFood nao informado pela disputa.');
+        return false;
+      }
+
       const body = {};
       if (normalizedDecision === 'accept' && acceptReason) {
         body.reason = acceptReason;
       }
       if (normalizedDecision === 'reject' || normalizedDecision === 'alternative') {
         body.reason = fallbackReason;
+      }
+      if (normalizedDecision === 'alternative') {
+        const alternativeId = normalizeText(options?.alternativeId || selectedAlternative?.id);
+        if (alternativeId) {
+          body.alternative_id = alternativeId;
+        }
       }
 
       const response = await api.fetch(
@@ -1931,8 +2048,10 @@ const useOrderMarketplaceSummary = ({
       }
 
       showSuccess(negotiationSuccessMessage);
+      return true;
     } catch (actionError) {
       showError(formatApiError(actionError));
+      return false;
     } finally {
       setRemoteActionLoading('');
     }
@@ -1944,9 +2063,72 @@ const useOrderMarketplaceSummary = ({
     remoteActionLoading,
     remoteNegotiation?.accept_reasons,
     remoteNegotiation?.alternative?.reason,
+    remoteNegotiation?.alternative?.type,
+    remoteNegotiation?.alternative?.id,
     remoteNegotiation?.dispute_id,
     showError,
     showSuccess,
+  ]);
+
+  const closeNegotiationFlow = useCallback(() => {
+    setNegotiationModalVisible(false);
+    setNegotiationDecision('');
+  }, []);
+
+  const handleOpenNegotiationFlow = useCallback(decision => {
+    const normalizedDecision = decision === 'alternative' ? 'alternative' : 'reject';
+    const firstAlternative = negotiationAlternatives[0] || null;
+    const alternativeReasons = resolveIfoodAlternativeReasonOptions(firstAlternative);
+    setNegotiationDecision(normalizedDecision);
+    setSelectedNegotiationReason(
+      normalizedDecision === 'reject'
+        ? IFOOD_DEFAULT_REJECT_REASON
+        : normalizeText(firstAlternative?.reason) || alternativeReasons[0]?.id || '',
+    );
+    setSelectedNegotiationAlternativeId(
+      firstAlternative ? resolveIfoodAlternativeId(firstAlternative, 0) : '',
+    );
+    setNegotiationModalVisible(true);
+  }, [negotiationAlternatives]);
+
+  const handleSelectNegotiationAlternative = useCallback(alternativeId => {
+    const selectedAlternative = negotiationAlternatives.find(
+      (alternative, index) =>
+        resolveIfoodAlternativeId(alternative, index) === alternativeId,
+    );
+    const alternativeReasons = resolveIfoodAlternativeReasonOptions(selectedAlternative);
+    setSelectedNegotiationAlternativeId(alternativeId);
+    setSelectedNegotiationReason(
+      normalizeText(selectedAlternative?.reason) || alternativeReasons[0]?.id || '',
+    );
+  }, [negotiationAlternatives]);
+
+  const handleConfirmNegotiation = useCallback(async () => {
+    if (!negotiationDecision) {
+      return;
+    }
+
+    if (negotiationDecision === 'alternative' && !selectedNegotiationAlternative) {
+      showError('Selecione uma contraproposta valida para responder ao iFood.');
+      return;
+    }
+
+    const responseOk = await handleRespondNegotiation(negotiationDecision, {
+      reason: selectedNegotiationReason,
+      alternative: selectedNegotiationAlternative,
+      alternativeId: selectedNegotiationAlternativeId,
+    });
+    if (responseOk) {
+      closeNegotiationFlow();
+    }
+  }, [
+    closeNegotiationFlow,
+    handleRespondNegotiation,
+    negotiationDecision,
+    selectedNegotiationAlternative,
+    selectedNegotiationAlternativeId,
+    selectedNegotiationReason,
+    showError,
   ]);
 
   const handleGenerateIntegrationInvoices = useCallback(async () => {
@@ -1967,6 +2149,16 @@ const useOrderMarketplaceSummary = ({
         },
       );
 
+      await Promise.allSettled([
+        typeof refreshOrder === 'function'
+          ? Promise.resolve(refreshOrder())
+          : Promise.resolve(),
+        loadMarketplaceState({silent: true}),
+        typeof onFinancialGenerated === 'function'
+          ? Promise.resolve(onFinancialGenerated())
+          : Promise.resolve(),
+      ]);
+
       showSuccess(
         response?.message ||
           'Solicitacao de geracao do financeiro enviada para o backend.',
@@ -1978,7 +2170,10 @@ const useOrderMarketplaceSummary = ({
     }
   }, [
     hasMarketplaceIntegration,
+    loadMarketplaceState,
+    onFinancialGenerated,
     orderId,
+    refreshOrder,
     remoteActionLoading,
     showError,
     showSuccess,
@@ -2025,7 +2220,12 @@ const useOrderMarketplaceSummary = ({
       });
     }
 
-    if (!isiFoodOrder || !remoteNegotiation?.has_open_dispute || !remoteNegotiation?.dispute_id) {
+    if (
+      !isiFoodOrder ||
+      !remoteNegotiation?.has_open_dispute ||
+      remoteNegotiation?.has_local_response ||
+      !remoteNegotiation?.dispute_id
+    ) {
       return actions;
     }
 
@@ -2054,7 +2254,7 @@ const useOrderMarketplaceSummary = ({
         tone: 'neutral',
         loading: remoteActionLoading === 'negotiation_reject',
         disabled: !!remoteActionLoading,
-        onPress: () => handleRespondNegotiation('reject'),
+        onPress: () => handleOpenNegotiationFlow('reject'),
       },
     );
 
@@ -2066,7 +2266,7 @@ const useOrderMarketplaceSummary = ({
         tone: 'neutral',
         loading: remoteActionLoading === 'negotiation_alternative',
         disabled: !!remoteActionLoading,
-        onPress: () => handleRespondNegotiation('alternative'),
+        onPress: () => handleOpenNegotiationFlow('alternative'),
       });
     }
 
@@ -2079,11 +2279,13 @@ const useOrderMarketplaceSummary = ({
     cancelReasonsLoading,
     handleDeliverPress,
     handleOpenCancelFlow,
+    handleOpenNegotiationFlow,
     handleRespondNegotiation,
     isiFoodOrder,
     remoteActionLoading,
     remoteNegotiation?.action,
     remoteNegotiation?.dispute_id,
+    remoteNegotiation?.has_local_response,
     remoteNegotiation?.has_open_dispute,
     runRemoteAction,
   ]);
@@ -2239,6 +2441,15 @@ const useOrderMarketplaceSummary = ({
       });
     }
 
+    if (remoteIntegration?.cancellation_request_failed) {
+      operationLines.push({
+        key: 'cancellation-request-failed',
+        label: global.t?.t('orders', 'label', 'status') || 'Status',
+        value: 'Cancelamento recusado pelo iFood',
+        strong: true,
+      });
+    }
+
     const hasIfoodNegotiationCard =
       isiFoodOrder &&
       (!!remoteNegotiation?.dispute_id ||
@@ -2295,6 +2506,15 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
+      if (remoteNegotiation?.pending_settlement && lastActionType.startsWith('handshake_')) {
+        negotiationLines.push({
+          key: 'negotiation-pending-settlement',
+          label: 'Resposta da loja',
+          value: `${negotiationResponseLabel}. Aguardando finalizacao do iFood.`,
+          strong: true,
+        });
+      }
+
       if (remoteNegotiation?.action) {
         negotiationLines.push({
           key: 'negotiation-action',
@@ -2344,6 +2564,21 @@ const useOrderMarketplaceSummary = ({
         });
       }
 
+      if (Array.isArray(remoteNegotiation?.alternatives)) {
+        remoteNegotiation.alternatives.forEach((alternative, index) => {
+          const formattedAlternative = formatIfoodAlternative(alternative);
+          if (!formattedAlternative) {
+            return;
+          }
+
+          negotiationLines.push({
+            key: `negotiation-alternative-option-${index}`,
+            label: index === 0 ? 'Alternativas iFood' : 'Alternativa iFood',
+            value: formattedAlternative,
+          });
+        });
+      }
+
       if (remoteNegotiation?.alternative?.available) {
         const alternativeParts = [
           formatIfoodNegotiationLabel(remoteNegotiation.alternative.type),
@@ -2384,6 +2619,19 @@ const useOrderMarketplaceSummary = ({
           label: 'Motivo da resposta',
           value: remoteNegotiation.settlement_reason,
         });
+      }
+
+      if (remoteNegotiation?.selected_alternative) {
+        const selectedAlternative = formatIfoodAlternative(
+          remoteNegotiation.selected_alternative,
+        );
+        if (selectedAlternative) {
+          negotiationLines.push({
+            key: 'negotiation-selected-alternative',
+            label: 'Alternativa final',
+            value: selectedAlternative,
+          });
+        }
       }
     }
 
@@ -2983,6 +3231,27 @@ const useOrderMarketplaceSummary = ({
       codesLines,
       observationLines,
       actionButtons,
+      negotiationFlow: {
+        visible: negotiationModalVisible,
+        decision: negotiationDecision,
+        actionLabel:
+          negotiationDecision === 'alternative'
+            ? 'Enviar contraproposta'
+            : 'Rejeitar disputa',
+        description:
+          negotiationDecision === 'alternative'
+            ? 'Selecione a contraproposta oficial recebida do iFood antes de enviar.'
+            : 'Selecione o motivo oficial que sera enviado ao iFood.',
+        reasons: negotiationReasonOptions,
+        selectedReason: selectedNegotiationReason,
+        alternatives: negotiationAlternatives,
+        selectedAlternativeId: selectedNegotiationAlternativeId,
+        actionLoading: remoteActionLoading,
+        onClose: closeNegotiationFlow,
+        onSelectReason: setSelectedNegotiationReason,
+        onSelectAlternative: handleSelectNegotiationAlternative,
+        onSubmit: handleConfirmNegotiation,
+      },
       cancelFlow: {
         visible: cancelModalVisible,
         channelLabel: platformLabel,
@@ -3046,6 +3315,7 @@ const useOrderMarketplaceSummary = ({
     cancelReasonText,
     cancelReasonsLoading,
     closeDeliveryFlow,
+    closeNegotiationFlow,
     collectOnDeliveryAmount,
     customerDocument,
     customerDocumentLabel,
@@ -3057,11 +3327,13 @@ const useOrderMarketplaceSummary = ({
     fallbackSummary,
     handleConfirmCancel,
     handleConfirmDelivery,
+    handleConfirmNegotiation,
     handleCopyHandoverLink,
     handleCopyLocator,
     handleDeliverPress,
     handleOpenCancelFlow,
     handleOpenHandoverLink,
+    handleSelectNegotiationAlternative,
     handleShareHandoverWhatsapp,
     handleVerifyLocator,
     handoverCode,
@@ -3077,6 +3349,10 @@ const useOrderMarketplaceSummary = ({
     isiFoodTakeoutOrder,
     itemRemarksText,
     localAddressParts,
+    negotiationAlternatives,
+    negotiationDecision,
+    negotiationModalVisible,
+    negotiationReasonOptions,
     orderObservationText,
     pickupAreaCode,
     pickupAreaTypeLabel,
@@ -3099,6 +3375,8 @@ const useOrderMarketplaceSummary = ({
     remoteActionLoading,
     resetCancelFlow,
     selectedCancelReasonId,
+    selectedNegotiationAlternativeId,
+    selectedNegotiationReason,
     selectedPaymentLabel,
     shopPaidMoney,
     shouldShowItemRemarks,
