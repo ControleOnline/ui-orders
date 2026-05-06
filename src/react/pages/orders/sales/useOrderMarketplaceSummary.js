@@ -1396,7 +1396,7 @@ const useOrderMarketplaceSummary = ({
       (lastActionType === 'ready' && lastActionErrno === '0'));
   const canNotifyIfoodReadyWhilePreparing =
     isiFoodOrder &&
-    localRealStatusKey === 'open' &&
+    ['open', 'pending'].includes(localRealStatusKey) &&
     localStatusNameKey === 'preparing' &&
     !hasSyncedIfoodReady;
   const canNotifyIfoodReadyFromSummary =
@@ -1415,7 +1415,7 @@ const useOrderMarketplaceSummary = ({
     (canReadyIfoodFromSummary ||
       (!isRemoteTerminal &&
         remoteCapabilities.canReady &&
-      localRealStatusKey === 'open' &&
+      ['open', 'pending'].includes(localRealStatusKey) &&
       localStatusNameKey === 'preparing'));
   const canDeliverRemoteOrder =
     hasMarketplaceIntegration &&
