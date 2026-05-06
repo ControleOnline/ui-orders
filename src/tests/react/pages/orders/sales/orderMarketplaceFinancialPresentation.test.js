@@ -39,4 +39,26 @@ describe('orderMarketplaceFinancialPresentation', () => {
       }),
     ).toBe(50.05)
   })
+
+  it('maps logistics and processing charges to simplified marketplace titles', () => {
+    const processing = resolveMarketplaceInvoicePresentation({
+      description: 'Taxa de processamento de pagamento 99 Food do pedido #71043',
+    })
+    const logistics = resolveMarketplaceInvoicePresentation({
+      description: 'Custos logisticos 99 Food do pedido #71043',
+    })
+
+    expect(processing).toEqual(
+      expect.objectContaining({
+        purposeKey: 'payment_processing',
+        title: 'Taxa de processamento',
+      }),
+    )
+    expect(logistics).toEqual(
+      expect.objectContaining({
+        purposeKey: 'logistics_cost',
+        title: 'Custo logístico',
+      }),
+    )
+  })
 })
