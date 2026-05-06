@@ -32,6 +32,10 @@ import {
   buildPaymentSections,
   buildPaymentSelectionOption,
 } from '@controleonline/ui-orders/src/react/pages/checkout/CheckoutPaymentOptions';
+import {
+  appendSyntheticOrderInvoice,
+  resolveNextOperationalPayable,
+} from '@controleonline/ui-orders/src/react/utils/checkoutInvoices';
 
 import {
   buildWalletIdsForGateway,
@@ -146,6 +150,10 @@ const Checkout = () => {
   const invoiceGetters = invoiceStore.getters;
   const invoiceActions = invoiceStore.actions;
 
+  const orderInvoicesStore = useStore('order_invoices');
+  const orderInvoicesGetters = orderInvoicesStore.getters;
+  const orderInvoicesActions = orderInvoicesStore.actions;
+
   const orderProductsStore = useStore('order_products');
   const orderProductsGetters = orderProductsStore.getters;
 
@@ -181,6 +189,7 @@ const Checkout = () => {
     message: invoiceMessage,
     messages: invoiceMessages,
   } = invoiceGetters;
+  const {items: storedOrderInvoices = []} = orderInvoicesGetters;
   const {
     items: orderProducts = [],
     isLoading: orderProductsIsloading,
@@ -418,6 +427,52 @@ const Checkout = () => {
     [invoiceActions, invoices],
   );
 
+  const appendOrderInvoiceToStore = useCallback(
+    (invoiceData, realPrice = null) => {
+      if (!invoiceData) {
+        return;
+      }
+
+      orderInvoicesActions.setItems(
+        appendSyntheticOrderInvoice(storedOrderInvoices, {
+          invoice: invoiceData,
+          orderIri: order?.['@id'] || (routeOrderId ? `/orders/${routeOrderId}` : ''),
+          realPrice,
+        }),
+      );
+    },
+    [order?.['@id'], orderInvoicesActions, routeOrderId, storedOrderInvoices],
+  );
+
+  const resolveNextPayableAfterPayment = useCallback(
+    paidAmount =>
+      resolveNextOperationalPayable({
+        paidAmount,
+        payable,
+        remainingAmount,
+      }),
+    [payable, remainingAmount],
+  );
+
+  const resetCompletedOrderState = useCallback(() => {
+    clearStoredDraftOrderId();
+    ordersActions.setItem(null);
+    invoiceActions.setItems([]);
+    orderInvoicesActions.setItems([]);
+    ordersActions.setPayable(0);
+
+    if (isAutoPrintEnabled) {
+      printActions.setReload(true);
+    }
+  }, [
+    clearStoredDraftOrderId,
+    invoiceActions,
+    isAutoPrintEnabled,
+    orderInvoicesActions,
+    ordersActions,
+    printActions,
+  ]);
+
   useFocusEffect(
     useCallback(() => {
       if (!routeOrderId || String(order?.id || '') === String(routeOrderId)) {
@@ -462,9 +517,19 @@ const Checkout = () => {
     const handleRemotePaymentResult = async () => {
       try {
         if (String(invoiceMessage?.status || '').trim().toLowerCase() === 'success') {
+          const paidAmount = Number(
+            invoiceMessage?.paidAmount ??
+            invoiceMessage?.invoice?.price ??
+            0,
+          );
+          const nextPayable = resolveNextPayableAfterPayment(paidAmount);
+
           if (invoiceMessage?.invoice) {
             appendInvoiceToStore(invoiceMessage.invoice);
+            appendOrderInvoiceToStore(invoiceMessage.invoice, paidAmount);
           }
+
+          ordersActions.setPayable(nextPayable < 0 ? nextPayable : 0);
 
           if (routeOrderId) {
             await ordersActions.get(routeOrderId).catch(() => null);
@@ -492,6 +557,7 @@ const Checkout = () => {
     handleRemotePaymentResult();
   }, [
     appendInvoiceToStore,
+    appendOrderInvoiceToStore,
     buildOrderDetailsNavigationParams,
     invoiceActions,
     invoiceMessage,
@@ -499,6 +565,7 @@ const Checkout = () => {
     order,
     ordersActions,
     pendingRemotePaymentRequest?.requestKey,
+    resolveNextPayableAfterPayment,
     routeOrderId,
   ]);
 
@@ -709,11 +776,13 @@ const Checkout = () => {
           return null;
         }
 
-        if (device?.configs?.['pos-type'] == 'simple') {
-          const nextPayable = Number(payable || 0) + Number(createdInvoice.price || 0);
+        const paidAmount = Number(createdInvoice.price || 0);
+        const nextPayable = resolveNextPayableAfterPayment(paidAmount);
 
+        if (device?.configs?.['pos-type'] == 'simple') {
           if (nextPayable < 0) {
             appendInvoiceToStore(createdInvoice);
+            appendOrderInvoiceToStore(createdInvoice, paidAmount);
             ordersActions.setPayable(nextPayable);
             ordersActions.syncOrder?.(order);
             navigation.navigate(
@@ -721,13 +790,7 @@ const Checkout = () => {
               buildOrderDetailsNavigationParams(order),
             );
           } else {
-            clearStoredDraftOrderId();
-            ordersActions.setItem(null);
-            invoiceActions.setItems([]);
-            ordersActions.setPayable(0);
-            if (isAutoPrintEnabled) {
-              printActions.setReload(true);
-            }
+            resetCompletedOrderState();
             if (isCounterMode) {
               resetToCounterDestination();
             } else if (isSelfServiceMode) {
@@ -737,16 +800,11 @@ const Checkout = () => {
             }
           }
         } else {
-          const nextPayable = Number(payable || 0) + Number(createdInvoice.price || 0);
           appendInvoiceToStore(createdInvoice);
+          appendOrderInvoiceToStore(createdInvoice, paidAmount);
+          ordersActions.setPayable(nextPayable < 0 ? nextPayable : 0);
           if ((isSelfServiceMode || isCounterMode) && nextPayable >= 0) {
-            clearStoredDraftOrderId();
-            ordersActions.setItem(null);
-            invoiceActions.setItems([]);
-            ordersActions.setPayable(0);
-            if (isAutoPrintEnabled) {
-              printActions.setReload(true);
-            }
+            resetCompletedOrderState();
             if (isCounterMode) {
               resetToCounterDestination();
             } else {
@@ -774,22 +832,21 @@ const Checkout = () => {
     },
     [
       appendInvoiceToStore,
+      appendOrderInvoiceToStore,
       buildOrderDetailsNavigationParams,
-      clearStoredDraftOrderId,
       currentCompany?.id,
       defaultCompany?.configs,
       device?.configs,
       invoiceActions,
-      isAutoPrintEnabled,
       isCounterMode,
       isSelfServiceMode,
       navigation,
       order,
       ordersActions,
-      payable,
-      printActions,
       resetToCounterDestination,
+      resetCompletedOrderState,
       resetToSelfServiceCatalog,
+      resolveNextPayableAfterPayment,
     ],
   );
 
