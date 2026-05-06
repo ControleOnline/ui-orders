@@ -1392,7 +1392,8 @@ const useOrderMarketplaceSummary = ({
     remoteCapabilities.canCancel;
   const hasSyncedIfoodReady =
     isiFoodOrder &&
-    (['ready', 'dispatching', 'dispatched', 'order_dispatched'].includes(remoteOrderStateKey) ||
+    ((['ready', 'dispatching', 'dispatched', 'order_dispatched'].includes(remoteOrderStateKey) &&
+      !['delivery_drop_code_requested', 'delivery_drop_code_validating'].includes(lastEventType)) ||
       (lastActionType === 'ready' && lastActionErrno === '0'));
   const canNotifyIfoodReadyWhilePreparing =
     isiFoodOrder &&
