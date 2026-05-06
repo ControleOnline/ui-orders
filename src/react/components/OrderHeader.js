@@ -142,6 +142,7 @@ const OrderHeader = ({
   order,
   isKds = false,
   showWaitingTime = isKds,
+  stackRightSectionBelow = false,
   onCustomerPress = null,
   customerActionLabel = '',
   customerActionDisabled = false,
@@ -222,12 +223,19 @@ const OrderHeader = ({
   const showStatus = !['transfer', 'loss'].includes(orderType)
   const priceStyle = useMemo(() => resolvePriceStyle(orderType, styles), [orderType, styles])
   const waitingColor = waitingConfig?.color || '#EF4444'
+  const shouldStackRightSectionBelow = isKds && stackRightSectionBelow
 
   return (
     <OrderCardHeader
       order={order}
-      containerStyle={styles.container}
-      leftSectionStyle={styles.leftSection}
+      containerStyle={[
+        styles.container,
+        shouldStackRightSectionBelow && styles.containerStackedRightSection,
+      ]}
+      leftSectionStyle={[
+        styles.leftSection,
+        shouldStackRightSectionBelow && styles.leftSectionStackedRightSection,
+      ]}
       leftContent={
         <View style={[styles.leadingWrap, leadingVisual.wrapStyle]}>
           {leadingVisual.content}
@@ -259,7 +267,10 @@ const OrderHeader = ({
           </TouchableOpacity>
         ) : null
       }
-      rightSectionStyle={styles.rightSection}
+      rightSectionStyle={[
+        styles.rightSection,
+        shouldStackRightSectionBelow && styles.rightSectionStacked,
+      ]}
       status={
         showStatus
           ? {label: displayedStatus.labelUpper, color: statusColor}
@@ -267,6 +278,7 @@ const OrderHeader = ({
       }
       statusBadgeStyle={[
         styles.statusBadge,
+        shouldStackRightSectionBelow && styles.statusBadgeStacked,
         {
           borderColor: withOpacity(statusColor, 0.4),
           backgroundColor: withOpacity(statusColor, 0.08),
@@ -279,6 +291,7 @@ const OrderHeader = ({
           <Animated.View
             style={[
               styles.waitingChip,
+              shouldStackRightSectionBelow && styles.waitingChipStacked,
               {
                 borderColor: withOpacity(waitingColor, 0.28),
                 backgroundColor: withOpacity(waitingColor, 0.12),
@@ -292,7 +305,12 @@ const OrderHeader = ({
             </Text>
           </Animated.View>
         ) : isKds && !!formattedOrderDate ? (
-          <View style={styles.metaChip}>
+          <View
+            style={[
+              styles.metaChip,
+              shouldStackRightSectionBelow && styles.metaChipStacked,
+            ]}
+          >
             <FeatherIcon name="calendar" size={10} color="#475569" />
             <Text numberOfLines={1} ellipsizeMode="tail" style={styles.metaChipText}>
               {formattedOrderDate}

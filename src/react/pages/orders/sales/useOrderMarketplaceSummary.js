@@ -529,6 +529,7 @@ const useOrderMarketplaceSummary = ({
   order,
   initialOrder,
   refreshOrder,
+  onFinancialGenerated,
   isKds,
   navigation,
   showError,
@@ -2148,6 +2149,16 @@ const useOrderMarketplaceSummary = ({
         },
       );
 
+      await Promise.allSettled([
+        typeof refreshOrder === 'function'
+          ? Promise.resolve(refreshOrder())
+          : Promise.resolve(),
+        loadMarketplaceState({silent: true}),
+        typeof onFinancialGenerated === 'function'
+          ? Promise.resolve(onFinancialGenerated())
+          : Promise.resolve(),
+      ]);
+
       showSuccess(
         response?.message ||
           'Solicitacao de geracao do financeiro enviada para o backend.',
@@ -2159,7 +2170,10 @@ const useOrderMarketplaceSummary = ({
     }
   }, [
     hasMarketplaceIntegration,
+    loadMarketplaceState,
+    onFinancialGenerated,
     orderId,
+    refreshOrder,
     remoteActionLoading,
     showError,
     showSuccess,

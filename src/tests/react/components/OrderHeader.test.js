@@ -1,4 +1,6 @@
 const {jest} = require('@jest/globals')
+const React = require('react')
+const ReactDOMServer = require('react-dom/server')
 
 const {describe, expect, it} = global
 
@@ -37,39 +39,49 @@ jest.mock('@assets/ppc/channels', () => ({
   getOrderChannelLabel: jest.fn(() => 'Shop'),
   getOrderChannelLogo: jest.fn(() => null),
 }))
-jest.mock('../../../react/components/OrderCardHeader', () => 'OrderCardHeader')
+jest.mock('../../../react/components/OrderCardHeader', () => props => {
+  global.__orderCardHeaderProps = props
+  return null
+})
 jest.mock('../../../react/components/OrderHeader.styles', () =>
   jest.fn(() => ({
-    container: {},
-    identityWrap: {},
-    leftSection: {},
-    leadingLabel: {},
-    leadingLogo: {},
-    leadingWrap: {},
-    leadingWrapLoss: {},
-    leadingWrapPurchase: {},
-    leadingWrapTransfer: {},
-    metaChip: {},
-    metaChipText: {},
-    metaRow: {},
-    orderDate: {},
-    orderId: {},
-    orderIdSecondary: {},
-    priceText: {},
-    rightSection: {},
-    statusBadge: {},
-    statusDot: {},
-    statusText: {},
-    titleWrap: {},
-    customerActionButton: {},
-    customerActionButtonDisabled: {},
-    customerActionText: {},
-    waitingChip: {},
-    waitingText: {},
+    container: {id: 'container'},
+    containerStackedRightSection: {id: 'containerStackedRightSection'},
+    identityWrap: {id: 'identityWrap'},
+    leftSection: {id: 'leftSection'},
+    leftSectionStackedRightSection: {id: 'leftSectionStackedRightSection'},
+    leadingLabel: {id: 'leadingLabel'},
+    leadingLogo: {id: 'leadingLogo'},
+    leadingWrap: {id: 'leadingWrap'},
+    leadingWrapLoss: {id: 'leadingWrapLoss'},
+    leadingWrapPurchase: {id: 'leadingWrapPurchase'},
+    leadingWrapTransfer: {id: 'leadingWrapTransfer'},
+    metaChip: {id: 'metaChip'},
+    metaChipStacked: {id: 'metaChipStacked'},
+    metaChipText: {id: 'metaChipText'},
+    metaRow: {id: 'metaRow'},
+    orderDate: {id: 'orderDate'},
+    orderId: {id: 'orderId'},
+    orderIdSecondary: {id: 'orderIdSecondary'},
+    priceText: {id: 'priceText'},
+    rightSection: {id: 'rightSection'},
+    rightSectionStacked: {id: 'rightSectionStacked'},
+    statusBadge: {id: 'statusBadge'},
+    statusBadgeStacked: {id: 'statusBadgeStacked'},
+    statusDot: {id: 'statusDot'},
+    statusText: {id: 'statusText'},
+    titleWrap: {id: 'titleWrap'},
+    customerActionButton: {id: 'customerActionButton'},
+    customerActionButtonDisabled: {id: 'customerActionButtonDisabled'},
+    customerActionText: {id: 'customerActionText'},
+    waitingChip: {id: 'waitingChip'},
+    waitingChipStacked: {id: 'waitingChipStacked'},
+    waitingText: {id: 'waitingText'},
   })),
 )
 
 const {
+  default: OrderHeader,
   resolveDisplayedOrderStatus,
   shouldShowKdsWaitingTime,
 } = require('../../../react/components/OrderHeader')
@@ -122,5 +134,45 @@ describe('OrderHeader', () => {
         },
       }),
     ).toBe(false)
+  })
+
+  it('stacks status and waiting time below the identity area when requested for KDS', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        isKds: true,
+        stackRightSectionBelow: true,
+        order: {
+          alterDate: '2026-05-05T21:07:04.000Z',
+          status: {
+            realStatus: 'working',
+            status: 'Preparing',
+            color: '#22C55E',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.containerStyle).toEqual([
+      {id: 'container'},
+      {id: 'containerStackedRightSection'},
+    ])
+    expect(global.__orderCardHeaderProps.leftSectionStyle).toEqual([
+      {id: 'leftSection'},
+      {id: 'leftSectionStackedRightSection'},
+    ])
+    expect(global.__orderCardHeaderProps.rightSectionStyle).toEqual([
+      {id: 'rightSection'},
+      {id: 'rightSectionStacked'},
+    ])
+    expect(global.__orderCardHeaderProps.statusBadgeStyle).toEqual([
+      {id: 'statusBadge'},
+      {id: 'statusBadgeStacked'},
+      {
+        backgroundColor: '#22C55E:0.08',
+        borderColor: '#22C55E:0.4',
+      },
+    ])
   })
 })
