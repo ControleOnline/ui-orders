@@ -26,6 +26,34 @@ export const resolveNextOperationalPayable = ({
   return roundMoney(resolvedPaidAmount - baselinePending)
 }
 
+export const resolveOperationalDisplayAmount = ({
+  orderTotal = 0,
+  pendingAmount = 0,
+  receivedAmount = 0,
+} = {}) => {
+  const resolvedReceivedAmount = Math.max(Number(receivedAmount || 0), 0)
+
+  if (resolvedReceivedAmount > 0.009) {
+    return roundMoney(Math.max(Number(pendingAmount || 0), 0))
+  }
+
+  return roundMoney(Math.max(Number(orderTotal || 0), 0))
+}
+
+export const resolveOperationalDisplayLabelKey = ({
+  pendingAmount = 0,
+  receivedAmount = 0,
+} = {}) => {
+  const resolvedReceivedAmount = Math.max(Number(receivedAmount || 0), 0)
+  const resolvedPendingAmount = Math.max(Number(pendingAmount || 0), 0)
+
+  if (resolvedReceivedAmount <= 0.009) {
+    return 'localTotal'
+  }
+
+  return resolvedPendingAmount > 0.009 ? 'pending' : 'paid'
+}
+
 export const appendSyntheticOrderInvoice = (
   items,
   {invoice = null, orderIri = '', realPrice = null} = {},

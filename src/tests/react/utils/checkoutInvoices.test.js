@@ -1,5 +1,7 @@
 const {
   appendSyntheticOrderInvoice,
+  resolveOperationalDisplayAmount,
+  resolveOperationalDisplayLabelKey,
   resolveNextOperationalPayable,
 } = require('../../../react/utils/checkoutInvoices')
 
@@ -65,5 +67,43 @@ describe('checkoutInvoices', () => {
       order: '/orders/42',
       realPrice: 5,
     })
+  })
+
+  it('switches the operational display amount to the remaining balance after a partial payment', () => {
+    expect(
+      resolveOperationalDisplayAmount({
+        orderTotal: 100,
+        pendingAmount: 70,
+        receivedAmount: 30,
+      }),
+    ).toBe(70)
+    expect(
+      resolveOperationalDisplayLabelKey({
+        pendingAmount: 70,
+        receivedAmount: 30,
+      }),
+    ).toBe('pending')
+  })
+
+  it('keeps the full order total before any payment and reaches paid when the balance is zero', () => {
+    expect(
+      resolveOperationalDisplayAmount({
+        orderTotal: 100,
+        pendingAmount: 100,
+        receivedAmount: 0,
+      }),
+    ).toBe(100)
+    expect(
+      resolveOperationalDisplayLabelKey({
+        pendingAmount: 100,
+        receivedAmount: 0,
+      }),
+    ).toBe('localTotal')
+    expect(
+      resolveOperationalDisplayLabelKey({
+        pendingAmount: 0,
+        receivedAmount: 100,
+      }),
+    ).toBe('paid')
   })
 })
