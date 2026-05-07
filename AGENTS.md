@@ -86,6 +86,7 @@
 
 ## Regras operacionais de POS e kiosk
 - Nao existe `APP_TYPE=TOTEM`. O totem e sempre `APP_TYPE=POS` com `pos-operation-mode=kiosk`.
+- Em Android dedicado/Cielo, a camada nativa pode travar o sistema em `Lock Task Mode`, mas isso so e bloqueio forte quando o device estiver provisionado como Device Owner/MDM/OEM. O fluxo de venda continua sendo o mesmo `POS` kiosk.
 - Em `BALCAO`, a entrada do app deve continuar em `HomePage`. O fluxo continuo de retomada so comeca a partir de `OrderHistoryPage`, nunca pulando a home como no `kiosk`.
 - Em `BALCAO`, quando a lista de pedidos for aberta em modo de retomada, vale a prioridade de foco unico: sem pedido aberto vai para `AddProductScreen`; com um pedido aberto vai direto para ele; com mais de um pedido aberto permanece em `OrderHistoryPage` para escolha explicita.
 - Em `BALCAO`, quando o operador pedir um novo pedido a partir do historico, o fluxo nao deve reabrir automaticamente o rascunho salvo anterior; ele precisa limpar a referencia ativa para materializar um novo `cart` no proximo item adicionado.
