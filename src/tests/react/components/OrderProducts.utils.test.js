@@ -102,7 +102,7 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[1].items[0].name).toBe('Guarana Lata')
   })
 
-  it('keeps nested embedded removals visible as group items', () => {
+  it('keeps nested embedded components visible as regular group items', () => {
     const cards = buildOrderProductCards([
       {
         id: 20,
@@ -136,11 +136,112 @@ describe('OrderProducts.utils', () => {
     expect(cards).toHaveLength(1)
     expect(cards[0].groups).toHaveLength(1)
     expect(cards[0].groups[0].label).toBe('Complementos')
-    expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
-      'Queijo',
+    expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Queijo'])
+    expect(cards[0].groups[0].items[0].groups).toHaveLength(1)
+    expect(cards[0].groups[0].items[0].groups[0].label).toBe('Outros')
+    expect(cards[0].groups[0].items[0].groups[0].items.map(item => item.name)).toEqual([
       'Cebola Roxa',
     ])
-    expect(cards[0].groups[0].items[1].isZero).toBe(true)
+    expect(cards[0].groups[0].items[0].groups[0].items[0].isZero).toBe(false)
+  })
+
+  it('keeps three-level local components under the root order item', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 40,
+        quantity: 1,
+        total: 63,
+        product: { id: 901, product: 'Combo Beta Gyros' },
+      },
+      {
+        id: 41,
+        quantity: 1,
+        product: { id: 902, product: 'Batata Frita Media' },
+        orderProduct: '/order_products/40',
+        parentProduct: '/products/901',
+        productGroup: {
+          id: 1200,
+          productGroup: 'Escolha sua Batata',
+        },
+      },
+      {
+        id: 42,
+        quantity: 1,
+        product: { id: 903, product: 'Sal' },
+        orderProduct: '/order_products/41',
+        parentProduct: '/products/902',
+        productGroup: {
+          id: 1201,
+          productGroup: 'Escolha o tempero da sua Batata',
+        },
+      },
+    ])
+
+    expect(cards).toHaveLength(1)
+    expect(cards[0].name).toBe('Combo Beta Gyros')
+    expect(cards[0].groups.map(group => group.label)).toEqual(['Escolha sua Batata'])
+    expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
+      'Batata Frita Media',
+    ])
+    expect(cards[0].groups[0].items[0].groups).toHaveLength(1)
+    expect(cards[0].groups[0].items[0].groups[0].label).toBe(
+      'Escolha o tempero da sua Batata',
+    )
+    expect(cards[0].groups[0].items[0].groups[0].items.map(item => item.name)).toEqual(['Sal'])
+    expect(cards[0].groups[0].items[0].groups[0].items[0].isZero).toBe(false)
+  })
+
+  it('hides zero-value duplicate root cards for components already shown inside a combo', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 50,
+        quantity: 1,
+        total: 63,
+        product: { id: 951, product: 'Combo Beta Gyros' },
+      },
+      {
+        id: 51,
+        quantity: 1,
+        product: { id: 952, product: 'Batata Frita Media' },
+        orderProduct: '/order_products/50',
+        parentProduct: '/products/951',
+        productGroup: {
+          id: 1250,
+          productGroup: 'Escolha sua Batata',
+        },
+      },
+      {
+        id: 52,
+        quantity: 1,
+        price: 0,
+        total: 0,
+        product: { id: 952, product: 'Batata Frita Media' },
+      },
+      {
+        id: 53,
+        quantity: 1,
+        product: { id: 953, product: 'Sal' },
+        orderProduct: '/order_products/52',
+        parentProduct: '/products/952',
+        productGroup: {
+          id: 1251,
+          productGroup: 'Escolha o tempero da sua Batata',
+        },
+      },
+    ])
+
+    expect(cards).toHaveLength(1)
+    expect(cards[0].name).toBe('Combo Beta Gyros')
+    expect(cards[0].groups.map(group => group.label)).toEqual(['Escolha sua Batata'])
+    expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
+      'Batata Frita Media',
+    ])
+    expect(cards[0].groups[0].items[0].groups).toHaveLength(1)
+    expect(cards[0].groups[0].items[0].groups[0].label).toBe(
+      'Escolha o tempero da sua Batata',
+    )
+    expect(cards[0].groups[0].items[0].groups[0].items.map(item => item.name)).toEqual(['Sal'])
+    expect(cards[0].groups[0].items[0].groups[0].items[0].isZero).toBe(false)
   })
 
   it('hydrates embedded component IRIs from sibling collection items', () => {

@@ -124,6 +124,99 @@ const OrderProducts = ({
     [maxCards, productCards],
   )
 
+  const renderGroups = (groups, card, depth = 0) => {
+    if (!Array.isArray(groups) || groups.length === 0) {
+      return null
+    }
+
+    const nestedStyle = depth > 0
+      ? {
+          marginLeft: 18,
+          marginTop: 6,
+          paddingLeft: 10,
+          borderLeftWidth: 1,
+          borderLeftColor: '#CBD5E1',
+        }
+      : null
+
+    return (
+      <View style={[styles.groupWrap, nestedStyle]}>
+        {groups.map(group => (
+          <View key={`${card.key}-${depth}-${group.id}`} style={styles.groupWrap}>
+            {!!group.label && (
+              <View style={styles.groupTitlePill}>
+                <Text style={styles.groupTitle}>{group.label}</Text>
+              </View>
+            )}
+
+            {group.items.map(groupItem => {
+              const childColor = groupItem.isZero ? REMOVAL_COLOR : groupItem.itemColor
+              const childActions = renderEntryActions({
+                renderActions,
+                entryType: 'group',
+                card,
+                group,
+                entry: groupItem,
+              })
+
+              return (
+                <View key={groupItem.id} style={styles.groupItem}>
+                  <View style={[sharedStyles.groupItemMainRow, styles.groupItemMainRow]}>
+                    <View style={[sharedStyles.groupItemContent, styles.groupItemContent]}>
+                      <Text style={styles.groupItemText}>
+                        <Text style={[styles.statusMarker, { color: childColor }]}>* </Text>
+                        {groupItem.isZero ? (
+                          <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
+                        ) : null}
+                        {!groupItem.isZero && !!formatOrderProductQuantityPrefix(groupItem.quantity) ? (
+                          <Text style={styles.qtyText}>
+                            {formatOrderProductQuantityPrefix(groupItem.quantity)}
+                          </Text>
+                        ) : null}
+                        {groupItem.name}
+                      </Text>
+
+                      <View style={[sharedStyles.groupItemMetaWrap, styles.groupItemMetaWrap]}>
+                        <QueueBadge
+                          presentation={groupItem.queuePresentation}
+                          styles={styles}
+                        />
+
+                        {showDetails && !!groupItem.description && (
+                          <Text style={styles.groupItemMetaText}>
+                            {groupItem.description}
+                          </Text>
+                        )}
+
+                        {showDetails && !!groupItem.observation && (
+                          <Text style={styles.groupItemMetaText}>
+                            Obs: {groupItem.observation}
+                          </Text>
+                        )}
+                      </View>
+
+                      {renderGroups(groupItem.groups, card, depth + 1)}
+                    </View>
+
+                    {childActions ? (
+                      <View style={[sharedStyles.groupItemActions, styles.groupItemActions]}>
+                        {childActions}
+                      </View>
+                    ) : showPricing && groupItem.totalPrice > 0 ? (
+                      <Text style={styles.groupItemPriceText}>
+                        {Formatter.formatMoney(groupItem.totalPrice)}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              )
+            })}
+          </View>
+        ))}
+      </View>
+    )
+  }
+
   return (
     <>
       {visibleCards.map((card, index) => {
@@ -239,80 +332,7 @@ const OrderProducts = ({
                 ) : null}
               </View>
 
-              {card.groups.length > 0 && (
-                <View style={styles.groupWrap}>
-                  {card.groups.map(group => (
-                    <View key={`${card.key}-${group.id}`} style={styles.groupWrap}>
-                      {!!group.label && (
-                        <View style={styles.groupTitlePill}>
-                          <Text style={styles.groupTitle}>{group.label}</Text>
-                        </View>
-                      )}
-
-                      {group.items.map(groupItem => {
-                        const childColor = groupItem.isZero ? REMOVAL_COLOR : groupItem.itemColor
-                        const childActions = renderEntryActions({
-                          renderActions,
-                          entryType: 'group',
-                          card,
-                          group,
-                          entry: groupItem,
-                        })
-
-                        return (
-                          <View key={groupItem.id} style={styles.groupItem}>
-                            <View style={[sharedStyles.groupItemMainRow, styles.groupItemMainRow]}>
-                              <View style={[sharedStyles.groupItemContent, styles.groupItemContent]}>
-                                <Text style={styles.groupItemText}>
-                                  <Text style={[styles.statusMarker, { color: childColor }]}>* </Text>
-                                  {groupItem.isZero ? (
-                                    <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
-                                  ) : null}
-                                  {!groupItem.isZero && !!formatOrderProductQuantityPrefix(groupItem.quantity) ? (
-                                    <Text style={styles.qtyText}>
-                                      {formatOrderProductQuantityPrefix(groupItem.quantity)}
-                                    </Text>
-                                  ) : null}
-                                  {groupItem.name}
-                                </Text>
-
-                                <View style={[sharedStyles.groupItemMetaWrap, styles.groupItemMetaWrap]}>
-                                  <QueueBadge
-                                    presentation={groupItem.queuePresentation}
-                                    styles={styles}
-                                  />
-
-                                  {showDetails && !!groupItem.description && (
-                                    <Text style={styles.groupItemMetaText}>
-                                      {groupItem.description}
-                                    </Text>
-                                  )}
-
-                                  {showDetails && !!groupItem.observation && (
-                                    <Text style={styles.groupItemMetaText}>
-                                      Obs: {groupItem.observation}
-                                    </Text>
-                                  )}
-                                </View>
-                              </View>
-
-                              {childActions ? (
-                                <View style={[sharedStyles.groupItemActions, styles.groupItemActions]}>
-                                  {childActions}
-                                </View>
-                              ) : showPricing && groupItem.totalPrice > 0 ? (
-                                <Text style={styles.groupItemPriceText}>
-                                  {Formatter.formatMoney(groupItem.totalPrice)}
-                                </Text>
-                              ) : null}
-                            </View>
-                          </View>
-                        )
-                      })}
-                    </View>
-                  ))}
-                </View>
-              )}
+              {renderGroups(card.groups, card)}
             </View>
           </View>
         )
