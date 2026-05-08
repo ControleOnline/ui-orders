@@ -236,12 +236,17 @@ const getChildBucketLabel = node =>
   getCategoryLabel(node) || getGroupLabel(node)
 
 const getParentReference = node =>
-  node?.orderProduct || node?.parentProduct || node?.productGroup?.parentProduct || null
+  node?.orderProduct ||
+  node?.order_product ||
+  node?.parentProduct ||
+  node?.productGroup?.parentProduct ||
+  null
 
 const hasGroupedParent = node =>
   !!(
     node?.productGroup ||
     node?.orderProduct ||
+    node?.order_product ||
     node?.parentProduct ||
     node?.productGroup?.parentProduct
   )
@@ -339,6 +344,10 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   const cardsByRootKey = new Map()
   const cardsByCatalogProductKey = new Map()
   const groupEntryKeysByCardKey = new Map()
+  const componentCardByOrderProductId = new Map()
+  const componentEntryByOrderProductId = new Map()
+  const componentEntriesByProductKey = new Map()
+  const duplicateRootOrderProductIds = new Set()
   const itemsByEntityId = new Map()
   let embeddedComponentOrderSequence = 0
 
@@ -349,17 +358,18 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     }
   })
 
-  const getCardGroupEntryKeys = card => {
-    if (!groupEntryKeysByCardKey.has(card.key)) {
-      groupEntryKeysByCardKey.set(card.key, new Set())
+  const getGroupEntryKeys = target => {
+    const targetKey = target?.key || `entry-${target?.id || ''}`
+    if (!groupEntryKeysByCardKey.has(targetKey)) {
+      groupEntryKeysByCardKey.set(targetKey, new Set())
     }
 
-    return groupEntryKeysByCardKey.get(card.key)
+    return groupEntryKeysByCardKey.get(targetKey)
   }
 
-  const ensureCardGroup = (card, groupKey, groupLabel, order) => {
-    if (!card.groups.has(groupKey)) {
-      card.groups.set(groupKey, {
+  const ensureTargetGroup = (target, groupKey, groupLabel, order) => {
+    if (!target.groups.has(groupKey)) {
+      target.groups.set(groupKey, {
         id: groupKey,
         label: groupLabel,
         order,
@@ -367,7 +377,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       })
     }
 
-    return card.groups.get(groupKey)
+    return target.groups.get(groupKey)
   }
 
   const addGroupedItemToCard = ({
@@ -377,7 +387,9 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     groupLabel,
     order,
     forceRemoval = false,
+    parentEntry = null,
   }) => {
+    const target = parentEntry || card
     const resolvedGroupKey =
       normalizeOrderProductText(groupKey) || getOrderProductBucketKey(item)
     const resolvedGroupLabel =
@@ -388,19 +400,19 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       : ''
 
     if (dedupeKey) {
-      const cardGroupEntryKeys = getCardGroupEntryKeys(card)
-      if (cardGroupEntryKeys.has(dedupeKey)) {
-        return
+      const groupEntryKeys = getGroupEntryKeys(target)
+      if (groupEntryKeys.has(dedupeKey)) {
+        return null
       }
 
-      cardGroupEntryKeys.add(dedupeKey)
+      groupEntryKeys.add(dedupeKey)
     }
 
     const quantity = Number(item?.quantity || 0)
     const unitPrice = toMoney(item?.unitPrice ?? item?.value ?? item?.price)
     const totalPrice = toMoney(item?.total ?? resolveOrderProductTotal(item))
 
-    ensureCardGroup(card, resolvedGroupKey, resolvedGroupLabel, order).items.push({
+    const entry = {
       id: itemEntityId || `${card.key}-${resolvedGroupKey}-${order}`,
       name: getNodeName(item),
       quantity,
@@ -413,7 +425,95 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       order,
       orderProduct: item,
       queuePresentation: resolveOrderProductQueuePresentation(item),
-    })
+      groups: new Map(),
+    }
+
+    ensureTargetGroup(target, resolvedGroupKey, resolvedGroupLabel, order).items.push(entry)
+
+    if (itemEntityId) {
+      componentCardByOrderProductId.set(itemEntityId, card)
+      componentEntryByOrderProductId.set(itemEntityId, entry)
+    }
+
+    const componentProductKey = getCatalogProductKey(item)
+    if (componentProductKey) {
+      if (!componentEntriesByProductKey.has(componentProductKey)) {
+        componentEntriesByProductKey.set(componentProductKey, [])
+      }
+
+      componentEntriesByProductKey.get(componentProductKey).push({
+        card,
+        entry,
+        order,
+      })
+    }
+
+    return entry
+  }
+
+  const getParentOrderProductEntityId = item =>
+    toOrderProductEntityId(item?.orderProduct || item?.order_product)
+
+  const resolveComponentEntryByProductKey = (productKey, index) => {
+    const matches = productKey ? (componentEntriesByProductKey.get(productKey) || []) : []
+    if (!matches.length) {
+      return null
+    }
+
+    return (
+      [...matches]
+        .filter(match => match.order <= index)
+        .sort((left, right) => right.order - left.order)[0] ||
+      matches[matches.length - 1]
+    )
+  }
+
+  const resolveAncestorTargetForGroupedItem = (item, index) => {
+    const visitedParentIds = new Set()
+    let currentItem = item
+
+    while (currentItem) {
+      const parentOrderProductId = getParentOrderProductEntityId(currentItem)
+      if (!parentOrderProductId || visitedParentIds.has(parentOrderProductId)) {
+        return null
+      }
+
+      visitedParentIds.add(parentOrderProductId)
+
+      if (
+        componentCardByOrderProductId.has(parentOrderProductId) &&
+        componentEntryByOrderProductId.has(parentOrderProductId)
+      ) {
+        return {
+          card: componentCardByOrderProductId.get(parentOrderProductId),
+          parentEntry: componentEntryByOrderProductId.get(parentOrderProductId),
+        }
+      }
+
+      const parentItem = itemsByEntityId.get(parentOrderProductId) || null
+      const componentEntryMatch = resolveComponentEntryByProductKey(
+        getCatalogProductKey(parentItem),
+        index,
+      )
+      if (componentEntryMatch) {
+        duplicateRootOrderProductIds.add(parentOrderProductId)
+        return {
+          card: componentEntryMatch.card,
+          parentEntry: componentEntryMatch.entry,
+        }
+      }
+
+      if (cardsByRootKey.has(parentOrderProductId)) {
+        return {
+          card: cardsByRootKey.get(parentOrderProductId),
+          parentEntry: null,
+        }
+      }
+
+      currentItem = parentItem
+    }
+
+    return null
   }
 
   const appendEmbeddedGroupedItems = ({
@@ -423,6 +523,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     fallbackGroupKey = '',
     fallbackGroupLabel = '',
     forceRemoval = false,
+    parentEntry = null,
   }) => {
     getOrderProductComponents(sourceItem).forEach(rawComponent => {
       const componentEntityId = toOrderProductEntityId(
@@ -442,17 +543,18 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
         Number(baseOrder || 0) +
         embeddedComponentOrderSequence * EMBEDDED_COMPONENT_ORDER_STEP
       const componentGroupKey =
-        normalizeOrderProductText(fallbackGroupKey) || getOrderProductBucketKey(component)
+        getOrderProductBucketKey(component) || normalizeOrderProductText(fallbackGroupKey)
       const componentGroupLabel =
-        normalizeOrderProductText(fallbackGroupLabel) || getChildBucketLabel(component)
+        getChildBucketLabel(component) || normalizeOrderProductText(fallbackGroupLabel)
 
-      addGroupedItemToCard({
+      const componentEntry = addGroupedItemToCard({
         card,
         item: component,
         groupKey: componentGroupKey,
         groupLabel: componentGroupLabel,
         order: componentOrder,
         forceRemoval,
+        parentEntry,
       })
 
       appendEmbeddedGroupedItems({
@@ -461,7 +563,8 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
         baseOrder: componentOrder,
         fallbackGroupKey: componentGroupKey,
         fallbackGroupLabel: componentGroupLabel,
-        forceRemoval: true,
+        forceRemoval,
+        parentEntry: componentEntry || parentEntry,
       })
     })
   }
@@ -539,9 +642,17 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   }
 
   const resolveCardForGroupedItem = (item, index) => {
+    const ancestorTarget = resolveAncestorTargetForGroupedItem(item, index)
+    if (ancestorTarget) {
+      return ancestorTarget
+    }
+
     const explicitParentKey = toOrderProductEntityId(getParentReference(item))
     if (explicitParentKey && cardsByRootKey.has(explicitParentKey)) {
-      return cardsByRootKey.get(explicitParentKey)
+      return {
+        card: cardsByRootKey.get(explicitParentKey),
+        parentEntry: null,
+      }
     }
 
     const parentCatalogProductKey = getParentCatalogProductKey(item)
@@ -557,11 +668,17 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
         productMatches[productMatches.length - 1]
 
       if (nearestPreviousCard) {
-        return nearestPreviousCard
+        return {
+          card: nearestPreviousCard,
+          parentEntry: null,
+        }
       }
     }
 
-    return getFallbackCardForGroupedItem(item, index)
+    return {
+      card: getFallbackCardForGroupedItem(item, index),
+      parentEntry: null,
+    }
   }
 
   items.forEach((item, index) => {
@@ -595,16 +712,17 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     if (!hasGroupedParent(item)) return
     if (!shouldShowInParentQueue(item)) return
 
-    const card = resolveCardForGroupedItem(item, index)
+    const { card, parentEntry } = resolveCardForGroupedItem(item, index)
     const groupLabel = getChildBucketLabel(item)
     const groupKey = getOrderProductBucketKey(item)
 
-    addGroupedItemToCard({
+    const groupEntry = addGroupedItemToCard({
       card,
       item,
       groupKey,
       groupLabel,
       order: index,
+      parentEntry,
     })
 
     appendEmbeddedGroupedItems({
@@ -613,24 +731,46 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       baseOrder: index,
       fallbackGroupKey: groupKey,
       fallbackGroupLabel: groupLabel,
-      forceRemoval: true,
+      forceRemoval: false,
+      parentEntry: groupEntry || parentEntry,
     })
   })
+
+  const normalizeGroups = groups =>
+    Array.from(groups.values())
+      .sort((left, right) => left.order - right.order)
+      .map(group => ({
+        ...group,
+        items: group.items
+          .slice()
+          .sort((left, right) => left.order - right.order)
+          .map(item => ({
+            ...item,
+            groups: normalizeGroups(item.groups),
+          })),
+      }))
 
   const normalizedCards = cards
     .sort((left, right) => left.order - right.order)
     .map(card => ({
       ...card,
       quantity: card.quantity > 0 ? card.quantity : Number(card?.rootItem?.quantity || 0),
-      groups: Array.from(card.groups.values())
-        .sort((left, right) => left.order - right.order)
-        .map(group => ({
-          ...group,
-          items: group.items.slice().sort((left, right) => left.order - right.order),
-        })),
+      groups: normalizeGroups(card.groups),
     }))
 
   const cardsByProductKey = new Map()
+  const componentProductKeys = new Set()
+  const collectComponentProductKeys = groupItem => {
+    const componentProductKey = getCatalogProductKey(groupItem.orderProduct)
+    if (componentProductKey) {
+      componentProductKeys.add(componentProductKey)
+    }
+
+    groupItem.groups.forEach(group => {
+      group.items.forEach(collectComponentProductKeys)
+    })
+  }
+
   normalizedCards.forEach(card => {
     const productKey = normalizeOrderProductText(card.rootProductKey)
     if (!productKey) return
@@ -640,6 +780,28 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     }
 
     cardsByProductKey.get(productKey).push(card)
+
+    card.groups.forEach(group => {
+      group.items.forEach(collectComponentProductKeys)
+    })
+  })
+
+  normalizedCards.forEach(card => {
+    const productKey = normalizeOrderProductText(card.rootProductKey)
+    const rootHasOwnValue =
+      Number(card.unitPrice || 0) > 0 ||
+      Number(card.totalPrice || 0) > 0 ||
+      Number(card?.rootItem?.price || 0) > 0 ||
+      Number(card?.rootItem?.total || 0) > 0
+
+    if (
+      productKey &&
+      componentProductKeys.has(productKey) &&
+      !rootHasOwnValue &&
+      (card.groups.length > 0 || duplicateRootOrderProductIds.has(card.rootKey))
+    ) {
+      card.hidden = true
+    }
   })
 
   cardsByProductKey.forEach(cardGroup => {
