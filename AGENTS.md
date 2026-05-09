@@ -35,6 +35,7 @@
 - Componentes filhos agrupados nao devem receber edicao inline propria na lista do pedido. Quando precisarem mudar, a tela deve reabrir a customizacao do item pai e respeitar as regras de cada grupo.
 - Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o numero operacional curto vindo de `extraData` ou do payload canonico da integracao, como `order_index`, `code` ou `displayId`. `pickup_code` e `handover_code` ficam como fallback, e hashes ou ids tecnicos continuam apenas no summary.
 - `OrderDetails` deve manter o summary como area de informacoes secundarias. A tela principal mostra `Itens` direto no corpo; `Financeiro` sai da aba principal e abre em modal dedicado acionado pela barra inferior, sem misturar cards de summary no mesmo corpo.
+- `OrderHistoryPage` React pertence a `ui-orders`, mesmo quando acessada pelo `MANAGER`. A listagem deve usar `DefaultTable` React e `DefaultSearch`, com `OrderHeader` apenas como renderer de card compacto/customizado.
 - No summary de iFood, `HANDSHAKE_DISPUTE` deve aparecer como alerta operacional com `disputeId`, tipo, momento, mensagem do cliente, prazo, acao automatica de timeout, evidencias e alternativas recebidas.
 - Acoes de disputa iFood ficam dentro do summary: aceitar, rejeitar e contraproposta. Elas so podem aparecer enquanto `has_open_dispute=true` e `disputeId` existir.
 - `Rejeitar disputa` precisa permitir/mandar `reason` valido de `negotiationReasons`; nao deixar o usuario sem resposta clara se o backend rejeitar motivo invalido.

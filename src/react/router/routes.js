@@ -5,6 +5,7 @@ import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
+import OrderHistoryPage from '@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage';
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import { useStore } from '@store';
@@ -118,6 +119,17 @@ const ordersRoutes = [
       title: global.t?.t('orders', 'title', 'chooseCategory'),
     },
     initialParams: { store: 'categories' },
+  },
+  {
+    name: 'OrderHistoryPage',
+    component: OrderHistoryPage,
+    options: {
+      headerShown: true,
+      headerBackVisible: true,
+      title: global.t?.t('configs', 'title', 'orderHistory'),
+      showCompanyFilter: true,
+      companyFilterMode: 'icon',
+    },
   },
   {
     name: 'OrderDetails',
