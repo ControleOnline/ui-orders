@@ -1,15 +1,14 @@
 import React from 'react';
-import { TouchableOpacity, View, FlatList, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import {Text} from 'react-native-animatable';
 import {useStore} from '@store';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import {
   isPosCashRegisterClosed,
   isPosCounterMode,
   isPosKioskMode,
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
+import AppMenuGrid from '@controleonline/ui-layout/src/react/components/AppMenuGrid';
 import styles from './index.styles';
 
 export default function HomePage({navigation}) {
@@ -20,7 +19,7 @@ export default function HomePage({navigation}) {
   const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
   const {item: device} = deviceConfigGetters;
-  const {colors} = getters;
+  const {colors, menus} = getters;
   const {currentCompany} = peopleGetters;
   const isKioskMode = isPosKioskMode(device?.configs);
   const isCounterMode = isPosCounterMode(device?.configs);
@@ -68,63 +67,18 @@ export default function HomePage({navigation}) {
     }
   };
 
-  const getCheckButtonConfig = () => {
-    let icon = 'shopping-cart';
-    let title = global.t?.t('orders', 'title', 'salesOrders');
-    let iconLibrary = 'fontawesome';
-
-    if (checkType === 'barcode') {
-      icon = 'camera-alt';
-      title = global.t?.t('orders', 'button', 'openTab');
-      iconLibrary = 'material';
-    } else if (checkType === 'rfid') {
-      icon = 'nfc';
-      title = global.t?.t('orders', 'button', 'openTab');
-      iconLibrary = 'material';
+  const handleMenuPress = item => {
+    if (item?.menuKey === 'orders') {
+      handleOpenCheckReader();
+      return;
     }
 
-    return {
-      id: '1',
-      title,
-      icon,
-      iconLibrary,
-      backgroundColor: colors['primary'],
-      onPress: handleOpenCheckReader,
-    };
+    if (!item?.route) {
+      return;
+    }
+
+    handleTo(item?.route);
   };
-
-  const buttons = [
-    getCheckButtonConfig(),
-    {
-      id: '2',
-      title: global.t?.t('orders', 'title', 'cashRegister'),
-      icon: 'money',
-      iconLibrary: 'fontawesome',
-      backgroundColor: '#4682b4',
-      onPress: () => handleTo('CashRegisterIndex'),
-    },
-    {
-      id: '3',
-      title: 'Impressões',
-      icon: 'print',
-      iconLibrary: 'material',
-      backgroundColor: '#0f766e',
-      onPress: () => handleTo('PrintQueuePage'),
-    },
-  ];
-
-  const renderButton = ({item}) => (
-    <TouchableOpacity
-      style={[styles.button, {backgroundColor: item.backgroundColor}]}
-      onPress={item.onPress}>
-      {item.iconLibrary === 'material' ? (
-        <MaterialIcon name={item.icon} size={30} color="#fff" style={styles.icon} />
-      ) : (
-        <Icon name={item.icon} size={30} color="#fff" style={styles.icon} />
-      )}
-      <Text style={styles.buttonText}>{item.title}</Text>
-    </TouchableOpacity>
-  );
 
   if (
     isKioskMode ||
@@ -148,13 +102,10 @@ export default function HomePage({navigation}) {
   return (
     <>
       <View style={styles.container}>
-        <FlatList
-          data={buttons}
-          renderItem={renderButton}
-          keyExtractor={item => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.content}
+        <AppMenuGrid
+          menus={menus}
+          navigation={navigation}
+          onMenuPress={handleMenuPress}
         />
       </View>
     </>
