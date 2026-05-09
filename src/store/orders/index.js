@@ -49,7 +49,7 @@ export default {
         editable: true,
         label: "app",
         align: "left",
-        format(value, column, row) {
+        format(value, _column, _row) {
           return value;
         },
       },
@@ -60,13 +60,14 @@ export default {
         editable: false,
         label: "orderType",
         align: "left",
-        format(value, column, row) {
+        format(value, _column, _row) {
           return value;
         },
       },
       {
         translate: true,
         sortable: true,
+        sortField: "status.status",
         name: "status",
         align: "left",
         label: "status",
@@ -86,6 +87,7 @@ export default {
       },
       {
         sortable: true,
+        sortField: "client.name",
         name: "client",
         align: "left",
         label: "client",
@@ -140,7 +142,7 @@ export default {
         align: "center",
         label: "orderDate",
         externalFilter: true,
-        saveFormat: function (value) {
+        saveFormat: function (_value) {
           return undefined;
         },
         format: function (value) {
@@ -155,7 +157,7 @@ export default {
         name: "alterDate",
         label: "alterDate",
         align: "left",
-        saveFormat: function (value) {
+        saveFormat: function (_value) {
           return undefined;
         },
         format: (val) => (val ? Formatter.formatDateYmdTodmY(val, true) : ""),
@@ -175,8 +177,8 @@ export default {
         editFormat(value) {
           return Formatter.formatMoney(value);
         },
-        saveFormat(value) {
-          return Formatter.formatFloat(value);
+        saveFormat(_value) {
+          return Formatter.formatFloat(_value);
         },
         format(value) {
           return Formatter.formatMoney(value);
