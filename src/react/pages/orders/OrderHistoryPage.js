@@ -68,6 +68,24 @@ const resolveOrderTypeFilter = value => {
   return ORDER_TYPE_FILTER_KEYS.has(normalizedValue) ? normalizedValue : 'sale';
 };
 
+const resolveDateRangeFilter = value => {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const shortcut = value.shortcut || value.value || 'all';
+  const customRange = value.customRange || { from: '', to: '' };
+  const dateRange = getDateRange(shortcut, customRange, {
+    relativeMode: 'rolling',
+    useCurrentMoment: true,
+  });
+
+  return {
+    after: dateRange?.after || '',
+    before: dateRange?.before || '',
+  };
+};
+
 const getEntityId = entity => {
   if (!entity) return null;
 
@@ -95,6 +113,14 @@ const getPeopleLabel = entity =>
     entity?.company ||
     entity?.document
   );
+
+const normalizeFilterValue = value => {
+  if (value && typeof value === 'object') {
+    return normalizeFilterValue(value.value ?? value.id ?? value['@id'] ?? '');
+  }
+
+  return normalizeText(value);
+};
 
 const getSearchText = o => {
   const identity = resolveOrderIdentity(o);
@@ -201,6 +227,8 @@ export default function OrderHistoryPage({ navigation, route }) {
   const [dateFilter, setDateFilter] = useState('today');
   const [searchText, setSearchText] = useState('');
   const [customRange, setCustomRange] = useState({ from: '', to: '' });
+  const [tableFilters, setTableFilters] = useState({});
+  const [sortState, setSortState] = useState({ field: 'id', direction: 'desc' });
   const [purchaseSuppliersById, setPurchaseSuppliersById] = useState({});
 
   const isCashRegisterClosed = useMemo(() => {
@@ -265,9 +293,6 @@ export default function OrderHistoryPage({ navigation, route }) {
       const column = {
         ...sourceColumn,
         editable: false,
-        externalFilter: false,
-        filter: false,
-        filters: false,
       };
 
       if (fieldName === 'status') {
@@ -386,13 +411,43 @@ export default function OrderHistoryPage({ navigation, route }) {
     const query = {
       provider: `/people/${currentCompany.id}`,
       itemsPerPage: PAGE_SIZE,
-      'order[id]': 'desc',
     };
+
+    const currentSort = sortState?.field && sortState?.direction
+      ? sortState
+      : { field: 'id', direction: 'desc' };
+
+    query[`order[${currentSort.field}]`] = currentSort.direction;
 
     if (orderTypeFilter !== 'all') query.orderType = orderTypeFilter;
     if (showAdvancedFilters && channelFilter !== 'all') query.app = channelFilter;
     if (showAdvancedFilters && statusFilter !== 'all') query['status.realStatus'] = statusFilter;
     if (searchText) query.search = searchText.replace(/^#/, '');
+
+    Object.entries(tableFilters || {}).forEach(([key, value]) => {
+      if (!key) return;
+      if (key === 'search') {
+        if (normalizeText(value)) query.search = normalizeText(value);
+        return;
+      }
+
+      if (key === 'orderDate' || key === 'alterDate') {
+        const dateRange = resolveDateRangeFilter(value);
+        if (dateRange.after) query[`${key}[after]`] = dateRange.after;
+        if (dateRange.before) query[`${key}[before]`] = dateRange.before;
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        query[key] = value.map(normalizeFilterValue).filter(Boolean);
+        return;
+      }
+
+      const normalizedValue = normalizeFilterValue(value);
+      if (normalizedValue) {
+        query[key] = normalizedValue;
+      }
+    });
 
     if (env.APP_TYPE === 'POS' && !canViewCompanyOrders && storagedDevice?.id) {
       query['device.device'] = storagedDevice.id;
@@ -414,11 +469,14 @@ export default function OrderHistoryPage({ navigation, route }) {
     showAdvancedFilters,
     channelFilter,
     statusFilter,
+    sortState?.direction,
+    sortState?.field,
     canViewCompanyOrders,
     storagedDevice?.id,
     dateFilter,
     customRange,
     searchText,
+    tableFilters,
   ]);
 
   const historyLoadedKey = useMemo(
@@ -734,6 +792,8 @@ export default function OrderHistoryPage({ navigation, route }) {
               initialViewMode="table"
               isLoading={isLoadingList || loadingMore}
               onEndReached={loadMore}
+              filters={tableFilters}
+              onFilterChange={setTableFilters}
               onRowPress={openOrder}
               renderCard={renderCard}
               searchProps={{
@@ -742,9 +802,10 @@ export default function OrderHistoryPage({ navigation, route }) {
                 placeholder: searchPlaceholder,
                 value: searchText,
               }}
-              showColumnFiltersButton={false}
+              onSortChange={setSortState}
+              showColumnFiltersButton
               showRowActions={false}
-              sort={null}
+              sort={sortState}
               storeName="orders"
             />
           </View>
