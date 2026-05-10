@@ -19,6 +19,7 @@ export default {
     isLoadingList: false,
     loadedKey: '',
     loadedAt: 0,
+    add: true,
     messages: [],
     message: {},
     filters: {},

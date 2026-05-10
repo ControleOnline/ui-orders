@@ -704,9 +704,6 @@ export default function OrderHistoryPage({ navigation, route }) {
         <View style={styles.filtersCard}>
           <View style={styles.filtersHeaderRow}>
             <Text style={styles.filtersTitle}>{global.t?.t('orders', 'title', 'filters')}</Text>
-            <View style={styles.countPill}>
-              <Text style={styles.countPillText}>{displayedOrdersCount} {global.t?.t('orders', 'label', 'orders')}</Text>
-            </View>
           </View>
 
           {showAdvancedFilters && (
@@ -791,6 +788,8 @@ export default function OrderHistoryPage({ navigation, route }) {
               hasMore={hasMore}
               initialViewMode="table"
               isLoading={isLoadingList || loadingMore}
+              add={orderTypeFilter === 'loss' ? false : null}
+              onAdd={goToAddProduct}
               onEndReached={loadMore}
               filters={tableFilters}
               onFilterChange={setTableFilters}
@@ -807,19 +806,12 @@ export default function OrderHistoryPage({ navigation, route }) {
               showRowActions={false}
               sort={sortState}
               storeName="orders"
+              totalItems={displayedOrdersCount}
+              totalItemsLabel={global.t?.t('orders', 'label', 'orders')}
             />
           </View>
         )}
       </View>
-      {orderTypeFilter !== 'loss' && (
-        <TouchableOpacity
-          style={[styles.fab, { backgroundColor: brandColors.primary }]}
-          activeOpacity={0.85}
-          onPress={goToAddProduct}
-        >
-          <Icon name="plus" size={22} color="#fff" />
-        </TouchableOpacity>
-      )}
 
     </SafeAreaView>
   );

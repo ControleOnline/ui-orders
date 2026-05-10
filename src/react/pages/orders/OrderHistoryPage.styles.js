@@ -9,10 +9,6 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 32,
   },
-
-  countPill: { borderRadius: 999, backgroundColor: '#EFF6FF', paddingHorizontal: 12, paddingVertical: 7 },
-  countPillText: { fontSize: 12, fontWeight: '700', color: '#1D4ED8' },
-
   filtersCard: { backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 10 },
   filtersHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
   filtersTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
@@ -49,21 +45,6 @@ const styles = StyleSheet.create({
   },
   channelText: { fontSize: 13, fontWeight: '600', color: '#475569', flex: 1 },
 
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-  },
 });
 
 export default styles;
