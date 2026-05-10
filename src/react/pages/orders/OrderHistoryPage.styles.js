@@ -5,12 +5,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     minHeight: 0,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 32,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 18,
   },
-  filtersCard: { backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 10 },
-  filtersHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
+  filtersCard: { backgroundColor: '#fff', borderRadius: 14, padding: 10, marginBottom: 8 },
+  filtersHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },
   filtersTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
   filterSelectorsRow: {
     flexDirection: 'row',
