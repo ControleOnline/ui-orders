@@ -72,10 +72,6 @@ import {
   withOrderProductQuantity,
 } from '@controleonline/ui-orders/src/utils/orderState'
 import { extractVisibleOrderExtraEntries } from '@controleonline/ui-orders/src/react/utils/orderExtraData'
-import {
-  resolveOperationalDisplayAmount,
-  resolveOperationalDisplayLabelKey,
-} from '@controleonline/ui-orders/src/react/utils/checkoutInvoices'
 
 import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
 import OrderSummaryModal from './components/OrderSummaryModal'
@@ -1368,30 +1364,6 @@ const OrderDetails = ({ route, navigation }) => {
   }, [localInvoiceCards])
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
-  const localDisplayAmount = useMemo(
-    () => resolveOperationalDisplayAmount({
-      orderTotal: localOrderTotal,
-      pendingAmount: localPendingAmount,
-      receivedAmount: localReceivedAmount,
-    }),
-    [localOrderTotal, localPendingAmount, localReceivedAmount],
-  )
-  const localDisplayLabel = useMemo(() => {
-    const labelKey = resolveOperationalDisplayLabelKey({
-      pendingAmount: localPendingAmount,
-      receivedAmount: localReceivedAmount,
-    })
-
-    if (labelKey === 'pending') {
-      return global.t?.t('orders', 'label', 'pending') || 'Pendente'
-    }
-
-    if (labelKey === 'paid') {
-      return global.t?.t('orders', 'label', 'paid') || 'Paga'
-    }
-
-    return global.t?.t('orders', 'label', 'localTotal') || 'Total'
-  }, [localPendingAmount, localReceivedAmount])
   const canAddProductsToOrder = canEditItems
   const addProductsButtonLabel =
     global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
@@ -1983,11 +1955,11 @@ const OrderDetails = ({ route, navigation }) => {
   const compactOrderSummary = useMemo(
     () => ({
       accessibilityLabel: [
-        `${localDisplayLabel}: ${Formatter.formatMoney(localDisplayAmount || 0)}`,
+        `${global.t?.t('orders', 'label', 'localTotal') || 'Total'}: ${Formatter.formatMoney(localOrderTotal || 0)}`,
       ].join('. '),
-      totalValue: Formatter.formatMoney(localDisplayAmount || 0),
+      totalValue: Formatter.formatMoney(localOrderTotal || 0),
     }),
-    [localDisplayAmount, localDisplayLabel],
+    [localOrderTotal],
   )
   const closeDetailsModal = useCallback(() => {
     setDetailsModalVisible(false)
@@ -2606,8 +2578,8 @@ const OrderDetails = ({ route, navigation }) => {
           },
           {
             key: 'local-total',
-            label: localDisplayLabel,
-            value: Formatter.formatMoney(localDisplayAmount || 0),
+            label: global.t?.t('orders', 'label', 'localTotal'),
+            value: Formatter.formatMoney(localOrderTotal || 0),
           },
           shouldShowOrderPartyDetails && !!orderCustomerName && {
             key: 'customer',
@@ -2649,8 +2621,6 @@ const OrderDetails = ({ route, navigation }) => {
     item?.alterDate,
     localInvoiceCards.length,
     localOrderAddressParts,
-    localDisplayAmount,
-    localDisplayLabel,
     localOrderTotal,
     marketplaceSummary.summary,
     orderAppLabel,
