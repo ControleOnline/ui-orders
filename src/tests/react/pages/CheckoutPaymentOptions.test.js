@@ -34,7 +34,7 @@ describe('CheckoutPaymentOptions', () => {
     })
 
     expect(sections).toHaveLength(2)
-    expect(sections[0].title).toBe('Neste device')
+    expect(sections[0].title).toBe('Neste equipamento')
     expect(sections[0].options).toEqual([cashOption])
     expect(sections[1].title).toBe('PDV principal')
     expect(sections[1].options).toEqual([remoteCardOption])

@@ -66,7 +66,7 @@ describe('PaymentCheckoutPanel', () => {
                   payment: {paymentType: {id: 1, paymentType: 'Dinheiro'}},
                 },
               ],
-              title: 'Neste device',
+              title: 'Neste equipamento',
             },
             {
               actionLabel: 'Trocar',
@@ -76,7 +76,7 @@ describe('PaymentCheckoutPanel', () => {
                 {
                   key: 'remote:credit',
                   label: 'Credito',
-                  payment: {paymentType: {id: 2, paymentType: 'Credito'}},
+                  payment: {paymentType: {id: 2, paymentType: 'Crédito'}},
                 },
               ],
               title: 'PDV principal',
@@ -93,12 +93,12 @@ describe('PaymentCheckoutPanel', () => {
     )
     const labels = textNodes.map(node => node.props.children)
 
-    expect(labels).toContain('Neste device')
+    expect(labels).toContain('Neste equipamento')
     expect(labels).toContain('PDV principal')
     expect(labels).toContain('Dinheiro')
     expect(labels).toContain('Credito')
     expect(labels).toContain('Trocar')
-    expect(labels).not.toContain('Barra unica de pagamento')
+    expect(labels).not.toContain('Barra única de pagamento')
 
     const bar = tree.root.findByType('BottomCart')
     expect(bar.props.actionLabel).toBe('Enviar para PDV principal')

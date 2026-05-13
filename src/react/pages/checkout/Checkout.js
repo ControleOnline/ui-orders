@@ -1112,9 +1112,9 @@ const Checkout = () => {
   ]);
   const paymentTopContent = null;
 
-  const emptyTitle = 'Nenhum meio de pagamento disponivel';
+  const emptyTitle = 'Nenhum meio de pagamento disponível';
   const emptyText =
-    'Verifique as carteiras configuradas neste device ou no equipamento remoto principal.';
+    'Verifique as carteiras configuradas neste equipamento ou no equipamento remoto principal.';
   const payDisabled =
     submittingPayment ||
     loadingPaymentOptions ||
