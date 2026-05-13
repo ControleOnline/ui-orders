@@ -175,4 +175,23 @@ describe('OrderHeader', () => {
       },
     ])
   })
+
+  it('does not fall back to the order date in the left metadata row', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        order: {
+          alterDate: '2026-05-05T21:07:04.000Z',
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+            color: '#22C55E',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.dateText).toBe('')
+  })
 })

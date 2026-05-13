@@ -161,8 +161,8 @@ const OrderHeader = ({
   )
   const orderCustomerLabel = useMemo(() => resolveOrderCustomerLabel(order), [order])
   const resolvedMetaText = useMemo(
-    () => normalizeText(metaText) || orderCustomerLabel || formattedOrderDate,
-    [formattedOrderDate, metaText, orderCustomerLabel],
+    () => normalizeText(metaText) || orderCustomerLabel,
+    [metaText, orderCustomerLabel],
   )
   const showWaitingChip = showWaitingTime && shouldShowKdsWaitingTime(order)
   const showCustomerAction =
