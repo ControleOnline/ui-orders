@@ -17,6 +17,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   isDeviceRuntimeDebugInfoEnabled,
+  isPosKioskMode,
   isTruthyValue,
   parseConfigsObject,
   isPosSelfServiceMode,
@@ -84,6 +85,10 @@ import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders
 import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
+import {
+  getBottomNavigationOffset,
+  shouldShowOperationalBottomNavigation,
+} from '@controleonline/ui-layout/src/react/utils/posBottomNavigation'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
 import {
@@ -527,6 +532,7 @@ const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProduct) => 
 }
 
 const OrderDetails = ({ route, navigation }) => {
+  const appType = String(env.APP_TYPE || '').trim().toUpperCase()
   const routeOrderId = useMemo(
     () => getOrderRouteId(route.params?.id || route.params?.order),
     [route.params?.id, route.params?.order],
@@ -548,7 +554,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [route.params?.order, routeOrderId])
   const useUnifiedKdsLayout = true
   const hasKdsOrigin =
-    String(env.APP_TYPE || '').trim().toUpperCase() === 'PPC' ||
+    appType === 'PPC' ||
     !!route.params?.displayId ||
     !!route.params?.display?.id ||
     String(
@@ -635,11 +641,41 @@ const OrderDetails = ({ route, navigation }) => {
   const deviceConfigs = parseConfigsObject(device?.configs)
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
   const isPosSelfServiceOperationMode = isPosSelfServiceMode(deviceConfigs)
+  const shouldShowBottomNavigation = useMemo(
+    () =>
+      shouldShowOperationalBottomNavigation({
+        appType,
+        interactionMode: route?.params?.interactionMode,
+        isKioskMode: isPosKioskMode(deviceConfigs),
+      }),
+    [appType, deviceConfigs, route?.params?.interactionMode],
+  )
   const isDeviceDeliveryEnabled = isTruthyValue(
     deviceConfigs?.[POS_DELIVERY_ENABLED_CONFIG_KEY],
   )
   const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(deviceConfigs)
   const canShowDebugActions = !isPosSelfServiceOperationMode || isDeviceDebugEnabled
+
+  useEffect(() => {
+    if (!shouldShowBottomNavigation) {
+      if (route?.params?.showBottomToolBar !== true) {
+        return;
+      }
+
+      navigation.setParams({showBottomToolBar: false});
+      return;
+    }
+
+    if (route?.params?.showBottomToolBar === true) {
+      return;
+    }
+
+    navigation.setParams({showBottomToolBar: true});
+  }, [
+    navigation,
+    route?.params?.showBottomToolBar,
+    shouldShowBottomNavigation,
+  ])
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
@@ -2176,7 +2212,12 @@ const OrderDetails = ({ route, navigation }) => {
 
   const isCompactMobileViewport = viewportWidth < 360
   const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 600
-  const mobileBottomCartOffset = 0
+  const mobileBottomCartOffset = shouldShowBottomNavigation
+    ? getBottomNavigationOffset({
+        appType,
+        bottomInset: insets?.bottom,
+      })
+    : 0
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
     : 24

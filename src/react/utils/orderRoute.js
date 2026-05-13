@@ -6,6 +6,12 @@ export const isPdvRouteContext = params =>
   String(params?.interactionMode || '').trim().toLowerCase() === 'pdv' ||
   params?.showBottomToolBar === true
 
+export const shouldShowOrderHistoryCompanyFilter = ({
+  appType,
+  params,
+} = {}) => String(appType || '').trim().toUpperCase() !== 'POS' &&
+  !isPdvRouteContext(params)
+
 export const buildManagerPdvRouteParams = (extraParams = {}) => ({
   interactionMode: 'pdv',
   showBottomCart: true,

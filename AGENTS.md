@@ -37,6 +37,7 @@
 - `OrderDetails` deve manter o summary como area de informacoes secundarias. A tela principal mostra `Itens` direto no corpo; `Financeiro` sai da aba principal e abre em modal dedicado acionado pela barra inferior, sem misturar cards de summary no mesmo corpo.
 - `OrderHistoryPage` React pertence a `ui-orders`, mesmo quando acessada pelo `MANAGER`. A listagem deve usar `DefaultTable` React com busca via `searchProps` na toolbar, sort e filtros do proprio default, com `OrderHeader` apenas como renderer de card compacto/customizado.
 - O botao de novo pedido no `OrderHistoryPage` deve vir da toolbar do `DefaultTable`, seguindo `orders.state.add` e recebendo `onAdd` apenas para o fluxo contextual de adicionar produtos. Nao renderizar botao `+` flutuante ou no rodape da tela.
+- `OrderHistoryPage` nao deve oferecer troca de empresa quando estiver em contexto operacional de `PDV`, incluindo `APP_TYPE=POS` e o `pdv` hospedado por outra visao. Em fluxos administrativos fora do `PDV`, o seletor pode continuar disponivel.
 - No summary de iFood, `HANDSHAKE_DISPUTE` deve aparecer como alerta operacional com `disputeId`, tipo, momento, mensagem do cliente, prazo, acao automatica de timeout, evidencias e alternativas recebidas.
 - Acoes de disputa iFood ficam dentro do summary: aceitar, rejeitar e contraproposta. Elas so podem aparecer enquanto `has_open_dispute=true` e `disputeId` existir.
 - `Rejeitar disputa` precisa permitir/mandar `reason` valido de `negotiationReasons`; nao deixar o usuario sem resposta clara se o backend rejeitar motivo invalido.
@@ -48,6 +49,7 @@
 - Ao abrir `InvoiceDetailsPage` a partir de `OrderDetails`, passar apenas o `id` da invoice na rota e preaquecer o store com a invoice completa, nunca com um card resumido.
 - Quando `OrderDetails` abrir `InvoiceDetailsPage`, a tela de invoice deve listar os pedidos vinculados reaproveitando `OrderHeader` para cada pedido ligado por `order_invoice`.
 - `OrderDetails` nao deve exibir o `BottomCart` global com acao `Conferir pedido`. Quando a tela estiver aberta, ela mesma controla a barra operacional necessaria e o layout deve manter `showBottomCart: false`.
+- Em `POS` nao-kiosk e nos fluxos `pdv` hospedados por outras visoes, `OrderDetails` deve preservar a dock inferior de navegacao enquanto mantem o `BottomCart` global desligado. A barra propria de pagamento da tela precisa subir acima dessa dock, nunca ficar escondida por tras dela.
 - O param `kds` em `OrderDetails` pertence apenas aos fluxos reais de `PPC`/KDS. Modulos administrativos ou historicos comuns nao devem forcar esse param ao abrir o detalhe.
 - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
 - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
