@@ -111,7 +111,6 @@ export default function usePosOrderMaterialization({
           shouldKeepPdvMode
             ? buildManagerPdvRouteParams({
                 showBottomCart: false,
-                showBottomToolBar: false,
               })
             : {},
         ),

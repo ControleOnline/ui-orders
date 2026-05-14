@@ -242,13 +242,11 @@ const getParentReference = node =>
   node?.productGroup?.parentProduct ||
   null
 
-const hasGroupedParent = node =>
+const hasExplicitParentReference = node =>
   !!(
-    node?.productGroup ||
     node?.orderProduct ||
     node?.order_product ||
-    node?.parentProduct ||
-    node?.productGroup?.parentProduct
+    node?.parentProduct
   )
 
 const shouldShowInParentQueue = node =>
@@ -336,10 +334,6 @@ const createCard = ({
 
 export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_ITEM_COLOR } = {}) => {
   const items = Array.isArray(orderProducts) ? orderProducts : []
-  const renderSingleHiddenGroupedItemAsRoot =
-    items.length === 1 &&
-    hasGroupedParent(items[0]) &&
-    !shouldShowInParentQueue(items[0])
   const cards = []
   const cardsByRootKey = new Map()
   const cardsByCatalogProductKey = new Map()
@@ -349,6 +343,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   const componentEntriesByProductKey = new Map()
   const duplicateRootOrderProductIds = new Set()
   const itemsByEntityId = new Map()
+  const catalogProductKeysInOrder = new Set()
   let embeddedComponentOrderSequence = 0
 
   items.forEach(item => {
@@ -356,7 +351,29 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     if (itemEntityId) {
       itemsByEntityId.set(itemEntityId, item)
     }
+
+    const itemCatalogProductKey = getCatalogProductKey(item)
+    if (itemCatalogProductKey) {
+      catalogProductKeysInOrder.add(itemCatalogProductKey)
+    }
   })
+
+  const hasCatalogParentInCurrentOrder = item => {
+    const parentCatalogProductKey = getParentCatalogProductKey(item)
+    return !!(
+      parentCatalogProductKey &&
+      catalogProductKeysInOrder.has(parentCatalogProductKey)
+    )
+  }
+
+  const shouldTreatAsGroupedItem = item =>
+    hasExplicitParentReference(item) ||
+    hasCatalogParentInCurrentOrder(item)
+
+  const renderSingleHiddenGroupedItemAsRoot =
+    items.length === 1 &&
+    shouldTreatAsGroupedItem(items[0]) &&
+    !shouldShowInParentQueue(items[0])
 
   const getGroupEntryKeys = target => {
     const targetKey = target?.key || `entry-${target?.id || ''}`
@@ -682,7 +699,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   }
 
   items.forEach((item, index) => {
-    if (hasGroupedParent(item) && !renderSingleHiddenGroupedItemAsRoot) return
+    if (shouldTreatAsGroupedItem(item) && !renderSingleHiddenGroupedItemAsRoot) return
 
     const card = getOrCreateRootCard(item, index)
     const quantity = Number(item?.quantity || 0)
@@ -709,7 +726,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   })
 
   items.forEach((item, index) => {
-    if (!hasGroupedParent(item)) return
+    if (!shouldTreatAsGroupedItem(item)) return
     if (!shouldShowInParentQueue(item)) return
 
     const { card, parentEntry } = resolveCardForGroupedItem(item, index)

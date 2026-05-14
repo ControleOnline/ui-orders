@@ -29,7 +29,7 @@ export const buildPaymentSections = ({
     sections.push({
       key: 'local',
       options: localPaymentOptions,
-      title: 'Neste device',
+      title: 'Neste equipamento',
     });
   }
 

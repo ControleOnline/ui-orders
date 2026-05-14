@@ -147,6 +147,14 @@ const PrintQueuePage = ({navigation}) => {
   }, [loadSpools]);
 
   const handleManualPrintSuccess = useCallback(completedRequest => {
+    if (completedRequest?.ackPending) {
+      Alert.alert(
+        'Impressao concluida',
+        'A Cielo imprimiu corretamente, mas a fila ainda nao foi confirmada no servidor. O app vai tentar finalizar essa spool automaticamente.',
+      );
+      return;
+    }
+
     const spoolId = resolveSpoolId(completedRequest?.spoolId);
     if (spoolId) {
       setSpools(previous =>

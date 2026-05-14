@@ -58,6 +58,80 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Bacon', 'Catupiry'])
   })
 
+  it('does not create fake parent cards from reused catalog product groups', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 101372,
+        quantity: 1,
+        total: 73,
+        product: {
+          id: 1343,
+          product: 'Combo Alpha Gyros',
+        },
+      },
+      {
+        id: 101373,
+        quantity: 1,
+        total: 0,
+        product: {
+          id: 1108,
+          product: 'Batata Frita Média',
+        },
+        productGroup: {
+          id: 194,
+          productGroup: 'Escolha sua batata',
+          parentProduct: {
+            id: 1326,
+            product: 'Combo Gyros (Batata + Bebida)',
+          },
+        },
+      },
+      {
+        id: 101374,
+        quantity: 1,
+        total: 5.99,
+        product: {
+          id: 1112,
+          product: 'Maionese Verde - pote 60ml',
+        },
+        productGroup: {
+          id: 100,
+          productGroup: 'Molhos extra à parte',
+          parentProduct: {
+            id: 1104,
+            product: 'Alpha Gyros (Fraldinha)',
+          },
+        },
+      },
+      {
+        id: 101375,
+        quantity: 1,
+        total: 0,
+        product: {
+          id: 1340,
+          product: 'Sal',
+        },
+        productGroup: {
+          id: 197,
+          productGroup: 'Escolha o tempero da sua Batata',
+          parentProduct: {
+            id: 1326,
+            product: 'Combo Gyros (Batata + Bebida)',
+          },
+        },
+      },
+    ])
+
+    expect(cards.map(card => card.name)).toEqual([
+      'Combo Alpha Gyros',
+      'Batata Frita Média',
+      'Maionese Verde - pote 60ml',
+      'Sal',
+    ])
+    expect(cards.some(card => card.name === 'Alpha Gyros (Fraldinha)')).toBe(false)
+    expect(cards.some(card => card.name === 'Combo Gyros (Batata + Bebida)')).toBe(false)
+  })
+
   it('renders embedded orderProductComponents from the root item without collapsing them', () => {
     const cards = buildOrderProductCards([
       {

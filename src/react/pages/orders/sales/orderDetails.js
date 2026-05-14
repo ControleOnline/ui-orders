@@ -17,6 +17,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   isDeviceRuntimeDebugInfoEnabled,
+  isPosKioskMode,
   isTruthyValue,
   parseConfigsObject,
   isPosSelfServiceMode,
@@ -72,6 +73,10 @@ import {
   withOrderProductQuantity,
 } from '@controleonline/ui-orders/src/utils/orderState'
 import { extractVisibleOrderExtraEntries } from '@controleonline/ui-orders/src/react/utils/orderExtraData'
+import {
+  resolveOperationalDisplayAmount,
+  resolveOperationalDisplayLabelKey,
+} from '@controleonline/ui-orders/src/react/utils/checkoutInvoices'
 
 import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
 import OrderSummaryModal from './components/OrderSummaryModal'
@@ -80,6 +85,10 @@ import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders
 import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
+import {
+  getBottomNavigationOffset,
+  shouldShowOperationalBottomNavigation,
+} from '@controleonline/ui-layout/src/react/utils/posBottomNavigation'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
 import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
 import {
@@ -523,6 +532,7 @@ const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProduct) => 
 }
 
 const OrderDetails = ({ route, navigation }) => {
+  const appType = String(env.APP_TYPE || '').trim().toUpperCase()
   const routeOrderId = useMemo(
     () => getOrderRouteId(route.params?.id || route.params?.order),
     [route.params?.id, route.params?.order],
@@ -544,7 +554,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [route.params?.order, routeOrderId])
   const useUnifiedKdsLayout = true
   const hasKdsOrigin =
-    String(env.APP_TYPE || '').trim().toUpperCase() === 'PPC' ||
+    appType === 'PPC' ||
     !!route.params?.displayId ||
     !!route.params?.display?.id ||
     String(
@@ -631,11 +641,41 @@ const OrderDetails = ({ route, navigation }) => {
   const deviceConfigs = parseConfigsObject(device?.configs)
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
   const isPosSelfServiceOperationMode = isPosSelfServiceMode(deviceConfigs)
+  const shouldShowBottomNavigation = useMemo(
+    () =>
+      shouldShowOperationalBottomNavigation({
+        appType,
+        interactionMode: route?.params?.interactionMode,
+        isKioskMode: isPosKioskMode(deviceConfigs),
+      }),
+    [appType, deviceConfigs, route?.params?.interactionMode],
+  )
   const isDeviceDeliveryEnabled = isTruthyValue(
     deviceConfigs?.[POS_DELIVERY_ENABLED_CONFIG_KEY],
   )
   const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(deviceConfigs)
   const canShowDebugActions = !isPosSelfServiceOperationMode || isDeviceDebugEnabled
+
+  useEffect(() => {
+    if (!shouldShowBottomNavigation) {
+      if (route?.params?.showBottomToolBar !== true) {
+        return;
+      }
+
+      navigation.setParams({showBottomToolBar: false});
+      return;
+    }
+
+    if (route?.params?.showBottomToolBar === true) {
+      return;
+    }
+
+    navigation.setParams({showBottomToolBar: true});
+  }, [
+    navigation,
+    route?.params?.showBottomToolBar,
+    shouldShowBottomNavigation,
+  ])
 
   const isManualInput = productInputType === 'manual'
   const showBarcodeInput = item?.app === 'POS' && !isManualInput
@@ -1364,6 +1404,30 @@ const OrderDetails = ({ route, navigation }) => {
   }, [localInvoiceCards])
   const localOrderTotal = Number(item?.price || 0)
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
+  const localDisplayAmount = useMemo(
+    () => resolveOperationalDisplayAmount({
+      orderTotal: localOrderTotal,
+      pendingAmount: localPendingAmount,
+      receivedAmount: localReceivedAmount,
+    }),
+    [localOrderTotal, localPendingAmount, localReceivedAmount],
+  )
+  const localDisplayLabel = useMemo(() => {
+    const labelKey = resolveOperationalDisplayLabelKey({
+      pendingAmount: localPendingAmount,
+      receivedAmount: localReceivedAmount,
+    })
+
+    if (labelKey === 'pending') {
+      return global.t?.t('orders', 'label', 'pending') || 'Pendente'
+    }
+
+    if (labelKey === 'paid') {
+      return global.t?.t('orders', 'label', 'paid') || 'Paga'
+    }
+
+    return global.t?.t('orders', 'label', 'localTotal') || 'Total'
+  }, [localPendingAmount, localReceivedAmount])
   const canAddProductsToOrder = canEditItems
   const addProductsButtonLabel =
     global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
@@ -1955,11 +2019,11 @@ const OrderDetails = ({ route, navigation }) => {
   const compactOrderSummary = useMemo(
     () => ({
       accessibilityLabel: [
-        `${global.t?.t('orders', 'label', 'localTotal') || 'Total'}: ${Formatter.formatMoney(localOrderTotal || 0)}`,
+        `${localDisplayLabel}: ${Formatter.formatMoney(localDisplayAmount || 0)}`,
       ].join('. '),
-      totalValue: Formatter.formatMoney(localOrderTotal || 0),
+      totalValue: Formatter.formatMoney(localDisplayAmount || 0),
     }),
-    [localOrderTotal],
+    [localDisplayAmount, localDisplayLabel],
   )
   const closeDetailsModal = useCallback(() => {
     setDetailsModalVisible(false)
@@ -2148,7 +2212,12 @@ const OrderDetails = ({ route, navigation }) => {
 
   const isCompactMobileViewport = viewportWidth < 360
   const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 600
-  const mobileBottomCartOffset = 0
+  const mobileBottomCartOffset = shouldShowBottomNavigation
+    ? getBottomNavigationOffset({
+        appType,
+        bottomInset: insets?.bottom,
+      })
+    : 0
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
     : 24
@@ -2578,8 +2647,8 @@ const OrderDetails = ({ route, navigation }) => {
           },
           {
             key: 'local-total',
-            label: global.t?.t('orders', 'label', 'localTotal'),
-            value: Formatter.formatMoney(localOrderTotal || 0),
+            label: localDisplayLabel,
+            value: Formatter.formatMoney(localDisplayAmount || 0),
           },
           shouldShowOrderPartyDetails && !!orderCustomerName && {
             key: 'customer',
@@ -2621,6 +2690,8 @@ const OrderDetails = ({ route, navigation }) => {
     item?.alterDate,
     localInvoiceCards.length,
     localOrderAddressParts,
+    localDisplayAmount,
+    localDisplayLabel,
     localOrderTotal,
     marketplaceSummary.summary,
     orderAppLabel,

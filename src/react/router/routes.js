@@ -8,10 +8,13 @@ import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
 import OrderHistoryPage from '@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage';
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
+import {
+  shouldShowOrderHistoryCompanyFilter,
+} from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import { useStore } from '@store';
+import { env } from '@env';
 
 import React from 'react';
-
 
 const WrappedCloseCashRegister = ({ navigation, route }) => {
   React.useEffect(() => {
@@ -123,13 +126,16 @@ const ordersRoutes = [
   {
     name: 'OrderHistoryPage',
     component: OrderHistoryPage,
-    options: {
+    options: ({route}) => ({
       headerShown: true,
       headerBackVisible: true,
       title: global.t?.t('configs', 'title', 'orderHistory'),
-      showCompanyFilter: true,
+      showCompanyFilter: shouldShowOrderHistoryCompanyFilter({
+        appType: env.APP_TYPE,
+        params: route?.params,
+      }),
       companyFilterMode: 'icon',
-    },
+    }),
   },
   {
     name: 'OrderDetails',
