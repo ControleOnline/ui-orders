@@ -53,7 +53,7 @@ describe('OrderStackedTopBar', () => {
     global.__orderHeaderProps = null
     global.__topBarActionsProps = null
 
-    ReactDOMServer.renderToStaticMarkup(
+    const markup = ReactDOMServer.renderToStaticMarkup(
       React.createElement(OrderStackedTopBar, {
         order: {
           id: 812,
@@ -63,6 +63,7 @@ describe('OrderStackedTopBar', () => {
         },
         onBackPress: jest.fn(),
         showActions: false,
+        showBackButton: false,
       }),
     )
 
@@ -76,5 +77,6 @@ describe('OrderStackedTopBar', () => {
       isKds: false,
     })
     expect(global.__topBarActionsProps).toBeNull()
+    expect(markup).not.toContain('touchableopacity')
   })
 })

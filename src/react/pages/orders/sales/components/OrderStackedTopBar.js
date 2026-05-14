@@ -10,6 +10,7 @@ const OrderStackedTopBar = ({
     isKds = false,
     orderHeaderProps = {},
     onBackPress = null,
+    showBackButton = true,
     backIconName = 'arrow-back',
     buttons = null,
     printJob = null,
@@ -31,17 +32,19 @@ const OrderStackedTopBar = ({
             {eyebrow ? <Text style={eyebrowTextStyle}>{eyebrow}</Text> : null}
 
             <View style={styles.topBarHeaderRowStacked}>
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={onBackPress}
-                    style={styles.topBarBackButton}
-                >
-                    <Icon
-                        name={backIconName}
-                        size={20}
-                        color={ppcColors.textPrimary || '#0F172A'}
-                    />
-                </TouchableOpacity>
+                {showBackButton ? (
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={onBackPress}
+                        style={styles.topBarBackButton}
+                    >
+                        <Icon
+                            name={backIconName}
+                            size={20}
+                            color={ppcColors.textPrimary || '#0F172A'}
+                        />
+                    </TouchableOpacity>
+                ) : null}
 
                 <View style={styles.topBarHeaderContentStacked}>
                     <View style={styles.topBarHeaderSectionStacked}>
