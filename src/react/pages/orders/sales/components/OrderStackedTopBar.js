@@ -22,6 +22,7 @@ const OrderStackedTopBar = ({
     logsDisabled = false,
     eyebrow = '',
     eyebrowTextStyle = null,
+    showActions = true,
 }) => {
     const { styles, ppcColors } = useOrderDetailsVisuals();
 
@@ -53,23 +54,25 @@ const OrderStackedTopBar = ({
                 </View>
             </View>
 
-            <View style={styles.topBarActionSectionStacked}>
-                <OrderTopBarActions
-                    buttons={buttons}
-                    containerStyle={styles.topBarActionsStacked}
-                    iconButtonStyle={styles.topBarIconButton}
-                    iconButtonDisabledStyle={styles.topBarIconButtonDisabled}
-                    iconColor={ppcColors.accentInfo}
-                    printJob={printJob}
-                    printDisabled={printDisabled}
-                    printerSelection={printerSelection}
-                    isTvDisplay={isTvDisplay}
-                    onPressTools={onPressTools}
-                    onPressLogs={onPressLogs}
-                    toolsDisabled={toolsDisabled}
-                    logsDisabled={logsDisabled}
-                />
-            </View>
+            {showActions ? (
+                <View style={styles.topBarActionSectionStacked}>
+                    <OrderTopBarActions
+                        buttons={buttons}
+                        containerStyle={styles.topBarActionsStacked}
+                        iconButtonStyle={styles.topBarIconButton}
+                        iconButtonDisabledStyle={styles.topBarIconButtonDisabled}
+                        iconColor={ppcColors.accentInfo}
+                        printJob={printJob}
+                        printDisabled={printDisabled}
+                        printerSelection={printerSelection}
+                        isTvDisplay={isTvDisplay}
+                        onPressTools={onPressTools}
+                        onPressLogs={onPressLogs}
+                        toolsDisabled={toolsDisabled}
+                        logsDisabled={logsDisabled}
+                    />
+                </View>
+            ) : null}
         </View>
     );
 };
