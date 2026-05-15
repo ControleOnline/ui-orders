@@ -7,6 +7,9 @@ const createStyles = isKds =>
       justifyContent: 'space-between',
       alignItems: 'flex-start',
     },
+    containerCompact: {
+      alignItems: 'center',
+    },
     containerStackedRightSection: {
       flexWrap: 'wrap',
     },
@@ -16,6 +19,9 @@ const createStyles = isKds =>
       gap: 10,
       flex: 1,
       minWidth: 0,
+    },
+    leftSectionCompact: {
+      gap: 8,
     },
     leftSectionStackedRightSection: {
       width: '100%',
@@ -31,6 +37,12 @@ const createStyles = isKds =>
       borderColor: '#E2E8F0',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    leadingWrapCompact: {
+      minWidth: 34,
+      height: 34,
+      borderRadius: 11,
+      paddingHorizontal: 5,
     },
     leadingWrapPurchase: {
       backgroundColor: '#FFFBEB',
@@ -59,6 +71,9 @@ const createStyles = isKds =>
       flex: 1,
       minWidth: 0,
     },
+    titleWrapCompact: {
+      justifyContent: 'center',
+    },
     identityWrap: {
       minWidth: 0,
     },
@@ -69,10 +84,16 @@ const createStyles = isKds =>
       gap: 6,
       marginTop: 1,
     },
+    metaRowCompact: {
+      marginTop: 0,
+    },
     orderId: {
       color: '#0F172A',
       fontSize: isKds ? 18 : 15,
       fontWeight: '800',
+    },
+    orderIdCompact: {
+      fontSize: 14,
     },
     orderIdSecondary: {
       marginTop: 1,
@@ -80,10 +101,16 @@ const createStyles = isKds =>
       fontSize: 12,
       fontWeight: '700',
     },
+    orderIdSecondaryCompact: {
+      fontSize: 11,
+    },
     orderDate: {
       color: '#64748B',
       fontSize: 12,
       flexShrink: 1,
+    },
+    orderDateCompact: {
+      fontSize: 11,
     },
     customerActionButton: {
       flexDirection: 'row',
@@ -111,6 +138,12 @@ const createStyles = isKds =>
       maxWidth: '36%',
       flexShrink: 1,
     },
+    rightSectionInline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      maxWidth: '48%',
+    },
     rightSectionStacked: {
       width: '100%',
       maxWidth: '100%',
@@ -131,6 +164,11 @@ const createStyles = isKds =>
       paddingVertical: 4,
       gap: 5,
     },
+    statusBadgeCompact: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      gap: 4,
+    },
     statusBadgeStacked: {
       minWidth: 0,
       flexShrink: 1,
@@ -140,16 +178,28 @@ const createStyles = isKds =>
       height: 7,
       borderRadius: 999,
     },
+    statusDotCompact: {
+      width: 6,
+      height: 6,
+    },
     statusText: {
       fontSize: 11,
       fontWeight: '700',
       textTransform: 'uppercase',
+    },
+    statusTextCompact: {
+      fontSize: 10,
     },
     priceText: {
       fontSize: 15,
       fontWeight: '800',
       color: '#16A34A',
       marginTop: 8,
+    },
+    priceTextInline: {
+      marginTop: 0,
+      fontSize: 14,
+      flexShrink: 1,
     },
     priceTextPurchase: {
       color: '#D97706',

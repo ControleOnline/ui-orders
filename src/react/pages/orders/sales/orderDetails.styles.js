@@ -973,7 +973,7 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       paddingHorizontal: isCompactMobile ? 6 : 8,
     },
     mobileProductItemRow: {
-      marginTop: 4,
+      marginTop: 6,
       paddingVertical: isCompactMobile ? 7 : 9,
       paddingHorizontal: isCompactMobile ? 8 : 10,
       borderLeftWidth: 4,

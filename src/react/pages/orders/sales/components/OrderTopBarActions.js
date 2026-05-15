@@ -5,6 +5,7 @@ import PrintButton from '@controleonline/ui-orders/src/react/components/PrintBut
 
 export const ORDER_TOP_BAR_ACTIONS = Object.freeze({
     PRINT: 'print',
+    LOGISTICS: 'logistics',
     TOOLS: 'tools',
     LOGS: 'logs',
 });
@@ -20,8 +21,10 @@ const OrderTopBarActions = ({
     printDisabled = false,
     printerSelection = { enabled: true },
     isTvDisplay = false,
+    onPressLogistics = null,
     onPressTools = null,
     onPressLogs = null,
+    logisticsDisabled = false,
     toolsDisabled = false,
     logsDisabled = false,
 }) => {
@@ -31,8 +34,11 @@ const OrderTopBarActions = ({
     );
     const shouldShowPrintAction =
         visibleButtons.has(ORDER_TOP_BAR_ACTIONS.PRINT) && !isTvDisplay && !!printJob;
+    const shouldShowLogisticsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.LOGISTICS);
     const shouldShowToolsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.TOOLS);
     const shouldShowLogsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.LOGS);
+    const resolvedLogisticsDisabled =
+        logisticsDisabled || typeof onPressLogistics !== 'function';
     const resolvedToolsDisabled = toolsDisabled || typeof onPressTools !== 'function';
     const resolvedLogsDisabled = logsDisabled || typeof onPressLogs !== 'function';
 
@@ -50,6 +56,19 @@ const OrderTopBarActions = ({
                     printerSelection={printerSelection}
                     disabled={printDisabled}
                 />
+            ) : null}
+
+            {shouldShowLogisticsAction ? (
+                <TouchableOpacity
+                    onPress={onPressLogistics}
+                    style={[
+                        iconButtonStyle,
+                        resolvedLogisticsDisabled ? iconButtonDisabledStyle : null,
+                    ]}
+                    disabled={resolvedLogisticsDisabled}
+                >
+                    <Icon name="local-shipping" size={20} color={iconColor} />
+                </TouchableOpacity>
             ) : null}
 
             {shouldShowToolsAction ? (

@@ -6,6 +6,7 @@ import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/W
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
 import OrderHistoryPage from '@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage';
+import OrderLogisticsPage from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderLogisticsPage';
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import {
@@ -72,6 +73,29 @@ const WrappedOrderDetails = ({ navigation, route }) => {
 
   return (
     <OrderDetails navigation={navigation} route={route} />
+  );
+};
+
+const WrappedOrderLogistics = ({ navigation, route }) => {
+  const ordersStore = useStore('orders');
+  const order = route.params?.order || ordersStore.getters.item;
+
+  React.useEffect(() => {
+    navigation.setOptions({
+      title: global.t?.t('orders', 'title', 'logistics') || 'Logistica',
+      headerTitle: () => (
+        <OrderIdentityLabel
+          order={order}
+          primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
+          secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
+        />
+      ),
+      headerBackVisible: true,
+    });
+  }, [navigation, order]);
+
+  return (
+    <OrderLogisticsPage navigation={navigation} route={route} />
   );
 };
 
@@ -145,6 +169,17 @@ const ordersRoutes = [
       showBottomCart: false,
       showBottomToolBar: false,
       title: global.t?.t('orders', 'title', 'order'),
+    },
+    initialParams: { store: 'orders' },
+  },
+  {
+    name: 'OrderLogisticsPage',
+    component: WrappedOrderLogistics,
+    options: {
+      headerShown: true,
+      showBottomCart: false,
+      showBottomToolBar: false,
+      title: global.t?.t('orders', 'title', 'logistics') || 'Logistica',
     },
     initialParams: { store: 'orders' },
   },

@@ -2082,6 +2082,8 @@ const OrderDetails = ({ route, navigation }) => {
     await marketplaceSummary.ensureMarketplaceSummary()
   }, [canShowDebugActions, marketplaceSummary])
 
+  const topBarOrderId = item?.id || orderParam?.id || routeOrderId
+
   const handleOrderLogs = useCallback(() => {
     if (!canShowDebugActions) {
       return
@@ -2095,6 +2097,16 @@ const OrderDetails = ({ route, navigation }) => {
       store: 'orders',
     })
   }, [canShowDebugActions, item?.id, navigation, orderParam?.id])
+
+  const handleOrderLogistics = useCallback(() => {
+    if (!topBarOrderId) {
+      return
+    }
+
+    navigation.navigate('OrderLogisticsPage', {
+      id: topBarOrderId,
+    })
+  }, [navigation, topBarOrderId])
 
   const renderOrderProductActions = useCallback(({
     card,
@@ -2225,13 +2237,16 @@ const OrderDetails = ({ route, navigation }) => {
   const topBarButtons = useMemo(() => {
     const buttons = [ORDER_TOP_BAR_ACTIONS.PRINT]
 
+    if (topBarOrderId) {
+      buttons.push(ORDER_TOP_BAR_ACTIONS.LOGISTICS)
+    }
+
     if (canShowDebugActions) {
       buttons.push(ORDER_TOP_BAR_ACTIONS.TOOLS, ORDER_TOP_BAR_ACTIONS.LOGS)
     }
 
     return buttons
-  }, [canShowDebugActions])
-  const topBarOrderId = item?.id || orderParam?.id || routeOrderId
+  }, [canShowDebugActions, topBarOrderId])
   const topBarPrintJob = {type: 'order', orderId: topBarOrderId}
   const topBarPrinterSelection = isKds
     ? {
@@ -2254,14 +2269,17 @@ const OrderDetails = ({ route, navigation }) => {
         printDisabled={!topBarOrderId}
         printerSelection={topBarPrinterSelection}
         isTvDisplay={isTvDisplay}
+        onPressLogistics={handleOrderLogistics}
         onPressTools={handleOrderTools}
         onPressLogs={handleOrderLogs}
+        logisticsDisabled={!topBarOrderId}
         logsDisabled={!topBarOrderId}
       />
     ),
     [
       handleOrderLogs,
       handleOrderTools,
+      handleOrderLogistics,
       isKds,
       isTvDisplay,
       item?.id,
@@ -2288,13 +2306,16 @@ const OrderDetails = ({ route, navigation }) => {
       printDisabled={!topBarOrderId}
       printerSelection={topBarPrinterSelection}
       isTvDisplay={isTvDisplay}
+      onPressLogistics={handleOrderLogistics}
       onPressTools={handleOrderTools}
       onPressLogs={handleOrderLogs}
+      logisticsDisabled={!topBarOrderId}
       logsDisabled={!topBarOrderId}
     />
   ), [
     handleOrderLogs,
     handleOrderTools,
+    handleOrderLogistics,
     isTvDisplay,
     navigation,
     orderHeaderActionProps,
