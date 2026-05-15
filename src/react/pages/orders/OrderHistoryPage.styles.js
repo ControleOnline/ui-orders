@@ -15,7 +15,23 @@ const styles = StyleSheet.create({
   filterSelectorsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'flex-start',
+    marginHorizontal: -4,
+    marginBottom: -8,
+  },
+  filterSelectorSlot: {
+    minWidth: 0,
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+  },
+  filterSelectorSlotThird: {
+    width: '33.3333%',
+  },
+  filterSelectorSlotHalf: {
+    width: '50%',
+  },
+  filterSelectorSlotFull: {
+    width: '100%',
   },
 
   centerState: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', gap: 10, marginBottom: 10 },

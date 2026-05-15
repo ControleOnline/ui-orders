@@ -274,6 +274,25 @@ export default function OrderHistoryPage({ navigation, route }) {
     () => statusOptions.find(option => option.key === statusFilter)?.label || statusOptions[0]?.label || 'All',
     [statusFilter, statusOptions],
   );
+  const visibleFilterCount = useMemo(
+    () => [
+      orderTypeFilter === 'sale',
+      !SIMPLE_TAB_KEYS.has(orderTypeFilter),
+      true,
+    ].filter(Boolean).length,
+    [orderTypeFilter],
+  );
+  const filterSelectorSlotStyle = useMemo(() => {
+    if (visibleFilterCount >= 3) {
+      return [styles.filterSelectorSlot, styles.filterSelectorSlotThird];
+    }
+
+    if (visibleFilterCount === 2) {
+      return [styles.filterSelectorSlot, styles.filterSelectorSlotHalf];
+    }
+
+    return [styles.filterSelectorSlot, styles.filterSelectorSlotFull];
+  }, [visibleFilterCount]);
   const searchPlaceholder = useMemo(() => {
     if (orderTypeFilter === 'purchase') return global.t?.t('orders', 'placeholder', 'search_purchase');
     if (orderTypeFilter === 'transfer') return global.t?.t('orders', 'placeholder', 'search_transfer');
@@ -709,64 +728,70 @@ export default function OrderHistoryPage({ navigation, route }) {
           {showAdvancedFilters && (
             <View style={styles.filterSelectorsRow}>
               {orderTypeFilter === 'sale' && (
-                <CompactFilterSelector
-                  icon="radio"
-                  label={currentChannelLabel}
-                  labelCaption={global.t?.t('orders', 'label', 'channel') || 'Canal'}
-                  accentColor={brandColors.primary}
-                  active={channelFilter !== 'all'}
-                  dense
-                  title={global.t?.t('orders', 'label', 'channel')}
-                  options={channelOptions}
-                  selectedKey={channelFilter}
-                  onSelect={optionKey => {
-                    setChannelFilter(optionKey);
-                    return true;
-                  }}
-                />
+                <View style={filterSelectorSlotStyle}>
+                  <CompactFilterSelector
+                    icon="radio"
+                    label={currentChannelLabel}
+                    labelCaption={global.t?.t('orders', 'label', 'channel') || 'Canal'}
+                    accentColor={brandColors.primary}
+                    active={channelFilter !== 'all'}
+                    dense
+                    title={global.t?.t('orders', 'label', 'channel')}
+                    options={channelOptions}
+                    selectedKey={channelFilter}
+                    onSelect={optionKey => {
+                      setChannelFilter(optionKey);
+                      return true;
+                    }}
+                  />
+                </View>
               )}
 
               {!SIMPLE_TAB_KEYS.has(orderTypeFilter) && (
-                <CompactFilterSelector
-                  icon="check-circle"
-                  label={currentStatusLabel}
-                  labelCaption={global.t?.t('orders', 'label', 'status') || 'Status'}
-                  accentColor={brandColors.primary}
-                  active={statusFilter !== 'all'}
-                  dense
-                  title={global.t?.t('orders', 'label', 'status')}
-                  options={statusOptions}
-                  selectedKey={statusFilter}
-                  onSelect={optionKey => {
-                    setStatusFilter(optionKey);
-                    return true;
-                  }}
-                />
+                <View style={filterSelectorSlotStyle}>
+                  <CompactFilterSelector
+                    icon="check-circle"
+                    label={currentStatusLabel}
+                    labelCaption={global.t?.t('orders', 'label', 'status') || 'Status'}
+                    accentColor={brandColors.primary}
+                    active={statusFilter !== 'all'}
+                    dense
+                    title={global.t?.t('orders', 'label', 'status')}
+                    options={statusOptions}
+                    selectedKey={statusFilter}
+                    onSelect={optionKey => {
+                      setStatusFilter(optionKey);
+                      return true;
+                    }}
+                  />
+                </View>
               )}
 
-              <DateShortcutFilter
-                value={dateFilter}
-                onChange={setDateFilter}
-                customRange={customRange}
-                onCustomRangeChange={setCustomRange}
-                dense
-                labelCaption={global.t?.t('orders', 'label', 'period') || 'Periodo'}
-                colors={{
-                  accent: brandColors.primary,
-                  appBg: 'transparent',
-                  border: '#CBD5E1',
-                  borderSoft: '#E2E8F0',
-                  cardBg: '#FFFFFF',
-                  cardBgSoft: '#F8FAFC',
-                  danger: '#DC2626',
-                  isLight: true,
-                  panelBg: '#EFF6FF',
-                  pillTextDark: '#FFFFFF',
-                  textPrimary: '#0F172A',
-                  textSecondary: '#64748B',
-                }}
-                optionKeys={['all', 'today', 'yesterday', '7d', '30d', 'custom']}
-              />
+              <View style={filterSelectorSlotStyle}>
+                <DateShortcutFilter
+                  value={dateFilter}
+                  onChange={setDateFilter}
+                  customRange={customRange}
+                  onCustomRangeChange={setCustomRange}
+                  dense
+                  labelCaption={global.t?.t('orders', 'label', 'period') || 'Periodo'}
+                  colors={{
+                    accent: brandColors.primary,
+                    appBg: 'transparent',
+                    border: '#CBD5E1',
+                    borderSoft: '#E2E8F0',
+                    cardBg: '#FFFFFF',
+                    cardBgSoft: '#F8FAFC',
+                    danger: '#DC2626',
+                    isLight: true,
+                    panelBg: '#EFF6FF',
+                    pillTextDark: '#FFFFFF',
+                    textPrimary: '#0F172A',
+                    textSecondary: '#64748B',
+                  }}
+                  optionKeys={['all', 'today', 'yesterday', '7d', '30d', 'custom']}
+                />
+              </View>
             </View>
           )}
         </View>
