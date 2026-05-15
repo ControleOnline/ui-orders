@@ -46,16 +46,13 @@ jest.mock('../../../react/components/OrderCardHeader', () => props => {
 jest.mock('../../../react/components/OrderHeader.styles', () =>
   jest.fn(() => ({
     container: {id: 'container'},
-    containerCompact: {id: 'containerCompact'},
     containerStackedRightSection: {id: 'containerStackedRightSection'},
     identityWrap: {id: 'identityWrap'},
     leftSection: {id: 'leftSection'},
-    leftSectionCompact: {id: 'leftSectionCompact'},
     leftSectionStackedRightSection: {id: 'leftSectionStackedRightSection'},
     leadingLabel: {id: 'leadingLabel'},
     leadingLogo: {id: 'leadingLogo'},
     leadingWrap: {id: 'leadingWrap'},
-    leadingWrapCompact: {id: 'leadingWrapCompact'},
     leadingWrapLoss: {id: 'leadingWrapLoss'},
     leadingWrapPurchase: {id: 'leadingWrapPurchase'},
     leadingWrapTransfer: {id: 'leadingWrapTransfer'},
@@ -63,27 +60,17 @@ jest.mock('../../../react/components/OrderHeader.styles', () =>
     metaChipStacked: {id: 'metaChipStacked'},
     metaChipText: {id: 'metaChipText'},
     metaRow: {id: 'metaRow'},
-    metaRowCompact: {id: 'metaRowCompact'},
     orderDate: {id: 'orderDate'},
-    orderDateCompact: {id: 'orderDateCompact'},
     orderId: {id: 'orderId'},
-    orderIdCompact: {id: 'orderIdCompact'},
     orderIdSecondary: {id: 'orderIdSecondary'},
-    orderIdSecondaryCompact: {id: 'orderIdSecondaryCompact'},
     priceText: {id: 'priceText'},
-    priceTextInline: {id: 'priceTextInline'},
     rightSection: {id: 'rightSection'},
-    rightSectionInline: {id: 'rightSectionInline'},
     rightSectionStacked: {id: 'rightSectionStacked'},
     statusBadge: {id: 'statusBadge'},
-    statusBadgeCompact: {id: 'statusBadgeCompact'},
     statusBadgeStacked: {id: 'statusBadgeStacked'},
     statusDot: {id: 'statusDot'},
-    statusDotCompact: {id: 'statusDotCompact'},
     statusText: {id: 'statusText'},
-    statusTextCompact: {id: 'statusTextCompact'},
     titleWrap: {id: 'titleWrap'},
-    titleWrapCompact: {id: 'titleWrapCompact'},
     customerActionButton: {id: 'customerActionButton'},
     customerActionButtonDisabled: {id: 'customerActionButtonDisabled'},
     customerActionText: {id: 'customerActionText'},
@@ -206,47 +193,5 @@ describe('OrderHeader', () => {
     )
 
     expect(global.__orderCardHeaderProps.dateText).toBe('')
-  })
-
-  it('keeps status and value inline in the compact history layout', () => {
-    global.__orderCardHeaderProps = null
-
-    ReactDOMServer.renderToStaticMarkup(
-      React.createElement(OrderHeader, {
-        layout: 'historyCompact',
-        order: {
-          id: 71063,
-          app: 'POS',
-          price: 17,
-          status: {
-            realStatus: 'paid',
-            status: 'Paid',
-            color: '#22C55E',
-          },
-        },
-      }),
-    )
-
-    expect(global.__orderCardHeaderProps.containerStyle).toEqual([
-      {id: 'container'},
-      {id: 'containerCompact'},
-    ])
-    expect(global.__orderCardHeaderProps.rightSectionStyle).toEqual([
-      {id: 'rightSection'},
-      {id: 'rightSectionInline'},
-    ])
-    expect(global.__orderCardHeaderProps.statusBadgeStyle).toEqual([
-      {id: 'statusBadge'},
-      {id: 'statusBadgeCompact'},
-      {
-        backgroundColor: '#22C55E:0.08',
-        borderColor: '#22C55E:0.4',
-      },
-    ])
-    expect(global.__orderCardHeaderProps.rightContent.props.style).toEqual([
-      {id: 'priceText'},
-      {id: 'priceTextInline'},
-      undefined,
-    ])
   })
 })

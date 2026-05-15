@@ -141,7 +141,6 @@ const resolvePriceStyle = (orderType, styles) => {
 const OrderHeader = ({
   order,
   isKds = false,
-  layout = 'default',
   showWaitingTime = isKds,
   stackRightSectionBelow = false,
   onCustomerPress = null,
@@ -149,7 +148,6 @@ const OrderHeader = ({
   customerActionDisabled = false,
   metaText = '',
 }) => {
-  const isHistoryCompact = layout === 'historyCompact'
   const displayedStatus = useMemo(() => resolveDisplayedOrderStatus(order), [order])
   const orderType = useMemo(() => resolveOrderType(order), [order?.orderType, order?.order_type])
   const styles = useMemo(() => createStyles(isKds), [isKds])
@@ -232,46 +230,23 @@ const OrderHeader = ({
       order={order}
       containerStyle={[
         styles.container,
-        isHistoryCompact && styles.containerCompact,
         shouldStackRightSectionBelow && styles.containerStackedRightSection,
-      ].filter(Boolean)}
+      ]}
       leftSectionStyle={[
         styles.leftSection,
-        isHistoryCompact && styles.leftSectionCompact,
         shouldStackRightSectionBelow && styles.leftSectionStackedRightSection,
-      ].filter(Boolean)}
+      ]}
       leftContent={
-        <View
-          style={[
-            styles.leadingWrap,
-            leadingVisual.wrapStyle,
-            isHistoryCompact && styles.leadingWrapCompact,
-          ].filter(Boolean)}
-        >
+        <View style={[styles.leadingWrap, leadingVisual.wrapStyle]}>
           {leadingVisual.content}
         </View>
       }
       identityContainerStyle={styles.identityWrap}
-      titleWrapStyle={[
-        styles.titleWrap,
-        isHistoryCompact && styles.titleWrapCompact,
-      ].filter(Boolean)}
-      primaryTextStyle={[
-        styles.orderId,
-        isHistoryCompact && styles.orderIdCompact,
-      ].filter(Boolean)}
-      secondaryTextStyle={[
-        styles.orderIdSecondary,
-        isHistoryCompact && styles.orderIdSecondaryCompact,
-      ].filter(Boolean)}
-      dateRowStyle={[
-        styles.metaRow,
-        isHistoryCompact && styles.metaRowCompact,
-      ].filter(Boolean)}
-      dateTextStyle={[
-        styles.orderDate,
-        isHistoryCompact && styles.orderDateCompact,
-      ].filter(Boolean)}
+      titleWrapStyle={styles.titleWrap}
+      primaryTextStyle={styles.orderId}
+      secondaryTextStyle={styles.orderIdSecondary}
+      dateRowStyle={styles.metaRow}
+      dateTextStyle={styles.orderDate}
       dateText={resolvedMetaText}
       dateTrailingContent={
         showCustomerAction ? (
@@ -294,9 +269,8 @@ const OrderHeader = ({
       }
       rightSectionStyle={[
         styles.rightSection,
-        isHistoryCompact && styles.rightSectionInline,
         shouldStackRightSectionBelow && styles.rightSectionStacked,
-      ].filter(Boolean)}
+      ]}
       status={
         showStatus
           ? {label: displayedStatus.labelUpper, color: statusColor}
@@ -304,23 +278,14 @@ const OrderHeader = ({
       }
       statusBadgeStyle={[
         styles.statusBadge,
-        isHistoryCompact && styles.statusBadgeCompact,
         shouldStackRightSectionBelow && styles.statusBadgeStacked,
         {
           borderColor: withOpacity(statusColor, 0.4),
           backgroundColor: withOpacity(statusColor, 0.08),
         },
-      ].filter(Boolean)}
-      statusDotStyle={[
-        styles.statusDot,
-        isHistoryCompact && styles.statusDotCompact,
-        {backgroundColor: statusColor},
-      ].filter(Boolean)}
-      statusTextStyle={[
-        styles.statusText,
-        isHistoryCompact && styles.statusTextCompact,
-        {color: statusColor},
-      ].filter(Boolean)}
+      ]}
+      statusDotStyle={[styles.statusDot, {backgroundColor: statusColor}]}
+      statusTextStyle={[styles.statusText, {color: statusColor}]}
       rightContent={
         showWaitingChip ? (
           <Animated.View
@@ -352,13 +317,7 @@ const OrderHeader = ({
             </Text>
           </View>
         ) : displayPrice > 0 ? (
-          <Text
-            style={[
-              styles.priceText,
-              isHistoryCompact && styles.priceTextInline,
-              priceStyle,
-            ].filter(Boolean)}
-          >
+          <Text style={[styles.priceText, priceStyle]}>
             {Formatter.formatMoney(displayPrice)}
           </Text>
         ) : null

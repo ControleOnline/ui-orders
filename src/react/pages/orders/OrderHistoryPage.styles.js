@@ -30,8 +30,7 @@ const styles = StyleSheet.create({
   orderCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    padding: 16,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -40,7 +39,7 @@ const styles = StyleSheet.create({
   },
 
   cardMetaRow: {
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
