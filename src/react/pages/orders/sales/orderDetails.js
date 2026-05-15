@@ -86,7 +86,7 @@ import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import {
-  getBottomNavigationOffset,
+  getOwnedBottomBarOffset,
   shouldShowOperationalBottomNavigation,
 } from '@controleonline/ui-layout/src/react/utils/posBottomNavigation'
 import useOrderDetailsVisuals from './useOrderDetailsVisuals'
@@ -2213,12 +2213,10 @@ const OrderDetails = ({ route, navigation }) => {
 
   const isCompactMobileViewport = viewportWidth < 360
   const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 600
-  const mobileBottomCartOffset = shouldShowBottomNavigation
-    ? getBottomNavigationOffset({
-        appType,
-        bottomInset: insets?.bottom,
-      })
-    : 0
+  const mobileBottomCartOffset = getOwnedBottomBarOffset({
+    hasBottomNavigation: shouldShowBottomNavigation,
+    bottomInset: insets?.bottom,
+  })
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
     : 24

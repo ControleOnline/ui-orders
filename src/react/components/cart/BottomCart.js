@@ -84,7 +84,7 @@ const BottomCart = ({
   const resolvedPaidDetailsLabel =
     paidDetailsLabel || global.t?.t('orders', 'button', 'details') || 'Detalhes';
   const cartHeight = shouldShowPaidBreakdown
-    ? (isCompact ? 72 : 78)
+    ? (isCompact ? 62 : 68)
     : isPaidStateBar
     ? (isCompact ? 34 : 38)
     : (isCompact ? 58 : 64);
@@ -197,7 +197,7 @@ const BottomCart = ({
           <View
             style={[
               styles.paidBreakdownToolbar,
-              {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+              {bottom: bottomOffset + (isCompact ? 3 : 4), minHeight: cartHeight},
             ]}
           >
             <View style={styles.paidMetricWrap}>
@@ -226,7 +226,7 @@ const BottomCart = ({
           <View
             style={[
               styles.paidToolbar,
-              {bottom: bottomOffset + (isCompact ? 6 : 8)},
+              {bottom: bottomOffset + (isCompact ? 3 : 4)},
             ]}
           >
             <Icon color={successColor} name="check-circle" size={isCompact ? 14 : 15} />
@@ -237,7 +237,7 @@ const BottomCart = ({
         <View
           style={[
             styles.toolbar,
-            {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+            {bottom: bottomOffset + (isCompact ? 3 : 4), minHeight: cartHeight},
           ]}
         >
           {isPaymentStatusVariant ? (
