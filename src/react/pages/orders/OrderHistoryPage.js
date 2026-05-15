@@ -685,7 +685,7 @@ export default function OrderHistoryPage({ navigation, route }) {
         activeOpacity={0.85}
         onPress={() => openOrder(order)}
       >
-        <OrderHeader order={order} isKds={false} />
+        <OrderHeader order={order} isKds={false} layout="historyCompact" />
 
         {showChannelLabel && (
           <View style={styles.cardMetaRow}>
