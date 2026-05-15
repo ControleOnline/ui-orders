@@ -567,11 +567,6 @@ const OrderDetails = ({ route, navigation }) => {
     isKds,
     isTvDisplay,
   })
-  const shouldShowInlineOrderTotal = shouldRenderOrderDetailsInlineTotal({
-    useUnifiedKdsLayout,
-    isKds,
-    isTvDisplay,
-  })
   const { showError, showSuccess } = useMessage()
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
   const [financialDetailsVisible, setFinancialDetailsVisible] = useState(false)
@@ -1428,6 +1423,12 @@ const OrderDetails = ({ route, navigation }) => {
 
     return global.t?.t('orders', 'label', 'localTotal') || 'Total'
   }, [localPendingAmount, localReceivedAmount])
+  const shouldShowInlineOrderTotal = shouldRenderOrderDetailsInlineTotal({
+    useUnifiedKdsLayout,
+    isKds,
+    isTvDisplay,
+    displayAmount: localDisplayAmount,
+  })
   const canAddProductsToOrder = canEditItems
   const addProductsButtonLabel =
     global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
