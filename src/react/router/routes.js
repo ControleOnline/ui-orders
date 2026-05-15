@@ -76,21 +76,13 @@ const WrappedOrderDetails = ({ navigation, route }) => {
   );
 };
 
-const WrappedOrderLogistics = ({ navigation, route }) => {
+export const WrappedOrderLogistics = ({ navigation, route }) => {
   const ordersStore = useStore('orders');
   const order = route.params?.order || ordersStore.getters.item;
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: global.t?.t('orders', 'title', 'logistics') || 'Logistica',
-      headerTitle: () => (
-        <OrderIdentityLabel
-          order={order}
-          primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
-          secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
-        />
-      ),
-      headerBackVisible: true,
+      headerShown: false,
     });
   }, [navigation, order]);
 
@@ -176,7 +168,7 @@ const ordersRoutes = [
     name: 'OrderLogisticsPage',
     component: WrappedOrderLogistics,
     options: {
-      headerShown: true,
+      headerShown: false,
       showBottomCart: false,
       showBottomToolBar: false,
       title: global.t?.t('orders', 'title', 'logistics') || 'Logistica',

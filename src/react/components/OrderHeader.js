@@ -124,7 +124,7 @@ const resolveLeadingVisual = (order, orderType, styles) => {
   return {
     wrapStyle: null,
     content: (
-      <Text numberOfLines={1} style={styles.leadingLabel}>
+      <Text style={styles.leadingLabel}>
         {String(getOrderChannelLabel(order) || 'Balcao').toUpperCase()}
       </Text>
     ),
@@ -312,7 +312,7 @@ const OrderHeader = ({
             ]}
           >
             <FeatherIcon name="calendar" size={10} color="#475569" />
-            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.metaChipText}>
+            <Text style={styles.metaChipText}>
               {formattedOrderDate}
             </Text>
           </View>

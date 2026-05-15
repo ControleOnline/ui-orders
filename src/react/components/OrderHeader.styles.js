@@ -250,7 +250,7 @@ const createStyles = isKds =>
       fontSize: 10,
       fontWeight: '800',
       lineHeight: 12,
-      flexShrink: 1,
+      flexShrink: 0,
     },
   })
 

@@ -9,7 +9,7 @@ const OrderIdentityLabel = ({
   containerStyle = null,
   primaryTextStyle = null,
   secondaryTextStyle = null,
-  numberOfLines = 1,
+  numberOfLines = undefined,
   showSecondary = true,
 }) => {
   const identity = useMemo(
@@ -23,7 +23,7 @@ const OrderIdentityLabel = ({
         {identity.primaryText}
       </Text>
       {showSecondary && !!identity.secondaryText && (
-        <Text numberOfLines={1} style={secondaryTextStyle}>
+        <Text style={secondaryTextStyle}>
           {identity.secondaryText}
         </Text>
       )}

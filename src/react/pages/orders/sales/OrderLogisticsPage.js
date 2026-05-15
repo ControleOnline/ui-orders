@@ -18,6 +18,7 @@ import {
   formatHumanLabel,
   normalizeText,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay';
+import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar';
 import useOrderDetailsVisuals from './useOrderDetailsVisuals';
 import createStyles from './orderLogisticsPage.styles';
 import {resolveOrderLogisticsSnapshot} from './orderLogisticsPresentation';
@@ -26,6 +27,15 @@ const normalizeOrderId = value =>
   String(value ?? '')
     .replace(/\D+/g, '')
     .trim();
+
+const resolvePreferredText = (...values) => {
+  for (const value of values) {
+    const normalized = normalizeText(value);
+    if (normalized) return normalized;
+  }
+
+  return '';
+};
 
 const normalizeActionResult = response => {
   if (Array.isArray(response?.member)) {
@@ -100,14 +110,28 @@ const renderSection = (title, lines, styles) => (
   </View>
 );
 
-const OrderLogisticsPage = ({route}) => {
+const OrderLogisticsPage = ({navigation, route}) => {
   const {showError, showSuccess} = useMessage() || {};
   const {styles: orderStyles, ppcColors} = useOrderDetailsVisuals();
   const pageStyles = useMemo(() => createStyles(ppcColors), [ppcColors]);
   const insets = useSafeAreaInsets();
   const ordersStore = useStore('orders');
   const ordersActions = ordersStore.actions;
-  const order = ordersStore.getters.item;
+  const routeOrder = route?.params?.order || null;
+  const order = ordersStore.getters.item || routeOrder;
+  const orderHeaderOrder = useMemo(
+    () =>
+      order
+        ? {
+            ...order,
+            status: {
+              ...(order?.status || {}),
+              color: resolvePreferredText(order?.status?.color, '#0EA5E9'),
+            },
+          }
+        : null,
+    [order],
+  );
   const orderId = useMemo(
     () => normalizeOrderId(route?.params?.id || order?.id),
     [order?.id, route?.params?.id],
@@ -288,6 +312,12 @@ const OrderLogisticsPage = ({route}) => {
 
   return (
     <SafeAreaView style={pageStyles.pageRoot}>
+      <OrderStackedTopBar
+        order={orderHeaderOrder}
+        isKds
+        showActions={false}
+        onBackPress={() => navigation?.goBack?.()}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
