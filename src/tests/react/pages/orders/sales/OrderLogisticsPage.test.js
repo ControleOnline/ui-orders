@@ -5,15 +5,36 @@ const {jest} = require('@jest/globals')
 const {describe, expect, it} = global
 
 let mockLogisticsSnapshot = {
-  canRequestDriver: true,
+  canQuote: false,
+  currentIntegration: null,
   dropoffAddressParts: null,
   dropoffContact: null,
-  hasDriver: false,
-  managedByStore: false,
-  managedByStoreLabel: 'Nao gerenciada pela loja',
+  management: {
+    managedByStore: true,
+    label: 'Cotacoes da loja',
+    mode: 'quote',
+    source: 'POS',
+  },
   pickupAddressParts: null,
   pickupContact: null,
-  uberState: {},
+  providers: [],
+  quoteStatus: {
+    providers: 0,
+    quotes: 0,
+    ready: 0,
+    pending: 0,
+    selected: 0,
+    unavailable: 0,
+    error: 0,
+  },
+  quotes: [],
+  selection: {
+    quoteOrderId: null,
+    providerKey: '',
+    price: null,
+    trackingUrl: null,
+    selectedAt: '',
+  },
 }
 
 jest.mock('react-native', () => {
@@ -50,9 +71,30 @@ jest.mock('@store', () => ({
         getters: {
           item: {
             id: 71119,
-            client: {
-              name: 'Cliente Exemplo',
+            app: 'POS',
+            status: {
+              color: '#0EA5E9',
             },
+          },
+        },
+      }
+    }
+
+    if (name === 'websocket') {
+      return {
+        actions: {},
+        getters: {
+          messages: [],
+        },
+      }
+    }
+
+    if (name === 'people') {
+      return {
+        actions: {},
+        getters: {
+          currentCompany: {
+            id: 33,
           },
         },
       }
@@ -88,29 +130,6 @@ jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/useOrderDetail
     textPrimary: '#0F172A',
     textSecondary: '#475569',
   },
-  styles: {
-    detailsCard: {id: 'detailsCard'},
-    detailsCardLabel: {id: 'detailsCardLabel'},
-    detailsCardValue: {id: 'detailsCardValue'},
-    detailsGrid: {id: 'detailsGrid'},
-    detailsInfoText: {id: 'detailsInfoText'},
-    detailsSection: {id: 'detailsSection'},
-    detailsSectionTitle: {id: 'detailsSectionTitle'},
-    detailsTabStack: {id: 'detailsTabStack'},
-    actionButton: {id: 'actionButton'},
-    actionButtonPrimary: {id: 'actionButtonPrimary'},
-    actionButtonText: {id: 'actionButtonText'},
-    actionButtonTextPrimary: {id: 'actionButtonTextPrimary'},
-    actionButtonDisabled: {id: 'actionButtonDisabled'},
-    actionRow: {id: 'actionRow'},
-    pageRoot: {id: 'pageRoot'},
-  },
-}))
-
-jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/orderLogisticsPresentation', () => ({
-  __esModule: true,
-  default: jest.fn(() => mockLogisticsSnapshot),
-  resolveOrderLogisticsSnapshot: jest.fn(() => mockLogisticsSnapshot),
 }))
 
 jest.mock('@controleonline/ui-logistic/src/react/pages/orders/orderLogisticsPresentation', () => ({
@@ -136,15 +155,13 @@ describe('OrderLogisticsPage', () => {
   it('renders the stacked order header in the logistics body', () => {
     mockLogisticsSnapshot = {
       ...mockLogisticsSnapshot,
-      couriers: [],
+      providers: [],
+      quotes: [],
       currentIntegration: null,
-      delivery: {},
-      integrations: [],
-      managedByStore: false,
       management: {
-        managedByStore: false,
-        label: 'Nao gerenciada pela loja',
-        mode: 'integration',
+        managedByStore: true,
+        label: 'Cotacoes da loja',
+        mode: 'quote',
         source: 'POS',
       },
     }
@@ -177,69 +194,102 @@ describe('OrderLogisticsPage', () => {
     )
   })
 
-  it('renders front quote cards when logistics is store managed', () => {
+  it('renders real quote cards and the selected delivery provider', () => {
     mockLogisticsSnapshot = {
-      canRequestDriver: true,
-      couriers: [],
-      currentIntegration: null,
-      delivery: {
-        currentIntegrationKey: null,
-        requestedAt: null,
-        status: 'Cotacoes disponiveis',
-        trackingUrl: null,
+      canQuote: true,
+      currentIntegration: {
+        id: 801,
+        providerKey: 'ifood',
+        providerLabel: 'iFood',
+        price: 14.66,
+        quoteState: 'selected',
+        quoteStateLabel: 'Entrega solicitada',
+        trackingUrl: 'https://tracking.ifood.com/quote/801',
+        selected: true,
       },
-      dropoffAddressParts: null,
-      dropoffContact: null,
-      hasDriver: false,
-      integrations: [
-        {
-          key: 'uber',
-          label: 'Uber',
-          price: 12.5,
-          eta: '20 - 30 min',
-          status: 'Cotacao estimada no front',
-          summary: 'Cotacao estimada no front',
-          request: {
-            enabled: true,
-            type: 'uber',
-          },
-        },
+      dropoffAddressParts: {
+        primary: 'Rua Cliente, 321',
+        secondary: 'Bairro • Sao Paulo / SP',
+        complement: '',
+      },
+      dropoffContact: {
+        name: 'Marco',
+        phone: '+55 (11) 98888-8888',
+        email: '',
+      },
+      management: {
+        managedByStore: true,
+        label: 'Cotacoes da loja',
+        mode: 'quote',
+        source: 'POS',
+      },
+      pickupAddressParts: {
+        primary: 'Rua Teste, 123',
+        secondary: 'Centro • Sao Paulo / SP',
+        complement: 'Apto 10',
+      },
+      pickupContact: {
+        name: 'Loja Teste',
+        phone: '+55 (11) 99999-9999',
+        email: '',
+      },
+      providers: [
         {
           key: 'ifood',
           label: 'iFood',
-          price: 13.8,
-          eta: '25 - 40 min',
-          status: 'Cotacao estimada no front',
-          summary: 'Cotacao estimada no front',
-          request: {
-            enabled: true,
-            type: 'ifood',
-          },
+          connected: true,
+          online: true,
         },
         {
-          key: 'food99',
-          label: '99 Food',
-          price: 14.2,
-          eta: '22 - 35 min',
-          status: 'Cotacao estimada no front',
-          summary: 'Cotacao estimada no front',
-          request: {
-            enabled: true,
-            type: 'food99',
-          },
+          key: 'uber',
+          label: 'Uber',
+          connected: true,
+          online: true,
         },
       ],
-      managedByStore: true,
-      managedByStoreLabel: 'Gerenciada pela loja',
-      management: {
-        managedByStore: true,
-        label: 'Gerenciada pela loja',
-        mode: 'store',
-        source: 'POS',
+      quoteStatus: {
+        providers: 2,
+        quotes: 2,
+        ready: 1,
+        pending: 1,
+        selected: 1,
+        unavailable: 0,
+        error: 0,
       },
-      pickupAddressParts: null,
-      pickupContact: null,
-      uberState: {},
+      quotes: [
+        {
+          id: 801,
+          providerKey: 'ifood',
+          providerLabel: 'iFood',
+          price: 14.66,
+          eta: '20 - 30 min',
+          quoteState: 'selected',
+          quoteStateLabel: 'Entrega solicitada',
+          requestable: false,
+          selected: true,
+          trackingUrl: 'https://tracking.ifood.com/quote/801',
+          summary: 'Entrega solicitada',
+        },
+        {
+          id: 802,
+          providerKey: 'uber',
+          providerLabel: 'Uber',
+          price: 15.35,
+          eta: '22 - 35 min',
+          quoteState: 'ready',
+          quoteStateLabel: 'Cotacao pronta',
+          requestable: true,
+          selected: false,
+          summary: 'Cotacao pronta',
+        },
+      ],
+      selection: {
+        quoteOrderId: 801,
+        providerKey: 'ifood',
+        price: 14.66,
+        trackingUrl: 'https://tracking.ifood.com/quote/801',
+        selectedAt: '2026-05-16 10:00:00',
+      },
     }
 
     const markup = ReactDOMServer.renderToStaticMarkup(
@@ -255,10 +305,12 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).toContain('Marketplace')
-    expect(markup).toContain('Uber')
+    expect(markup).toContain('Cotacoes logisticas')
+    expect(markup).toContain('Atualizar cotações')
     expect(markup).toContain('iFood')
-    expect(markup).toContain('99 Food')
-    expect(markup).toContain('Solicitar via Uber')
+    expect(markup).toContain('Uber')
+    expect(markup).toContain('R$ 14,66')
+    expect(markup).toContain('Selecionada')
+    expect(markup).toContain('Escolher cotacao')
   })
 })
