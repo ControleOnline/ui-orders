@@ -4,6 +4,18 @@ const {jest} = require('@jest/globals')
 
 const {describe, expect, it} = global
 
+let mockLogisticsSnapshot = {
+  canRequestDriver: true,
+  dropoffAddressParts: null,
+  dropoffContact: null,
+  hasDriver: false,
+  managedByStore: false,
+  managedByStoreLabel: 'Nao gerenciada pela loja',
+  pickupAddressParts: null,
+  pickupContact: null,
+  uberState: {},
+}
+
 jest.mock('react-native', () => {
   const React = require('react')
   const createComponent = name => props =>
@@ -96,17 +108,15 @@ jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/useOrderDetail
 }))
 
 jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/orderLogisticsPresentation', () => ({
-  resolveOrderLogisticsSnapshot: jest.fn(() => ({
-    canRequestDriver: true,
-    dropoffAddressParts: null,
-    dropoffContact: null,
-    hasDriver: false,
-    managedByStore: false,
-    managedByStoreLabel: 'Nao gerenciada pela loja',
-    pickupAddressParts: null,
-    pickupContact: null,
-    uberState: {},
-  })),
+  __esModule: true,
+  default: jest.fn(() => mockLogisticsSnapshot),
+  resolveOrderLogisticsSnapshot: jest.fn(() => mockLogisticsSnapshot),
+}))
+
+jest.mock('@controleonline/ui-logistic/src/react/pages/orders/orderLogisticsPresentation', () => ({
+  __esModule: true,
+  default: jest.fn(() => mockLogisticsSnapshot),
+  resolveOrderLogisticsSnapshot: jest.fn(() => mockLogisticsSnapshot),
 }))
 
 jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar', () => props => {
@@ -115,12 +125,29 @@ jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/components/Ord
 })
 
 jest.mock('react-native-vector-icons/MaterialIcons', () => 'material-icons')
+jest.mock('@expo/vector-icons', () => ({
+  MaterialCommunityIcons: 'material-community-icons',
+}))
 
 const OrderLogisticsPage =
   require('../../../../../react/pages/orders/sales/OrderLogisticsPage').default
 
 describe('OrderLogisticsPage', () => {
   it('renders the stacked order header in the logistics body', () => {
+    mockLogisticsSnapshot = {
+      ...mockLogisticsSnapshot,
+      couriers: [],
+      currentIntegration: null,
+      delivery: {},
+      integrations: [],
+      managedByStore: false,
+      management: {
+        managedByStore: false,
+        label: 'Nao gerenciada pela loja',
+        mode: 'integration',
+        source: 'POS',
+      },
+    }
     global.__orderStackedTopBarProps = null
 
     ReactDOMServer.renderToStaticMarkup(
@@ -148,5 +175,90 @@ describe('OrderLogisticsPage', () => {
         }),
       }),
     )
+  })
+
+  it('renders front quote cards when logistics is store managed', () => {
+    mockLogisticsSnapshot = {
+      canRequestDriver: true,
+      couriers: [],
+      currentIntegration: null,
+      delivery: {
+        currentIntegrationKey: null,
+        requestedAt: null,
+        status: 'Cotacoes disponiveis',
+        trackingUrl: null,
+      },
+      dropoffAddressParts: null,
+      dropoffContact: null,
+      hasDriver: false,
+      integrations: [
+        {
+          key: 'uber',
+          label: 'Uber',
+          price: 12.5,
+          eta: '20 - 30 min',
+          status: 'Cotacao estimada no front',
+          summary: 'Cotacao estimada no front',
+          request: {
+            enabled: true,
+            type: 'uber',
+          },
+        },
+        {
+          key: 'ifood',
+          label: 'iFood',
+          price: 13.8,
+          eta: '25 - 40 min',
+          status: 'Cotacao estimada no front',
+          summary: 'Cotacao estimada no front',
+          request: {
+            enabled: true,
+            type: 'ifood',
+          },
+        },
+        {
+          key: 'food99',
+          label: '99 Food',
+          price: 14.2,
+          eta: '22 - 35 min',
+          status: 'Cotacao estimada no front',
+          summary: 'Cotacao estimada no front',
+          request: {
+            enabled: true,
+            type: 'food99',
+          },
+        },
+      ],
+      managedByStore: true,
+      managedByStoreLabel: 'Gerenciada pela loja',
+      management: {
+        managedByStore: true,
+        label: 'Gerenciada pela loja',
+        mode: 'store',
+        source: 'POS',
+      },
+      pickupAddressParts: null,
+      pickupContact: null,
+      uberState: {},
+    }
+
+    const markup = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderLogisticsPage, {
+        navigation: {
+          goBack: jest.fn(),
+        },
+        route: {
+          params: {
+            id: 71119,
+          },
+        },
+      }),
+    )
+
+    expect(markup).toContain('Marketplace')
+    expect(markup).toContain('Uber')
+    expect(markup).toContain('iFood')
+    expect(markup).toContain('99 Food')
+    expect(markup).toContain('Solicitar via Uber')
   })
 })

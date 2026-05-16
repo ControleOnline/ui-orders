@@ -59,7 +59,7 @@ jest.mock('@controleonline/ui-orders/src/react/pages/Prints', () => () =>
 jest.mock('@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage', () => () =>
   React.createElement('order-history-page', null),
 )
-jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/OrderLogisticsPage', () => () =>
+jest.mock('@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage', () => () =>
   React.createElement('order-logistics-page', null),
 )
 jest.mock('@controleonline/ui-orders/src/react/components/OrderIdentityLabel', () => props =>

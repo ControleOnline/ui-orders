@@ -6,7 +6,6 @@ import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/W
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
 import OrderHistoryPage from '@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage';
-import OrderLogisticsPage from '@controleonline/ui-orders/src/react/pages/orders/sales/OrderLogisticsPage';
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import {
@@ -16,6 +15,8 @@ import { useStore } from '@store';
 import { env } from '@env';
 
 import React from 'react';
+
+export {WrappedOrderLogistics} from '@controleonline/ui-logistic/src/react/router/routes';
 
 const WrappedCloseCashRegister = ({ navigation, route }) => {
   React.useEffect(() => {
@@ -73,21 +74,6 @@ const WrappedOrderDetails = ({ navigation, route }) => {
 
   return (
     <OrderDetails navigation={navigation} route={route} />
-  );
-};
-
-export const WrappedOrderLogistics = ({ navigation, route }) => {
-  const ordersStore = useStore('orders');
-  const order = route.params?.order || ordersStore.getters.item;
-
-  React.useEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
-  }, [navigation, order]);
-
-  return (
-    <OrderLogisticsPage navigation={navigation} route={route} />
   );
 };
 
@@ -161,17 +147,6 @@ const ordersRoutes = [
       showBottomCart: false,
       showBottomToolBar: false,
       title: global.t?.t('orders', 'title', 'order'),
-    },
-    initialParams: { store: 'orders' },
-  },
-  {
-    name: 'OrderLogisticsPage',
-    component: WrappedOrderLogistics,
-    options: {
-      headerShown: false,
-      showBottomCart: false,
-      showBottomToolBar: false,
-      title: global.t?.t('orders', 'title', 'logistics') || 'Logistica',
     },
     initialParams: { store: 'orders' },
   },

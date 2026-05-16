@@ -100,4 +100,63 @@ describe('orderLogisticsPresentation', () => {
       }),
     )
   })
+
+  it('treats POS orders as store managed and builds front quote cards', () => {
+    const snapshot = resolveOrderLogisticsSnapshot({
+      id: 70003,
+      app: 'POS',
+      price: 120.5,
+      addressOrigin: {
+        number: 45,
+        street: {
+          street: 'Rua da Loja',
+          district: {
+            district: 'Centro',
+            city: {
+              city: 'Sao Paulo',
+              state: {
+                uf: 'SP',
+                state: 'Sao Paulo',
+              },
+            },
+          },
+          cep: {
+            cep: '01001000',
+          },
+        },
+      },
+      addressDestination: {
+        number: 99,
+        street: {
+          street: 'Rua do Cliente',
+          district: {
+            district: 'Bairro',
+            city: {
+              city: 'Sao Paulo',
+              state: {
+                uf: 'SP',
+                state: 'Sao Paulo',
+              },
+            },
+          },
+          cep: {
+            cep: '02002000',
+          },
+        },
+      },
+    })
+
+    expect(snapshot.managedByStore).toBe(true)
+    expect(snapshot.management).toEqual(
+      expect.objectContaining({
+        mode: 'store',
+        managedByStore: true,
+      }),
+    )
+    expect(snapshot.integrations).toHaveLength(3)
+    expect(snapshot.integrations.map(card => card.key)).toEqual(['uber', 'ifood', 'food99'])
+    expect(snapshot.integrations.every(card => card.frontOnly)).toBe(true)
+    expect(snapshot.integrations.every(card => typeof card.price === 'number')).toBe(true)
+    expect(snapshot.canRequestDriver).toBe(true)
+  })
 })
