@@ -488,4 +488,44 @@ describe('orderLogisticsPresentation', () => {
     expect(snapshot.showQuotesSection).toBe(true)
     expect(snapshot.canQuote).toBe(false)
   })
+
+  it('exposes courier details in legacy snapshots when delivery people are present', () => {
+    const snapshot = resolveOrderLogisticsSnapshot({
+      order: {
+        id: 71108,
+        app: 'Food99',
+        deliveryPeopleId: 321,
+        deliveryPeople: {
+          id: 321,
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          alias: '',
+          peopleType: 'F',
+          phone: [
+            {
+              ddi: 55,
+              ddd: 11,
+              phone: 950751998,
+            },
+          ],
+        },
+      },
+    })
+
+    expect(snapshot.delivery).toEqual(
+      expect.objectContaining({
+        deliveryPeopleId: 321,
+        deliveryPeople: expect.objectContaining({
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+        }),
+      }),
+    )
+    expect(snapshot.route).toEqual(
+      expect.objectContaining({
+        courierContact: expect.objectContaining({
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+        }),
+      }),
+    )
+    expect(snapshot.hasDriver).toBe(true)
+  })
 })

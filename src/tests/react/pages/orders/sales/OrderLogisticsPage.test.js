@@ -472,6 +472,7 @@ describe('OrderLogisticsPage', () => {
     expect(markup).not.toContain('Cotações logísticas')
     expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
     expect(markup).toContain('11950751998')
+    expect(markup).toContain('Entregador')
     expect(markup).toContain('Cotações')
     expect(markup).toContain('99 Food')
     expect(markup).not.toContain('Atualizar cotações')
