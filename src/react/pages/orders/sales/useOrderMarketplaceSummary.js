@@ -3208,7 +3208,7 @@ const useOrderMarketplaceSummary = ({
       financialAction: orderId
         ? {
             key: 'generate-marketplace-invoices',
-            label: 'Gerar financeiro da integracao',
+            label: 'Gerar financeiro da integração',
             loading: remoteActionLoading === 'generate_invoices',
             disabled: !!remoteActionLoading,
             onPress: handleGenerateIntegrationInvoices,
