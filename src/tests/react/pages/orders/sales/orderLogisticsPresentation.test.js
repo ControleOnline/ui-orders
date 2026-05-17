@@ -266,6 +266,32 @@ describe('orderLogisticsPresentation', () => {
     )
   })
 
+  it('treats a connected integration as eligible even when it is offline', () => {
+    const snapshot = resolveOrderLogisticsSnapshot({
+      order: {
+        id: 71104,
+        app: 'POS',
+      },
+      providers: [
+        {
+          key: 'ifood',
+          label: 'iFood',
+          connected: true,
+          online: false,
+        },
+      ],
+    })
+
+    expect(snapshot.canQuote).toBe(true)
+    expect(snapshot.providers).toEqual([
+      expect.objectContaining({
+        key: 'ifood',
+        connected: true,
+        online: false,
+      }),
+    ])
+  })
+
   it('matches the selected quote even when the ids arrive as strings', () => {
     const snapshot = resolveOrderLogisticsSnapshot({
       order: {

@@ -313,4 +313,70 @@ describe('OrderLogisticsPage', () => {
     expect(markup).toContain('Selecionada')
     expect(markup).toContain('Escolher cotacao')
   })
+
+  it('keeps connected integrations visible even when online is not populated', () => {
+    mockLogisticsSnapshot = {
+      canQuote: true,
+      currentIntegration: null,
+      dropoffAddressParts: null,
+      dropoffContact: null,
+      management: {
+        managedByStore: true,
+        label: 'Cotacoes da loja',
+        mode: 'quote',
+        source: 'POS',
+      },
+      pickupAddressParts: null,
+      pickupContact: null,
+      providers: [
+        {
+          key: 'ifood',
+          label: 'iFood',
+          connected: true,
+          online: false,
+        },
+        {
+          key: 'food99',
+          label: '99 Food',
+          connected: true,
+          online: false,
+        },
+      ],
+      quoteStatus: {
+        providers: 2,
+        quotes: 0,
+        ready: 0,
+        pending: 0,
+        selected: 0,
+        unavailable: 0,
+        error: 0,
+      },
+      quotes: [],
+      selection: {
+        quoteOrderId: null,
+        providerKey: '',
+        price: null,
+        trackingUrl: null,
+        selectedAt: '',
+      },
+    }
+
+    const markup = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderLogisticsPage, {
+        navigation: {
+          goBack: jest.fn(),
+        },
+        route: {
+          params: {
+            id: 71119,
+          },
+        },
+      }),
+    )
+
+    expect(markup).toContain('iFood')
+    expect(markup).toContain('99 Food')
+    expect(markup).toContain('offline')
+    expect(markup).toContain('Solicitar cotações')
+  })
 })
