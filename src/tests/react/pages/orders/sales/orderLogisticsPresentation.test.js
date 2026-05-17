@@ -339,4 +339,153 @@ describe('orderLogisticsPresentation', () => {
       }),
     )
   })
+
+  it('keeps the quote history visible when the order already has a delivery courier defined', () => {
+    const snapshot = resolveOrderLogisticsSnapshot({
+      order: {
+        id: 71106,
+        app: 'Food99',
+        deliveryPeopleId: 321,
+        deliveryPeople: {
+          id: 321,
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          alias: '',
+          peopleType: 'F',
+          phone: [
+            {
+              ddi: 55,
+              ddd: 11,
+              phone: 950751998,
+            },
+          ],
+        },
+      },
+      route: {
+        courierContact: {
+          id: 321,
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          alias: '',
+          peopleType: 'F',
+          phone: [
+            {
+              ddi: 55,
+              ddd: 11,
+              phone: 950751998,
+            },
+          ],
+        },
+      },
+      providers: [
+        {
+          key: 'ifood',
+          label: 'iFood',
+          connected: true,
+          online: true,
+        },
+        {
+          key: 'food99',
+          label: '99 Food',
+          connected: true,
+          online: true,
+        },
+      ],
+      quotes: [
+        {
+          id: 901,
+          providerKey: 'food99',
+          providerLabel: '99 Food',
+          quoteState: 'selected',
+          requestable: false,
+        },
+      ],
+      management: {
+        mode: 'integration',
+        managedByStore: false,
+        label: 'Entrega gerenciada pela integracao',
+        source: 'Food99',
+        mainOrderId: 71106,
+      },
+    })
+
+    expect(snapshot.hasDeliveryOrder).toBe(true)
+    expect(snapshot.canQuote).toBe(false)
+    expect(snapshot.showQuotesSection).toBe(true)
+    expect(snapshot.delivery).toEqual(
+      expect.objectContaining({
+        deliveryPeopleId: 321,
+        status: 'Entrega definida',
+      }),
+    )
+  })
+
+  it('hides the integration block on closed orders but keeps existing quotes visible', () => {
+    const snapshot = resolveOrderLogisticsSnapshot({
+      order: {
+        id: 71107,
+        app: 'Food99',
+        status: {
+          realStatus: 'closed',
+          status: 'closed',
+        },
+        deliveryPeopleId: 321,
+        deliveryPeople: {
+          id: 321,
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          alias: '',
+          peopleType: 'F',
+          phone: [
+            {
+              ddi: 55,
+              ddd: 11,
+              phone: 950751998,
+            },
+          ],
+        },
+      },
+      route: {
+        courierContact: {
+          id: 321,
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          alias: '',
+          peopleType: 'F',
+          phone: [
+            {
+              ddi: 55,
+              ddd: 11,
+              phone: 950751998,
+            },
+          ],
+        },
+      },
+      providers: [
+        {
+          key: 'food99',
+          label: '99 Food',
+          connected: true,
+          online: true,
+        },
+      ],
+      quotes: [
+        {
+          id: 902,
+          providerKey: 'food99',
+          providerLabel: '99 Food',
+          quoteState: 'selected',
+          requestable: false,
+        },
+      ],
+      management: {
+        mode: 'integration',
+        managedByStore: false,
+        label: 'Entrega gerenciada pela integracao',
+        source: 'Food99',
+        mainOrderId: 71107,
+      },
+    })
+
+    expect(snapshot.isClosedOrder).toBe(true)
+    expect(snapshot.showIntegrationSection).toBe(false)
+    expect(snapshot.showQuotesSection).toBe(true)
+    expect(snapshot.canQuote).toBe(false)
+  })
 })

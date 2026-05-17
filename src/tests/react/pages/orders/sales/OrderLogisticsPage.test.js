@@ -305,7 +305,7 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).toContain('Cotacoes logisticas')
+    expect(markup).toContain('Cotações logísticas')
     expect(markup).toContain('Atualizar cotações')
     expect(markup).toContain('iFood')
     expect(markup).toContain('Uber')
@@ -378,5 +378,103 @@ describe('OrderLogisticsPage', () => {
     expect(markup).toContain('99 Food')
     expect(markup).toContain('offline')
     expect(markup).toContain('Solicitar cotações')
+  })
+
+  it('hides the integration hero on closed orders while keeping quote history visible', () => {
+    mockLogisticsSnapshot = {
+      canQuote: false,
+      currentIntegration: null,
+      delivery: {
+        deliveryPeopleId: 321,
+        deliveryPeople: {
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          phone: '11950751998',
+          email: '',
+        },
+        trackingUrl: 'https://tracking.99food.com/delivery/321',
+        requestedAt: '2026-05-17 10:00:00',
+        status: 'Entrega definida',
+        currentIntegrationKey: 'food99',
+      },
+      isClosedOrder: true,
+      dropoffAddressParts: null,
+      dropoffContact: null,
+      hasDeliveryOrder: true,
+      management: {
+        managedByStore: false,
+        label: 'Entrega gerenciada pela integracao',
+        mode: 'integration',
+        source: 'Food99',
+      },
+      pickupAddressParts: null,
+      pickupContact: null,
+      providers: [
+        {
+          key: 'food99',
+          label: '99 Food',
+          connected: true,
+          online: true,
+        },
+      ],
+      quoteStatus: {
+        providers: 1,
+        quotes: 1,
+        ready: 0,
+        pending: 0,
+        selected: 1,
+        unavailable: 0,
+        error: 0,
+      },
+      quotes: [
+        {
+          id: 901,
+          providerKey: 'food99',
+          providerLabel: '99 Food',
+          quoteState: 'selected',
+          quoteStateLabel: 'Entrega definida',
+          requestable: false,
+          selected: true,
+          trackingUrl: 'https://tracking.99food.com/delivery/321',
+          summary: 'Entrega definida',
+        },
+      ],
+      route: {
+        courierContact: {
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          phone: '11950751998',
+          email: '',
+        },
+      },
+      selection: {
+        quoteOrderId: 901,
+        providerKey: 'food99',
+        price: null,
+        trackingUrl: 'https://tracking.99food.com/delivery/321',
+        selectedAt: '2026-05-17 10:00:00',
+      },
+      showIntegrationSection: false,
+      showQuotesSection: true,
+    }
+
+    const markup = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderLogisticsPage, {
+        navigation: {
+          goBack: jest.fn(),
+        },
+        route: {
+          params: {
+            id: 71119,
+          },
+        },
+      }),
+    )
+
+    expect(markup).not.toContain('Cotações logísticas')
+    expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
+    expect(markup).toContain('11950751998')
+    expect(markup).toContain('Cotações')
+    expect(markup).toContain('99 Food')
+    expect(markup).not.toContain('Atualizar cotações')
+    expect(markup).not.toContain('Escolher cotacao')
   })
 })
