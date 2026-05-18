@@ -353,7 +353,7 @@ describe('OrderLogisticsPage', () => {
     expect(markup).not.toContain('Escolher cotacao')
   })
 
-  it('shows the empty state and request action when there is no quote yet', () => {
+  it('shows the empty state and hides quote request when delivery address is missing', () => {
     mockLogisticsSnapshot = {
       canQuote: true,
       currentIntegration: null,
@@ -414,10 +414,11 @@ describe('OrderLogisticsPage', () => {
     )
 
     expect(markup).toContain('Logística')
-    expect(markup).toContain('Solicitar cotações')
     expect(markup).toContain('Nenhuma cotacao ainda')
+    expect(markup).toContain('Informe um endereço de entrega válido')
     expect(markup).not.toContain('iFood')
     expect(markup).not.toContain('99 Food')
+    expect(markup).not.toContain('Solicitar cotações')
   })
 
   it('hides the integration hero on closed orders while keeping quote history visible', () => {
@@ -519,4 +520,5 @@ describe('OrderLogisticsPage', () => {
     expect(markup).not.toContain('Atualizar cotações')
     expect(markup).not.toContain('Escolher cotacao')
   })
+
 })
