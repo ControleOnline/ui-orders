@@ -44,6 +44,8 @@ jest.mock('react-native', () => {
 
   return {
     ActivityIndicator: createComponent('ActivityIndicator'),
+    Image: createComponent('Image'),
+    Modal: props => (props.visible ? React.createElement('modal', null, props.children) : null),
     ScrollView: createComponent('ScrollView'),
     StyleSheet: {create: value => value},
     Text: createComponent('Text'),
@@ -118,6 +120,17 @@ jest.mock('@controleonline/ui-common/src/api', () => ({
   api: {
     fetch: jest.fn(),
   },
+}))
+
+jest.mock('@assets/ppc/channels', () => ({
+  getOrderChannelLabel: jest.fn(({app}) => {
+    const value = String(app || '').toLowerCase()
+    if (value.includes('99')) return '99 Food'
+    if (value.includes('ifood')) return 'iFood'
+    if (value.includes('uber')) return 'Uber'
+    return 'Shop'
+  }),
+  getOrderChannelLogo: jest.fn(() => null),
 }))
 
 jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/useOrderDetailsVisuals', () => () => ({
@@ -203,9 +216,12 @@ describe('OrderLogisticsPage', () => {
         providerLabel: 'iFood',
         price: 14.66,
         quoteState: 'selected',
-        quoteStateLabel: 'Entrega solicitada',
+        quoteStateLabel: 'Entrega definida',
         trackingUrl: 'https://tracking.ifood.com/quote/801',
         selected: true,
+        status: {
+          status: 'closed',
+        },
       },
       dropoffAddressParts: {
         primary: 'Rua Cliente, 321',
@@ -213,10 +229,23 @@ describe('OrderLogisticsPage', () => {
         complement: '',
       },
       dropoffContact: {
-        name: 'Marco',
+        name: 'CAROLINE',
         phone: '+55 (11) 98888-8888',
         email: '',
       },
+      delivery: {
+        deliveryPeopleId: 321,
+        deliveryPeople: {
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          phone: '11950751998',
+          email: '',
+        },
+        trackingUrl: 'https://tracking.99food.com/delivery/321',
+        requestedAt: '2026-05-17 10:00:00',
+        status: 'Fechado',
+        currentIntegrationKey: 'food99',
+      },
+      hasDeliveryOrder: true,
       management: {
         managedByStore: true,
         label: 'Cotacoes da loja',
@@ -264,11 +293,13 @@ describe('OrderLogisticsPage', () => {
           price: 14.66,
           eta: '20 - 30 min',
           quoteState: 'selected',
-          quoteStateLabel: 'Entrega solicitada',
+          quoteStateLabel: 'Entrega definida',
           requestable: false,
           selected: true,
           trackingUrl: 'https://tracking.ifood.com/quote/801',
-          summary: 'Entrega solicitada',
+          status: {
+            status: 'closed',
+          },
         },
         {
           id: 802,
@@ -305,16 +336,24 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).toContain('Cotações logísticas')
-    expect(markup).toContain('Atualizar cotações')
+    expect(markup).toContain('Logística')
+    expect(markup).toContain('Atualizar tela')
+    expect(markup).toContain('Origem')
+    expect(markup).toContain('Destino')
+    expect(markup).toContain('Contato da entrega')
+    expect(markup).toContain('CAROLINE')
+    expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
+    expect(markup).toContain('11950751998')
     expect(markup).toContain('iFood')
     expect(markup).toContain('Uber')
     expect(markup).toContain('R$ 14,66')
-    expect(markup).toContain('Selecionada')
-    expect(markup).toContain('Escolher cotacao')
+    expect(markup).toContain('Fechado')
+    expect(markup).not.toContain('Aguardando cotacao')
+    expect(markup).not.toContain('Atualizar cotações')
+    expect(markup).not.toContain('Escolher cotacao')
   })
 
-  it('keeps connected integrations visible even when online is not populated', () => {
+  it('shows the empty state and request action when there is no quote yet', () => {
     mockLogisticsSnapshot = {
       canQuote: true,
       currentIntegration: null,
@@ -374,10 +413,11 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).toContain('iFood')
-    expect(markup).toContain('99 Food')
-    expect(markup).toContain('offline')
+    expect(markup).toContain('Logística')
     expect(markup).toContain('Solicitar cotações')
+    expect(markup).toContain('Nenhuma cotacao ainda')
+    expect(markup).not.toContain('iFood')
+    expect(markup).not.toContain('99 Food')
   })
 
   it('hides the integration hero on closed orders while keeping quote history visible', () => {
@@ -435,7 +475,9 @@ describe('OrderLogisticsPage', () => {
           requestable: false,
           selected: true,
           trackingUrl: 'https://tracking.99food.com/delivery/321',
-          summary: 'Entrega definida',
+          status: {
+            status: 'closed',
+          },
         },
       ],
       route: {
@@ -469,12 +511,11 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).not.toContain('Cotações logísticas')
+    expect(markup).toContain('Logística')
     expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
     expect(markup).toContain('11950751998')
-    expect(markup).toContain('Entregador')
-    expect(markup).toContain('Cotações')
     expect(markup).toContain('99 Food')
+    expect(markup).toContain('Fechado')
     expect(markup).not.toContain('Atualizar cotações')
     expect(markup).not.toContain('Escolher cotacao')
   })
