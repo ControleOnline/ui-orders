@@ -265,6 +265,93 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[0].items[0].groups[0].items[0].isZero).toBe(false)
   })
 
+  it('keeps revisited grouped items from leaking their nested components into sibling groups', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 60,
+        quantity: 1,
+        total: 69.99,
+        product: { id: 1001, product: 'Combo Gamma Gyros' },
+        orderProductComponents: [
+          {
+            id: 61,
+            quantity: 1,
+            product: { id: 1002, product: 'Batata Frita Média' },
+            productGroup: {
+              id: 1300,
+              productGroup: 'Escolha sua Batata',
+            },
+          },
+          {
+            id: 64,
+            quantity: 1,
+            product: { id: 1005, product: 'Fanta Laranja lata 350 ml' },
+            productGroup: {
+              id: 1303,
+              productGroup: 'Escolha sua Bebida',
+            },
+          },
+        ],
+      },
+      {
+        id: 61,
+        quantity: 1,
+        product: { id: 1002, product: 'Batata Frita Média' },
+        orderProduct: '/order_products/60',
+        parentProduct: '/products/1001',
+        productGroup: {
+          id: 1300,
+          productGroup: 'Escolha sua Batata',
+        },
+        orderProductComponents: [
+          {
+            id: 62,
+            quantity: 1,
+            product: { id: 1003, product: 'Maionese da Casa - pote 60ml' },
+            productGroup: {
+              id: 1301,
+              productGroup: 'Molhos extra à parte',
+            },
+          },
+          {
+            id: 63,
+            quantity: 1,
+            product: { id: 1004, product: 'Sal' },
+            productGroup: {
+              id: 1302,
+              productGroup: 'Escolha o tempero da sua Batata',
+            },
+          },
+        ],
+      },
+      {
+        id: 64,
+        quantity: 1,
+        product: { id: 1005, product: 'Fanta Laranja lata 350 ml' },
+        orderProduct: '/order_products/60',
+        parentProduct: '/products/1001',
+        productGroup: {
+          id: 1303,
+          productGroup: 'Escolha sua Bebida',
+        },
+      },
+    ])
+
+    expect(cards).toHaveLength(1)
+    expect(cards[0].groups.map(group => group.label)).toEqual([
+      'Escolha sua Batata',
+      'Escolha sua Bebida',
+    ])
+    expect(cards[0].groups[0].items[0].groups.map(group => group.label)).toEqual([
+      'Molhos extra à parte',
+      'Escolha o tempero da sua Batata',
+    ])
+    expect(cards[0].groups[0].items[0].groups[0].items.map(item => item.name)).toEqual([
+      'Maionese da Casa - pote 60ml',
+    ])
+    expect(cards[0].groups[1].items[0].groups).toHaveLength(0)
+  })
+
   it('hides zero-value duplicate root cards for components already shown inside a combo', () => {
     const cards = buildOrderProductCards([
       {

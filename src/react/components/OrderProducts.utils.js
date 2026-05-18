@@ -419,7 +419,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     if (dedupeKey) {
       const groupEntryKeys = getGroupEntryKeys(target)
       if (groupEntryKeys.has(dedupeKey)) {
-        return null
+        return itemEntityId ? componentEntryByOrderProductId.get(itemEntityId) || null : null
       }
 
       groupEntryKeys.add(dedupeKey)

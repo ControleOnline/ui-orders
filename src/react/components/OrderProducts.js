@@ -131,9 +131,9 @@ const OrderProducts = ({
 
     const nestedStyle = depth > 0
       ? {
-          marginLeft: 18,
+          marginLeft: 24,
           marginTop: 6,
-          paddingLeft: 10,
+          paddingLeft: 12,
           borderLeftWidth: 1,
           borderLeftColor: '#CBD5E1',
         }
