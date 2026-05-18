@@ -49,6 +49,7 @@ jest.mock('react-native', () => {
     ScrollView: createComponent('ScrollView'),
     StyleSheet: {create: value => value},
     Text: createComponent('Text'),
+    TextInput: createComponent('TextInput'),
     TouchableOpacity: createComponent('TouchableOpacity'),
     View: createComponent('View'),
   }
@@ -115,6 +116,8 @@ jest.mock('@controleonline/ui-common/src/react/components/MessageService', () =>
     showSuccess: jest.fn(),
   }),
 }))
+
+jest.mock('@controleonline/ui-people/src/react/components/AddCompanyModal', () => () => null)
 
 jest.mock('@controleonline/ui-common/src/api', () => ({
   api: {
@@ -321,6 +324,15 @@ describe('OrderLogisticsPage', () => {
         trackingUrl: 'https://tracking.ifood.com/quote/801',
         selectedAt: '2026-05-16 10:00:00',
       },
+      order: {
+        client: {
+          id: 88,
+          '@id': '/people/88',
+          name: 'CAROLINE',
+          phone: '+55 (11) 98888-8888',
+          email: 'caroline@email.com',
+        },
+      },
     }
 
     const markup = ReactDOMServer.renderToStaticMarkup(
@@ -337,6 +349,10 @@ describe('OrderLogisticsPage', () => {
     )
 
     expect(markup).toContain('Logística')
+    expect(markup).toContain('Cliente do pedido')
+    expect(markup).toContain('Trocar cliente')
+    expect(markup).toContain('Alterar endereco')
+    expect(markup).toContain('caroline@email.com')
     expect(markup).toContain('Atualizar tela')
     expect(markup).toContain('Origem')
     expect(markup).toContain('Destino')
@@ -414,6 +430,7 @@ describe('OrderLogisticsPage', () => {
     )
 
     expect(markup).toContain('Logística')
+    expect(markup).toContain('Vincular cliente')
     expect(markup).toContain('Nenhuma cotacao ainda')
     expect(markup).toContain('Informe um endereço de entrega válido')
     expect(markup).not.toContain('iFood')
