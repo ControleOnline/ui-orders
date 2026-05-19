@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Text,
   TouchableOpacity,
   View,
@@ -22,6 +23,7 @@ import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHea
 import { buildOrderDetailsRouteParams } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import { resolveOrderIdentity } from '@controleonline/ui-orders/src/react/utils/orderIdentity';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
+import {shouldResumeCounterOrderFlow} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow';
 import { colors } from '@controleonline/../../src/styles/colors';
 import { resolveThemePalette } from '@controleonline/../../src/styles/branding';
 import styles from './OrderHistoryPage.styles';
@@ -237,6 +239,15 @@ export default function OrderHistoryPage({ navigation, route }) {
   const isCounterMode = useMemo(() => {
     return isPosCounterMode(deviceConfig?.configs);
   }, [deviceConfig?.configs]);
+  const shouldResumeCounterFlow = useMemo(
+    () =>
+      shouldResumeCounterOrderFlow({
+        appType: env.APP_TYPE,
+        isCounterMode,
+        resumeCounterFlow: route?.params?.resumeCounterFlow,
+      }),
+    [isCounterMode, route?.params?.resumeCounterFlow],
+  );
   const { resolveCounterStartDestination } = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
@@ -367,11 +378,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   }, [routeOrderTypeFilter]);
 
   useEffect(() => {
-    if (!isFocused || env.APP_TYPE !== 'POS' || !isCounterMode) {
-      return;
-    }
-
-    if (route?.params?.resumeCounterFlow !== true) {
+    if (!isFocused || !shouldResumeCounterFlow) {
       return;
     }
 
@@ -410,11 +417,10 @@ export default function OrderHistoryPage({ navigation, route }) {
       cancelled = true;
     };
   }, [
-    isCounterMode,
     isFocused,
     navigation,
     resolveCounterStartDestination,
-    route?.params?.resumeCounterFlow,
+    shouldResumeCounterFlow,
   ]);
 
   useEffect(() => {
@@ -548,6 +554,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   /* carrega somente quando o snapshot atual da store não atende ao filtro atual */
   useEffect(() => {
     if (!isFocused) return;
+    if (shouldResumeCounterFlow) return;
 
     if (!currentCompany?.id) {
       const shouldClearHistorySnapshot =
@@ -586,6 +593,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     error,
     storedOrders,
     storedTotalItems,
+    shouldResumeCounterFlow,
   ]);
 
   /* scroll infinito — carrega próxima página */
@@ -716,6 +724,22 @@ export default function OrderHistoryPage({ navigation, route }) {
   }, [openOrder, purchaseSuppliersById]);
 
   /* ─── render ─────────────────────────────────────────────────────── */
+  if (shouldResumeCounterFlow) {
+    return (
+      <SafeAreaView
+        style={[styles.container, {backgroundColor: brandColors.background}]}
+        edges={['bottom']}>
+        <View style={styles.content}>
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color={brandColors.primary} />
+            <Text style={styles.centerStateTitle}>
+              {global.t?.t('orders', 'label', 'loading')}
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: brandColors.background }]} edges={['bottom']}>

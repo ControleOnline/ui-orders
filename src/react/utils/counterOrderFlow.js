@@ -2,6 +2,15 @@ export const COUNTER_SCREEN_ORDER_HISTORY = 'OrderHistoryPage'
 export const COUNTER_SCREEN_ORDER_DETAILS = 'OrderDetails'
 export const COUNTER_SCREEN_ADD_PRODUCT = 'AddProductScreen'
 
+export const shouldResumeCounterOrderFlow = ({
+  appType,
+  isCounterMode,
+  resumeCounterFlow,
+} = {}) =>
+  String(appType || '').trim().toUpperCase() === 'POS' &&
+  isCounterMode === true &&
+  resumeCounterFlow === true
+
 export const extractEmbeddedOrderProducts = order => {
   if (Array.isArray(order?.orderProducts)) {
     return order.orderProducts

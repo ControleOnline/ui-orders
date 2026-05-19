@@ -5,6 +5,7 @@ const {
   extractEmbeddedOrderProducts,
   hasCounterOrderProducts,
   resolveCounterDestinationFromOrders,
+  shouldResumeCounterOrderFlow,
 } = require('../../../react/utils/counterOrderFlow')
 
 const {describe, expect, it} = global
@@ -59,5 +60,39 @@ describe('counterOrderFlow', () => {
     ).toHaveLength(1)
 
     expect(hasCounterOrderProducts({price: 12.5})).toBe(true)
+  })
+
+  it('only resumes the counter flow automatically for POS balcao entries', () => {
+    expect(
+      shouldResumeCounterOrderFlow({
+        appType: 'POS',
+        isCounterMode: true,
+        resumeCounterFlow: true,
+      }),
+    ).toBe(true)
+
+    expect(
+      shouldResumeCounterOrderFlow({
+        appType: 'MANAGER',
+        isCounterMode: true,
+        resumeCounterFlow: true,
+      }),
+    ).toBe(false)
+
+    expect(
+      shouldResumeCounterOrderFlow({
+        appType: 'POS',
+        isCounterMode: false,
+        resumeCounterFlow: true,
+      }),
+    ).toBe(false)
+
+    expect(
+      shouldResumeCounterOrderFlow({
+        appType: 'POS',
+        isCounterMode: true,
+        resumeCounterFlow: false,
+      }),
+    ).toBe(false)
   })
 })
