@@ -554,6 +554,10 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
         return
       }
 
+      if (!shouldShowInParentQueue(component)) {
+        return
+      }
+
       embeddedComponentOrderSequence += 1
 
       const componentOrder =
@@ -699,7 +703,13 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   }
 
   items.forEach((item, index) => {
-    if (shouldTreatAsGroupedItem(item) && !renderSingleHiddenGroupedItemAsRoot) return
+    if (
+      shouldTreatAsGroupedItem(item) &&
+      shouldShowInParentQueue(item) &&
+      !renderSingleHiddenGroupedItemAsRoot
+    ) {
+      return
+    }
 
     const card = getOrCreateRootCard(item, index)
     const quantity = Number(item?.quantity || 0)

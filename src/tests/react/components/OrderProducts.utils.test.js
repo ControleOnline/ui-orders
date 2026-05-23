@@ -58,6 +58,85 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Bacon', 'Catupiry'])
   })
 
+  it('keeps hidden children out of the parent card while preserving them as standalone items', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 1,
+        quantity: 1,
+        total: 73,
+        product: {
+          id: 101,
+          product: 'Combo Alpha Gyros',
+        },
+        orderProductComponents: [
+          {
+            id: 2,
+            quantity: 1,
+            total: 0,
+            product: {
+              id: 201,
+              product: 'Batata Frita Média',
+            },
+            showInParentQueue: false,
+            orderProductQueues: [
+              {
+                id: 20,
+                updateTime: '2026-04-22T12:00:00Z',
+                queue: { queue: 'Gyros Fritadeira' },
+                status: {
+                  status: 'Pronto',
+                  realStatus: 'out',
+                  color: '#16A34A',
+                },
+              },
+            ],
+            productGroup: {
+              id: 900,
+              productGroup: 'Escolha sua batata',
+              parentProduct: { id: 101, product: 'Combo Alpha Gyros' },
+            },
+          },
+        ],
+      },
+      {
+        id: 2,
+        quantity: 1,
+        total: 0,
+        product: {
+          id: 201,
+          product: 'Batata Frita Média',
+        },
+        showInParentQueue: false,
+        orderProduct: '/order_products/1',
+        parentProduct: '/products/101',
+        orderProductQueues: [
+          {
+            id: 21,
+            updateTime: '2026-04-22T12:05:00Z',
+            queue: { queue: 'Gyros Fritadeira' },
+            status: {
+              status: 'Pronto',
+              realStatus: 'out',
+              color: '#16A34A',
+            },
+          },
+        ],
+        productGroup: {
+          id: 900,
+          productGroup: 'Escolha sua batata',
+          parentProduct: { id: 101, product: 'Combo Alpha Gyros' },
+        },
+      },
+    ])
+
+    expect(cards.map(card => card.name)).toEqual([
+      'Combo Alpha Gyros',
+      'Batata Frita Média',
+    ])
+    expect(cards[0].groups).toHaveLength(0)
+    expect(cards[1].queuePresentation.label).toBe('Gyros Fritadeira / Pronto')
+  })
+
   it('does not create fake parent cards from reused catalog product groups', () => {
     const cards = buildOrderProductCards([
       {
