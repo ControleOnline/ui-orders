@@ -312,20 +312,21 @@ const LinkedOrderEntrySheet = ({
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <View style={styles.header}>
-            <View style={styles.headerIcon}>
-              <Icon name="fact-check" size={24} color="#0EA5E9" />
-            </View>
+            <View style={styles.headerTop}>
+              <View style={styles.headerIcon}>
+                <Icon name="fact-check" size={24} color="#0EA5E9" />
+              </View>
 
-            <View style={styles.headerContent}>
               <Text style={styles.title}>
                 {global.t?.t('orders', 'title', 'identifyOrderBase') ||
                   `Identify ${orderLabel}`}
               </Text>
-              <Text style={styles.description}>
-                {global.t?.t('orders', 'message', 'linkedOrderEntryDescription') ||
-                  `Identify the ${orderLabel.toLowerCase()} and continue the sale.`}
-              </Text>
             </View>
+
+            <Text style={styles.description}>
+              {global.t?.t('orders', 'message', 'linkedOrderEntryDescription') ||
+                `Identify the ${orderLabel.toLowerCase()} and continue the sale.`}
+            </Text>
           </View>
 
           {methodOptions.length > 1 && (
@@ -342,12 +343,14 @@ const LinkedOrderEntrySheet = ({
                       styles.methodButton,
                       active && styles.methodButtonActive,
                     ]}>
-                    <Icon
-                      color={active ? '#0EA5E9' : '#64748B'}
-                      name={option.icon}
-                      size={20}
-                    />
-                    <Text style={styles.methodLabel}>{option.label}</Text>
+                    <View style={styles.methodHeader}>
+                      <Icon
+                        color={active ? '#0EA5E9' : '#64748B'}
+                        name={option.icon}
+                        size={20}
+                      />
+                      <Text style={styles.methodLabel}>{option.label}</Text>
+                    </View>
                     <Text style={styles.methodDescription}>
                       {option.description}
                     </Text>
@@ -382,23 +385,6 @@ const LinkedOrderEntrySheet = ({
               style={styles.input}
               value={value}
             />
-          </View>
-
-          <View style={styles.helperCard}>
-            <Text style={styles.helperTitle}>
-              {currentMethod?.label ||
-                (global.t?.t('orders', 'title', 'linkedOrder') || 'Linked order')}
-            </Text>
-            <Text style={styles.helperText}>
-              {currentMethod?.key === INPUT_METHOD_QRCODE
-                ? global.t?.t('orders', 'message', 'linkedOrderQrReaderHelper') ||
-                  'Keep the field focused and use the native QR Code reader to send the value here.'
-                : currentMethod?.key === INPUT_METHOD_NFC
-                  ? global.t?.t('orders', 'message', 'linkedOrderNfcReaderHelper') ||
-                    'Keep the field focused and use the native NFC reader to deliver the identifier.'
-                  : global.t?.t('orders', 'message', 'linkedOrderManualHelper') ||
-                      `Type the ${orderLabel.toLowerCase()} number or scan it with the attached barcode reader to continue.`}
-            </Text>
           </View>
 
           <View style={styles.footer}>

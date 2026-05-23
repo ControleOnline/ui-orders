@@ -29,6 +29,10 @@ const styles = StyleSheet.create({
     ...cardShadow,
   },
   header: {
+    gap: 10,
+  },
+  headerTop: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 14,
   },
@@ -40,11 +44,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 48,
   },
-  headerContent: {
-    flex: 1,
-    gap: 4,
-  },
   title: {
+    flex: 1,
     color: '#0F172A',
     fontSize: 22,
     fontWeight: '800',
@@ -55,20 +56,18 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   methodGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    gap: 5,
   },
   methodButton: {
+    alignItems: 'stretch',
     backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
     borderRadius: 16,
     borderWidth: 1,
-    flexGrow: 1,
-    gap: 6,
-    minWidth: 120,
+    gap: 8,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 8,
+    width: '100%',
   },
   methodButtonActive: {
     backgroundColor: '#EFF6FF',
@@ -76,6 +75,11 @@ const styles = StyleSheet.create({
   },
   methodButtonDisabled: {
     opacity: 0.55,
+  },
+  methodHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
   },
   methodLabel: {
     color: '#0F172A',
@@ -109,25 +113,6 @@ const styles = StyleSheet.create({
     outlineStyle: 'none',
     paddingHorizontal: 16,
     paddingVertical: 14,
-  },
-  helperCard: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  helperTitle: {
-    color: '#0F172A',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  helperText: {
-    color: '#64748B',
-    fontSize: 12,
-    lineHeight: 18,
   },
   footer: {
     flexDirection: 'row',
