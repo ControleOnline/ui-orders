@@ -59,9 +59,9 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Bacon', 'Catupiry'])
   })
 
-  it('only shows quantity prefixes above two units', () => {
+  it('only shows quantity prefixes above one unit', () => {
     expect(formatOrderProductQuantityPrefix(1)).toBe('')
-    expect(formatOrderProductQuantityPrefix(2)).toBe('')
+    expect(formatOrderProductQuantityPrefix(2)).toBe('2x ')
     expect(formatOrderProductQuantityPrefix(3)).toBe('3x ')
   })
 

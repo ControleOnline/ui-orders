@@ -102,6 +102,7 @@ const OrderProducts = ({
   renderActions = null,
   showImages = false,
   showRootQuantityPrefix = true,
+  showQueuePresentation = true,
 }) => {
   const resolvedOrderProducts = Array.isArray(orderProducts)
     ? orderProducts
@@ -178,10 +179,12 @@ const OrderProducts = ({
                       </Text>
 
                       <View style={[sharedStyles.groupItemMetaWrap, styles.groupItemMetaWrap]}>
-                        <QueueBadge
-                          presentation={groupItem.queuePresentation}
-                          styles={styles}
-                        />
+                        {showQueuePresentation ? (
+                          <QueueBadge
+                            presentation={groupItem.queuePresentation}
+                            styles={styles}
+                          />
+                        ) : null}
 
                         {showDetails && !!groupItem.description && (
                           <Text style={styles.groupItemMetaText}>
@@ -298,7 +301,9 @@ const OrderProducts = ({
                     </Text>
 
                     <View style={[sharedStyles.metaWrap, styles.metaWrap]}>
-                      <QueueBadge presentation={card.queuePresentation} styles={styles} />
+                      {showQueuePresentation ? (
+                        <QueueBadge presentation={card.queuePresentation} styles={styles} />
+                      ) : null}
 
                       {showDetails && !!card.description && (
                         <Text style={styles.subText} numberOfLines={2}>

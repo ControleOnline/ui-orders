@@ -59,6 +59,7 @@ const OrderItemsTab = ({
   routeOrderId = '',
   showPricing = true,
   showRootQuantityPrefix = true,
+  showQueuePresentation = true,
   variant = 'main',
   setProductSearchText = null,
 }) => {
@@ -344,6 +345,7 @@ const OrderItemsTab = ({
             showImages
             renderActions={renderOrderProductActions}
             showRootQuantityPrefix={showRootQuantityPrefix}
+            showQueuePresentation={showQueuePresentation}
           />
         )}
       </View>

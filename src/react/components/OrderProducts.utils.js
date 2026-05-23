@@ -12,7 +12,7 @@ export const normalizeOrderProductQuantity = value => {
 
 export const formatOrderProductQuantityPrefix = value => {
   const quantity = normalizeOrderProductQuantity(value)
-  return quantity > 2 ? `${quantity}x ` : ''
+  return quantity > 1 ? `${quantity}x ` : ''
 }
 
 export const toOrderProductEntityId = value => {
