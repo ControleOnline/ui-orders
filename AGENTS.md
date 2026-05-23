@@ -15,6 +15,7 @@
 - `OrderHeader` tambem e o cabecalho canonico para cards e blocos operacionais de pedido. Outros modulos podem adaptar o payload antes de renderizar, mas nao devem reconstruir a identidade visual do pedido com outro JSX.
 - O renderer compartilhado de itens deve agrupar filhos customizaveis pelos vinculos reais vindos do backend (`orderProduct` e `parentProduct`) e usar `productGroup` apenas como rotulo de grupo. `productGroup.parentProduct` e dado de cadastro e so pode ajudar no agrupamento quando o produto pai tambem existir na colecao atual do pedido; nao criar card pai ficticio a partir dele.
 - O renderer compartilhado deve respeitar `showInParentQueue` na hierarquia visual: filho com flag desligada nao deve ser encaixado no pai, mas continua vindo da colecao completa de `OrderProduct`.
+- O renderer compartilhado deve respeitar `ProductGroup.showInDisplay`: quando a flag estiver desligada, o bucket continua existindo para manter o agrupamento, mas o titulo do grupo nao deve ser renderizado.
 - O renderer compartilhado deve permitir ocultar a legenda textual da fila/status quando o consumidor ja exibe esse contexto no topo da tela. Em displays de `products`, o badge da fila no item e redundante e deve ser desligado.
 - O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
 - Essa barra precisa existir em todos os devices que podem cobrar pedido.

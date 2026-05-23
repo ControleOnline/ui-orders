@@ -223,17 +223,42 @@ const getCategoryLabel = node =>
     '',
   )
 
-const getGroupLabel = node =>
+const getGroupDisplayName = node =>
   normalizeOrderProductText(
     node?.productGroup?.productGroup ||
     node?.productGroup?.name ||
     node?.productGroupName ||
     node?.groupName ||
     '',
-  ) || 'Outros'
+  )
+
+export const getOrderProductGroupPresentation = node => {
+  const displayName = getGroupDisplayName(node)
+  const hasGroup = !!node?.productGroup
+
+  return {
+    key: normalizeOrderProductText(
+      node?.productGroup?.id ||
+      node?.productGroup?.['@id'] ||
+      displayName ||
+      node?.productGroupName ||
+      node?.groupName ||
+      '',
+    ) || DEFAULT_GROUP_KEY,
+    label: !hasGroup || node?.productGroup?.showInDisplay !== false
+      ? displayName
+      : '',
+  }
+}
+
+const getGroupLabel = node => getOrderProductGroupPresentation(node).label
+
+const getGroupKey = node => getOrderProductGroupPresentation(node).key
 
 const getChildBucketLabel = node =>
-  getCategoryLabel(node) || getGroupLabel(node)
+  getCategoryLabel(node) ||
+  getGroupLabel(node) ||
+  (!node?.productGroup ? 'Outros' : '')
 
 const getParentReference = node =>
   node?.orderProduct ||
@@ -265,10 +290,12 @@ const getParentCatalogProductKey = node =>
     node?.productGroup?.parentProduct,
   )
 
-const getOrderProductBucketLabel = orderProduct =>
-  getCategoryLabel(orderProduct) || getGroupLabel(orderProduct) || 'Outros'
+export const getOrderProductBucketLabel = orderProduct =>
+  getCategoryLabel(orderProduct) ||
+  getGroupLabel(orderProduct) ||
+  (!orderProduct?.productGroup ? 'Outros' : '')
 
-const getOrderProductBucketKey = orderProduct =>
+export const getOrderProductBucketKey = orderProduct =>
   normalizeOrderProductText(
     orderProduct?.product?.category?.id ||
     orderProduct?.product?.category?.['@id'] ||
@@ -280,7 +307,7 @@ const getOrderProductBucketKey = orderProduct =>
     orderProduct?.product?.productCategories?.[0]?.category?.['@id'] ||
     orderProduct?.productCategory?.category?.id ||
     orderProduct?.productCategory?.category?.['@id'] ||
-    getOrderProductBucketLabel(orderProduct),
+    getGroupKey(orderProduct),
   ) || DEFAULT_GROUP_KEY
 
 const resolveEntryColor = (orderProduct, fallbackColor) =>

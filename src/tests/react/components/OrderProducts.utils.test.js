@@ -59,6 +59,50 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Bacon', 'Catupiry'])
   })
 
+  it('hides the group title when showInDisplay is false without collapsing the bucket', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 5,
+        quantity: 1,
+        total: 64,
+        product: {
+          id: 301,
+          product: 'Alpha Gyros (Fraldinha)',
+        },
+        orderProductComponents: [
+          {
+            id: 6,
+            quantity: 1,
+            product: { id: 302, product: 'Queijo Mucarela' },
+            productGroup: {
+              id: 910,
+              productGroup: 'Escolha seu queijo',
+              showInDisplay: false,
+              parentProduct: { id: 301, product: 'Alpha Gyros (Fraldinha)' },
+            },
+          },
+          {
+            id: 7,
+            quantity: 1,
+            product: { id: 303, product: 'Bacon' },
+            productGroup: {
+              id: 911,
+              productGroup: 'Adicionais',
+              showInDisplay: true,
+              parentProduct: { id: 301, product: 'Alpha Gyros (Fraldinha)' },
+            },
+          },
+        ],
+      },
+    ])
+
+    expect(cards).toHaveLength(1)
+    expect(cards[0].groups).toHaveLength(2)
+    expect(cards[0].groups.map(group => group.label)).toEqual(['', 'Adicionais'])
+    expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Queijo Mucarela'])
+    expect(cards[0].groups[1].items.map(item => item.name)).toEqual(['Bacon'])
+  })
+
   it('only shows quantity prefixes above one unit', () => {
     expect(formatOrderProductQuantityPrefix(1)).toBe('')
     expect(formatOrderProductQuantityPrefix(2)).toBe('2x ')
