@@ -103,10 +103,22 @@ const OrderProducts = ({
   showImages = false,
   showRootQuantityPrefix = true,
   showQueuePresentation = true,
+  showHierarchyGuides = false,
 }) => {
+  const hierarchyGuidesEnabled = Boolean(showHierarchyGuides)
   const resolvedOrderProducts = Array.isArray(orderProducts)
     ? orderProducts
     : (Array.isArray(order?.orderProducts) ? order.orderProducts : [])
+  const groupWrapperStyle = hierarchyGuidesEnabled
+    ? styles.groupWrap
+    : [
+        styles.groupWrap,
+        {
+          marginLeft: 0,
+          paddingLeft: 0,
+          borderLeftWidth: 0,
+        },
+      ]
 
   const productCards = useMemo(
     () => buildOrderProductCards(resolvedOrderProducts, {
@@ -131,7 +143,7 @@ const OrderProducts = ({
       return null
     }
 
-    const nestedStyle = depth > 0
+    const nestedStyle = depth > 0 && hierarchyGuidesEnabled
       ? {
           marginLeft: 24,
           marginTop: 6,
@@ -139,12 +151,27 @@ const OrderProducts = ({
           borderLeftWidth: 1,
           borderLeftColor: '#CBD5E1',
         }
+      : depth > 0
+        ? {
+            marginLeft: 0,
+            marginTop: 6,
+            paddingLeft: 0,
+            borderLeftWidth: 0,
+          }
       : null
 
     return (
-      <View style={[styles.groupWrap, nestedStyle]}>
+      <View
+        style={[
+          groupWrapperStyle,
+          nestedStyle,
+        ]}
+      >
         {groups.map(group => (
-          <View key={`${card.key}-${depth}-${group.id}`} style={styles.groupWrap}>
+          <View
+            key={`${card.key}-${depth}-${group.id}`}
+            style={groupWrapperStyle}
+          >
             {!!group.label && (
               <View style={styles.groupTitlePill}>
                 <Text style={styles.groupTitle}>{group.label}</Text>
@@ -252,10 +279,15 @@ const OrderProducts = ({
             <View
               style={[
                 styles.itemRow,
-                {
-                  borderLeftWidth: 3,
-                  borderLeftColor: itemColor,
-                },
+                hierarchyGuidesEnabled
+                  ? {
+                      borderLeftWidth: 3,
+                      borderLeftColor: itemColor,
+                    }
+                  : {
+                      borderLeftWidth: 0,
+                      paddingLeft: 0,
+                    },
               ]}
             >
               <View style={[sharedStyles.itemMainRow, styles.itemMainRow]}>

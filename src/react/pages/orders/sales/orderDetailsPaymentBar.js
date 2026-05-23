@@ -8,6 +8,8 @@ export const shouldRenderOrderDetailsInlineTotal = ({
   displayAmount = 0,
   ...options
 } = {}) =>
+  !options.isKds &&
+  !options.isTvDisplay &&
   !shouldRenderOrderDetailsPaymentBar(options) &&
   Number(displayAmount || 0) > 0.009
 

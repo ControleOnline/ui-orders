@@ -17,7 +17,7 @@ describe('orderDetailsPaymentBar', () => {
     ).toBe(true)
   })
 
-  it('falls back to the inline total only for kds or tv displays', () => {
+  it('does not show the inline total for kds or tv displays', () => {
     expect(
       shouldRenderOrderDetailsInlineTotal({
         useUnifiedKdsLayout: true,
@@ -25,7 +25,7 @@ describe('orderDetailsPaymentBar', () => {
         isTvDisplay: false,
         displayAmount: 12.5,
       }),
-    ).toBe(true)
+    ).toBe(false)
 
     expect(
       shouldRenderOrderDetailsInlineTotal({
@@ -34,7 +34,7 @@ describe('orderDetailsPaymentBar', () => {
         isTvDisplay: true,
         displayAmount: 12.5,
       }),
-    ).toBe(true)
+    ).toBe(false)
   })
 
   it('hides the inline total when the amount is zero', () => {

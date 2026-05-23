@@ -2594,6 +2594,7 @@ const OrderDetails = ({ route, navigation }) => {
           renderOrderProductActions={canEditItems ? renderOrderProductActions : null}
           routeOrderId={routeOrderId}
           setProductSearchText={setProductSearchText}
+          showPricing={!isKds && !isTvDisplay}
           variant={variant}
         />
       )
@@ -2614,6 +2615,8 @@ const OrderDetails = ({ route, navigation }) => {
       resolvedDisplayOrderProductsWithProductDetails,
       routeOrderId,
       setProductSearchText,
+      isKds,
+      isTvDisplay,
     ],
   )
 
