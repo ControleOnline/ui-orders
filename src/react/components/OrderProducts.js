@@ -101,6 +101,7 @@ const OrderProducts = ({
   maxCards = null,
   renderActions = null,
   showImages = false,
+  showRootQuantityPrefix = true,
 }) => {
   const resolvedOrderProducts = Array.isArray(orderProducts)
     ? orderProducts
@@ -290,7 +291,7 @@ const OrderProducts = ({
                       {isRootZero ? (
                         <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
                       ) : null}
-                      {!isRootZero ? (
+                      {showRootQuantityPrefix && !isRootZero ? (
                         <Text style={styles.qtyText}>{normalizeOrderProductQuantity(card.quantity)}x </Text>
                       ) : null}
                       {card.name || `Item #${index + 1}`}

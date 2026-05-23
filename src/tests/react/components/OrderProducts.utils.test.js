@@ -2,6 +2,7 @@ const {
   buildOrderProductCards,
   canReopenOrderProductCustomization,
   isOrderProductProductionCompleted,
+  formatOrderProductQuantityPrefix,
   resolveOrderProductQueuePresentation,
 } = require('../../../react/components/OrderProducts.utils')
 
@@ -56,6 +57,12 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups).toHaveLength(1)
     expect(cards[0].groups[0].label).toBe('Sabores')
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Bacon', 'Catupiry'])
+  })
+
+  it('only shows quantity prefixes above two units', () => {
+    expect(formatOrderProductQuantityPrefix(1)).toBe('')
+    expect(formatOrderProductQuantityPrefix(2)).toBe('')
+    expect(formatOrderProductQuantityPrefix(3)).toBe('3x ')
   })
 
   it('keeps hidden children out of the parent card while preserving them as standalone items', () => {
