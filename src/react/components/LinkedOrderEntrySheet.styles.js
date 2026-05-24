@@ -47,12 +47,12 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     color: '#0F172A',
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: '800',
   },
   description: {
     color: '#475569',
-    fontSize: 13,
+    fontSize: 11,
     lineHeight: 19,
   },
   methodGrid: {
@@ -83,12 +83,12 @@ const styles = StyleSheet.create({
   },
   methodLabel: {
     color: '#0F172A',
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
   },
   methodDescription: {
     color: '#64748B',
-    fontSize: 12,
+    fontSize: 10,
     lineHeight: 17,
   },
   inputGroup: {
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     color: '#334155',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
@@ -107,12 +107,32 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     color: '#0F172A',
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '600',
     minHeight: 56,
     outlineStyle: 'none',
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  inputDisabled: {
+    opacity: 0.7,
+  },
+  feedbackBox: {
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  feedbackText: {
+    color: '#B91C1C',
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   footer: {
     flexDirection: 'row',
@@ -131,7 +151,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#475569',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
   primaryButton: {
@@ -148,7 +168,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
   },
 })
