@@ -368,7 +368,6 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   const componentCardByOrderProductId = new Map()
   const componentEntryByOrderProductId = new Map()
   const componentEntriesByProductKey = new Map()
-  const duplicateRootOrderProductIds = new Set()
   const itemsByEntityId = new Map()
   const catalogProductKeysInOrder = new Set()
   let embeddedComponentOrderSequence = 0
@@ -540,7 +539,6 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
         index,
       )
       if (componentEntryMatch) {
-        duplicateRootOrderProductIds.add(parentOrderProductId)
         return {
           card: componentEntryMatch.card,
           parentEntry: componentEntryMatch.entry,
@@ -851,8 +849,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     if (
       productKey &&
       componentProductKeys.has(productKey) &&
-      !rootHasOwnValue &&
-      (card.groups.length > 0 || duplicateRootOrderProductIds.has(card.rootKey))
+      !rootHasOwnValue
     ) {
       card.hidden = true
     }

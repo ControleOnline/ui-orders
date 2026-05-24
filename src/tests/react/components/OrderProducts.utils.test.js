@@ -306,6 +306,174 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[1].items[0].name).toBe('Guarana Lata')
   })
 
+  it('hides duplicate root cards when the same component already appears inside its parent tree', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 70,
+        quantity: 1,
+        total: 73,
+        product: { id: 1101, product: 'Combo Alpha Gyros' },
+        orderProductComponents: [
+          {
+            id: 71,
+            quantity: 1,
+            total: 0,
+            product: { id: 1102, product: 'Batata Frita Media' },
+            productGroup: {
+              id: 1400,
+              productGroup: 'Escolha sua Batata',
+              parentProduct: { id: 1101, product: 'Combo Alpha Gyros' },
+            },
+            orderProductComponents: [
+              {
+                id: 72,
+                quantity: 1,
+                total: 0,
+                product: { id: 1103, product: 'Paprica' },
+                productGroup: {
+                  id: 1401,
+                  productGroup: 'Temperos',
+                  parentProduct: { id: 1102, product: 'Batata Frita Media' },
+                },
+              },
+              {
+                id: 73,
+                quantity: 1,
+                total: 0,
+                product: { id: 1104, product: 'Sal' },
+                productGroup: {
+                  id: 1401,
+                  productGroup: 'Temperos',
+                  parentProduct: { id: 1102, product: 'Batata Frita Media' },
+                },
+              },
+              {
+                id: 74,
+                quantity: 1,
+                total: 0,
+                product: { id: 1105, product: 'Lemon Pepper' },
+                productGroup: {
+                  id: 1401,
+                  productGroup: 'Temperos',
+                  parentProduct: { id: 1102, product: 'Batata Frita Media' },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 71,
+        quantity: 1,
+        total: 0,
+        product: { id: 1102, product: 'Batata Frita Media' },
+        orderProduct: '/order_products/70',
+        parentProduct: '/products/1101',
+        productGroup: {
+          id: 1400,
+          productGroup: 'Escolha sua Batata',
+          parentProduct: { id: 1101, product: 'Combo Alpha Gyros' },
+        },
+        orderProductComponents: [
+          {
+            id: 72,
+            quantity: 1,
+            total: 0,
+            product: { id: 1103, product: 'Paprica' },
+            orderProduct: '/order_products/71',
+            parentProduct: '/products/1102',
+            productGroup: {
+              id: 1401,
+              productGroup: 'Temperos',
+              parentProduct: { id: 1102, product: 'Batata Frita Media' },
+            },
+          },
+          {
+            id: 73,
+            quantity: 1,
+            total: 0,
+            product: { id: 1104, product: 'Sal' },
+            orderProduct: '/order_products/71',
+            parentProduct: '/products/1102',
+            productGroup: {
+              id: 1401,
+              productGroup: 'Temperos',
+              parentProduct: { id: 1102, product: 'Batata Frita Media' },
+            },
+          },
+          {
+            id: 74,
+            quantity: 1,
+            total: 0,
+            product: { id: 1105, product: 'Lemon Pepper' },
+            orderProduct: '/order_products/71',
+            parentProduct: '/products/1102',
+            productGroup: {
+              id: 1401,
+              productGroup: 'Temperos',
+              parentProduct: { id: 1102, product: 'Batata Frita Media' },
+            },
+          },
+        ],
+      },
+      {
+        id: 72,
+        quantity: 1,
+        total: 0,
+        product: { id: 1103, product: 'Paprica' },
+        orderProduct: '/order_products/71',
+        parentProduct: '/products/1102',
+        productGroup: {
+          id: 1401,
+          productGroup: 'Temperos',
+          parentProduct: { id: 1102, product: 'Batata Frita Media' },
+        },
+      },
+      {
+        id: 73,
+        quantity: 1,
+        total: 0,
+        product: { id: 1104, product: 'Sal' },
+        orderProduct: '/order_products/71',
+        parentProduct: '/products/1102',
+        productGroup: {
+          id: 1401,
+          productGroup: 'Temperos',
+          parentProduct: { id: 1102, product: 'Batata Frita Media' },
+        },
+      },
+      {
+        id: 74,
+        quantity: 1,
+        total: 0,
+        product: { id: 1105, product: 'Lemon Pepper' },
+        orderProduct: '/order_products/71',
+        parentProduct: '/products/1102',
+        productGroup: {
+          id: 1401,
+          productGroup: 'Temperos',
+          parentProduct: { id: 1102, product: 'Batata Frita Media' },
+        },
+      },
+    ])
+
+    expect(cards.map(card => card.name)).toEqual(['Combo Alpha Gyros'])
+    expect(cards[0].groups).toHaveLength(1)
+    expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
+      'Batata Frita Media',
+    ])
+    expect(cards[0].groups[0].items[0].groups).toHaveLength(1)
+    expect(cards[0].groups[0].items[0].groups[0].items.map(item => item.name)).toEqual([
+      'Paprica',
+      'Sal',
+      'Lemon Pepper',
+    ])
+    expect(cards.some(card => card.name === 'Batata Frita Media')).toBe(false)
+    expect(cards.some(card => card.name === 'Paprica')).toBe(false)
+    expect(cards.some(card => card.name === 'Sal')).toBe(false)
+    expect(cards.some(card => card.name === 'Lemon Pepper')).toBe(false)
+  })
+
   it('keeps nested embedded components visible as regular group items', () => {
     const cards = buildOrderProductCards([
       {
