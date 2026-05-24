@@ -47,12 +47,12 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   description: {
     color: '#475569',
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 19,
   },
   methodGrid: {
@@ -64,9 +64,9 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 16,
     borderWidth: 1,
-    gap: 8,
+    gap: 4,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 4,
     width: '100%',
   },
   methodButtonActive: {
@@ -83,12 +83,12 @@ const styles = StyleSheet.create({
   },
   methodLabel: {
     color: '#0F172A',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   methodDescription: {
     color: '#64748B',
-    fontSize: 10,
+    fontSize: 11,
     lineHeight: 17,
   },
   inputGroup: {
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     color: '#334155',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
@@ -107,12 +107,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     color: '#0F172A',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    minHeight: 56,
+    minHeight: 39,
     outlineStyle: 'none',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 10,
   },
   inputDisabled: {
     opacity: 0.7,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   feedbackText: {
     color: '#B91C1C',
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 18,
   },
   footer: {
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 46,
+    minHeight: 32,
     minWidth: 112,
     paddingHorizontal: 18,
   },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0EA5E9',
     borderRadius: 14,
     justifyContent: 'center',
-    minHeight: 46,
+    minHeight: 32,
     minWidth: 132,
     paddingHorizontal: 18,
   },
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
   },
 })

@@ -51,20 +51,18 @@ export default function HomePage({navigation}) {
 
     if (checkType === 'barcode') {
       console.log('🎥 [CAMERA] Ativando leitor de código de barras para comanda...');
-      // Aqui será ativada a câmera para leitura de código de barras
     } else if (checkType === 'rfid') {
       console.log('📡 [RFID] Ativando leitor RFID para comanda...');
-      // Aqui será ativado o leitor RFID
     } else {
-      // checkType === 'manual' ou qualquer outro valor
       console.log('📋 [MANUAL] Abrindo lista de comandas manualmente...');
-      if (isCounterMode) {
-        navigation.navigate('OrderHistoryPage', {resumeCounterFlow: true});
-        return;
-      }
-
-      navigation.navigate('OrderHistoryPage');
     }
+
+    if (isCounterMode) {
+      navigation.navigate('OrderHistoryPage', {resumeCounterFlow: true});
+      return;
+    }
+
+    navigation.navigate('OrderHistoryPage');
   };
 
   const handleMenuPress = item => {

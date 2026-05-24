@@ -46,6 +46,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
         setLinkedOrderEntryState({
           orderType: request?.orderType || 'tab',
           preferredInputType: request?.preferredInputType || 'manual',
+          validateInput: request?.validateInput || null,
         });
       }),
     [],
@@ -179,6 +180,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
         onSubmit={resolveLinkedOrderEntry}
         orderType={linkedOrderEntryState?.orderType || 'tab'}
         preferredInputType={linkedOrderEntryState?.preferredInputType || 'manual'}
+        validateInput={linkedOrderEntryState?.validateInput || null}
         visible={!!linkedOrderEntryState}
       />
     </>

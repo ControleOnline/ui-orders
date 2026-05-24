@@ -8,12 +8,19 @@ import {
   View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import LinkedOrderCameraScanner from '@controleonline/ui-orders/src/react/components/LinkedOrderCameraScanner'
+import LinkedOrderNfcScanner from '@controleonline/ui-orders/src/react/components/LinkedOrderNfcScanner'
+import {
+  LINKED_ORDER_INPUT_METHOD_BARCODE,
+  LINKED_ORDER_INPUT_METHOD_MANUAL,
+  LINKED_ORDER_INPUT_METHOD_NFC,
+  normalizeLinkedOrderInputType,
+  resolveLinkedOrderInputMethod,
+  shouldUseLinkedOrderCameraScanner,
+  shouldUseLinkedOrderNativeScanner,
+  shouldUseLinkedOrderNfcScanner,
+} from '@controleonline/ui-orders/src/react/utils/linkedOrderEntry'
 import styles from './LinkedOrderEntrySheet.styles'
-
-const INPUT_METHOD_MANUAL = 'manual'
-const INPUT_METHOD_BARCODE = 'barcode'
-const INPUT_METHOD_QRCODE = 'qrcode'
-const INPUT_METHOD_NFC = 'nfc'
 
 const NATIVE_PLATFORMS = new Set(['android', 'ios'])
 const SCAN_IDLE_TIMEOUT_MS = 90
@@ -27,20 +34,6 @@ const resolveOrderLabel = orderType => {
   }
 
   return global.t?.t('orders', 'title', 'tab') || 'Tab'
-}
-
-const resolveInitialMethod = preferredInputType => {
-  const normalized = String(preferredInputType || '').trim().toLowerCase()
-
-  if (normalized === 'rfid' && NATIVE_PLATFORMS.has(Platform.OS)) {
-    return INPUT_METHOD_NFC
-  }
-
-  if (normalized === INPUT_METHOD_QRCODE && NATIVE_PLATFORMS.has(Platform.OS)) {
-    return INPUT_METHOD_QRCODE
-  }
-
-  return INPUT_METHOD_MANUAL
 }
 
 const isEditableTarget = target => {
@@ -86,6 +79,7 @@ const LinkedOrderEntrySheet = ({
   visible = false,
   onCancel,
   onSubmit,
+  validateInput,
 }) => {
   const inputRef = useRef(null)
   const bufferRef = useRef('')
@@ -93,11 +87,15 @@ const LinkedOrderEntrySheet = ({
   const lastInputAtRef = useRef(0)
   const finalizeTimeoutRef = useRef(null)
   const editableTargetRef = useRef(false)
+  const hasAutoOpenedScannerRef = useRef(false)
   const isNativeRuntime = NATIVE_PLATFORMS.has(Platform.OS)
   const orderLabel = useMemo(() => resolveOrderLabel(orderType), [orderType])
   const [value, setValue] = useState('')
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [scannerVisible, setScannerVisible] = useState(false)
   const [inputMethod, setInputMethod] = useState(
-    resolveInitialMethod(preferredInputType),
+    resolveLinkedOrderInputMethod({preferredInputType, isNativeRuntime}),
   )
 
   const clearScanBuffer = useCallback(() => {
@@ -113,19 +111,54 @@ const LinkedOrderEntrySheet = ({
   }, [])
 
   const submitLinkedOrderCode = useCallback(
-    ({externalCode, inputType}) => {
+    async ({
+      externalCode,
+      inputType,
+      source = LINKED_ORDER_INPUT_METHOD_MANUAL,
+    }) => {
       const trimmedValue = String(externalCode || '').trim()
 
       if (!trimmedValue) {
-        return
+        setFeedbackMessage(
+          global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
+            `Informe o codigo da ${orderLabel.toLowerCase()} para continuar.`,
+        )
+        return false
       }
 
-      onSubmit?.({
-        externalCode: trimmedValue,
-        inputType,
-      })
+      setValue(trimmedValue)
+      setFeedbackMessage('')
+      setIsSubmitting(true)
+
+      try {
+        const payload = {
+          externalCode: trimmedValue,
+          inputType: normalizeLinkedOrderInputType(inputType),
+        }
+        const validatedInput =
+          typeof validateInput === 'function'
+            ? await validateInput(payload)
+            : payload
+
+        await onSubmit?.(validatedInput || payload)
+        return true
+      } catch (error) {
+        setFeedbackMessage(
+          error?.message ||
+            global.t?.t('orders', 'message', 'linkedOrderInvalidCode') ||
+            `Nao foi possivel identificar a ${orderLabel.toLowerCase()} informada.`,
+        )
+
+        if (source === LINKED_ORDER_INPUT_METHOD_MANUAL) {
+          inputRef.current?.focus?.()
+        }
+
+        return false
+      } finally {
+        setIsSubmitting(false)
+      }
     },
-    [onSubmit],
+    [onSubmit, orderLabel, validateInput],
   )
 
   const finalizeBufferedScan = useCallback(() => {
@@ -148,9 +181,9 @@ const LinkedOrderEntrySheet = ({
     }
 
     setValue(scannedCode)
-    submitLinkedOrderCode({
+    void submitLinkedOrderCode({
       externalCode: scannedCode,
-      inputType: INPUT_METHOD_BARCODE,
+      inputType: LINKED_ORDER_INPUT_METHOD_BARCODE,
     })
     return true
   }, [clearScanBuffer, submitLinkedOrderCode])
@@ -158,14 +191,37 @@ const LinkedOrderEntrySheet = ({
   useEffect(() => {
     if (!visible) {
       setValue('')
+      setFeedbackMessage('')
+      setIsSubmitting(false)
+      setScannerVisible(false)
+      hasAutoOpenedScannerRef.current = false
       clearScanBuffer()
       return
     }
 
     setValue('')
-    setInputMethod(resolveInitialMethod(preferredInputType))
+    setFeedbackMessage('')
+    setIsSubmitting(false)
+    setScannerVisible(false)
+    hasAutoOpenedScannerRef.current = false
+    setInputMethod(
+      resolveLinkedOrderInputMethod({preferredInputType, isNativeRuntime}),
+    )
     clearScanBuffer()
-  }, [clearScanBuffer, preferredInputType, visible])
+  }, [clearScanBuffer, isNativeRuntime, preferredInputType, visible])
+
+  useEffect(() => {
+    if (
+      !visible ||
+      !shouldUseLinkedOrderNativeScanner({inputMethod, isNativeRuntime}) ||
+      hasAutoOpenedScannerRef.current
+    ) {
+      return
+    }
+
+    hasAutoOpenedScannerRef.current = true
+    setScannerVisible(true)
+  }, [inputMethod, isNativeRuntime, visible])
 
   useEffect(() => {
     if (!visible) {
@@ -263,17 +319,19 @@ const LinkedOrderEntrySheet = ({
             global.t?.t('orders', 'message', 'linkedOrderManualEntryHelp') ||
             `Type the ${orderLabel.toLowerCase()} number manually.`,
           icon: 'keyboard',
-          key: INPUT_METHOD_MANUAL,
+          key: LINKED_ORDER_INPUT_METHOD_MANUAL,
           label: global.t?.t('orders', 'button', 'typeCode') || 'Type code',
         },
         {
           available: isNativeRuntime,
           description:
-            global.t?.t('orders', 'message', 'linkedOrderQrEntryHelp') ||
-            'Use the native QR Code reader when the app runs on a native device.',
-          icon: 'qr-code',
-          key: INPUT_METHOD_QRCODE,
-          label: global.t?.t('orders', 'button', 'readQrCode') || 'QR Code',
+            global.t?.t('orders', 'message', 'linkedOrderBarcodeEntryHelp') ||
+            'Use a camera do dispositivo para ler o codigo de barras ou QR Code.',
+          icon: 'qr-code-scanner',
+          key: LINKED_ORDER_INPUT_METHOD_BARCODE,
+          label:
+            global.t?.t('orders', 'button', 'readBarcodeQrCode') ||
+            'Ler codigo de barras / QR Code',
         },
         {
           available: isNativeRuntime,
@@ -281,7 +339,7 @@ const LinkedOrderEntrySheet = ({
             global.t?.t('orders', 'message', 'linkedOrderNfcEntryHelp') ||
             'Use the native NFC reader when the app runs on a native device.',
           icon: 'nfc',
-          key: INPUT_METHOD_NFC,
+          key: LINKED_ORDER_INPUT_METHOD_NFC,
           label: global.t?.t('orders', 'button', 'readNfc') || 'NFC',
         },
       ].filter(option => option.available),
@@ -295,13 +353,36 @@ const LinkedOrderEntrySheet = ({
     [inputMethod, methodOptions],
   )
 
+  const handleSelectMethod = useCallback(
+    nextMethod => {
+      setInputMethod(nextMethod)
+      setFeedbackMessage('')
+
+      if (shouldUseLinkedOrderNativeScanner({inputMethod: nextMethod, isNativeRuntime})) {
+        hasAutoOpenedScannerRef.current = true
+        setScannerVisible(true)
+      }
+    },
+    [isNativeRuntime],
+  )
+
   const confirm = () => {
     clearScanBuffer()
-    submitLinkedOrderCode({
+    void submitLinkedOrderCode({
       externalCode: value,
       inputType: inputMethod,
     })
   }
+
+  const handleCameraScan = useCallback(
+    scannedCode =>
+      submitLinkedOrderCode({
+        externalCode: scannedCode,
+        inputType: LINKED_ORDER_INPUT_METHOD_BARCODE,
+        source: LINKED_ORDER_INPUT_METHOD_BARCODE,
+      }),
+    [submitLinkedOrderCode],
+  )
 
   return (
     <Modal
@@ -338,7 +419,7 @@ const LinkedOrderEntrySheet = ({
                   <TouchableOpacity
                     key={option.key}
                     activeOpacity={0.88}
-                    onPress={() => setInputMethod(option.key)}
+                    onPress={() => handleSelectMethod(option.key)}
                     style={[
                       styles.methodButton,
                       active && styles.methodButtonActive,
@@ -362,7 +443,7 @@ const LinkedOrderEntrySheet = ({
 
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>
-              {currentMethod?.key === INPUT_METHOD_MANUAL
+              {currentMethod?.key === LINKED_ORDER_INPUT_METHOD_MANUAL
                 ? global.t?.t('orders', 'label', 'code') || 'Code'
                 : currentMethod?.label}
             </Text>
@@ -371,8 +452,11 @@ const LinkedOrderEntrySheet = ({
               autoCapitalize="none"
               autoCorrect={false}
               blurOnSubmit={false}
+              editable={!isSubmitting}
               keyboardType={
-                currentMethod?.key === INPUT_METHOD_MANUAL ? 'number-pad' : 'default'
+                currentMethod?.key === LINKED_ORDER_INPUT_METHOD_MANUAL
+                  ? 'number-pad'
+                  : 'default'
               }
               onChangeText={setValue}
               onSubmitEditing={confirm}
@@ -381,11 +465,20 @@ const LinkedOrderEntrySheet = ({
                 `${orderLabel} ${global.t?.t('orders', 'label', 'code') || 'code'}`
               }
               placeholderTextColor="#94A3B8"
-              showSoftInputOnFocus={currentMethod?.key === INPUT_METHOD_MANUAL}
-              style={styles.input}
+              showSoftInputOnFocus={
+                currentMethod?.key === LINKED_ORDER_INPUT_METHOD_MANUAL
+              }
+              style={[styles.input, isSubmitting && styles.inputDisabled]}
               value={value}
             />
           </View>
+
+          {feedbackMessage ? (
+            <View style={styles.feedbackBox}>
+              <Icon color="#DC2626" name="error-outline" size={18} />
+              <Text style={styles.feedbackText}>{feedbackMessage}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.footer}>
             <TouchableOpacity
@@ -399,11 +492,12 @@ const LinkedOrderEntrySheet = ({
 
             <TouchableOpacity
               activeOpacity={0.88}
-              disabled={!String(value || '').trim()}
+              disabled={isSubmitting || !String(value || '').trim()}
               onPress={confirm}
               style={[
                 styles.primaryButton,
-                !String(value || '').trim() && styles.primaryButtonDisabled,
+                (isSubmitting || !String(value || '').trim()) &&
+                  styles.primaryButtonDisabled,
               ]}>
               <Text style={styles.primaryButtonText}>
                 {global.t?.t('orders', 'button', 'confirm') || 'Confirm'}
@@ -412,6 +506,37 @@ const LinkedOrderEntrySheet = ({
           </View>
         </View>
       </View>
+
+      <LinkedOrderCameraScanner
+        busy={isSubmitting}
+        errorMessage={feedbackMessage}
+        inputType={inputMethod}
+        onCancel={() => setScannerVisible(false)}
+        onScan={handleCameraScan}
+        orderType={orderType}
+        visible={
+          scannerVisible &&
+          shouldUseLinkedOrderCameraScanner({inputMethod, isNativeRuntime})
+        }
+      />
+
+      <LinkedOrderNfcScanner
+        busy={isSubmitting}
+        errorMessage={feedbackMessage}
+        onCancel={() => setScannerVisible(false)}
+        onScan={scannedCode =>
+          submitLinkedOrderCode({
+            externalCode: scannedCode,
+            inputType: LINKED_ORDER_INPUT_METHOD_NFC,
+            source: LINKED_ORDER_INPUT_METHOD_NFC,
+          })
+        }
+        orderType={orderType}
+        visible={
+          scannerVisible &&
+          shouldUseLinkedOrderNfcScanner({inputMethod, isNativeRuntime})
+        }
+      />
     </Modal>
   )
 }

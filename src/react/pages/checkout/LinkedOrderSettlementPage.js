@@ -284,17 +284,45 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     [navigation],
   )
 
-  const requestLinkedOrderInput = useCallback(
-    () =>
-      new Promise(resolve => {
-        linkedOrderEntryResolverRef.current = resolve
-        setLinkedOrderEntryState({
-          orderType: linkedOrderType,
-          preferredInputType,
-        })
-      }),
-    [linkedOrderType, preferredInputType],
-  )
+  function requestLinkedOrderInput() {
+    return new Promise(resolve => {
+      linkedOrderEntryResolverRef.current = resolve
+      setLinkedOrderEntryState({
+        orderType: linkedOrderType,
+        preferredInputType,
+        validateInput: async linkedOrderInput => {
+          const externalCode = normalizeText(linkedOrderInput?.externalCode)
+          const inputType =
+            normalizeText(linkedOrderInput?.inputType) || preferredInputType
+
+          if (!externalCode) {
+            throw new Error(
+              global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
+                `A ${orderLabel.toLowerCase()} code is required to continue.`,
+            )
+          }
+
+          const settlementOrder = await ensureSettlementOrder({
+            externalCode,
+            inputType,
+          })
+
+          if (!settlementOrder) {
+            throw new Error(
+              global.t?.t('orders', 'message', 'linkedOrderInvalidCode') ||
+                `Nao foi possivel identificar a ${orderLabel.toLowerCase()} informada.`,
+            )
+          }
+
+          return {
+            externalCode,
+            inputType,
+            settlementOrder,
+          }
+        },
+      })
+    })
+  }
 
   const resolveLinkedOrderEntry = useCallback(result => {
     const resolve = linkedOrderEntryResolverRef.current
@@ -631,7 +659,9 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
 
     setActionLoading('identify')
     try {
-      const settlementOrder = await ensureSettlementOrder(linkedOrderInput)
+      const settlementOrder =
+        linkedOrderInput?.settlementOrder ||
+        (await ensureSettlementOrder(linkedOrderInput))
       if (!settlementOrder) {
         throw new Error(
           global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
@@ -1223,6 +1253,7 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
         onSubmit={resolveLinkedOrderEntry}
         orderType={linkedOrderEntryState?.orderType || linkedOrderType || 'tab'}
         preferredInputType={linkedOrderEntryState?.preferredInputType || preferredInputType}
+        validateInput={linkedOrderEntryState?.validateInput || null}
         visible={!!linkedOrderEntryState}
       />
     </SafeAreaView>

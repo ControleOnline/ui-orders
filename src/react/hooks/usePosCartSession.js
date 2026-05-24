@@ -250,11 +250,72 @@ export default function usePosCartSession({
     return payload
   }, [companyId, deviceId])
 
-  const requestLinkedOrderCode = useCallback(async () => {
+  async function requestLinkedOrderCode() {
+    const buildMissingLinkedOrderCodeError = () => {
+      const missingLinkedOrderCodeError = new Error(
+        global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
+          'A tab or table code is required to continue.',
+      )
+      missingLinkedOrderCodeError.code = LINKED_ORDER_CODE_REQUIRED_ERROR
+      return missingLinkedOrderCodeError
+    }
+
+    const buildLinkedOrderManagementError = () => {
+      const orderLabel =
+        linkedOrderType === 'table'
+          ? global.t?.t('orders', 'title', 'table') || 'Table'
+          : global.t?.t('orders', 'title', 'tab') || 'Tab'
+
+      return new Error(
+        global.t?.t(
+          'orders',
+          'message',
+          'linkedOrderManagementDisabled',
+        ) ||
+          `This device can only use ${orderLabel.toLowerCase()}s that are already open.`,
+      )
+    }
+
+    const validateLinkedOrderInput = async linkedOrderInput => {
+      const externalCode = String(linkedOrderInput?.externalCode || '').trim()
+      const linkedOrderInputType = String(
+        linkedOrderInput?.inputType || checkInputType,
+      )
+        .trim()
+        .toLowerCase()
+
+      if (!externalCode) {
+        throw buildMissingLinkedOrderCodeError()
+      }
+
+      const orderOpenStatusIri = await resolvePosOpenOrderStatusIri(defaultStatusId)
+
+      if (!orderOpenStatusIri) {
+        throw new Error('Nao foi possivel resolver o status open/open do pedido no PDV.')
+      }
+
+      const settlementOrder = await ensureSettlementOrder({
+        externalCode,
+        peopleIri: getOrderPeopleValue(activeOrder)?.['@id'] || null,
+        statusIri: orderOpenStatusIri,
+      })
+
+      if (!settlementOrder) {
+        throw buildLinkedOrderManagementError()
+      }
+
+      return {
+        externalCode,
+        inputType: linkedOrderInputType,
+        settlementOrder,
+      }
+    }
+
     if (typeof requestLinkedOrderInput === 'function') {
       const requestedInput = await requestLinkedOrderInput({
         orderType: linkedOrderType,
         preferredInputType: checkInputType,
+        validateInput: validateLinkedOrderInput,
       })
 
       if (typeof requestedInput === 'string') {
@@ -269,6 +330,7 @@ export default function usePosCartSession({
         inputType: String(requestedInput?.inputType || checkInputType)
           .trim()
           .toLowerCase(),
+        settlementOrder: requestedInput?.settlementOrder || null,
       }
     }
 
@@ -300,12 +362,7 @@ export default function usePosCartSession({
       externalCode: String(promptValue || '').trim(),
       inputType: checkInputType,
     }
-  }, [
-    checkInputType,
-    linkedOrderType,
-    requestLinkedOrderInput,
-    showPrompt,
-  ])
+  }
 
   const findOpenSettlementOrder = useCallback(async externalCode => {
     if (!companyId || !linkedOrderType || !externalCode) {
@@ -566,11 +623,13 @@ export default function usePosCartSession({
           throw missingLinkedOrderCodeError
         }
 
-        const settlementOrder = await ensureSettlementOrder({
-          externalCode,
-          peopleIri,
-          statusIri: orderOpenStatusIri,
-        })
+        const settlementOrder =
+          linkedOrderInput?.settlementOrder ||
+          (await ensureSettlementOrder({
+            externalCode,
+            peopleIri,
+            statusIri: orderOpenStatusIri,
+          }))
 
         if (!settlementOrder) {
           const orderLabel =
