@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import React, {useCallback, useEffect, useRef, useState} from 'react'
 import {
   ActivityIndicator,
   Modal,
@@ -9,7 +9,6 @@ import {
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import NfcManager, {NfcTech} from 'react-native-nfc-manager'
-import {resolveLinkedOrderLabel} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 import {extractLinkedOrderCodeFromNfcTag} from '@controleonline/ui-orders/src/react/utils/linkedOrderNfc'
 import styles from '@controleonline/ui-orders/src/react/components/LinkedOrderCameraScanner.styles'
 
@@ -53,7 +52,6 @@ const LinkedOrderNfcScanner = ({
   errorMessage = '',
   onCancel,
   onScan,
-  orderType = 'tab',
   visible = false,
 }) => {
   const retryTimeoutRef = useRef(null)
@@ -62,7 +60,6 @@ const LinkedOrderNfcScanner = ({
   const [loading, setLoading] = useState(false)
   const [runtimeMessage, setRuntimeMessage] = useState('')
   const [canOpenSettings, setCanOpenSettings] = useState(false)
-  const orderLabel = useMemo(() => resolveLinkedOrderLabel(orderType), [orderType])
 
   const scheduleRetry = useCallback(() => {
     if (!visible) {
@@ -110,8 +107,7 @@ const LinkedOrderNfcScanner = ({
         const isSupported = await NfcManager.isSupported()
         if (!isSupported) {
           const unsupportedError = new Error(
-            global.t?.t('orders', 'message', 'nfcUnavailable') ||
-              'Este dispositivo nao oferece suporte a NFC/RFID.',
+            global.t?.t('orders', 'message', 'nfcUnavailableDescription'),
           )
           unsupportedError.skipRetry = true
           throw unsupportedError
@@ -121,8 +117,7 @@ const LinkedOrderNfcScanner = ({
         if (!isEnabled) {
           setCanOpenSettings(Platform.OS === 'android')
           const disabledError = new Error(
-            global.t?.t('orders', 'message', 'enableNfcToReadLinkedOrder') ||
-              'Ative o NFC deste dispositivo para ler a comanda ou mesa.',
+            global.t?.t('orders', 'message', 'enableNfcToReadLinkedOrder'),
           )
           disabledError.skipRetry = true
           throw disabledError
@@ -132,8 +127,7 @@ const LinkedOrderNfcScanner = ({
           Platform.OS === 'ios' ? IOS_NFC_TECHS : ANDROID_NFC_TECHS,
           {
             alertMessage:
-              global.t?.t('orders', 'message', 'approachNfcTagToReadLinkedOrder') ||
-              `Aproxime a ${orderLabel.toLowerCase()} do leitor NFC.`,
+              global.t?.t('orders', 'message', 'approachNfcTagToReadLinkedOrder'),
           },
         )
 
@@ -142,8 +136,7 @@ const LinkedOrderNfcScanner = ({
 
         if (!extractedCode) {
           throw new Error(
-            global.t?.t('orders', 'message', 'nfcTagWithoutReadableCode') ||
-              'A tag NFC/RFID lida nao possui um codigo utilizavel.',
+            global.t?.t('orders', 'message', 'nfcTagWithoutReadableCode'),
           )
         }
 
@@ -159,8 +152,7 @@ const LinkedOrderNfcScanner = ({
 
         setRuntimeMessage(
           error?.message ||
-            global.t?.t('orders', 'message', 'nfcReadFailed') ||
-            'Nao foi possivel ler a tag NFC/RFID.',
+            global.t?.t('orders', 'message', 'nfcReadFailed'),
         )
 
         if (error?.skipRetry !== true) {
@@ -183,7 +175,7 @@ const LinkedOrderNfcScanner = ({
       }
       void NfcManager.cancelTechnologyRequest().catch(() => {})
     }
-  }, [busy, onScan, orderLabel, scheduleRetry, sessionKey, visible])
+  }, [busy, onScan, scheduleRetry, sessionKey, visible])
 
   const activeMessage = runtimeMessage || errorMessage
 
@@ -195,12 +187,10 @@ const LinkedOrderNfcScanner = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>
-            {global.t?.t('orders', 'title', 'scanLinkedOrderNfc') ||
-              `Ler ${orderLabel.toLowerCase()} via NFC`}
+            {global.t?.t('orders', 'title', 'scanLinkedOrderNfc')}
           </Text>
           <Text style={styles.subtitle}>
-            {global.t?.t('orders', 'message', 'scanLinkedOrderNfcHelp') ||
-              'Aproxime a tag, pulseira ou cartao RFID do leitor do dispositivo.'}
+            {global.t?.t('orders', 'message', 'scanLinkedOrderNfcHelp')}
           </Text>
         </View>
 
@@ -208,19 +198,16 @@ const LinkedOrderNfcScanner = ({
           <View style={styles.centerState}>
             <Icon color="#7DD3FC" name="nfc" size={72} />
             <Text style={styles.centerStateTitle}>
-              {global.t?.t('orders', 'title', 'waitingForNfcTag') ||
-                'Aguardando NFC / RFID'}
+              {global.t?.t('orders', 'title', 'waitingForNfcTag')}
             </Text>
             <Text style={styles.centerStateDescription}>
-              {global.t?.t('orders', 'message', 'keepNfcTagNearReader') ||
-                `Mantenha a ${orderLabel.toLowerCase()} proxima do leitor ate concluir a leitura.`}
+              {global.t?.t('orders', 'message', 'keepNfcTagNearReader')}
             </Text>
             {loading && (
               <>
                 <ActivityIndicator color="#38BDF8" size="large" />
                 <Text style={styles.loadingText}>
-                  {global.t?.t('orders', 'message', 'waitingForNfcTag') ||
-                    'Aguardando aproximacao da tag...'}
+                  {global.t?.t('orders', 'message', 'waitingForNfcTagHelp')}
                 </Text>
               </>
             )}
@@ -240,20 +227,19 @@ const LinkedOrderNfcScanner = ({
             />
             <Text style={styles.messageText}>
               {activeMessage ||
-                global.t?.t('orders', 'message', 'nfcScannerReadyAwaitingTag') ||
-                  'Aguardando a leitura da tag correta.'}
+                global.t?.t('orders', 'message', 'nfcScannerReadyAwaitingTag')}
             </Text>
           </View>
 
           <View style={styles.actionRow}>
             <TouchableOpacity
               activeOpacity={0.88}
-              onPress={onCancel}
-              style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>
-                {global.t?.t('orders', 'button', 'cancel') || 'Cancelar'}
-              </Text>
-            </TouchableOpacity>
+            onPress={onCancel}
+            style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>
+              {global.t?.t('orders', 'button', 'cancel')}
+            </Text>
+          </TouchableOpacity>
 
             {canOpenSettings && (
               <TouchableOpacity
@@ -263,8 +249,7 @@ const LinkedOrderNfcScanner = ({
                 }}
                 style={styles.primaryButton}>
                 <Text style={styles.primaryButtonText}>
-                  {global.t?.t('orders', 'button', 'openNfcSettings') ||
-                    'Abrir NFC'}
+                  {global.t?.t('orders', 'button', 'openNfcSettings')}
                 </Text>
               </TouchableOpacity>
             )}

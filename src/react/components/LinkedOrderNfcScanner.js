@@ -15,12 +15,10 @@ const LinkedOrderNfcScanner = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>
-          {global.t?.t('orders', 'title', 'scanLinkedOrderNfc') ||
-            'Leitura NFC indisponivel'}
+          {global.t?.t('orders', 'title', 'scanLinkedOrderNfc')}
         </Text>
         <Text style={styles.subtitle}>
-          {global.t?.t('orders', 'message', 'nfcUnavailableOnThisPlatform') ||
-            'A leitura NFC/RFID esta disponivel apenas no runtime nativo do app.'}
+          {global.t?.t('orders', 'message', 'nfcUnavailableOnThisPlatform')}
         </Text>
       </View>
 
@@ -28,12 +26,10 @@ const LinkedOrderNfcScanner = ({
         <View style={styles.centerState}>
           <Icon color="#7DD3FC" name="nfc" size={72} />
           <Text style={styles.centerStateTitle}>
-            {global.t?.t('orders', 'title', 'nfcUnavailable') || 'NFC indisponivel'}
+            {global.t?.t('orders', 'title', 'nfcUnavailable')}
           </Text>
           <Text style={styles.centerStateDescription}>
-            {errorMessage ||
-              global.t?.t('orders', 'message', 'nfcUnavailableOnThisPlatform') ||
-                'Este ambiente nao consegue ler tags NFC/RFID.'}
+            {errorMessage || global.t?.t('orders', 'message', 'nfcUnavailableOnThisPlatform')}
           </Text>
         </View>
       </View>
@@ -42,9 +38,7 @@ const LinkedOrderNfcScanner = ({
         <View style={[styles.messageBox, styles.messageBoxError]}>
           <Icon color="#FCA5A5" name="error-outline" size={20} />
           <Text style={styles.messageText}>
-            {errorMessage ||
-              global.t?.t('orders', 'message', 'nfcUnavailableOnThisPlatform') ||
-                'Este ambiente nao consegue ler tags NFC/RFID.'}
+            {errorMessage || global.t?.t('orders', 'message', 'nfcUnavailableOnThisPlatform')}
           </Text>
         </View>
 
@@ -54,7 +48,7 @@ const LinkedOrderNfcScanner = ({
             onPress={onCancel}
             style={styles.secondaryButton}>
             <Text style={styles.secondaryButtonText}>
-              {global.t?.t('orders', 'button', 'cancel') || 'Cancelar'}
+              {global.t?.t('orders', 'button', 'cancel')}
             </Text>
           </TouchableOpacity>
         </View>
