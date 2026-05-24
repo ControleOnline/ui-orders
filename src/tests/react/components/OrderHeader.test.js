@@ -194,4 +194,29 @@ describe('OrderHeader', () => {
 
     expect(global.__orderCardHeaderProps.dateText).toBe('')
   })
+
+  it('only uses order.client.name for the metadata label', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        order: {
+          client: {
+            alias: 'Cliente Antigo',
+          },
+          customer: {
+            name: 'Outro Nome',
+          },
+          customerName: 'Fallback Indevido',
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+            color: '#22C55E',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.dateText).toBe('')
+  })
 })

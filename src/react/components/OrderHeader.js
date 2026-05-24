@@ -19,14 +19,7 @@ const normalizeText = value => String(value || '').trim()
 const resolveOrderType = order =>
   normalizeText(order?.orderType || order?.order_type).toLowerCase()
 const resolveOrderCustomerLabel = order =>
-  normalizeText(
-    order?.client?.alias ||
-      order?.client?.name ||
-      order?.customer?.alias ||
-      order?.customer?.name ||
-      order?.customerName ||
-      order?.customer_name,
-  )
+  normalizeText(order?.client?.name)
 
 export const shouldShowKdsWaitingTime = order => {
   const statusValues = [
