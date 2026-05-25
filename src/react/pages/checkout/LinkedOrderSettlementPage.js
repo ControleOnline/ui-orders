@@ -397,6 +397,7 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
         ...(resolvedProviderIri ? {provider: resolvedProviderIri} : {}),
         ...(resolvedStatusIri ? {status: resolvedStatusIri} : {}),
         ...(resolvedExternalCode ? {externalCode: resolvedExternalCode} : {}),
+        ...(resolvedExternalCode ? {external_code: resolvedExternalCode} : {}),
         otherInformations: buildLinkedOrderMetadata({
           inputType: inputType || baseContext.inputType || preferredInputType,
           ...(mainOrderId ? {mainOrderId} : {}),

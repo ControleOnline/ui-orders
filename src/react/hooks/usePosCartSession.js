@@ -240,6 +240,7 @@ export default function usePosCartSession({
     ).trim()
     if (normalizedExternalCode) {
       payload.externalCode = normalizedExternalCode
+      payload.external_code = normalizedExternalCode
     }
 
     if (extraOptions.otherInformations) {
