@@ -235,6 +235,13 @@ export default function usePosCartSession({
       payload.people = peopleIri
     }
 
+    const normalizedExternalCode = String(
+      extraOptions.externalCode || '',
+    ).trim()
+    if (normalizedExternalCode) {
+      payload.externalCode = normalizedExternalCode
+    }
+
     if (extraOptions.otherInformations) {
       payload.otherInformations = extraOptions.otherInformations
     }
@@ -369,14 +376,33 @@ export default function usePosCartSession({
       return null
     }
 
-    const items = await cartActions.getItems({
+    const normalizedExternalCode = String(externalCode || '').trim()
+    const legacyQuery = {
       app: 'POS',
       orderType: linkedOrderType,
       provider: '/people/' + companyId,
       'status.realStatus': 'open',
       'status.status': 'open',
-      itemsPerPage: 100,
       'order[id]': 'DESC',
+    }
+    const query = {
+      ...legacyQuery,
+      itemsPerPage: 25,
+      externalCode: normalizedExternalCode,
+    }
+
+    const exactItems = await cartActions.getItems(query)
+    const exactMatch = (Array.isArray(exactItems) ? exactItems : []).find(orderItem =>
+      matchesLinkedOrderExternalCode(orderItem, externalCode, linkedOrderType),
+    )
+
+    if (exactMatch) {
+      return exactMatch
+    }
+
+    const items = await cartActions.getItems({
+      ...legacyQuery,
+      itemsPerPage: 100,
     })
 
     return (Array.isArray(items) ? items : []).find(orderItem =>
@@ -429,8 +455,8 @@ export default function usePosCartSession({
         linkedOrderType,
         {
           includeDevice: false,
+          externalCode,
           otherInformations: buildLinkedOrderMetadata({
-            externalCode,
             inputType: checkInputType,
             orderType: linkedOrderType,
           }),
@@ -475,8 +501,8 @@ export default function usePosCartSession({
             LINKED_CHILD_ORDER_TYPE,
             {
               mainOrderId: linkedOrderContext.mainOrderId,
+              externalCode: linkedOrderContext.externalCode,
               otherInformations: buildLinkedOrderMetadata({
-                externalCode: linkedOrderContext.externalCode,
                 inputType: linkedOrderContext.inputType || checkInputType,
                 mainOrderId: linkedOrderContext.mainOrderId,
                 orderType: linkedOrderContext.orderType || linkedOrderType,
@@ -665,8 +691,8 @@ export default function usePosCartSession({
             LINKED_CHILD_ORDER_TYPE,
             {
               mainOrderId: settlementOrder?.id || settlementOrder?.['@id'],
+              externalCode,
               otherInformations: buildLinkedOrderMetadata({
-                externalCode,
                 inputType: linkedOrderInputType,
                 mainOrderId: settlementOrder?.id || settlementOrder?.['@id'],
                 orderType: linkedOrderType,
@@ -754,8 +780,8 @@ export default function usePosCartSession({
         usesLinkedCheckOrders && isLinkedChildOrder(currentOrder)
           ? {
               mainOrderId: currentLinkedOrderContext.mainOrderId,
+              externalCode: currentLinkedOrderContext.externalCode,
               otherInformations: buildLinkedOrderMetadata({
-                externalCode: currentLinkedOrderContext.externalCode,
                 inputType: currentLinkedOrderContext.inputType || checkInputType,
                 mainOrderId: currentLinkedOrderContext.mainOrderId,
                 orderType: currentLinkedOrderContext.orderType || linkedOrderType,
@@ -777,8 +803,8 @@ export default function usePosCartSession({
             currentLinkedOrderContext.orderType || linkedOrderType,
             {
               includeDevice: false,
+              externalCode: currentLinkedOrderContext.externalCode,
               otherInformations: buildLinkedOrderMetadata({
-                externalCode: currentLinkedOrderContext.externalCode,
                 inputType: currentLinkedOrderContext.inputType || checkInputType,
                 orderType: currentLinkedOrderContext.orderType || linkedOrderType,
               }),

@@ -387,14 +387,17 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
         toEntityIri(baseOrder?.provider, 'people') || companyIri
       const resolvedStatusIri =
         statusIri || toEntityIri(baseOrder?.status, 'statuses')
+      const resolvedExternalCode = normalizeText(
+        externalCode || baseContext.externalCode,
+      )
 
       const payload = {
         app: baseOrder?.app || 'POS',
         orderType: linkedOrderType,
         ...(resolvedProviderIri ? {provider: resolvedProviderIri} : {}),
         ...(resolvedStatusIri ? {status: resolvedStatusIri} : {}),
+        ...(resolvedExternalCode ? {externalCode: resolvedExternalCode} : {}),
         otherInformations: buildLinkedOrderMetadata({
-          externalCode: externalCode || baseContext.externalCode,
           inputType: inputType || baseContext.inputType || preferredInputType,
           ...(mainOrderId ? {mainOrderId} : {}),
           orderType: linkedOrderType,
@@ -497,13 +500,37 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
         return null
       }
 
-      const settlementOrders = await ordersActions.getItems({
+      const normalizedExternalCode = normalizeText(externalCode)
+      const legacyQuery = {
         app: 'POS',
         orderType: linkedOrderType,
         provider: companyIri,
         'status.realStatus': 'open',
-        itemsPerPage: 250,
         'order[id]': 'DESC',
+      }
+      const query = {
+        ...legacyQuery,
+        itemsPerPage: 25,
+        externalCode: normalizedExternalCode,
+      }
+
+      const exactSettlementOrders = await ordersActions.getItems(query)
+      const exactMatch = extractCollectionItems(exactSettlementOrders).find(
+        orderItem => {
+          const orderContext = getLinkedOrderContext(orderItem)
+          return normalizeText(orderContext.externalCode) !== '' &&
+            normalizeText(orderContext.externalCode).toLowerCase() ===
+              normalizeText(externalCode).toLowerCase()
+        },
+      )
+
+      if (exactMatch) {
+        return exactMatch
+      }
+
+      const settlementOrders = await ordersActions.getItems({
+        ...legacyQuery,
+        itemsPerPage: 250,
       })
 
       return (

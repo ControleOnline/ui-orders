@@ -123,7 +123,9 @@ export const getLinkedOrderContext = order => {
         order?.orderType,
     ) || ''
   const externalCode = normalizeText(
-    rawContext?.external_code ||
+    order?.externalCode ||
+      order?.external_code ||
+      rawContext?.external_code ||
       rawContext?.externalCode ||
       rawContext?.code,
   )
@@ -151,18 +153,15 @@ export const getLinkedOrderContext = order => {
 }
 
 export const buildLinkedOrderMetadata = ({
-  externalCode = '',
   inputType = '',
   mainOrderId = null,
   orderType = '',
 } = {}) => {
   const normalizedType = normalizeLinkedOrderType(orderType)
-  const normalizedExternalCode = normalizeText(externalCode)
   const normalizedInputType = normalizeText(inputType)
 
   return {
     linked_order: {
-      ...(normalizedExternalCode ? {external_code: normalizedExternalCode} : {}),
       ...(normalizedInputType ? {input_type: normalizedInputType} : {}),
       ...(mainOrderId ? {main_order_id: Number(mainOrderId)} : {}),
       ...(normalizedType ? {order_type: normalizedType} : {}),
