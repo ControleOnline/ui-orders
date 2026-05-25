@@ -87,6 +87,48 @@ const resolvePreferredMeaningfulText = (...values) => {
   return '';
 };
 
+const resolveIfoodVoucherTypeLabel = financial => {
+  const directLabel = resolvePreferredText(
+    financial?.voucher_type_label,
+    financial?.voucherTypeLabel,
+  );
+  if (directLabel) {
+    return directLabel;
+  }
+
+  const voucherType = normalizeKey(
+    financial?.voucher_type ||
+      financial?.voucherType ||
+      financial?.voucher_sponsor ||
+      financial?.voucherSponsor,
+  );
+
+  if (voucherType.includes('ifood') && /merchant|store|loja/.test(voucherType)) {
+    return 'Loja + iFood';
+  }
+
+  if (voucherType.includes('ifood')) {
+    return 'iFood';
+  }
+
+  if (/merchant|store|loja/.test(voucherType)) {
+    return 'Loja';
+  }
+
+  const ifoodSubsidy = Number(financial?.ifood_subsidy || 0);
+  const merchantSubsidy = Number(financial?.merchant_subsidy || 0);
+
+  if (ifoodSubsidy > 0 && merchantSubsidy > 0) {
+    return 'Loja + iFood';
+  }
+
+  if (ifoodSubsidy > 0) {
+    return 'iFood';
+  }
+
+  return merchantSubsidy > 0 ? 'Loja' : '';
+};
+
 const readBooleanFlag = value => {
   if (typeof value === 'boolean') {
     return value;
@@ -2762,6 +2804,15 @@ const useOrderMarketplaceSummary = ({
           label: global.t?.t('orders', 'label', 'voucher') || 'Voucher',
           value: remoteFinancial.voucher_code,
         });
+
+        const voucherTypeLabel = resolveIfoodVoucherTypeLabel(remoteFinancial);
+        if (voucherTypeLabel) {
+          benefitLines.push({
+            key: 'ifood-voucher-type',
+            label: global.t?.t('orders', 'label', 'voucherType') || 'Tipo do voucher',
+            value: voucherTypeLabel,
+          });
+        }
       }
 
       if (Number(remoteFinancial.discount_total || 0)) {
