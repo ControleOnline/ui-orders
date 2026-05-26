@@ -1,5 +1,6 @@
 import {buildFood99OrderSummary} from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
 
+import {getLinkedOrderContext} from './linkedOrderContext'
 import {resolveMarketplaceResolver} from './orderIdentity/marketplaces'
 import {formatOrderCode, normalizeText} from './orderIdentity/shared'
 
@@ -20,6 +21,18 @@ export const resolveMarketplaceOrderCode = (order, remoteOrderSummary = null) =>
 export const resolveOrderIdentityRemoteSummary = (order, remoteOrderSummary = null) =>
   remoteOrderSummary || buildFood99OrderSummary(order) || null
 
+const resolveOrderApp = order => normalizeText(order?.app).toUpperCase()
+
+const resolvePosExternalCode = order => {
+  if (resolveOrderApp(order) !== 'POS') {
+    return ''
+  }
+
+  return getLinkedOrderContext(order).externalCode
+}
+
+const resolvePosExternalLabel = () => global.t?.t('orders', 'title', 'table')
+
 export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
   const effectiveRemoteOrderSummary = resolveOrderIdentityRemoteSummary(
     order,
@@ -31,7 +44,24 @@ export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
     order,
     effectiveRemoteOrderSummary,
   )
+  const posExternalCode = resolvePosExternalCode(order)
   const hasMarketplaceReference = !!marketplaceLabel && !!marketplaceOrderCode
+
+  if (posExternalCode) {
+    return {
+      internalId,
+      externalId: posExternalCode,
+      externalLabel: '',
+      hasMarketplaceReference: false,
+      primaryText: [resolvePosExternalLabel(), formatOrderCode(posExternalCode)]
+        .filter(Boolean)
+        .join(' '),
+      secondaryText:
+        normalizeText(posExternalCode) === internalId
+          ? ''
+          : formatOrderCode(internalId),
+    }
+  }
 
   if (hasMarketplaceReference) {
     return {
@@ -49,7 +79,9 @@ export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
     externalId: '',
     externalLabel: '',
     hasMarketplaceReference: false,
-    primaryText: formatOrderCode(internalId) || global.t?.t('orders', 'title', 'order') || 'Pedido',
+    primaryText:
+      formatOrderCode(internalId) ||
+      global.t?.t('orders', 'title', 'order'),
     secondaryText: '',
   }
 }
