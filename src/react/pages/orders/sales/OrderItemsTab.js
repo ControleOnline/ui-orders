@@ -44,6 +44,26 @@ const getEntityId = entity => {
   return null
 }
 
+export const getOrderProductsFallbackFetchKey = routeOrderId =>
+  String(Number(routeOrderId || 0) || '')
+
+export const shouldRequestOrderProductsFallback = ({
+  routeOrderId,
+  skipFallbackReason,
+  lastRequestedRouteOrderId,
+}) => {
+  if (skipFallbackReason) {
+    return false
+  }
+
+  const fallbackFetchOrderId = getOrderProductsFallbackFetchKey(routeOrderId)
+
+  return (
+    !!fallbackFetchOrderId &&
+    fallbackFetchOrderId !== String(lastRequestedRouteOrderId || '')
+  )
+}
+
 const OrderItemsTab = ({
   addProductsButtonLabel,
   canAddProductsToOrder = false,
@@ -134,18 +154,19 @@ const OrderItemsTab = ({
   useEffect(() => {
     // Use /order_products only when the embedded order payload is missing or
     // lacks the grouping metadata required to rebuild customization hierarchy.
-    if (skipFallbackReason) {
-      return
-    }
-
-    const fallbackFetchOrderId = String(normalizedRouteOrderId || '')
-
     if (
-      !fallbackFetchOrderId ||
-      fallbackFetchOrderIdRef.current === fallbackFetchOrderId
+      !shouldRequestOrderProductsFallback({
+        routeOrderId: normalizedRouteOrderId,
+        skipFallbackReason,
+        lastRequestedRouteOrderId: fallbackFetchOrderIdRef.current,
+      })
     ) {
       return
     }
+
+    const fallbackFetchOrderId = getOrderProductsFallbackFetchKey(
+      normalizedRouteOrderId,
+    )
 
     // Some backends can keep returning the same incomplete payload on rerender;
     // remember the first attempt so the screen does not keep re-fetching.
