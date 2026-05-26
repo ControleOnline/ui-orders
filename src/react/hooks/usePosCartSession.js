@@ -240,7 +240,6 @@ export default function usePosCartSession({
     ).trim()
     if (normalizedExternalCode) {
       payload.externalCode = normalizedExternalCode
-      payload.external_code = normalizedExternalCode
     }
 
     if (extraOptions.otherInformations) {
@@ -505,7 +504,6 @@ export default function usePosCartSession({
               externalCode: linkedOrderContext.externalCode,
               otherInformations: buildLinkedOrderMetadata({
                 inputType: linkedOrderContext.inputType || checkInputType,
-                mainOrderId: linkedOrderContext.mainOrderId,
                 orderType: linkedOrderContext.orderType || linkedOrderType,
               }),
             },
@@ -695,7 +693,6 @@ export default function usePosCartSession({
               externalCode,
               otherInformations: buildLinkedOrderMetadata({
                 inputType: linkedOrderInputType,
-                mainOrderId: settlementOrder?.id || settlementOrder?.['@id'],
                 orderType: linkedOrderType,
               }),
             },
@@ -784,7 +781,6 @@ export default function usePosCartSession({
               externalCode: currentLinkedOrderContext.externalCode,
               otherInformations: buildLinkedOrderMetadata({
                 inputType: currentLinkedOrderContext.inputType || checkInputType,
-                mainOrderId: currentLinkedOrderContext.mainOrderId,
                 orderType: currentLinkedOrderContext.orderType || linkedOrderType,
               }),
             }

@@ -6,7 +6,7 @@ const {
 const {describe, expect, it} = global
 
 describe('linkedOrderContext', () => {
-  it('prioritizes the order externalCode field over legacy linked metadata', () => {
+  it('prioritizes the order externalCode field over linked metadata', () => {
     const context = getLinkedOrderContext({
       externalCode: 'MESA-10',
       orderType: 'table',
@@ -25,7 +25,7 @@ describe('linkedOrderContext', () => {
     expect(context.isLinkedParent).toBe(true)
   })
 
-  it('falls back to legacy linked_order external_code when the root field is absent', () => {
+  it('does not read linked_order main_order_id when the root field is absent', () => {
     const context = getLinkedOrderContext({
       orderType: 'sale',
       otherInformations: JSON.stringify({
@@ -38,14 +38,14 @@ describe('linkedOrderContext', () => {
       }),
     })
 
-    expect(context.externalCode).toBe('COM-22')
+    expect(context.externalCode).toBe('')
     expect(context.inputType).toBe('barcode')
-    expect(context.mainOrderId).toBe(77)
+    expect(context.mainOrderId).toBeNull()
     expect(context.orderType).toBe('tab')
     expect(context.isLinkedParent).toBe(true)
   })
 
-  it('keeps linked metadata free of external_code when building payloads', () => {
+  it('keeps linked metadata free of mesa and comanda identifiers when building payloads', () => {
     expect(
       buildLinkedOrderMetadata({
         externalCode: 'IGNORED',
@@ -56,7 +56,6 @@ describe('linkedOrderContext', () => {
     ).toEqual({
       linked_order: {
         input_type: 'nfc',
-        main_order_id: 15,
         order_type: 'table',
       },
     })

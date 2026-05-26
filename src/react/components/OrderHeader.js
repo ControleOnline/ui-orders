@@ -21,7 +21,7 @@ const resolveOrderType = order =>
 const resolveOrderCustomerLabel = order =>
   normalizeText(order?.client?.name)
 const resolveOrderMainOrderExternalCode = order =>
-  normalizeText(order?.mainOrder?.external_code)
+  normalizeText(order?.mainOrder?.externalCode)
 
 const resolveOrderMetaText = order => {
   const mainOrderExternalCode = resolveOrderMainOrderExternalCode(order)
@@ -177,7 +177,7 @@ const OrderHeader = ({
       metaText,
       order,
       order?.client?.name,
-      order?.mainOrder?.external_code,
+      order?.mainOrder?.externalCode,
     ],
   )
   const showWaitingChip = showWaitingTime && shouldShowKdsWaitingTime(order)

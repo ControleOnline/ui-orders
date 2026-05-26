@@ -195,7 +195,7 @@ describe('OrderHeader', () => {
     expect(global.__orderCardHeaderProps.dateText).toBe('')
   })
 
-  it('prefixes the customer name with the comanda code when mainOrder.external_code exists', () => {
+  it('prefixes the customer name with the comanda code when mainOrder.externalCode exists', () => {
     global.__orderCardHeaderProps = null
 
     ReactDOMServer.renderToStaticMarkup(
@@ -205,7 +205,7 @@ describe('OrderHeader', () => {
             name: 'Cliente da mesa',
           },
           mainOrder: {
-            external_code: '570002',
+            externalCode: '570002',
           },
           status: {
             realStatus: 'open',
