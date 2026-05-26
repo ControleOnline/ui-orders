@@ -195,6 +195,30 @@ describe('OrderHeader', () => {
     expect(global.__orderCardHeaderProps.dateText).toBe('')
   })
 
+  it('prefixes the customer name with the comanda code when mainOrder.external_code exists', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        order: {
+          client: {
+            name: 'Cliente da mesa',
+          },
+          mainOrder: {
+            external_code: '570002',
+          },
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+            color: '#22C55E',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.dateText).toBe('Comanda: #570002 Cliente da mesa')
+  })
+
   it('only uses order.client.name for the metadata label', () => {
     global.__orderCardHeaderProps = null
 

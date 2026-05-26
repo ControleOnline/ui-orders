@@ -20,6 +20,24 @@ const resolveOrderType = order =>
   normalizeText(order?.orderType || order?.order_type).toLowerCase()
 const resolveOrderCustomerLabel = order =>
   normalizeText(order?.client?.name)
+const resolveOrderMainOrderExternalCode = order =>
+  normalizeText(order?.mainOrder?.external_code)
+
+const resolveOrderMetaText = order => {
+  const mainOrderExternalCode = resolveOrderMainOrderExternalCode(order)
+  const customerLabel = resolveOrderCustomerLabel(order)
+
+  if (mainOrderExternalCode) {
+    return [
+      `Comanda: #${mainOrderExternalCode}`,
+      customerLabel,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  return customerLabel
+}
 
 export const shouldShowKdsWaitingTime = order => {
   const statusValues = [
@@ -154,8 +172,13 @@ const OrderHeader = ({
   )
   const orderCustomerLabel = useMemo(() => resolveOrderCustomerLabel(order), [order])
   const resolvedMetaText = useMemo(
-    () => normalizeText(metaText) || orderCustomerLabel,
-    [metaText, orderCustomerLabel],
+    () => normalizeText(metaText) || resolveOrderMetaText(order),
+    [
+      metaText,
+      order,
+      order?.client?.name,
+      order?.mainOrder?.external_code,
+    ],
   )
   const showWaitingChip = showWaitingTime && shouldShowKdsWaitingTime(order)
   const showCustomerAction =
