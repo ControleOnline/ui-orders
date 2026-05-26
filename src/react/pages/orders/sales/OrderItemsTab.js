@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo} from 'react'
+import React, {useEffect, useMemo, useRef} from 'react'
 import {
   ActivityIndicator,
   Text,
@@ -75,6 +75,7 @@ const OrderItemsTab = ({
   const normalizedRouteOrderId = Number(routeOrderId || 0)
   const isFallbackFetchLoading = Boolean(orderProductsGetters?.isLoading)
   const hasFallbackFetchError = !!orderProductsGetters?.error
+  const fallbackFetchOrderIdRef = useRef('')
 
   const fallbackOrderProducts = useMemo(
     () =>
@@ -108,17 +109,27 @@ const OrderItemsTab = ({
     [fallbackOrderProducts, orderProducts, shouldUseFallbackOrderProducts],
   )
 
-  const skipFallbackReason = !routeOrderId
-    ? 'missing-route-order-id'
-    : !requiresDetailedFallback
-      ? 'embedded-order-products-sufficient'
-      : isFallbackFetchLoading
-        ? 'fallback-order-products-loading'
-        : hasFallbackFetchError
-          ? 'fallback-order-products-error'
-      : fallbackOrderProducts.length > 0 && fallbackHasDetailedPayload
-        ? 'fallback-order-products-already-loaded'
-        : ''
+  let skipFallbackReason = ''
+
+  if (!routeOrderId) {
+    skipFallbackReason = 'missing-route-order-id'
+  } else if (!requiresDetailedFallback) {
+    skipFallbackReason = 'embedded-order-products-sufficient'
+  } else if (isFallbackFetchLoading) {
+    skipFallbackReason = 'fallback-order-products-loading'
+  } else if (hasFallbackFetchError) {
+    skipFallbackReason = 'fallback-order-products-error'
+  } else if (fallbackOrderProducts.length > 0 && fallbackHasDetailedPayload) {
+    skipFallbackReason = 'fallback-order-products-already-loaded'
+  }
+
+  useEffect(() => {
+    if (requiresDetailedFallback) {
+      return
+    }
+
+    fallbackFetchOrderIdRef.current = ''
+  }, [normalizedRouteOrderId, requiresDetailedFallback])
 
   useEffect(() => {
     // Use /order_products only when the embedded order payload is missing or
@@ -127,6 +138,19 @@ const OrderItemsTab = ({
       return
     }
 
+    const fallbackFetchOrderId = String(normalizedRouteOrderId || '')
+
+    if (
+      !fallbackFetchOrderId ||
+      fallbackFetchOrderIdRef.current === fallbackFetchOrderId
+    ) {
+      return
+    }
+
+    // Some backends can keep returning the same incomplete payload on rerender;
+    // remember the first attempt so the screen does not keep re-fetching.
+    fallbackFetchOrderIdRef.current = fallbackFetchOrderId
+
     orderProductsActions
       .getItems({
         'order.id': normalizedRouteOrderId,
@@ -134,18 +158,9 @@ const OrderItemsTab = ({
       })
       .catch(() => null)
   }, [
-    fallbackOrderProducts.length,
-    fallbackHasDetailedPayload,
-    hasFallbackFetchError,
-    isFallbackFetchLoading,
-    requiresDetailedFallback,
     normalizedRouteOrderId,
-    orderProducts,
     orderProductsActions,
-    routeOrderId,
     skipFallbackReason,
-    storeOrderProducts.length,
-    variant,
   ])
 
   const productStyles = useMemo(
