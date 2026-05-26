@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {
   ActivityIndicator,
   Text,
@@ -44,6 +44,22 @@ const getEntityId = entity => {
   return null
 }
 
+const getEmbeddedOrderProducts = order => {
+  if (Array.isArray(order?.orderProducts)) {
+    return order.orderProducts
+  }
+
+  if (Array.isArray(order?.orderProducts?.member)) {
+    return order.orderProducts.member
+  }
+
+  if (Array.isArray(order?.orderProducts?.['hydra:member'])) {
+    return order.orderProducts['hydra:member']
+  }
+
+  return []
+}
+
 export const getOrderProductsFallbackFetchKey = routeOrderId =>
   String(Number(routeOrderId || 0) || '')
 
@@ -70,7 +86,7 @@ const OrderItemsTab = ({
   onAddProduct,
   onQuickAddProduct = null,
   order = null,
-  orderProducts = [],
+  orderProducts = null,
   productSearchLoading = false,
   productSearchResults = [],
   productSearchSelectionId = '',
@@ -86,16 +102,36 @@ const OrderItemsTab = ({
   const {styles: cssStyles} = css()
   const {ppcColors, styles: localStyles} = useOrderDetailsVisuals()
   const detailsVariant = variant === 'details'
+  const ordersStore = useStore('orders')
   const orderProductsStore = useStore('order_products')
+  const {actions: ordersActions} = ordersStore
   const {actions: orderProductsActions, getters: orderProductsGetters} =
     orderProductsStore
+  const [resolvedOrder, setResolvedOrder] = useState(order)
+  const [isLoadingOrderDetails, setIsLoadingOrderDetails] = useState(false)
+  const providedOrderProducts = useMemo(
+    () => (Array.isArray(orderProducts) ? orderProducts : []),
+    [orderProducts],
+  )
   const storeOrderProducts = Array.isArray(orderProductsGetters?.items)
     ? orderProductsGetters.items
     : []
   const normalizedRouteOrderId = Number(routeOrderId || 0)
+  const resolvedOrderProductsFromOrder = useMemo(
+    () => getEmbeddedOrderProducts(resolvedOrder),
+    [resolvedOrder],
+  )
+  const primaryOrderProducts = useMemo(
+    () =>
+      hasOrderProducts(providedOrderProducts)
+        ? providedOrderProducts
+        : resolvedOrderProductsFromOrder,
+    [providedOrderProducts, resolvedOrderProductsFromOrder],
+  )
   const isFallbackFetchLoading = Boolean(orderProductsGetters?.isLoading)
   const hasFallbackFetchError = !!orderProductsGetters?.error
   const fallbackFetchOrderIdRef = useRef('')
+  const orderFetchOrderIdRef = useRef('')
 
   const fallbackOrderProducts = useMemo(
     () =>
@@ -111,7 +147,9 @@ const OrderItemsTab = ({
     [normalizedRouteOrderId, storeOrderProducts],
   )
 
-  const requiresDetailedFallback = needsDetailedOrderProductsFetch(orderProducts)
+  const requiresDetailedFallback = needsDetailedOrderProductsFetch(
+    primaryOrderProducts,
+  )
   const fallbackHasDetailedPayload =
     hasDetailedOrderProductMetadata(fallbackOrderProducts)
   const shouldUseFallbackOrderProducts =
@@ -123,11 +161,18 @@ const OrderItemsTab = ({
     () =>
       shouldUseFallbackOrderProducts
         ? fallbackOrderProducts
-        : hasOrderProducts(orderProducts)
-          ? orderProducts
+        : hasOrderProducts(primaryOrderProducts)
+          ? primaryOrderProducts
           : fallbackOrderProducts,
-    [fallbackOrderProducts, orderProducts, shouldUseFallbackOrderProducts],
+    [fallbackOrderProducts, primaryOrderProducts, shouldUseFallbackOrderProducts],
   )
+  const shouldFetchOrderDetails =
+    !!normalizedRouteOrderId &&
+    (
+      !resolvedOrder?.id ||
+      !hasOrderProducts(primaryOrderProducts) ||
+      needsDetailedOrderProductsFetch(primaryOrderProducts)
+    )
 
   let skipFallbackReason = ''
 
@@ -142,6 +187,51 @@ const OrderItemsTab = ({
   } else if (fallbackOrderProducts.length > 0 && fallbackHasDetailedPayload) {
     skipFallbackReason = 'fallback-order-products-already-loaded'
   }
+
+  useEffect(() => {
+    setResolvedOrder(order)
+  }, [order])
+
+  useEffect(() => {
+    orderFetchOrderIdRef.current = ''
+  }, [normalizedRouteOrderId, order?.id])
+
+  useEffect(() => {
+    if (!shouldFetchOrderDetails) {
+      setIsLoadingOrderDetails(false)
+      return undefined
+    }
+
+    let cancelled = false
+    const fetchOrderId = getOrderProductsFallbackFetchKey(
+      normalizedRouteOrderId,
+    )
+
+    if (orderFetchOrderIdRef.current === fetchOrderId) {
+      return undefined
+    }
+
+    orderFetchOrderIdRef.current = fetchOrderId
+    setIsLoadingOrderDetails(true)
+
+    ordersActions
+      .get(normalizedRouteOrderId)
+      .then(fetchedOrder => {
+        if (!cancelled && fetchedOrder) {
+          setResolvedOrder(fetchedOrder)
+        }
+      })
+      .catch(() => null)
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingOrderDetails(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [normalizedRouteOrderId, ordersActions, shouldFetchOrderDetails])
 
   useEffect(() => {
     if (requiresDetailedFallback) {
@@ -253,9 +343,11 @@ const OrderItemsTab = ({
   )
 
   const isLoadingFallback =
-    !hasOrderProducts(orderProducts) &&
+    !hasOrderProducts(primaryOrderProducts) &&
     !fallbackOrderProducts.length &&
     orderProductsGetters?.isLoading
+  const showLoadingState = isLoadingOrderDetails || isLoadingFallback
+  const currentOrder = resolvedOrder || order
 
   return (
     <View style={localStyles.detailsTabStack}>
@@ -364,7 +456,7 @@ const OrderItemsTab = ({
           detailsVariant && localStyles.detailsItemsSection,
         ]}
       >
-        {isLoadingFallback ? (
+        {showLoadingState ? (
           <View style={localStyles.detailsLoadingState}>
             <ActivityIndicator size="small" color={ppcColors.accentInfo} />
             <Text style={localStyles.detailsLoadingText}>
@@ -373,7 +465,7 @@ const OrderItemsTab = ({
           </View>
         ) : (
           <OrderProducts
-            order={order}
+            order={currentOrder}
             orderProducts={resolvedOrderProducts}
             styles={productStyles}
             showDetails
