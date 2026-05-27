@@ -50,7 +50,7 @@ describe('orderIdentity', () => {
     expect(identity.secondaryText).toBe('#70911')
   })
 
-  it('prioritizes the iFood display id over pickup code', () => {
+  it('prioritizes the iFood pickup code over display id', () => {
     const order = {
       id: 81234,
       app: 'ifood',
@@ -73,8 +73,8 @@ describe('orderIdentity', () => {
     const identity = resolveOrderIdentity(order)
 
     expect(identity.externalLabel).toBe('IFOOD')
-    expect(identity.externalId).toBe('70002')
-    expect(identity.primaryText).toBe('#70002')
+    expect(identity.externalId).toBe('0176')
+    expect(identity.primaryText).toBe('#0176')
     expect(identity.secondaryText).toBe('#81234')
   })
 
