@@ -302,10 +302,14 @@ const LinkedOrderEntrySheet = ({
       scheduleFinalize()
     }
 
-    window.addEventListener('keydown', handleKeyDown, true)
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('keydown', handleKeyDown, true)
+    }
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown, true)
+      if (typeof window !== 'undefined' && window.removeEventListener) {
+        window.removeEventListener('keydown', handleKeyDown, true)
+      }
       clearScanBuffer()
     }
   }, [clearScanBuffer, finalizeBufferedScan, visible])
