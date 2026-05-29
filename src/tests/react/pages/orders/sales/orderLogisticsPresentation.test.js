@@ -528,4 +528,37 @@ describe('orderLogisticsPresentation', () => {
     )
     expect(snapshot.hasDriver).toBe(true)
   })
+
+  it('ignores driver data stored only in otherInformations', () => {
+    const snapshot = resolveOrderLogisticsSnapshot({
+      order: {
+        id: 71109,
+        app: 'Food99',
+        otherInformations: {
+          logistics: {
+            delivery_people_id: 321,
+            requested_at: '2026-05-16 10:00:00',
+            tracking_url: 'https://tracking.example.com/driver/321',
+            rider_name: 'Legacy Driver',
+            rider_phone: '11999999999',
+          },
+        },
+      },
+    })
+
+    expect(snapshot.delivery).toEqual(
+      expect.objectContaining({
+        deliveryPeopleId: null,
+        trackingUrl: null,
+        requestedAt: null,
+        status: null,
+        deliveryPeople: expect.objectContaining({
+          name: '',
+          phone: '',
+          email: '',
+        }),
+      }),
+    )
+    expect(snapshot.hasDriver).toBe(false)
+  })
 })
