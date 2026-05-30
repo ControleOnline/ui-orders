@@ -60,6 +60,25 @@ const getEmbeddedOrderProducts = order => {
   return []
 }
 
+const getOrderProductCollectionSignature = orderProducts =>
+  (Array.isArray(orderProducts) ? orderProducts : [])
+    .map(orderProduct =>
+      [
+        getEntityId(orderProduct),
+        getEntityId(orderProduct?.product),
+        getEntityId(orderProduct?.order),
+        getEntityId(orderProduct?.orderProduct),
+        getEntityId(orderProduct?.parentProduct),
+        getEntityId(orderProduct?.productGroup),
+        Number(orderProduct?.quantity || 0),
+        Number(orderProduct?.rootQuantity || orderProduct?.root_quantity || 0),
+        String(orderProduct?.status?.status || orderProduct?.status || ''),
+      ].join(':'),
+    )
+    .join('|')
+
+const requestedFallbackOrderKeys = new Set()
+
 export const getOrderProductsFallbackFetchKey = routeOrderId =>
   String(Number(routeOrderId || 0) || '')
 
@@ -67,8 +86,9 @@ export const shouldRequestOrderProductsFallback = ({
   routeOrderId,
   skipFallbackReason,
   lastRequestedRouteOrderId,
+  alreadyRequested = false,
 }) => {
-  if (skipFallbackReason) {
+  if (skipFallbackReason || alreadyRequested) {
     return false
   }
 
@@ -78,6 +98,40 @@ export const shouldRequestOrderProductsFallback = ({
     !!fallbackFetchOrderId &&
     fallbackFetchOrderId !== String(lastRequestedRouteOrderId || '')
   )
+}
+
+export const shouldRequestOrderDetails = ({
+  routeOrderId,
+  resolvedOrderId,
+  orderProducts,
+}) => {
+  if (!routeOrderId) {
+    return false
+  }
+
+  if (!resolvedOrderId) {
+    return true
+  }
+
+  return (
+    hasOrderProducts(orderProducts) &&
+    needsDetailedOrderProductsFetch(orderProducts)
+  )
+}
+
+export const getOrderSyncSignature = order => {
+  const orderProducts = getEmbeddedOrderProducts(order)
+
+  return [
+    String(getEntityId(order) || ''),
+    String(order?.status?.status || ''),
+    String(order?.status?.realStatus || order?.status?.real_status || ''),
+    String(order?.status?.color || ''),
+    String(getEntityId(order?.client) || ''),
+    String(getEntityId(order?.addressDestination) || ''),
+    String(order?.comments || order?.remark || order?.description || ''),
+    getOrderProductCollectionSignature(orderProducts),
+  ].join('||')
 }
 
 const OrderItemsTab = ({
@@ -109,6 +163,7 @@ const OrderItemsTab = ({
     orderProductsStore
   const [resolvedOrder, setResolvedOrder] = useState(order)
   const [isLoadingOrderDetails, setIsLoadingOrderDetails] = useState(false)
+  const resolvedOrderSignatureRef = useRef(getOrderSyncSignature(order))
   const providedOrderProducts = useMemo(
     () => (Array.isArray(orderProducts) ? orderProducts : []),
     [orderProducts],
@@ -117,6 +172,7 @@ const OrderItemsTab = ({
     ? orderProductsGetters.items
     : []
   const normalizedRouteOrderId = Number(routeOrderId || 0)
+  const fallbackRequestKey = getOrderProductsFallbackFetchKey(normalizedRouteOrderId)
   const resolvedOrderProductsFromOrder = useMemo(
     () => getEmbeddedOrderProducts(resolvedOrder),
     [resolvedOrder],
@@ -152,6 +208,8 @@ const OrderItemsTab = ({
   )
   const fallbackHasDetailedPayload =
     hasDetailedOrderProductMetadata(fallbackOrderProducts)
+  const fallbackAlreadyRequested =
+    !!fallbackRequestKey && requestedFallbackOrderKeys.has(fallbackRequestKey)
   const shouldUseFallbackOrderProducts =
     requiresDetailedFallback &&
     fallbackOrderProducts.length > 0 &&
@@ -166,13 +224,12 @@ const OrderItemsTab = ({
           : fallbackOrderProducts,
     [fallbackOrderProducts, primaryOrderProducts, shouldUseFallbackOrderProducts],
   )
-  const shouldFetchOrderDetails =
-    !!normalizedRouteOrderId &&
-    (
-      !resolvedOrder?.id ||
-      !hasOrderProducts(primaryOrderProducts) ||
-      needsDetailedOrderProductsFetch(primaryOrderProducts)
-    )
+  const shouldFetchOrderDetails = shouldRequestOrderDetails({
+    routeOrderId: normalizedRouteOrderId,
+    resolvedOrderId: resolvedOrder?.id,
+    orderProducts: primaryOrderProducts,
+  })
+  const orderSyncSignature = useMemo(() => getOrderSyncSignature(order), [order])
 
   let skipFallbackReason = ''
 
@@ -184,13 +241,34 @@ const OrderItemsTab = ({
     skipFallbackReason = 'fallback-order-products-loading'
   } else if (hasFallbackFetchError) {
     skipFallbackReason = 'fallback-order-products-error'
+  } else if (fallbackAlreadyRequested) {
+    skipFallbackReason = 'fallback-order-products-already-requested'
   } else if (fallbackOrderProducts.length > 0 && fallbackHasDetailedPayload) {
     skipFallbackReason = 'fallback-order-products-already-loaded'
   }
 
   useEffect(() => {
+    if (!fallbackRequestKey) {
+      return;
+    }
+
+    if (!requiresDetailedFallback || fallbackHasDetailedPayload) {
+      requestedFallbackOrderKeys.delete(fallbackRequestKey);
+    }
+  }, [fallbackHasDetailedPayload, fallbackRequestKey, requiresDetailedFallback]);
+
+  useEffect(() => {
+    if (!orderSyncSignature) {
+      return
+    }
+
+    if (resolvedOrderSignatureRef.current === orderSyncSignature) {
+      return
+    }
+
+    resolvedOrderSignatureRef.current = orderSyncSignature
     setResolvedOrder(order)
-  }, [order])
+  }, [order, orderSyncSignature])
 
   useEffect(() => {
     orderFetchOrderIdRef.current = ''
@@ -218,6 +296,7 @@ const OrderItemsTab = ({
       .get(normalizedRouteOrderId)
       .then(fetchedOrder => {
         if (!cancelled && fetchedOrder) {
+          resolvedOrderSignatureRef.current = getOrderSyncSignature(fetchedOrder)
           setResolvedOrder(fetchedOrder)
         }
       })
@@ -249,27 +328,38 @@ const OrderItemsTab = ({
         routeOrderId: normalizedRouteOrderId,
         skipFallbackReason,
         lastRequestedRouteOrderId: fallbackFetchOrderIdRef.current,
+        alreadyRequested: fallbackAlreadyRequested,
       })
     ) {
       return
     }
 
-    const fallbackFetchOrderId = getOrderProductsFallbackFetchKey(
-      normalizedRouteOrderId,
-    )
+    const fallbackFetchOrderId = fallbackRequestKey
 
     // Some backends can keep returning the same incomplete payload on rerender;
     // remember the first attempt so the screen does not keep re-fetching.
     fallbackFetchOrderIdRef.current = fallbackFetchOrderId
+    if (fallbackFetchOrderId) {
+      requestedFallbackOrderKeys.add(fallbackFetchOrderId);
+    }
 
     orderProductsActions
       .getItems({
         'order.id': normalizedRouteOrderId,
         itemsPerPage: 200,
       })
+      .then(response => {
+        if (fallbackFetchOrderId && hasDetailedOrderProductMetadata(response)) {
+          requestedFallbackOrderKeys.delete(fallbackFetchOrderId);
+        }
+
+        return response;
+      })
       .catch(() => null)
   }, [
     normalizedRouteOrderId,
+    fallbackAlreadyRequested,
+    fallbackRequestKey,
     orderProductsActions,
     skipFallbackReason,
   ])

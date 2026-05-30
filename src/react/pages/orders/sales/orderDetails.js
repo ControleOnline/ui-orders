@@ -698,6 +698,8 @@ const OrderDetails = ({ route, navigation }) => {
   const storedOrderProductsRef = useRef([])
   const ordersActionsRef = useRef(ordersActions)
   const orderProductsActionsRef = useRef(orderProductsStore.actions)
+  const orderInvoicesActionsRef = useRef(orderInvoicesActions)
+  const showErrorRef = useRef(showError)
   const [customerModalVisible, setCustomerModalVisible] = useState(false)
   const [customerCreateModalVisible, setCustomerCreateModalVisible] = useState(false)
   const [customerSearch, setCustomerSearch] = useState('')
@@ -741,8 +743,18 @@ const OrderDetails = ({ route, navigation }) => {
   }, [orderProductsStore.actions])
 
   useEffect(() => {
-    orderInvoicesActions?.setItems?.([])
-    orderInvoicesActions?.setError?.('')
+    orderInvoicesActionsRef.current = orderInvoicesActions
+  }, [orderInvoicesActions])
+
+  useEffect(() => {
+    showErrorRef.current = showError
+  }, [showError])
+
+  useEffect(() => {
+    const currentOrderInvoicesActions = orderInvoicesActionsRef.current
+
+    currentOrderInvoicesActions?.setItems?.([])
+    currentOrderInvoicesActions?.setError?.('')
   }, [routeOrderIri])
 
   const orderInvoices = useMemo(
@@ -776,27 +788,36 @@ const OrderDetails = ({ route, navigation }) => {
   )
 
   const loadOrderInvoices = useCallback(async ({silent = false} = {}) => {
+    const currentOrderInvoicesActions = orderInvoicesActionsRef.current
+
+    if (
+      !currentOrderInvoicesActions ||
+      typeof currentOrderInvoicesActions.getItems !== 'function'
+    ) {
+      return []
+    }
+
     if (!routeOrderIri) {
-      orderInvoicesActions?.setItems?.([])
-      orderInvoicesActions?.setError?.('')
+      currentOrderInvoicesActions?.setItems?.([])
+      currentOrderInvoicesActions?.setError?.('')
       return []
     }
 
     try {
-      const response = await orderInvoicesActions.getItems({
+      const response = await currentOrderInvoicesActions.getItems({
         order: routeOrderIri,
         itemsPerPage: 100,
       })
 
       return Array.isArray(response) ? response : []
     } catch (invoiceError) {
-      orderInvoicesActions?.setItems?.([])
+      currentOrderInvoicesActions?.setItems?.([])
       if (!silent) {
-        showError(formatApiError(invoiceError))
+        showErrorRef.current?.(formatApiError(invoiceError))
       }
       return []
     }
-  }, [orderInvoicesActions, routeOrderIri, showError])
+  }, [routeOrderIri])
 
   const commitResolvedOrderProducts = useCallback(sourceOrder => {
     const {hasOwnOrderProducts, orderProducts} = resolveEmbeddedOrderProducts(sourceOrder)

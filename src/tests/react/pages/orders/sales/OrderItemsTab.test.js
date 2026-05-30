@@ -45,6 +45,8 @@ jest.mock('react-native-vector-icons/MaterialIcons', () => 'Icon')
 
 const {
   getOrderProductsFallbackFetchKey,
+  getOrderSyncSignature,
+  shouldRequestOrderDetails,
   shouldRequestOrderProductsFallback,
 } = require('../../../../../react/pages/orders/sales/OrderItemsTab')
 
@@ -75,9 +77,17 @@ describe('OrderItemsTab fallback fetch gate', () => {
       lastRequestedRouteOrderId: '71546',
     })
 
+    const alreadyRequestedAttempt = shouldRequestOrderProductsFallback({
+      routeOrderId: '71546',
+      skipFallbackReason: '',
+      lastRequestedRouteOrderId: '',
+      alreadyRequested: true,
+    })
+
     expect(firstAttempt).toBe(true)
     expect(repeatedAttempt).toBe(false)
     expect(nextOrderAttempt).toBe(true)
+    expect(alreadyRequestedAttempt).toBe(false)
   })
 
   it('skips fallback when embedded data is already sufficient or when a skip reason exists', () => {
@@ -104,5 +114,66 @@ describe('OrderItemsTab fallback fetch gate', () => {
         lastRequestedRouteOrderId: '',
       }),
     ).toBe(false)
+  })
+
+  it('does not refetch the order when it is already loaded and the embedded products are empty', () => {
+    expect(
+      shouldRequestOrderDetails({
+        routeOrderId: '71546',
+        resolvedOrderId: 71546,
+        orderProducts: [],
+      }),
+    ).toBe(false)
+  })
+
+  it('still fetches order details while the order is not loaded yet or when embedded items need enrichment', () => {
+    expect(
+      shouldRequestOrderDetails({
+        routeOrderId: '71546',
+        resolvedOrderId: null,
+        orderProducts: [],
+      }),
+    ).toBe(true)
+
+    expect(
+      shouldRequestOrderDetails({
+        routeOrderId: '71546',
+        resolvedOrderId: 71546,
+        orderProducts: [
+          {
+            id: 1,
+            quantity: 1,
+            product: { id: 101, type: 'custom', product: 'Combo Gyros' },
+          },
+        ],
+      }),
+    ).toBe(true)
+  })
+
+  it('builds a stable sync signature for equivalent order payloads', () => {
+    const baseOrder = {
+      id: 71546,
+      status: {status: 'open', realStatus: 'open', color: '#0EA5E9'},
+      client: {id: 42},
+      addressDestination: {id: 99},
+      comments: '',
+      orderProducts: [],
+    }
+
+    const equivalentOrder = {
+      ...baseOrder,
+      status: {...baseOrder.status},
+      client: {...baseOrder.client},
+      addressDestination: {...baseOrder.addressDestination},
+      orderProducts: [],
+    }
+
+    const changedOrder = {
+      ...baseOrder,
+      status: {...baseOrder.status, realStatus: 'preparing'},
+    }
+
+    expect(getOrderSyncSignature(baseOrder)).toBe(getOrderSyncSignature(equivalentOrder))
+    expect(getOrderSyncSignature(baseOrder)).not.toBe(getOrderSyncSignature(changedOrder))
   })
 })
