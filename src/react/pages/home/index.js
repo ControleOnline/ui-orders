@@ -1,3 +1,145 @@
+/*
+ * Contract imported from AGENTS.md
+ * ## Escopo
+ * - `ui-orders` e o modulo fonte do checkout de pedidos de venda e da barra unica de pagamento operacional.
+ * - A referencia principal da cobranca fica em `src/react/pages/checkout/Checkout.js`.
+ * - As regras compartilhadas de device, gateway e configuracao ficam em `@controleonline/ui-common/src/react/utils/paymentDevices`.
+ * - O `ui-shop` consome as mesmas regras de empresa para pagamento online e pagamento na entrega.
+ *
+ * ## Estado
+ * - Este modulo tem implementacao ativa em `src/react` e deve constar em novos prompts.
+ * - Se existir `src/vue`, ela deve ser tratada como legado e ignorada, salvo pedido explicito.
+ *
+ * ## Regra central
+ * - Todo pedido de venda deve ser pago pela barra unica de pagamento do sistema.
+ * - A listagem de produtos dentro do pedido deve sair de um unico componente compartilhado entre `OrderDetails`, `POS` e visoes operacionais que mostrem itens do pedido. Diferencas entre telas entram apenas por acoes de contexto.
+ * - `OrderHeader` e a barra superior usada por `OrderDetails` sao a fonte canonica de cabecalho operacional do pedido. Quando outro modulo abrir popup/modal para consultar ou reimprimir um pedido, ele deve reaproveitar esse mesmo topo e encaixar a impressao na mesma barra de acoes padronizada.
+ * - `OrderHeader` tambem e o cabecalho canonico para cards e blocos operacionais de pedido. Outros modulos podem adaptar o payload antes de renderizar, mas nao devem reconstruir a identidade visual do pedido com outro JSX.
+ * - O renderer compartilhado de itens deve agrupar filhos customizaveis pelos vinculos reais vindos do backend (`orderProduct` e `parentProduct`) e usar `productGroup` apenas como rotulo de grupo. `productGroup.parentProduct` e dado de cadastro e so pode ajudar no agrupamento quando o produto pai tambem existir na colecao atual do pedido; nao criar card pai ficticio a partir dele.
+ * - O renderer compartilhado deve respeitar `showInParentQueue` na hierarquia visual: filho com flag desligada nao deve ser encaixado no pai, mas continua vindo da colecao completa de `OrderProduct`.
+ * - O renderer compartilhado deve respeitar `ProductGroup.showInDisplay`: quando a flag estiver desligada, o bucket continua existindo para manter o agrupamento, mas o titulo do grupo nao deve ser renderizado.
+ * - O renderer compartilhado deve permitir ocultar a legenda textual da fila/status quando o consumidor ja exibe esse contexto no topo da tela. Em displays de `products`, o badge da fila no item e redundante e deve ser desligado.
+ * - O carrinho/rascunho canonico da venda usa `orderType = cart`. `quote` nao deve mais ser usado como tipo de carrinho no fluxo ativo.
+ * - Essa barra precisa existir em todos os devices que podem cobrar pedido.
+ * - Nao criar fluxo paralelo de pagamento fora dessa barra.
+ * - No checkout operacional, a barra deve mostrar primeiro os `payment_type` do device atual e abaixo os do device remoto principal configurado.
+ * - O canal local/remoto nao aparece como etapa separada nessa barra; ele fica implicito na opcao escolhida e a explicacao detalhada so aparece ao tocar em `Pagar`.
+ * - Os meios exibidos dependem do device dono de cada bloco e do gateway/carteiras configurados.
+ * - Quando uma tela ja tiver barra propria de pagamento, o layout nao deve renderizar outra barra por baixo. Deve aparecer uma ou outra, nunca as duas.
+ * - Rotas de `OrderDetails` e `Checkout` devem carregar o pedido por `id` na URL e pelo store; nao passar objeto do pedido em params.
+ * - O contexto de `PDV` entre `OrderDetails` e `Checkout` deve permanecer em params primitivos, preservando `interactionMode` e `showBottomToolBar` para o checkout liberar o canal local correto.
+ * - Entrada de valor no checkout operacional deve reaproveitar um unico componente compartilhado. Nao manter dois modais equivalentes para cobrar valor ou receber dinheiro.
+ * - `Cielo` e `Infinite Pay` sao gateways atuais do fluxo operacional. Eles devem ser executados dentro do checkout unificado de `src/react/pages/checkout/Checkout.js`, sem telas paralelas por gateway.
+ * - A execucao tecnica de cada gateway pode ficar em arquivos separados, como `services/Cielo/Checkout.js` e `services/InfinitePay/Checkout.js`, desde que ambos participem do mesmo fluxo unificado de checkout.
+ * - Em `APP_TYPE=MANAGER`, mesmo na tela `PdvPage`, o checkout nao deve liberar pagamento local. O Gestor deve usar device remoto configurado ou pagamento na entrega.
+ * - Quando existir equipamento padrao configurado para pagamento remoto, o checkout deve usar esse device como destino principal. Trocar de equipamento durante o pagamento so aparece se a empresa ativar essa permissao no configurador geral.
+ * - No remoto e na entrega, o botao principal da barra executa o pagamento no equipamento atualmente selecionado. A troca de equipamento, quando permitida, aparece apenas como acao discreta ao lado do device atual, sem um segundo botao grande para a mesma finalidade.
+ * - Itens do pedido com fila devem exibir na propria linha o status atual da fila com a cor da etapa corrente para indicar preparo.
+ * - Itens customizaveis devem reabrir `CustomizeScreen` apenas enquanto o fluxo de producao do proprio item ainda nao chegou ao status final da fila (`realStatus = out`).
+ * - Quando um item ja chegou ao fim da fila, a customizacao e a edicao inline daquele item devem ficar bloqueadas, mesmo que o pedido ainda esteja aberto.
+ * - Componentes filhos agrupados nao devem receber edicao inline propria na lista do pedido. Quando precisarem mudar, a tela deve reabrir a customizacao do item pai e respeitar as regras de cada grupo.
+ * - Em pedidos integrados, o identificador principal das telas operacionais deve priorizar o numero operacional curto vindo de `extraData` ou do payload canonico da integracao, como `order_index`, `code` ou `displayId`. `pickup_code` e `handover_code` ficam como fallback, e hashes ou ids tecnicos continuam apenas no summary.
+ * - `OrderDetails` deve manter o summary como area de informacoes secundarias. A tela principal mostra `Itens` direto no corpo; `Financeiro` sai da aba principal e abre em modal dedicado acionado pela barra inferior, sem misturar cards de summary no mesmo corpo.
+ * - `OrderDetails` pode expor um atalho de `Logistica` na barra superior. Esse atalho deve abrir `OrderLogisticsPage` em `ui-logistic`, que mostra coleta, entrega, motoboy e o estado de gerenciamento pela loja, além de permitir a solicitacao de motoboy quando ainda nao houver entrega criada.
+ * - `OrderHistoryPage` React pertence a `ui-orders`, mesmo quando acessada pelo `MANAGER`. A listagem deve usar `DefaultTable` React com busca via `searchProps` na toolbar, sort e filtros do proprio default, com `OrderHeader` apenas como renderer de card compacto/customizado.
+ * - O botao de novo pedido no `OrderHistoryPage` deve vir da toolbar do `DefaultTable`, seguindo `orders.state.add` e recebendo `onAdd` apenas para o fluxo contextual de adicionar produtos. Nao renderizar botao `+` flutuante ou no rodape da tela.
+ * - `OrderHistoryPage` nao deve oferecer troca de empresa quando estiver em contexto operacional de `PDV`, incluindo `APP_TYPE=POS` e o `pdv` hospedado por outra visao. Em fluxos administrativos fora do `PDV`, o seletor pode continuar disponivel.
+ * - No summary de iFood, `HANDSHAKE_DISPUTE` deve aparecer como alerta operacional com `disputeId`, tipo, momento, mensagem do cliente, prazo, acao automatica de timeout, evidencias e alternativas recebidas.
+ * - Acoes de disputa iFood ficam dentro do summary: aceitar, rejeitar e contraproposta. Elas so podem aparecer enquanto `has_open_dispute=true` e `disputeId` existir.
+ * - `Rejeitar disputa` precisa permitir/mandar `reason` valido de `negotiationReasons`; nao deixar o usuario sem resposta clara se o backend rejeitar motivo invalido.
+ * - `Aceitar disputa` deve usar motivo vindo de `acceptCancellationReasons` quando a API enviar a lista.
+ * - `Enviar contraproposta` so deve ficar habilitado quando a alternativa tiver payload suficiente e `alternativeId`: `REFUND/BENEFIT` com valor e moeda, ou `ADDITIONAL_TIME` com minutos e motivo permitido pela alternativa. Se faltar valor permitido pelo iFood, exibir a alternativa como informacao, mas nao oferecer botao que vai falhar.
+ * - Disputa encerrada por `HANDSHAKE_SETTLEMENT` deve mostrar o resultado, mas nao deve manter botoes de resposta.
+ * - O modal financeiro de `OrderDetails` deve carregar a colecao `/order_invoices` quando precisar mostrar invoices ligadas ao pedido. Em invoices agregadas, o valor exibido para aquele pedido deve vir de `order_invoice.real_price`, nunca do total bruto da invoice.
+ * - No financeiro de `OrderDetails`, o identificador `Invoice #id` deve ser clicavel e abrir a tela de detalhe da invoice. Em fluxos de marketplace, `Pagador` e `Recebedor` precisam aparecer sempre, inclusive quando a empresa atual nao participa diretamente do par.
+ * - Ao abrir `InvoiceDetailsPage` a partir de `OrderDetails`, passar apenas o `id` da invoice na rota e preaquecer o store com a invoice completa, nunca com um card resumido.
+ * - Quando `OrderDetails` abrir `InvoiceDetailsPage`, a tela de invoice deve listar os pedidos vinculados reaproveitando `OrderHeader` para cada pedido ligado por `order_invoice`.
+ * - `OrderDetails` nao deve exibir o `BottomCart` global com acao `Conferir pedido`. Quando a tela estiver aberta, ela mesma controla a barra operacional necessaria e o layout deve manter `showBottomCart: false`.
+ * - Em `POS` nao-kiosk e nos fluxos `pdv` hospedados por outras visoes, `OrderDetails` deve preservar a dock inferior de navegacao enquanto mantem o `BottomCart` global desligado. A barra propria de pagamento da tela precisa subir acima dessa dock, nunca ficar escondida por tras dela.
+ * - O param `kds` em `OrderDetails` pertence apenas aos fluxos reais de `PPC`/KDS. Modulos administrativos ou historicos comuns nao devem forcar esse param ao abrir o detalhe.
+ * - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
+ * - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
+ * - Na tela principal de detalhe do pedido, a barra superior continua sendo o lugar do resumo de identificacao do pedido. O corpo da pagina deve comecar pelo bloco `Customer`.
+ * - Em pedidos de venda no `POS`, o bloco `Customer` com cliente, endereco e observacoes so aparece quando o device estiver com `pos-delivery-enabled` ativo. Em `purchase`, o bloco continua visivel para o fornecedor.
+ * - `Additional Information` nao deve poluir a tela principal do pedido. Informacoes secundarias e ids tecnicos ficam no summary/modal, nao acima do bloco de cliente.
+ * - Nenhum arquivo deve acumular mais de uma responsabilidade. Helpers compartilhados, resolvers por integracao, componentes visuais e orquestradores devem ficar separados em arquivos pequenos e com funcao unica.
+ * - O detalhe do pedido deve abrir primeiro com `GET /orders/{id}`. A colecao `/order_products` entra apenas como enriquecimento da aba `Itens` quando o payload embutido vier ausente ou sem metadados suficientes para remontar a hierarquia de customizacao.
+ * - Quando a aba `Itens` precisar buscar `/order_products`, ela deve reaproveitar o mesmo renderer compartilhado e trocar para o payload enriquecido sem criar normalizacao exclusiva de `OrderDetails`.
+ * - Quando `OrderDetails` estiver editando quantidade de itens, o estado local e o merge otimista devem continuar baseados na colecao rica de `/order_products` sempre que ela ja existir. Nao sobrescrever essa colecao com o payload raso de `GET /orders/{id}`, senao os filhos customizaveis se soltam do item pai.
+ * - Cada aba operacional de `OrderDetails` deve ser um componente proprio. `Itens` e `Financeiro` carregam os dados do proprio modulo apenas quando a aba correspondente for montada/ativada.
+ * - O status visivel do pedido deve aparecer traduzido na tela e em summaries/modais. Nao exibir `open`, `pending`, `closed` ou equivalentes crus para o usuario final.
+ *
+ * ## Regras por visao
+ * - `PDV Cielo`: cobra somente no proprio device. Nao deve oferecer remoto nem pagamento na entrega nesse fluxo.
+ * - `PDV Android`: pode cobrar no proprio device, enviar a cobranca para uma maquina remota ou marcar para cobrar na entrega.
+ * - `MANAGER`: nao deve cobrar localmente. Deve escolher um device remoto, como Cielo ou Infinite Pay, ou cobrar na entrega.
+ * - `SHOP`: o cliente deve escolher pagamento online ou pagamento na entrega. Online hoje significa Asaas. Na entrega, o shop so mostra as opcoes liberadas pela empresa.
+ * - Dinheiro em fluxo operacional pertence a `PDV` e `MANAGER`, sempre comandado por funcionario. O `SHOP` nao confirma pagamento em dinheiro aqui.
+ * - Em modo `PDV` no web, o pagamento local em dinheiro continua valido. Ao escolher dinheiro e tocar em pagar, a tela deve pedir o valor recebido e mostrar o troco antes da confirmacao.
+ *
+ * ## Pagamento remoto
+ * - Pagamento remoto sempre depende de um device de destino configurado na empresa.
+ * - Os destinos remotos validos para orders sao apenas PDVs com gateway de pagamento, hoje Cielo e Infinite Pay.
+ * - Pagamento remoto deve filtrar os meios pelo `payment_code`. O bloco remoto da barra deve listar apenas `payment_type` que tenham `payment_code`, porque isso identifica os meios integrados que o hardware do PDV remoto consegue executar no proprio device.
+ * - Nao remover item do bloco remoto por ser `dinheiro` ou por classificacao visual semelhante; a regra canonica aqui e ter ou nao `payment_code`.
+ * - Hoje isso acontece pelos modulos React Native nativos de `Cielo` e `Infinite Pay`, que expõem intents/acoes nativas de pagamento.
+ * - Esses intents existem apenas no hardware do PDV que tem o modulo embarcado; nenhum outro device ou navegador consegue executar esse pagamento localmente em nome dele.
+ * - Exemplo atual: somente o PDV com Cielo consegue acionar o modulo Cielo embarcado; o checkout web apenas envia a solicitacao e aguarda a resposta do equipamento remoto.
+ * - Se houver mais de um device remoto disponivel, o usuario precisa poder escolher qual equipamento recebera a cobranca.
+ * - No checkout web/manager, o operador escolhe antes no proprio web o meio de pagamento permitido pelas carteiras do equipamento remoto selecionado.
+ * - O listener remoto deve apenas executar o mesmo helper tecnico usado pelo checkout unificado. Nao renderizar checkout especifico de Cielo ou Infinite Pay para isso.
+ * - Se `order-payment-devices` estiver preenchido no configurador geral, ele define a ordem global e tem prioridade no checkout remoto.
+ * - `order-payment-device` fica como fallback por origem quando a empresa nao definiu `order-payment-devices`.
+ * - Se nenhum dos dois estiver preenchido, o checkout remoto deve cair para os devices de pagamento da empresa, excluindo o device atual.
+ * - O botao principal de pagar no canal remoto deve deixar claro qual equipamento configurado recebera a cobranca.
+ * - Depois de enviar a cobranca remota, o checkout do web deve permanecer aguardando a resposta do equipamento remoto antes de concluir a tela.
+ *
+ * ## Regras operacionais de POS e kiosk
+ * - Nao existe `APP_TYPE=TOTEM`. O totem e sempre `APP_TYPE=POS` com `pos-operation-mode=kiosk`.
+ * - Em Android dedicado/Cielo, a camada nativa pode travar o sistema em `Lock Task Mode`, mas isso so e bloqueio forte quando o device estiver provisionado como Device Owner/MDM/OEM. O fluxo de venda continua sendo o mesmo `POS` kiosk.
+ * - Em `BALCAO`, a entrada do app deve continuar em `HomePage`. O fluxo continuo de retomada so comeca a partir de `OrderHistoryPage`, nunca pulando a home como no `kiosk`.
+ * - Em `BALCAO`, quando a lista de pedidos for aberta em modo de retomada, vale a prioridade de foco unico: sem pedido aberto vai para `AddProductScreen`; com um pedido aberto vai direto para ele; com mais de um pedido aberto permanece em `OrderHistoryPage` para escolha explicita.
+ * - Em `BALCAO`, quando o operador pedir um novo pedido a partir do historico, o fluxo nao deve reabrir automaticamente o rascunho salvo anterior; ele precisa limpar a referencia ativa para materializar um novo `cart` no proximo item adicionado.
+ * - Em `BALCAO`, depois de concluir o pagamento de um pedido, o proximo destino depende dos pedidos abertos restantes no device: mais de um volta ao historico, um volta direto ao pedido restante, nenhum volta ao catalogo.
+ * - Em `BALCAO`, quando a configuracao do device exigir abertura e fechamento de caixa, `HomePage`, `AddProductScreen` e atalhos de inicio de venda nao podem liberar o catalogo com o caixa fechado; nesses casos o fluxo deve redirecionar para `CloseCashRegister`.
+ * - No `kiosk`, o cliente entra direto no fluxo de compra e nao deve passar por abertura/fechamento de caixa nem por telas administrativas do PDV.
+ * - Em `kiosk`, `OrderDetails` nao deve mostrar blocos de cliente, endereco, observacoes, sumario ou logs. Logs e summary so podem reaparecer quando o device estiver com `device-runtime-debug-info-enabled`.
+ * - Em `kiosk`, a faixa operacional de preparo/cancelamento nao deve aparecer junto da barra de pagamento. Quando a propria tela tiver barra operacional propria, o layout nao deve reservar outra barra por baixo.
+ * - Atendimento vinculado por `tab` e `table` deve usar esses nomes canonicos em codigo, configuracoes e metadados internos. Traducao vale apenas para labels visuais.
+ * - Nao criar sinonimos, aliases ou fallbacks paralelos para tipos, chaves de configuracao ou metadados de `tab/table`. O contrato interno deve ter um unico nome por conceito.
+ * - As regras operacionais de `tab/table`, identificacao, leitura e vinculo valem para qualquer superficie de `PDV` renderizada por `ui-orders`, inclusive quando a `PdvPage` estiver hospedada dentro de `APP_TYPE=MANAGER`.
+ * - O fluxo cliente-facing de `SHOP` nao reutiliza essas regras operacionais de `PDV` para `tab/table`.
+ * - A configuracao `check-order-management-mode` define se o `POS` pode abrir e fechar `tab/table` ou se ele apenas pode operar sobre `tab/table` que ja estejam abertas.
+ * - A identificacao operacional de `tab/table` deve aceitar digitacao manual e leitura por leitor de codigo de barras. Em runtime nativo, a mesma entrada pode expor tambem QR Code e NFC quando o device suportar esses leitores.
+ * - Quando o operador escolher ler codigo de barras ou QR Code para `tab/table` em runtime nativo, o fluxo deve abrir uma tela de camera com cancelamento explicito e so pode fechar automaticamente depois de validar a leitura; erros permanecem visiveis na propria tela ate uma leitura valida ou cancelamento.
+ * - Quando o operador escolher leitura `NFC / RFID` para `tab/table` em runtime nativo, o fluxo deve abrir uma tela dedicada de leitura com cancelamento explicito, aguardar a aproximacao da tag e seguir so depois de validar o codigo extraido da tag; erros permanecem visiveis na propria tela ate uma leitura valida ou cancelamento.
+ * - O codigo operacional lido ou digitado de `tab/table` deve ser persistido em `Order.externalCode`; `otherInformations.linked_order` guarda apenas metadados complementares como `order_type` e `input_type`.
+ * - Quando o pedido estiver em `app=POS`, `externalCode` representa o numero da mesa e deve aparecer no destaque principal dos cabecalhos, com o id interno do pedido como secundario.
+ * - Quando o payload trouxer `mainOrder.externalCode`, esse valor representa o numero da comanda e o `OrderHeader` deve escrever `Comanda: #...` antes do nome do cliente, sem depender de `otherInformations`.
+ * - A conciliacao financeira de `tab/table` deve sempre usar o pedido raiz de settlement como referencia de checkout. Nao criar checkout paralelo por pedido filho.
+ * - Quando mais de uma `tab/table` for vinculada na mesma conciliacao, a secundaria passa a apontar para a principal e as invoices historicas tambem precisam ficar visiveis no pedido raiz.
+ * - Fluxos administrativos de liquidacao, consolidacao ou pagamento de `tab/table` no `MANAGER` nao devem herdar a restricao operacional do `POS`; eles podem abrir, vincular, consolidar e fechar `tab/table`.
+ * - A leitura de codigo de barras por wedge de teclado pode ficar ativa em qualquer tela de contexto `POS`/`PDV`, inclusive dentro de `OrderDetails` e do `PDV` hospedado no `MANAGER`.
+ * - Quando um bip ou a selecao de um produto pelo auto-complete precisar materializar um pedido inexistente, o fluxo deve criar apenas um pedido e reutilizar a mesma promise de criacao concorrente.
+ * - Fora da conferencia, bip e atalho de auto-complete podem levar o usuario para `OrderDetails` apos adicionar o item. Dentro de `OrderDetails`, novos bipes devem continuar adicionando itens sem sair da tela.
+ * - `OrderDetails` em contexto `PDV` pode pesquisar e adicionar produto diretamente na aba `Itens`, sem sair da conferencia.
+ * - A pesquisa de produtos com auto-complete e a leitura de codigo de barras fazem parte do fluxo operacional de `POS`, nao apenas do `kiosk`.
+ *
+ * ## Pagar Na Entrega
+ * - `Pagar na entrega` sempre exige selecionar qual device fara a cobranca.
+ * - O device escolhido na entrega define o que a barra mostra ao cliente, como maquininha e dinheiro.
+ * - Em dinheiro, o fluxo precisa pedir a informacao de troco antes de concluir a escolha.
+ * - No checkout operacional, registrar a cobranca como pendente com os metadados do device de entrega.
+ * - No `SHOP`, o cliente escolhe entre pagar online agora ou pagar na entrega com as opcoes liberadas para a empresa.
+ * - Quando um pedido do `SHOP` for marcado para dinheiro na entrega, a confirmacao final do valor pago acontece depois por um funcionario em `PDV` ou `MANAGER`.
+ *
+ * ## Configuracao
+ * - A barra unica depende das configuracoes centralizadas de empresa e device.
+ * - Chaves centrais atuais: `pos-gateway`, `pos-delivery-enabled`, `order-payment-device`, `order-payment-devices`, `order-payment-device-change-allowed` e `order-charge-on-delivery-enabled`.
+ * - Carteiras por gateway e dinheiro devem continuar centralizadas na configuracao da empresa, nao espalhadas em componentes.
+ * - Ao mudar qualquer regra de negocio do checkout, reescrever este arquivo de forma concisa e manter a descricao sincronizada com o codigo.
+ */
+
 import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import {Text} from 'react-native-animatable';
