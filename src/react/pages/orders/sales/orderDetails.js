@@ -56,6 +56,7 @@ import {
   isOrderProductProductionCompleted,
 } from '@controleonline/ui-orders/src/react/components/OrderProducts.utils'
 import {
+  buildAddProductsRouteParams,
   buildCheckoutRouteParams,
   buildManagerPdvRouteParams,
   getOrderRouteId,
@@ -893,7 +894,10 @@ const OrderDetails = ({ route, navigation }) => {
 
     navigation.navigate(
       'AddProductScreen',
-      shouldUseManagerPdv ? buildManagerPdvRouteParams() : undefined,
+      buildAddProductsRouteParams(
+        item || orderParam || routeOrderId,
+        shouldUseManagerPdv ? buildManagerPdvRouteParams() : {},
+      ),
     )
   }
 

@@ -32,6 +32,12 @@ export const buildOrderDetailsRouteParams = (orderOrId, extraParams = {}) => {
   return nextParams
 }
 
+export const buildAddProductsRouteParams = (orderOrId, extraParams = {}) => ({
+  ...buildOrderDetailsRouteParams(orderOrId),
+  resumeExistingOrder: true,
+  ...extraParams,
+})
+
 export const buildCheckoutRouteParams = (orderOrId, extraParams = {}) => ({
   ...buildOrderDetailsRouteParams(orderOrId),
   showBottomCart: false,

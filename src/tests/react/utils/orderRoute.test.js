@@ -1,6 +1,7 @@
 const {describe, expect, it} = global
 
 const {
+  buildAddProductsRouteParams,
   isPdvRouteContext,
   shouldShowOrderHistoryCompanyFilter,
 } = require('../../../react/utils/orderRoute')
@@ -44,5 +45,15 @@ describe('orderRoute', () => {
         params: {interactionMode: 'manager'},
       }),
     ).toBe(true)
+  })
+
+  it('marks add-product navigation to resume the selected order', () => {
+    expect(
+      buildAddProductsRouteParams({id: 71736}, {interactionMode: 'pdv'}),
+    ).toEqual({
+      id: '71736',
+      interactionMode: 'pdv',
+      resumeExistingOrder: true,
+    })
   })
 })

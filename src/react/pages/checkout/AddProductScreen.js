@@ -56,6 +56,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     ensureActiveOrder,
     loadStoredDraftOrder,
     prepareNewDraftOrder,
+    refreshActiveOrder,
     usesLinkedCheckOrders,
   } = usePosCartSession({
     companyId: currentCompany?.id,
@@ -64,6 +65,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     requestLinkedOrderInput,
   });
   const activeOrderId = activeOrder?.id || activeOrder?.['@id'] || null;
+  const resumeOrderId = String(route?.params?.id || '').replace(/\D+/g, '');
   const Component = Categories;
 
   const resolveLinkedOrderEntry = useCallback(result => {
@@ -137,6 +139,11 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
             return;
           }
 
+          if (route?.params?.resumeExistingOrder === true && resumeOrderId) {
+            await refreshActiveOrder(resumeOrderId);
+            return;
+          }
+
           if (!activeOrderId) {
             const storedDraftOrder = await loadStoredDraftOrder();
 
@@ -165,6 +172,9 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       loadStoredDraftOrder,
       navigation,
       prepareNewDraftOrder,
+      refreshActiveOrder,
+      resumeOrderId,
+      route?.params?.resumeExistingOrder,
       route?.params?.startNewOrder,
       showError,
       shouldUseCashRegisterLifecycle,
