@@ -50,7 +50,7 @@ describe('orderIdentity', () => {
     expect(identity.secondaryText).toBe('#70911')
   })
 
-  it('prioritizes the iFood pickup code over display id', () => {
+  it('does not invent an iFood marketplace code from pickup or display ids', () => {
     const order = {
       id: 81234,
       app: 'ifood',
@@ -72,10 +72,40 @@ describe('orderIdentity', () => {
 
     const identity = resolveOrderIdentity(order)
 
+    expect(identity.externalLabel).toBe('')
+    expect(identity.externalId).toBe('')
+    expect(identity.primaryText).toBe('#81234')
+    expect(identity.secondaryText).toBe('')
+  })
+
+  it('prioritizes iFood order_index from extra data over pickup code', () => {
+    const order = {
+      id: 71759,
+      app: 'iFood',
+      extra_data: [
+        {
+          extra_fields: {
+            context: 'iFood',
+            name: 'pickup_code',
+          },
+          value: '9103',
+        },
+        {
+          extra_fields: {
+            context: 'iFood',
+            name: 'order_index',
+          },
+          value: '3984',
+        },
+      ],
+    }
+
+    const identity = resolveOrderIdentity(order)
+
     expect(identity.externalLabel).toBe('IFOOD')
-    expect(identity.externalId).toBe('0176')
-    expect(identity.primaryText).toBe('#0176')
-    expect(identity.secondaryText).toBe('#81234')
+    expect(identity.externalId).toBe('3984')
+    expect(identity.primaryText).toBe('#3984')
+    expect(identity.secondaryText).toBe('#71759')
   })
 
   it('prioritizes POS externalCode as the main order identity', () => {

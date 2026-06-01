@@ -5,7 +5,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
-import {buildFood99OrderSummary} from '../services/food99OrderSummary';
+import {buildFood99OrderSummary} from '../services/marketplaceOrderSummary';
 import createStyles from './PayableToolbar.styles';
 import { inlineStyle_125_12 } from './PayableToolbar.styles';
 

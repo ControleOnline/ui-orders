@@ -1,38 +1,37 @@
+/*
+ * Regra de negocio: no 99Food o codigo operacional já vem pronto no payload.
+ * Nao adivinhar nome de campo nem criar fallback: pegar o primeiro valor
+ * util de `extraData`/`extra_data` no contexto `Food99`.
+ */
 import {
-  getMarketplaceField,
-  getRemoteSummaryIdentifier,
+  getExtraDataList,
   normalizeText,
+  normalizeKey,
 } from './shared'
 
 export const FOOD99_APP_KEYS = ['99', '99food', '99 food', 'food99']
 export const FOOD99_LABEL = '99'
 
-export const resolveFood99OrderCode = (order, remoteOrderSummary = null) => {
-  const fallbackCode = getRemoteSummaryIdentifier(remoteOrderSummary, [
-    'order_index',
-    'orderIndex',
-  ])
+const FOOD99_CONTEXT_KEYS = FOOD99_APP_KEYS.map(normalizeKey)
 
-  return normalizeText(
-    getMarketplaceField(order, FOOD99_APP_KEYS, 'order_index') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'orderIndex') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'code') ||
-      fallbackCode ||
-      getRemoteSummaryIdentifier(remoteOrderSummary, ['code']) ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'displayId') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'display_id') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'pickup_code') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'pickupCode') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'handover_code') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'handoverCode') ||
-      getRemoteSummaryIdentifier(remoteOrderSummary, [
-        'pickupCode',
-        'handoverCode',
-        'localizer',
-        'orderIndex',
-      ]) ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'locator') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'localizer') ||
-      getMarketplaceField(order, FOOD99_APP_KEYS, 'id'),
-  )
+const resolveFirstFood99ExtraDataValue = order => {
+  for (const extraData of getExtraDataList(order)) {
+    const context = normalizeKey(
+      extraData?.extra_fields?.context || extraData?.extraFields?.context,
+    )
+
+    if (!FOOD99_CONTEXT_KEYS.includes(context)) {
+      continue
+    }
+
+    const value = normalizeText(extraData?.value)
+    if (value) {
+      return value
+    }
+  }
+
+  return ''
 }
+
+export const resolveFood99OrderCode = order =>
+  normalizeText(resolveFirstFood99ExtraDataValue(order))

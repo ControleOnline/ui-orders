@@ -6,7 +6,7 @@ import {
   normalizeText,
   resolveAddressDisplayParts,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay';
-import {buildFood99OrderSummary} from '@controleonline/ui-orders/src/react/services/food99OrderSummary';
+import {buildFood99OrderSummary} from '@controleonline/ui-orders/src/react/services/marketplaceOrderSummary';
 import {
   getOrderChannelKey,
   getPlatformCapabilities,

@@ -1,4 +1,9 @@
-import {buildFood99OrderSummary} from '@controleonline/ui-orders/src/react/services/food99OrderSummary'
+/*
+ * Regra de negocio: identidade operacional nao pode inventar codigo de
+ * marketplace. O resolvedor deve usar a summary canonica do provider e, se
+ * nao houver identificador canonico, o pedido segue apenas com o id interno.
+ */
+import {buildFood99OrderSummary} from '@controleonline/ui-orders/src/react/services/marketplaceOrderSummary'
 
 import {getLinkedOrderContext} from './linkedOrderContext'
 import {resolveMarketplaceResolver} from './orderIdentity/marketplaces'
