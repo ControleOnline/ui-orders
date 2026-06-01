@@ -11,9 +11,14 @@ import {
   buildOrderDetailsRouteParams,
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
+import {getLinkedOrderContext} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext';
 
 const normalizeOrderId = order =>
   String(order?.id || order?.['@id'] || '')
+    .replace(/\D+/g, '')
+    .trim();
+const normalizeRouteOrderId = value =>
+  String(value || '')
     .replace(/\D+/g, '')
     .trim();
 
@@ -66,6 +71,34 @@ export default function usePosOrderMaterialization({
       let targetOrder = order;
 
       if (!targetOrder?.id && !targetOrder?.['@id']) {
+        const routeOrderId = normalizeRouteOrderId(interactionParams?.id);
+        const shouldResumeExistingOrder =
+          interactionParams?.resumeExistingOrder === true || !!routeOrderId;
+
+        if (shouldResumeExistingOrder && routeOrderId) {
+          try {
+            const resumedOrder = await ordersActions.get(routeOrderId);
+            const linkedOrderContext = getLinkedOrderContext(resumedOrder);
+
+            if (linkedOrderContext?.isLinkedParent && linkedOrderContext?.externalCode) {
+              targetOrder = await ensureActiveOrder(undefined, {
+                linkedOrderInput: {
+                  externalCode: linkedOrderContext.externalCode,
+                  inputType: linkedOrderContext.inputType || 'manual',
+                  settlementOrder: resumedOrder,
+                },
+              });
+            } else {
+              targetOrder = resumedOrder;
+              ordersActions.syncOrder?.(resumedOrder);
+            }
+          } catch {
+            targetOrder = null;
+          }
+        }
+      }
+
+      if (!targetOrder?.id && !targetOrder?.['@id']) {
         targetOrder = await ensureActiveOrder();
       }
 
@@ -93,7 +126,7 @@ export default function usePosOrderMaterialization({
 
       return updatedOrder || targetOrder;
     },
-    [ensureActiveOrder, order, ordersActions],
+    [ensureActiveOrder, interactionParams?.id, interactionParams?.resumeExistingOrder, order, ordersActions],
   );
 
   const openOrderDetails = useCallback(

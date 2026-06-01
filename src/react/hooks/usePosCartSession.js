@@ -46,21 +46,29 @@ const pendingEnsureActiveOrderRequests = new Map()
 export const isOpenPosCartOrder = (
   order,
   {usesLinkedCheckOrders = false} = {},
-) =>
-  String(order?.app || '').trim().toUpperCase() === 'POS' &&
-  normalizeStatusKey(order?.status?.realStatus) === 'open' &&
-  normalizeStatusKey(order?.status?.status) === 'open' &&
-  !isLinkedParentOrder(order) &&
-  (
-    usesLinkedCheckOrders
-      ? (
-          !!getLinkedOrderContext(order).mainOrderId &&
-          [DRAFT_SALE_ORDER_TYPE, LINKED_CHILD_ORDER_TYPE].includes(
-            normalizeStatusKey(order?.orderType),
+) => {
+  const linkedOrderContext = getLinkedOrderContext(order)
+
+  return (
+    String(order?.app || '').trim().toUpperCase() === 'POS' &&
+    normalizeStatusKey(order?.status?.realStatus) === 'open' &&
+    normalizeStatusKey(order?.status?.status) === 'open' &&
+    !isLinkedParentOrder(order) &&
+    (
+      usesLinkedCheckOrders
+        ? (
+            (
+              !!linkedOrderContext.mainOrderId ||
+              !!linkedOrderContext.externalCode
+            ) &&
+            [DRAFT_SALE_ORDER_TYPE, LINKED_CHILD_ORDER_TYPE].includes(
+              normalizeStatusKey(order?.orderType),
+            )
           )
-        )
-      : normalizeStatusKey(order?.orderType) === DRAFT_SALE_ORDER_TYPE
+        : normalizeStatusKey(order?.orderType) === DRAFT_SALE_ORDER_TYPE
+    )
   )
+}
 
 const buildPosDraftOrderStorageKey = (companyId, deviceId) =>
   `pdv-active-order:${normalizeId(companyId) || '0'}:${normalizeId(deviceId) || '0'}`
@@ -249,7 +257,10 @@ export default function usePosCartSession({
     }
 
     if (extraOptions.mainOrderId) {
-      payload.mainOrderId = Number(extraOptions.mainOrderId)
+      const normalizedMainOrderId = normalizeId(extraOptions.mainOrderId)
+      if (normalizedMainOrderId) {
+        payload.mainOrderId = Number(normalizedMainOrderId)
+      }
     }
 
     if (extraOptions.includeDevice !== false && deviceId) {
@@ -650,6 +661,7 @@ export default function usePosCartSession({
     options = {},
   ) => {
     const forceNew = options?.forceNew === true
+    const providedLinkedOrderInput = options?.linkedOrderInput
 
     if (forceNew) {
       syncActiveOrderState(null)
@@ -681,6 +693,17 @@ export default function usePosCartSession({
 
       if (usesLinkedCheckOrders) {
         const linkedOrderInput =
+          (
+            providedLinkedOrderInput && {
+              externalCode: String(providedLinkedOrderInput?.externalCode || '').trim(),
+              inputType: String(
+                providedLinkedOrderInput?.inputType || checkInputType,
+              )
+                .trim()
+                .toLowerCase(),
+              settlementOrder: providedLinkedOrderInput?.settlementOrder || null,
+            }
+          ) ||
           getRecentLinkedOrderInput() ||
           (await requestLinkedOrderCode())
         const externalCode = String(linkedOrderInput?.externalCode || '').trim()
@@ -730,9 +753,16 @@ export default function usePosCartSession({
           )
         }
 
-        const existingLinkedOrder = await findOpenLinkedSessionOrder(
-          settlementOrder?.id || settlementOrder?.['@id'],
-        )
+        const settlementOrderId = normalizeId(settlementOrder?.id || settlementOrder?.['@id'])
+        
+        if (!settlementOrderId) {
+          throw new Error(
+            global.t?.t('orders', 'message', 'invalidSettlementOrder') ||
+              'Unable to retrieve valid settlement order ID.',
+          )
+        }
+
+        const existingLinkedOrder = await findOpenLinkedSessionOrder(settlementOrderId)
 
         if (existingLinkedOrder) {
           return syncActiveOrderState(
@@ -747,7 +777,7 @@ export default function usePosCartSession({
             null,
             LINKED_CHILD_ORDER_TYPE,
             {
-              mainOrderId: settlementOrder?.id || settlementOrder?.['@id'],
+              mainOrderId: settlementOrderId,
               externalCode,
               otherInformations: buildLinkedOrderMetadata({
                 inputType: linkedOrderInputType,
@@ -756,6 +786,33 @@ export default function usePosCartSession({
             },
           ),
         )
+
+        // Se o backend não salvou o mainOrderId, forçar atualização
+        if (!createdLinkedOrder?.mainOrderId && createdLinkedOrder?.id) {
+          console.warn('⚠️ [POS Cart] Backend não salvou mainOrderId, corrigindo...')
+          const fixedOrder = await ordersActions.save(
+            buildOrderPayload(
+              orderOpenStatusIri,
+              peopleIri,
+              createdLinkedOrder.id,
+              LINKED_CHILD_ORDER_TYPE,
+              {
+                mainOrderId: settlementOrderId,
+                externalCode,
+                otherInformations: buildLinkedOrderMetadata({
+                  inputType: linkedOrderInputType,
+                  orderType: linkedOrderType,
+                }),
+              },
+            ),
+          )
+          console.log('✅ [POS Cart] Pedido corrigido - PAI:', settlementOrderId, 'FILHO:', fixedOrder?.id, 'mainOrderId:', fixedOrder?.mainOrderId)
+          return syncActiveOrderState(
+            await materializeOpenPosOrder(fixedOrder),
+          )
+        }
+
+        console.log('✅ [POS Cart] Pedido criado - PAI:', settlementOrderId, 'FILHO:', createdLinkedOrder?.id, 'mainOrderId:', createdLinkedOrder?.mainOrderId)
 
         return syncActiveOrderState(
           await materializeOpenPosOrder(createdLinkedOrder),
