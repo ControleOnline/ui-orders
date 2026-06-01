@@ -787,25 +787,15 @@ export default function usePosCartSession({
           ),
         )
 
-        // Se o backend não salvou o mainOrderId, forçar atualização
+        // Se o backend não salvou o mainOrderId, forçar atualização usando IRI completo
         if (!createdLinkedOrder?.mainOrderId && createdLinkedOrder?.id) {
           console.warn('⚠️ [POS Cart] Backend não salvou mainOrderId, corrigindo...')
-          const fixedOrder = await ordersActions.save(
-            buildOrderPayload(
-              orderOpenStatusIri,
-              peopleIri,
-              createdLinkedOrder.id,
-              LINKED_CHILD_ORDER_TYPE,
-              {
-                mainOrderId: settlementOrderId,
-                externalCode,
-                otherInformations: buildLinkedOrderMetadata({
-                  inputType: linkedOrderInputType,
-                  orderType: linkedOrderType,
-                }),
-              },
-            ),
-          )
+          const orderIri = createdLinkedOrder['@id'] || `/orders/${normalizeId(createdLinkedOrder.id)}`
+          const fixedOrder = await ordersActions.save({
+            '@id': orderIri,
+            id: Number(normalizeId(createdLinkedOrder.id)),
+            mainOrderId: Number(settlementOrderId),
+          })
           console.log('✅ [POS Cart] Pedido corrigido - PAI:', settlementOrderId, 'FILHO:', fixedOrder?.id, 'mainOrderId:', fixedOrder?.mainOrderId)
           return syncActiveOrderState(
             await materializeOpenPosOrder(fixedOrder),
