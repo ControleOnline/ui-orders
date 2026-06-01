@@ -777,7 +777,6 @@ export default function usePosCartSession({
             null,
             LINKED_CHILD_ORDER_TYPE,
             {
-              mainOrderId: settlementOrderId,
               externalCode,
               otherInformations: buildLinkedOrderMetadata({
                 inputType: linkedOrderInputType,
@@ -787,25 +786,18 @@ export default function usePosCartSession({
           ),
         )
 
-        // Se o backend não salvou o mainOrderId, forçar atualização usando IRI completo
-        if (!createdLinkedOrder?.mainOrderId && createdLinkedOrder?.id) {
-          console.warn('⚠️ [POS Cart] Backend não salvou mainOrderId, corrigindo...')
-          const orderIri = createdLinkedOrder['@id'] || `/orders/${normalizeId(createdLinkedOrder.id)}`
-          const fixedOrder = await ordersActions.save({
-            '@id': orderIri,
-            id: Number(normalizeId(createdLinkedOrder.id)),
-            mainOrderId: Number(settlementOrderId),
-          })
-          console.log('✅ [POS Cart] Pedido corrigido - PAI:', settlementOrderId, 'FILHO:', fixedOrder?.id, 'mainOrderId:', fixedOrder?.mainOrderId)
-          return syncActiveOrderState(
-            await materializeOpenPosOrder(fixedOrder),
-          )
-        }
+        // Backend não grava mainOrderId no POST, sempre fazer UPDATE
+        const orderIri = createdLinkedOrder['@id'] || `/orders/${normalizeId(createdLinkedOrder.id)}`
+        const linkedOrder = await ordersActions.save({
+          '@id': orderIri,
+          id: Number(normalizeId(createdLinkedOrder.id)),
+          mainOrderId: Number(settlementOrderId),
+        })
 
-        console.log('✅ [POS Cart] Pedido criado - PAI:', settlementOrderId, 'FILHO:', createdLinkedOrder?.id, 'mainOrderId:', createdLinkedOrder?.mainOrderId)
+        console.log('✅ [POS Cart] Pedido criado - PAI:', settlementOrderId, 'FILHO:', linkedOrder?.id, 'mainOrderId:', linkedOrder?.mainOrderId)
 
         return syncActiveOrderState(
-          await materializeOpenPosOrder(createdLinkedOrder),
+          await materializeOpenPosOrder(linkedOrder),
         )
       }
 
