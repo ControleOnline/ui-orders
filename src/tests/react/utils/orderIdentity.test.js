@@ -20,7 +20,7 @@ global.t = {
 }
 
 describe('orderIdentity', () => {
-  it('prioritizes the marketplace order index from 99Food extra data', () => {
+  it('prioritizes the 99Food code field from extra data', () => {
     const order = {
       id: 70911,
       app: '99Food',
@@ -28,16 +28,16 @@ describe('orderIdentity', () => {
         {
           extraFields: {
             context: 'Food99',
-            name: 'code',
+            name: 'id',
           },
-          value: '70001',
+          value: '71759',
         },
         {
           extraFields: {
             context: 'Food99',
-            name: 'handover_code',
+            name: 'code',
           },
-          value: '0050',
+          value: '70001',
         },
       ],
     }
