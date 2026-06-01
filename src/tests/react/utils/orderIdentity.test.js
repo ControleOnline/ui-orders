@@ -78,7 +78,7 @@ describe('orderIdentity', () => {
     expect(identity.secondaryText).toBe('')
   })
 
-  it('prioritizes iFood order_index from extra data over pickup code', () => {
+  it('prioritizes iFood code from extra data over pickup code', () => {
     const order = {
       id: 71759,
       app: 'iFood',
@@ -93,7 +93,7 @@ describe('orderIdentity', () => {
         {
           extra_fields: {
             context: 'iFood',
-            name: 'order_index',
+            name: 'code',
           },
           value: '3984',
         },

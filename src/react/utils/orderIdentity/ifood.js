@@ -1,6 +1,6 @@
 /*
- * Regra de negocio: o codigo externo do iFood vem do payload canonico.
- * `order_index` e o campo de verdade; `pickup_code`, `handover_code`,
+ * Regra de negocio: o codigo exibido do iFood vem do campo canonico `code`
+ * materializado no `extra_data`. `pickup_code`, `handover_code`,
  * `displayId` e ids tecnicos nao podem fabricar identidade.
  */
 import {
@@ -14,7 +14,7 @@ export const IFOOD_LABEL = 'IFOOD'
 
 export const resolveIfoodOrderCode = (order, remoteOrderSummary = null) =>
   normalizeText(
-    getMarketplaceField(order, IFOOD_APP_KEYS, 'order_index') ||
-      getRemoteSummaryIdentifier(remoteOrderSummary, ['orderIndex']) ||
+    getMarketplaceField(order, IFOOD_APP_KEYS, 'code') ||
+      getRemoteSummaryIdentifier(remoteOrderSummary, ['code']) ||
       '',
   )
