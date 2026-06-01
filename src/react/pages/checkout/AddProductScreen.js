@@ -37,6 +37,8 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     runtimeDeviceConfig?.configs,
   );
   const isLoadingStoredOrderRef = useRef(false);
+  const startNewOrderHandledRef = useRef(false);
+  const linkedSessionBootstrappedRef = useRef(false);
   const linkedOrderEntryResolverRef = useRef(null);
   const [linkedOrderEntryState, setLinkedOrderEntryState] = useState(null);
   const requestLinkedOrderInput = useCallback(
@@ -92,6 +94,16 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   );
 
   useEffect(() => {
+    if (route?.params?.startNewOrder !== true) {
+      startNewOrderHandledRef.current = false;
+    }
+  }, [route?.params?.startNewOrder]);
+
+  useEffect(() => {
+    linkedSessionBootstrappedRef.current = false;
+  }, [currentCompany?.id, storagedDevice?.id, usesLinkedCheckOrders]);
+
+  useEffect(() => {
     return () => {
       ordersActions.initQueue();
     };
@@ -130,12 +142,22 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       void (async () => {
         try {
           if (route?.params?.startNewOrder === true) {
+            if (startNewOrderHandledRef.current) {
+              return;
+            }
+
+            startNewOrderHandledRef.current = true;
+            navigation.setParams({startNewOrder: false});
+
             if (usesLinkedCheckOrders) {
-              await ensureActiveOrder(undefined, {forceNew: true});
+              const ensuredOrder = await ensureActiveOrder(undefined, {forceNew: true});
+              linkedSessionBootstrappedRef.current = !!(
+                ensuredOrder?.id ||
+                ensuredOrder?.['@id']
+              );
             } else {
               prepareNewDraftOrder();
             }
-            navigation.setParams({startNewOrder: false});
             return;
           }
 
@@ -147,8 +169,21 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
           if (!activeOrderId) {
             const storedDraftOrder = await loadStoredDraftOrder();
 
+            if (storedDraftOrder) {
+              linkedSessionBootstrappedRef.current = true;
+              return;
+            }
+
             if (!storedDraftOrder && usesLinkedCheckOrders) {
-              await ensureActiveOrder();
+              if (linkedSessionBootstrappedRef.current) {
+                return;
+              }
+
+              const ensuredOrder = await ensureActiveOrder();
+              linkedSessionBootstrappedRef.current = !!(
+                ensuredOrder?.id ||
+                ensuredOrder?.['@id']
+              );
             }
           }
         } catch (error) {

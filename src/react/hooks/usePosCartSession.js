@@ -21,6 +21,7 @@ const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
 const DRAFT_SALE_ORDER_TYPE = 'cart'
 const LINKED_CHILD_ORDER_TYPE = 'sale'
 const LINKED_ORDER_CODE_REQUIRED_ERROR = 'LINKED_ORDER_CODE_REQUIRED'
+const RECENT_LINKED_ORDER_INPUT_TTL_MS = 20 * 1000
 
 const buildStatusIriFromId = value => {
   const normalizedId = String(value || '').replace(/\D/g, '')
@@ -161,6 +162,7 @@ export default function usePosCartSession({
   const storedOrderId = normalizeId(storedOrder?.id || storedOrder?.['@id'])
   const activeOrderIdRef = useRef(activeOrderId)
   const storedOrderIdRef = useRef(storedOrderId)
+  const lastLinkedOrderInputRef = useRef(null)
 
   useEffect(() => {
     if (activeOrderId) {
@@ -596,6 +598,53 @@ export default function usePosCartSession({
     return refreshActiveOrder(storedOrderId)
   }, [readStoredDraftOrderId, refreshActiveOrder, syncActiveOrderState])
 
+  const materializeOpenPosOrder = useCallback(async orderCandidate => {
+    const normalizedOrder = await normalizeDraftOrderType(orderCandidate)
+
+    if (isOpenPosCartOrder(normalizedOrder, {usesLinkedCheckOrders})) {
+      return normalizedOrder
+    }
+
+    const orderId = normalizeId(
+      orderCandidate?.id ||
+      orderCandidate?.['@id'] ||
+      normalizedOrder?.id ||
+      normalizedOrder?.['@id'],
+    )
+
+    if (!orderId) {
+      return normalizedOrder || orderCandidate || null
+    }
+
+    try {
+      const hydratedOrder = await ordersActions.get(orderId)
+      const normalizedHydratedOrder = await normalizeDraftOrderType(hydratedOrder)
+      return normalizedHydratedOrder || normalizedOrder || orderCandidate || null
+    } catch {
+      return normalizedOrder || orderCandidate || null
+    }
+  }, [
+    normalizeDraftOrderType,
+    ordersActions,
+    usesLinkedCheckOrders,
+  ])
+
+  const getRecentLinkedOrderInput = useCallback(() => {
+    const cachedInput = lastLinkedOrderInputRef.current
+    const externalCode = String(cachedInput?.externalCode || '').trim()
+    const createdAt = Number(cachedInput?.createdAt || 0)
+
+    if (!externalCode || !createdAt) {
+      return null
+    }
+
+    if (Date.now() - createdAt > RECENT_LINKED_ORDER_INPUT_TTL_MS) {
+      return null
+    }
+
+    return cachedInput
+  }, [])
+
   const ensureActiveOrder = useCallback(async (
     peopleIri = getOrderPeopleValue(activeOrder)?.['@id'] || null,
     options = {},
@@ -605,7 +654,7 @@ export default function usePosCartSession({
     if (forceNew) {
       syncActiveOrderState(null)
     } else if (activeOrder) {
-      return syncActiveOrderState(await normalizeDraftOrderType(activeOrder))
+      return syncActiveOrderState(await materializeOpenPosOrder(activeOrder))
     }
 
     if (!forceNew && storageKey && pendingEnsureActiveOrderRequests.has(storageKey)) {
@@ -631,7 +680,9 @@ export default function usePosCartSession({
       }
 
       if (usesLinkedCheckOrders) {
-        const linkedOrderInput = await requestLinkedOrderCode()
+        const linkedOrderInput =
+          getRecentLinkedOrderInput() ||
+          (await requestLinkedOrderCode())
         const externalCode = String(linkedOrderInput?.externalCode || '').trim()
         const linkedOrderInputType = String(
           linkedOrderInput?.inputType || checkInputType,
@@ -656,6 +707,13 @@ export default function usePosCartSession({
             statusIri: orderOpenStatusIri,
           }))
 
+        lastLinkedOrderInputRef.current = {
+          createdAt: Date.now(),
+          externalCode,
+          inputType: linkedOrderInputType,
+          settlementOrder,
+        }
+
         if (!settlementOrder) {
           const orderLabel =
             linkedOrderType === 'table'
@@ -678,7 +736,7 @@ export default function usePosCartSession({
 
         if (existingLinkedOrder) {
           return syncActiveOrderState(
-            await normalizeDraftOrderType(existingLinkedOrder),
+            await materializeOpenPosOrder(existingLinkedOrder),
           )
         }
 
@@ -699,14 +757,18 @@ export default function usePosCartSession({
           ),
         )
 
-        return syncActiveOrderState(createdLinkedOrder)
+        return syncActiveOrderState(
+          await materializeOpenPosOrder(createdLinkedOrder),
+        )
       }
 
       const createdOrder = await ordersActions.save(
         buildOrderPayload(orderOpenStatusIri, peopleIri, null, DRAFT_SALE_ORDER_TYPE),
       )
 
-      return syncActiveOrderState(createdOrder)
+      return syncActiveOrderState(
+        await materializeOpenPosOrder(createdOrder),
+      )
     })()
 
     if (storageKey) {
@@ -728,7 +790,8 @@ export default function usePosCartSession({
     ensureSettlementOrder,
     findOpenLinkedSessionOrder,
     loadStoredDraftOrder,
-    normalizeDraftOrderType,
+    materializeOpenPosOrder,
+    getRecentLinkedOrderInput,
     ordersActions,
     requestLinkedOrderCode,
     storageKey,
