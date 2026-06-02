@@ -30,9 +30,9 @@ const PayableToolbar = ({
   );
   const [price, setPrice] = useState(0);
   const [paid, setPaid] = useState(0);
-  const primaryColor = colors.primary || '#1B5587';
-  const dangerColor = colors['danger'] || '#DC2626';
-  const successColor = colors['success'] || '#16A34A';
+  const primaryColor = colors.primary;
+  const dangerColor = colors['danger'];
+  const successColor = colors['success'];
   const isCompact = width < 360;
   const isUltraCompact = width < 330;
   const food99Summary = useMemo(() => buildFood99OrderSummary(order), [order]);

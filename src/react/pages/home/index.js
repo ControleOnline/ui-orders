@@ -232,7 +232,7 @@ export default function HomePage({navigation}) {
       <View style={styles.loadingContainer}>
         <ActivityIndicator
           size="large"
-          color={colors['primary'] || '#0000ff'}
+          color={colors['primary']}
         />
         <Text style={styles.loadingText}>{global.t?.t('orders', 'message', 'loading')}</Text>
       </View>

@@ -10,7 +10,7 @@ const withAlpha = (color, alphaHex) => {
     return `#${raw.slice(0, 6)}${alphaHex}`;
   }
 
-  return color || '#1B5587';
+  return color;
 };
 
 const createStyles = ({

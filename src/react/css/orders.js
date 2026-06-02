@@ -11,7 +11,7 @@ const css = () => {
     container: {
       flex: 1,
       padding: 8,
-      backgroundColor: colors.background || '#F0F2F5',
+      backgroundColor: colors.background,
     },
     scrollContent: {
       paddingBottom: 20,
@@ -425,9 +425,9 @@ const css = () => {
         margin: 6,
         borderRadius: 12,
         overflow: 'hidden',
-        backgroundColor: colors.cardBackground || '#FFFFFF',
+        backgroundColor: colors.cardBackground,
         borderWidth: 0,
-        shadowColor: colors.shadow || '#000',
+        shadowColor: colors.shadow,
         shadowOffset: {width: 0, height: 4},
         shadowOpacity: 0.15,
         shadowRadius: 6,
@@ -451,12 +451,12 @@ const css = () => {
       productName: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: colors.textPrimary || '#333',
+        color: colors.textPrimary,
         marginBottom: 4,
       },
       productDescription: {
         fontSize: 14,
-        color: colors.textSecondary || '#666',
+        color: colors.textSecondary,
         marginTop: 2,
       },
       groupContainer: {
@@ -478,7 +478,7 @@ const css = () => {
         height: 100,
         borderRadius: 8,
         overflow: 'hidden',
-        backgroundColor: colors.imagePlaceholder || '#E0E0E0',
+        backgroundColor: colors.imagePlaceholder,
         justifyContent: 'center',
         alignItems: 'center',
       },
@@ -490,7 +490,7 @@ const css = () => {
         marginTop: 10,
         paddingTop: 10,
         borderTopWidth: 1,
-        borderTopColor: colors.borderColor || '#EEE',
+        borderTopColor: colors.borderColor,
       },
       priceContainer: {
         flex: 1,
@@ -501,7 +501,7 @@ const css = () => {
       },
       priceText: {
         fontSize: 16,
-        color: colors.textPrimary || '#333',
+        color: colors.textPrimary,
         fontWeight: 'bold',
       },
       totalContainer: {
@@ -517,7 +517,7 @@ const css = () => {
       },
       priceTotalText: {
         fontSize: 14,
-        color: colors.textSecondary || '#666',
+        color: colors.textSecondary,
         marginTop: 2,
       },
       actionContainer: {
@@ -529,12 +529,12 @@ const css = () => {
         paddingVertical: 10,
         paddingHorizontal: 18,
         borderRadius: 8,
-        backgroundColor: colors.primary || '#007AFF',
+        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
       },
       customizeButtonText: {
-        color: colors.buttonText || '#FFF',
+        color: colors.buttonText,
         fontSize: 13,
         fontWeight: 'bold',
         textAlign: 'center',
@@ -545,12 +545,12 @@ const css = () => {
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 5,
-        backgroundColor: colors.primary || '#007AFF',
+        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
       },
       ButtonText: {
-        color: colors.buttonText || '#fff',
+        color: colors.buttonText,
         fontWeight: 'bold',
         textAlign: 'center',
         fontSize: 14,
@@ -560,7 +560,7 @@ const css = () => {
       container: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.quantityBackground || '#F0F0F0',
+        backgroundColor: colors.quantityBackground,
         borderRadius: 25,
         paddingVertical: 4,
         paddingHorizontal: 8,
@@ -572,12 +572,12 @@ const css = () => {
         marginHorizontal: 10,
         fontSize: 18,
         fontWeight: 'bold',
-        color: colors.textPrimary || '#333',
+        color: colors.textPrimary,
       },
       iconColor: {
-        add: colors.success || '#4CAF50',
-        remove: colors.warning || '#FFC107',
-        delete: colors.danger || '#F44336',
+        add: colors.success,
+        remove: colors.warning,
+        delete: colors.danger,
       },
     },
   });

@@ -39,7 +39,7 @@ const QueueBadge = ({ presentation, styles }) => {
     return null
   }
 
-  const badgeColor = presentation.color || '#64748B'
+  const badgeColor = presentation.color
 
   return (
     <View
@@ -254,7 +254,7 @@ const OrderProducts = ({
         const rootItem = card.rootItem || {}
         const hasRootItem = Object.keys(rootItem).length > 0
         const isRootZero = hasRootItem && Number(rootItem?.quantity || 0) === 0
-        const itemColor = isRootZero ? REMOVAL_COLOR : (card.itemColor || order?.status?.color || '#333')
+        const itemColor = isRootZero ? REMOVAL_COLOR : (card.itemColor || order?.status?.color)
         const cardImageUrl = showImages ? resolveCardImageUrl(card) : ''
         const rootActions = renderEntryActions({
           renderActions,

@@ -45,7 +45,7 @@ const createStyles = (colors, insets) =>
       marginTop: 6,
     },
     activeText: {
-      color: colors?.primary || '#007AFF',
+      color: colors?.primary,
       fontWeight: 'bold',
     },
   });

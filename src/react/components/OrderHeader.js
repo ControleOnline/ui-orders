@@ -238,7 +238,7 @@ const OrderHeader = ({
   const displayPrice = Number(order?.price || 0)
   const showStatus = !['transfer', 'loss'].includes(orderType)
   const priceStyle = useMemo(() => resolvePriceStyle(orderType, styles), [orderType, styles])
-  const waitingColor = waitingConfig?.color || '#EF4444'
+  const waitingColor = waitingConfig?.color
   const shouldStackRightSectionBelow = isKds && stackRightSectionBelow
 
   return (

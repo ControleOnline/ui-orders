@@ -78,7 +78,7 @@ const OrderTotalToolbar = ({textStyle = null}) => {
   return !order && price <= 0 ? (
     <ActivityIndicator
       size="small"
-      color={styles.primary?.color || '#000'}
+      color={styles.primary?.color}
       style={inlineStyle_79_6}
     />
   ) : (

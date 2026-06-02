@@ -889,7 +889,7 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
       <SafeAreaView
         style={[
           styles.container,
-          {backgroundColor: palette.background || '#F8FAFC'},
+          {backgroundColor: palette.background},
         ]}
         edges={['bottom']}>
         <View style={styles.centerState}>
@@ -909,7 +909,7 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
       <SafeAreaView
         style={[
           styles.container,
-          {backgroundColor: palette.background || '#F8FAFC'},
+          {backgroundColor: palette.background},
         ]}
         edges={['bottom']}>
         <View style={styles.centerState}>
@@ -930,7 +930,7 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     <SafeAreaView
       style={[
         styles.container,
-        {backgroundColor: palette.background || '#F8FAFC'},
+        {backgroundColor: palette.background},
       ]}
       edges={['bottom']}>
       <ScrollView

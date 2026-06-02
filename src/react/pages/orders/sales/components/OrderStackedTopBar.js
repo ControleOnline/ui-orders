@@ -43,7 +43,7 @@ const OrderStackedTopBar = ({
                         <Icon
                             name={backIconName}
                             size={20}
-                            color={ppcColors.textPrimary || '#0F172A'}
+                            color={ppcColors.textPrimary}
                         />
                     </TouchableOpacity>
                 ) : null}

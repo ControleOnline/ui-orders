@@ -181,7 +181,7 @@ const PrintQueuePage = ({navigation}) => {
         <Icon
           name="print-disabled"
           size={40}
-          color={colors?.primary || '#1B5587'}
+          color={colors?.primary}
         />
         <Text style={localStyles.emptyTitle}>Nenhuma impressão pendente</Text>
         <Text style={localStyles.emptyCopy}>
@@ -194,7 +194,7 @@ const PrintQueuePage = ({navigation}) => {
 
   const renderItem = ({item}) => {
     const spoolId = resolveSpoolId(item);
-    const statusColor = getStatusColor(item, colors?.primary || '#1B5587');
+    const statusColor = getStatusColor(item, colors?.primary);
 
     return (
       <View style={localStyles.card}>
@@ -250,7 +250,7 @@ const PrintQueuePage = ({navigation}) => {
         <View style={localStyles.centerState}>
           <ActivityIndicator
             size="large"
-            color={colors?.primary || '#1B5587'}
+            color={colors?.primary}
           />
           <Text style={localStyles.centerStateText}>
             {t('orders', 'message', 'loading', 'Carregando impressões...')}
@@ -266,7 +266,7 @@ const PrintQueuePage = ({navigation}) => {
         <Icon
           name="info-outline"
           size={20}
-          color={colors?.primary || '#1B5587'}
+          color={colors?.primary}
           style={localStyles.infoIcon}
         />
         <Text style={localStyles.infoText}>
@@ -303,7 +303,7 @@ const PrintQueuePage = ({navigation}) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colors?.primary || '#1B5587'}
+            tintColor={colors?.primary}
           />
         }
       />
