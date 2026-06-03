@@ -6,6 +6,7 @@ import PrintButton from '@controleonline/ui-orders/src/react/components/PrintBut
 export const ORDER_TOP_BAR_ACTIONS = Object.freeze({
     PRINT: 'print',
     LOGISTICS: 'logistics',
+    ATTACHMENTS: 'attachments',
     TOOLS: 'tools',
     LOGS: 'logs',
 });
@@ -22,9 +23,11 @@ const OrderTopBarActions = ({
     printerSelection = { enabled: true },
     isTvDisplay = false,
     onPressLogistics = null,
+    onPressAttachments = null,
     onPressTools = null,
     onPressLogs = null,
     logisticsDisabled = false,
+    attachmentsDisabled = false,
     toolsDisabled = false,
     logsDisabled = false,
 }) => {
@@ -35,10 +38,13 @@ const OrderTopBarActions = ({
     const shouldShowPrintAction =
         visibleButtons.has(ORDER_TOP_BAR_ACTIONS.PRINT) && !isTvDisplay && !!printJob;
     const shouldShowLogisticsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.LOGISTICS);
+    const shouldShowAttachmentsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS);
     const shouldShowToolsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.TOOLS);
     const shouldShowLogsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.LOGS);
     const resolvedLogisticsDisabled =
         logisticsDisabled || typeof onPressLogistics !== 'function';
+    const resolvedAttachmentsDisabled =
+        attachmentsDisabled || typeof onPressAttachments !== 'function';
     const resolvedToolsDisabled = toolsDisabled || typeof onPressTools !== 'function';
     const resolvedLogsDisabled = logsDisabled || typeof onPressLogs !== 'function';
 
@@ -68,6 +74,19 @@ const OrderTopBarActions = ({
                     disabled={resolvedLogisticsDisabled}
                 >
                     <Icon name="local-shipping" size={20} color={iconColor} />
+                </TouchableOpacity>
+            ) : null}
+
+            {shouldShowAttachmentsAction ? (
+                <TouchableOpacity
+                    onPress={onPressAttachments}
+                    style={[
+                        iconButtonStyle,
+                        resolvedAttachmentsDisabled ? iconButtonDisabledStyle : null,
+                    ]}
+                    disabled={resolvedAttachmentsDisabled}
+                >
+                    <Icon name="attach-file" size={20} color={iconColor} />
                 </TouchableOpacity>
             ) : null}
 

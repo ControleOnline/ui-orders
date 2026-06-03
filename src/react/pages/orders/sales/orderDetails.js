@@ -82,6 +82,7 @@ import {
 import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
 import OrderSummaryModal from './components/OrderSummaryModal'
 import OrderFinancialDetailsModal from './components/OrderFinancialDetailsModal'
+import OrderAttachmentManager from './components/OrderAttachmentManager'
 import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
 import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
@@ -571,6 +572,7 @@ const OrderDetails = ({ route, navigation }) => {
   const { showError, showSuccess } = useMessage()
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
   const [financialDetailsVisible, setFinancialDetailsVisible] = useState(false)
+  const [attachmentsVisible, setAttachmentsVisible] = useState(false)
   const insets = useSafeAreaInsets()
 
   const ordersStore = useStore('orders')
@@ -2109,6 +2111,14 @@ const OrderDetails = ({ route, navigation }) => {
 
   const topBarOrderId = item?.id || orderParam?.id || routeOrderId
 
+  const handleOrderAttachments = useCallback(() => {
+    if (!topBarOrderId) {
+      return
+    }
+
+    setAttachmentsVisible(true)
+  }, [topBarOrderId])
+
   const handleOrderLogs = useCallback(() => {
     if (!canShowDebugActions) {
       return
@@ -2262,6 +2272,7 @@ const OrderDetails = ({ route, navigation }) => {
 
     if (topBarOrderId) {
       buttons.push(ORDER_TOP_BAR_ACTIONS.LOGISTICS)
+      buttons.push(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS)
     }
 
     if (canShowDebugActions) {
@@ -2293,15 +2304,18 @@ const OrderDetails = ({ route, navigation }) => {
         printerSelection={topBarPrinterSelection}
         isTvDisplay={isTvDisplay}
         onPressLogistics={handleOrderLogistics}
+        onPressAttachments={handleOrderAttachments}
         onPressTools={handleOrderTools}
         onPressLogs={handleOrderLogs}
         logisticsDisabled={!topBarOrderId}
+        attachmentsDisabled={!topBarOrderId}
         logsDisabled={!topBarOrderId}
       />
     ),
     [
       handleOrderLogs,
       handleOrderTools,
+      handleOrderAttachments,
       handleOrderLogistics,
       isKds,
       isTvDisplay,
@@ -2330,14 +2344,17 @@ const OrderDetails = ({ route, navigation }) => {
       printerSelection={topBarPrinterSelection}
       isTvDisplay={isTvDisplay}
       onPressLogistics={handleOrderLogistics}
+      onPressAttachments={handleOrderAttachments}
       onPressTools={handleOrderTools}
       onPressLogs={handleOrderLogs}
       logisticsDisabled={!topBarOrderId}
+      attachmentsDisabled={!topBarOrderId}
       logsDisabled={!topBarOrderId}
     />
   ), [
     handleOrderLogs,
     handleOrderTools,
+    handleOrderAttachments,
     handleOrderLogistics,
     isTvDisplay,
     navigation,
@@ -3002,7 +3019,7 @@ const OrderDetails = ({ route, navigation }) => {
     >
       {shouldStackHeaderActions && renderCompactInlineTopBar()}
       {showBarcodeInput && <BarcodeInput />}
-      <StateStore store="orders" />
+      <StateStore store={['orders', 'order_file', 'file']} />
       {!isPosSelfServiceOperationMode &&
         !isPurchaseOrder &&
         shouldShowOrderPartyDetails && (
@@ -3456,6 +3473,13 @@ const OrderDetails = ({ route, navigation }) => {
         isKds
         orderHeaderProps={orderHeaderActionProps}
         content={renderInvoiceListOnly('details')}
+      />
+      <OrderAttachmentManager
+        visible={attachmentsVisible}
+        onClose={() => setAttachmentsVisible(false)}
+        order={orderIdentitySource}
+        company={currentCompany || defaultCompany}
+        onChanged={refreshCurrentOrder}
       />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (
