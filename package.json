@@ -4,7 +4,7 @@
   "author": "Controle Online",
   "description": "Controle Online Quotations Quasar UI Component",
   "license": "MIT",
-  "main": "src/vue/index.js",
+  "main": "src/react/index.js",
   "scripts": {},
   "repository": {
     "type": "git",

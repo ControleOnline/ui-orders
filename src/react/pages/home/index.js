@@ -8,7 +8,6 @@
  *
  * ## Estado
  * - Este modulo tem implementacao ativa em `src/react` e deve constar em novos prompts.
- * - Se existir `src/vue`, ela deve ser tratada como legado e ignorada, salvo pedido explicito.
  *
  * ## Regra central
  * - Todo pedido de venda deve ser pago pela barra unica de pagamento do sistema.
