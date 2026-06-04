@@ -40,7 +40,7 @@ import {
   resolvePurchaseOrderLineUnitPrice,
   resolvePurchaseSupplierLabel,
 } from '@controleonline/ui-orders/src/react/utils/menuCostsPurchases';
-import {MAIN_TABS} from '@controleonline/ui-manager/src/react/pages/MenuCostsPage/viewModel';
+import {MAIN_TABS} from '@controleonline/ui-manager/src/react/pages/MenuCostsPage/tabs';
 import {
   resolveMenuCostsTabRoute,
 } from '@controleonline/ui-manager/src/react/pages/MenuCostsPage/navigation';
