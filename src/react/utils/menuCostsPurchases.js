@@ -1,7 +1,5 @@
 import {normalizeEntityId, resolveOrderProductTotal} from '@controleonline/ui-orders/src/utils/orderState';
 
-export const PURCHASE_HISTORY_PAGE_SIZE = 50;
-
 export const normalizeCollection = response => {
   if (Array.isArray(response)) return response;
   if (Array.isArray(response?.member)) return response.member;
@@ -120,7 +118,6 @@ export const countOrderAttachments = relations => normalizeCollection(relations)
 export const buildPurchaseHistoryLoadedKey = ({
   companyId,
   searchText = '',
-  pageSize = PURCHASE_HISTORY_PAGE_SIZE,
   orderField = 'id',
   orderDirection = 'desc',
 } = {}) =>
@@ -128,7 +125,6 @@ export const buildPurchaseHistoryLoadedKey = ({
     normalizeEntityId(companyId) || 'no-company',
     'purchase-history',
     normalizeSearch(searchText),
-    pageSize,
     orderField,
     orderDirection,
   ].join('|');
@@ -137,7 +133,6 @@ export const buildPurchaseHistoryQuery = ({
   companyId,
   searchText = '',
   page = 1,
-  pageSize = PURCHASE_HISTORY_PAGE_SIZE,
   orderField = 'id',
   orderDirection = 'desc',
 } = {}) => {
@@ -150,7 +145,6 @@ export const buildPurchaseHistoryQuery = ({
   const query = {
     client: `/people/${normalizedCompanyId}`,
     orderType: 'purchase',
-    itemsPerPage: pageSize,
     page,
     [`order[${orderField}]`]: orderDirection,
   };

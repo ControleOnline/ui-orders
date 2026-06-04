@@ -20,7 +20,6 @@ test('purchase history query scopes to the company purchase feed', () => {
 
   assert.equal(query.client, '/people/7');
   assert.equal(query.orderType, 'purchase');
-  assert.equal(query.itemsPerPage, 50);
   assert.equal(query.page, 2);
   assert.equal(query.search, 'NF 123');
 });
@@ -42,6 +41,6 @@ test('purchase helpers resolve supplier, lines and attachments', () => {
   );
   assert.match(
     buildPurchaseHistoryLoadedKey({companyId: 7, searchText: 'abc'}),
-    /7\|purchase-history\|abc\|50\|id\|desc/,
+    /7\|purchase-history\|abc\|id\|desc/,
   );
 });

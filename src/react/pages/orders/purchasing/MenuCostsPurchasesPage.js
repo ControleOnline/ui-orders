@@ -27,7 +27,6 @@ import {
   buildPurchaseHistoryQuery,
   countOrderAttachments,
   normalizeCollection,
-  PURCHASE_HISTORY_PAGE_SIZE,
   resolveOrderAttachmentKind,
   resolveOrderAttachmentLabel,
   resolvePurchaseOrderDate,
@@ -126,6 +125,39 @@ const SearchBox = ({value, onChangeText, placeholder}) => (
   </View>
 );
 
+const fetchAllCollectionPages = async (actions, params = {}, maxPages = 8) => {
+  if (!actions?.getItems) {
+    return [];
+  }
+
+  const items = [];
+  const seen = new Set();
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const response = await actions.getItems({
+      ...params,
+      page,
+    });
+    const batch = normalizeCollection(response);
+
+    batch.forEach(item => {
+      const key = String(item?.id || item?.['@id'] || item?.filePath || '').trim();
+      if (!key || seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+      items.push(item);
+    });
+
+    if (!response?.['hydra:view']?.next || batch.length === 0) {
+      break;
+    }
+  }
+
+  return items;
+};
+
 const EmptyState = ({text = 'Nenhum registro encontrado.'}) => (
   <View style={styles.emptyState}>
     <Icon name="inbox" size={24} color={MENU_COLORS.muted} />
@@ -223,6 +255,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
   const [attachmentsVisible, setAttachmentsVisible] = useState(false);
 
   const lastLoadedSelectedIdRef = useRef('');
+  const nextPageRef = useRef(1);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -238,7 +271,6 @@ export default function MenuCostsPurchasesPage({navigation}) {
         companyId: currentCompany?.id,
         searchText: debouncedQuery,
         page: 1,
-        pageSize: PURCHASE_HISTORY_PAGE_SIZE,
         orderField: 'id',
         orderDirection: 'desc',
       }),
@@ -250,7 +282,6 @@ export default function MenuCostsPurchasesPage({navigation}) {
       buildPurchaseHistoryLoadedKey({
         companyId: currentCompany?.id,
         searchText: debouncedQuery,
-        pageSize: PURCHASE_HISTORY_PAGE_SIZE,
         orderField: 'id',
         orderDirection: 'desc',
       }),
@@ -283,6 +314,8 @@ export default function MenuCostsPurchasesPage({navigation}) {
           append,
           loadedKey: historyLoadedKey,
         });
+
+        nextPageRef.current = pageNumber + 1;
       } catch (error) {
         showError?.(error?.message || 'Falha ao carregar as compras.');
       } finally {
@@ -299,13 +332,11 @@ export default function MenuCostsPurchasesPage({navigation}) {
       }
 
       try {
-        const response = await orderFileActions.getItems({
+        const attachments = await fetchAllCollectionPages(orderFileActions, {
           order: `/orders/${orderId}`,
-          itemsPerPage: 200,
-          page: 1,
-        });
+        }, 12);
 
-        return normalizeCollection(response);
+        return attachments;
       } catch (error) {
         showError?.(error?.message || 'Falha ao carregar as evidências do pedido.');
         return [];
@@ -351,6 +382,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
         return undefined;
       }
 
+      nextPageRef.current = 1;
       void loadOrdersPage({pageNumber: 1, append: false});
       return undefined;
     }, [currentCompany?.id, loadOrdersPage, ordersActions]),
@@ -404,10 +436,10 @@ export default function MenuCostsPurchasesPage({navigation}) {
     }
 
     void loadOrdersPage({
-      pageNumber: Math.floor(storedOrderList.length / PURCHASE_HISTORY_PAGE_SIZE) + 1,
+      pageNumber: nextPageRef.current,
       append: true,
     });
-  }, [hasMore, historyQuery, isLoadingList, loadOrdersPage, loadingMore, storedOrderList.length]);
+  }, [hasMore, historyQuery, isLoadingList, loadOrdersPage, loadingMore]);
 
   const handleRefresh = useCallback(() => {
     void loadOrdersPage({pageNumber: 1, append: false});
