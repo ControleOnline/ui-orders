@@ -2,7 +2,6 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
-  Linking,
   Platform,
   ScrollView,
   Text,
@@ -23,17 +22,13 @@ import {
   toFileIri,
   uploadFileToApi,
 } from '@controleonline/ui-products/src/react/services/fileUpload';
+import {
+  extractCollectionItems,
+  hasHydraNext,
+} from '@controleonline/ui-products/src/react/domain/menuCostsPagination';
 import styles from './OrderAttachmentManager.styles';
 
 const ORDER_ATTACHMENTS_CONTEXT = 'order-attachments';
-const LIBRARY_PAGE_SIZE = 60;
-
-const normalizeCollection = response => {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.member)) return response.member;
-  if (Array.isArray(response?.['hydra:member'])) return response['hydra:member'];
-  return [];
-};
 
 const getEntityId = entity => {
   if (!entity) return null;
@@ -109,6 +104,20 @@ const dedupeFiles = files => {
   });
 };
 
+const getNativeWebView = () => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
+  try {
+    return require('react-native-webview').WebView;
+  } catch {
+    return null;
+  }
+};
+
+const NativeWebView = getNativeWebView();
+
 const OrderAttachmentManager = ({
   visible = false,
   onClose = () => {},
@@ -146,6 +155,7 @@ const OrderAttachmentManager = ({
   const [uploading, setUploading] = useState(false);
   const [savingFileId, setSavingFileId] = useState(null);
   const [removingRelationId, setRemovingRelationId] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const attachedFileIds = useMemo(
     () =>
@@ -179,11 +189,10 @@ const OrderAttachmentManager = ({
     try {
       const response = await orderActions.getItems({
         order: orderIri,
-        itemsPerPage: 200,
         page: 1,
       });
 
-      return normalizeCollection(response);
+      return extractCollectionItems(response);
     } catch (error) {
       showError(error?.message || 'Falha ao carregar anexos do pedido.');
       return [];
@@ -208,13 +217,12 @@ const OrderAttachmentManager = ({
         const response = await fileActions.getItems({
           context: ORDER_ATTACHMENTS_CONTEXT,
           ...(companyIri ? {people: companyIri} : {}),
-          itemsPerPage: LIBRARY_PAGE_SIZE,
           page: nextPage,
         });
 
-        const normalized = sortFilesByName(normalizeCollection(response));
+        const normalized = sortFilesByName(extractCollectionItems(response));
         setLibraryPage(nextPage);
-        setLibraryHasMore(normalized.length === LIBRARY_PAGE_SIZE);
+        setLibraryHasMore(hasHydraNext(response));
 
         setLibraryFiles(currentFiles =>
           append
@@ -255,6 +263,12 @@ const OrderAttachmentManager = ({
     setLibraryHasMore(false);
     void refreshManager();
   }, [orderIri, refreshManager, visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      setPreviewFile(null);
+    }
+  }, [visible]);
 
   const selectFile = useCallback(async () => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -424,12 +438,26 @@ const OrderAttachmentManager = ({
       return;
     }
 
-    try {
-      await Linking.openURL(fileUrl);
-    } catch (error) {
-      showError(error?.message || 'Nao foi possivel abrir o arquivo.');
-    }
+    setPreviewFile(file);
   }, [resolvedCompany, showError]);
+
+  const previewUrl = useMemo(() => {
+    if (!previewFile) {
+      return '';
+    }
+
+    return resolveFileDownloadUrl(previewFile, {company: resolvedCompany});
+  }, [previewFile, resolvedCompany]);
+
+  const previewIsImage = useMemo(() => {
+    const fileType = String(previewFile?.fileType || '').trim().toLowerCase();
+    const fileName = String(previewFile?.fileName || previewFile?.name || previewFile?.path || '').trim().toLowerCase();
+    return fileType === 'image' || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileName);
+  }, [previewFile]);
+
+  const closePreview = useCallback(() => {
+    setPreviewFile(null);
+  }, []);
 
   const renderFileThumb = useCallback(
     file => {
@@ -687,6 +715,74 @@ const OrderAttachmentManager = ({
               <MaterialCommunityIcons name="refresh" size={19} color="#334155" />
             </TouchableOpacity>
           </View>
+
+          {previewFile ? (
+            <View style={{
+              marginBottom: 16,
+              borderRadius: 14,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              backgroundColor: '#fff',
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                borderBottomWidth: 1,
+                borderBottomColor: '#E2E8F0',
+              }}>
+                <View style={{flex: 1, paddingRight: 12}}>
+                  <Text style={{fontSize: 14, fontWeight: '800', color: '#0F172A'}} numberOfLines={1}>
+                    {getFileName(previewFile)}
+                  </Text>
+                  <Text style={{fontSize: 12, color: '#64748B'}} numberOfLines={1}>
+                    {getFileKindLabel(previewFile)}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={closePreview} style={{padding: 6}}>
+                  <MaterialCommunityIcons name="close" size={20} color="#475569" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{height: 420, backgroundColor: '#0F172A'}}>
+                {previewIsImage && previewUrl ? (
+                  <Image
+                    source={{uri: previewUrl}}
+                    style={{width: '100%', height: '100%'}}
+                    resizeMode="contain"
+                  />
+                ) : Platform.OS === 'web' ? (
+                  <iframe
+                    title={getFileName(previewFile)}
+                    src={previewUrl}
+                    style={{width: '100%', height: '100%', border: 0, background: '#fff'}}
+                  />
+                ) : NativeWebView ? (
+                  <NativeWebView
+                    source={{uri: previewUrl}}
+                    style={{flex: 1, backgroundColor: '#fff'}}
+                    startInLoadingState
+                  />
+                ) : (
+                  <View style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 24,
+                    backgroundColor: '#fff',
+                  }}>
+                    <MaterialCommunityIcons name="file-outline" size={44} color="#94A3B8" />
+                    <Text style={{marginTop: 12, fontSize: 14, color: '#334155', textAlign: 'center'}}>
+                      Pré-visualização não suportada neste dispositivo.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>

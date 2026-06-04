@@ -2,7 +2,9 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Linking,
+  Image,
+  Modal,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -17,7 +19,6 @@ import {useStore} from '@store';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {resolveFileDownloadUrl} from '@controleonline/ui-common/src/react/utils/fileUrl';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import OrderAttachmentManager from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderAttachmentManager';
 import {buildOrderDetailsRouteParams} from '@controleonline/ui-orders/src/react/utils/orderRoute';
@@ -43,7 +44,26 @@ import {MAIN_TABS} from '@controleonline/ui-manager/src/react/pages/MenuCostsPag
 import {
   resolveMenuCostsTabRoute,
 } from '@controleonline/ui-manager/src/react/pages/MenuCostsPage/navigation';
+import {resolveFileImageUrl, resolveFileDownloadUrl} from '@controleonline/ui-common/src/react/utils/fileUrl';
+import {
+  extractCollectionItems,
+  hasHydraNext,
+} from '@controleonline/ui-products/src/react/domain/menuCostsPagination';
 import styles, {MENU_COLORS} from './MenuCostsPurchasesPage.styles';
+
+const getNativeWebView = () => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
+  try {
+    return require('react-native-webview').WebView;
+  } catch {
+    return null;
+  }
+};
+
+const NativeWebView = getNativeWebView();
 
 const IconButton = ({icon, label, onPress, active, disabled = false, primary = false}) => (
   <TouchableOpacity
@@ -125,39 +145,6 @@ const SearchBox = ({value, onChangeText, placeholder}) => (
   </View>
 );
 
-const fetchAllCollectionPages = async (actions, params = {}, maxPages = 8) => {
-  if (!actions?.getItems) {
-    return [];
-  }
-
-  const items = [];
-  const seen = new Set();
-
-  for (let page = 1; page <= maxPages; page += 1) {
-    const response = await actions.getItems({
-      ...params,
-      page,
-    });
-    const batch = normalizeCollection(response);
-
-    batch.forEach(item => {
-      const key = String(item?.id || item?.['@id'] || item?.filePath || '').trim();
-      if (!key || seen.has(key)) {
-        return;
-      }
-
-      seen.add(key);
-      items.push(item);
-    });
-
-    if (!response?.['hydra:view']?.next || batch.length === 0) {
-      break;
-    }
-  }
-
-  return items;
-};
-
 const EmptyState = ({text = 'Nenhum registro encontrado.'}) => (
   <View style={styles.emptyState}>
     <Icon name="inbox" size={24} color={MENU_COLORS.muted} />
@@ -199,25 +186,58 @@ const LineItemCard = ({item}) => (
   </View>
 );
 
-const AttachmentCard = ({relation, onPress}) => (
+const isImageAttachment = file => {
+  const fileType = String(file?.fileType || '').trim().toLowerCase();
+  const fileName = String(file?.fileName || file?.name || file?.path || '').trim().toLowerCase();
+  return fileType === 'image' || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileName);
+};
+
+const AttachmentCard = ({relation, onPress, company}) => {
+  const file = relation?.file || relation;
+  const previewUrl = resolveFileImageUrl(file, {company});
+
+  return (
   <TouchableOpacity
     style={styles.attachmentCard}
     activeOpacity={0.82}
     onPress={onPress}
   >
-    <View style={styles.attachmentMain}>
-      <Text style={styles.attachmentTitle} numberOfLines={2}>
-        {resolveOrderAttachmentLabel(relation)}
+      <View
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 10,
+          backgroundColor: '#F8FAFC',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          marginRight: 12,
+        }}
+      >
+        {isImageAttachment(file) && previewUrl ? (
+          <Image
+            source={{uri: previewUrl}}
+            style={{width: '100%', height: '100%'}}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={{fontSize: 18}}>📎</Text>
+        )}
+      </View>
+      <View style={styles.attachmentMain}>
+        <Text style={styles.attachmentTitle} numberOfLines={2}>
+          {resolveOrderAttachmentLabel(relation)}
+        </Text>
+        <Text style={styles.attachmentMeta} numberOfLines={1}>
+          {resolveOrderAttachmentKind(relation)}
+        </Text>
+      </View>
+      <Text style={styles.attachmentAction}>
+        Abrir
       </Text>
-      <Text style={styles.attachmentMeta} numberOfLines={1}>
-        {resolveOrderAttachmentKind(relation)}
-      </Text>
-    </View>
-    <Text style={styles.attachmentAction}>
-      Abrir
-    </Text>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+};
 
 const resolveSectionTitle = () => 'Compras do ERP com evidências vinculadas';
 
@@ -243,8 +263,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
   const ordersActions = ordersStore.actions || {};
   const orderFileActions = orderFileStore.actions || {};
 
-  const {items: storedOrders, totalItems, isLoadingList, loadedKey} = ordersStore.getters || {};
-  const attachedFiles = Array.isArray(orderFileStore.getters?.items) ? orderFileStore.getters.items : [];
+  const {items: storedOrders, totalItems, isLoadingList} = ordersStore.getters || {};
 
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -253,9 +272,15 @@ export default function MenuCostsPurchasesPage({navigation}) {
   const [selectedOrderLoading, setSelectedOrderLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [attachmentsVisible, setAttachmentsVisible] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState(null);
+  const [attachedFiles, setAttachedFiles] = useState([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [attachmentsLoadingMore, setAttachmentsLoadingMore] = useState(false);
+  const [attachmentsHasMore, setAttachmentsHasMore] = useState(false);
 
   const lastLoadedSelectedIdRef = useRef('');
   const nextPageRef = useRef(1);
+  const attachmentNextPageRef = useRef(1);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -325,21 +350,61 @@ export default function MenuCostsPurchasesPage({navigation}) {
     [historyLoadedKey, historyQuery, ordersActions, showError],
   );
 
-  const loadAttachmentsForSelectedOrder = useCallback(
-    async orderId => {
+  const loadAttachmentsPage = useCallback(
+    async ({orderId, pageNumber = 1, append = false} = {}) => {
       if (!orderId || typeof orderFileActions.getItems !== 'function') {
+        setAttachedFiles([]);
+        setAttachmentsHasMore(false);
         return [];
       }
 
-      try {
-        const attachments = await fetchAllCollectionPages(orderFileActions, {
-          order: `/orders/${orderId}`,
-        }, 12);
+      const currentPage = Number(pageNumber || 1) > 0 ? Number(pageNumber) : 1;
 
-        return attachments;
+      try {
+        if (append) {
+          setAttachmentsLoadingMore(true);
+        } else {
+          setAttachmentsLoading(true);
+          setAttachedFiles([]);
+          setAttachmentsHasMore(false);
+          attachmentNextPageRef.current = 1;
+        }
+
+        const response = await orderFileActions.getItems({
+          order: `/orders/${orderId}`,
+          page: currentPage,
+        });
+        const pageItems = extractCollectionItems(response);
+
+        setAttachedFiles(current => {
+          if (!append) {
+            return pageItems;
+          }
+
+          const seen = new Set();
+          return [...current, ...pageItems].filter(item => {
+            const key = String(item?.id || item?.['@id'] || item?.file?.id || '').trim();
+            if (!key || seen.has(key)) {
+              return false;
+            }
+            seen.add(key);
+            return true;
+          });
+        });
+        setAttachmentsHasMore(hasHydraNext(response));
+        attachmentNextPageRef.current = currentPage + 1;
+
+        return pageItems;
       } catch (error) {
         showError?.(error?.message || 'Falha ao carregar as evidências do pedido.');
+        if (!append) {
+          setAttachedFiles([]);
+        }
+        setAttachmentsHasMore(false);
         return [];
+      } finally {
+        setAttachmentsLoading(false);
+        setAttachmentsLoadingMore(false);
       }
     },
     [orderFileActions, showError],
@@ -362,14 +427,14 @@ export default function MenuCostsPurchasesPage({navigation}) {
       try {
         const detail = await ordersActions.get(orderId);
         setSelectedOrder(detail || fallbackOrder);
-        await loadAttachmentsForSelectedOrder(orderId);
+        await loadAttachmentsPage({orderId, pageNumber: 1, append: false});
       } catch (error) {
         showError?.(error?.message || 'Falha ao carregar os detalhes da compra.');
       } finally {
         setSelectedOrderLoading(false);
       }
     },
-    [loadAttachmentsForSelectedOrder, ordersActions, showError, storedOrderList],
+    [loadAttachmentsPage, ordersActions, showError, storedOrderList],
   );
 
   useFocusEffect(
@@ -457,21 +522,69 @@ export default function MenuCostsPurchasesPage({navigation}) {
     navigation?.navigate?.('OrderDetails', buildOrderDetailsRouteParams(selectedOrder));
   }, [navigation, selectedOrder]);
 
+  const closeAttachmentPreview = useCallback(() => {
+    setPreviewAttachment(null);
+  }, []);
+
   const openAttachment = useCallback(async relation => {
     const file = relation?.file || relation;
-    const url = resolveFileDownloadUrl(file, {company: currentCompany});
 
-    if (!url) {
+    if (!file) {
       showError?.('Nao foi possivel abrir o arquivo.');
       return;
     }
 
-    try {
-      await Linking.openURL(url);
-    } catch (error) {
-      showError?.(error?.message || 'Nao foi possivel abrir o arquivo.');
+    setPreviewAttachment(file);
+  }, [showError]);
+
+  const previewAttachmentUrl = useMemo(() => {
+    if (!previewAttachment) {
+      return '';
     }
-  }, [currentCompany, showError]);
+
+    return resolveFileDownloadUrl(previewAttachment, {company: currentCompany});
+  }, [currentCompany, previewAttachment]);
+
+  const previewAttachmentTitle = useMemo(() => {
+    if (!previewAttachment) {
+      return '';
+    }
+
+    return resolveOrderAttachmentLabel({file: previewAttachment});
+  }, [previewAttachment]);
+
+  const previewAttachmentIsImage = useMemo(
+    () => isImageAttachment(previewAttachment),
+    [previewAttachment],
+  );
+
+  const handleDetailScroll = useCallback(
+    event => {
+      if (!selectedOrderId || attachmentsLoading || attachmentsLoadingMore || !attachmentsHasMore) {
+        return;
+      }
+
+      const layoutHeight = event?.nativeEvent?.layoutMeasurement?.height || 0;
+      const contentOffsetY = event?.nativeEvent?.contentOffset?.y || 0;
+      const contentHeight = event?.nativeEvent?.contentSize?.height || 0;
+
+      if (layoutHeight + contentOffsetY >= contentHeight - 240) {
+        void loadAttachmentsPage({
+          orderId: selectedOrderId,
+          pageNumber: attachmentNextPageRef.current,
+          append: true,
+        });
+      }
+    },
+    [
+      attachmentNextPageRef,
+      attachmentsHasMore,
+      attachmentsLoading,
+      attachmentsLoadingMore,
+      loadAttachmentsPage,
+      selectedOrderId,
+    ],
+  );
 
   const selectedOrderLines = useMemo(
     () => normalizeCollection(selectedOrder?.orderProducts),
@@ -508,6 +621,8 @@ export default function MenuCostsPurchasesPage({navigation}) {
       style={styles.detailScroll}
       contentContainerStyle={styles.detailContent}
       showsVerticalScrollIndicator={false}
+      onScroll={handleDetailScroll}
+      scrollEventThrottle={16}
     >
       <View style={styles.detailHeader}>
         <OrderHeader order={selectedOrder} isKds={false} />
@@ -616,15 +731,26 @@ export default function MenuCostsPurchasesPage({navigation}) {
           <Text style={styles.sectionCardMeta}>{selectedAttachmentCount} arquivo(s)</Text>
         </View>
 
-        {attachedFiles.length ? (
+        {attachmentsLoading && attachedFiles.length === 0 ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="small" color={MENU_COLORS.brand} />
+            <Text style={styles.emptyStateText}>Carregando evidências...</Text>
+          </View>
+        ) : attachedFiles.length ? (
           <View style={styles.attachmentList}>
             {attachedFiles.map(relation => (
               <AttachmentCard
                 key={relation?.id || relation?.file?.id || resolveOrderAttachmentLabel(relation)}
                 relation={relation}
+                company={currentCompany}
                 onPress={() => openAttachment(relation)}
               />
             ))}
+            {attachmentsLoadingMore ? (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color={MENU_COLORS.brand} />
+              </View>
+            ) : null}
           </View>
         ) : (
           <EmptyState text="Nenhuma evidência vinculada a esta compra." />
@@ -734,10 +860,88 @@ export default function MenuCostsPurchasesPage({navigation}) {
         company={currentCompany}
         onChanged={() => {
           if (selectedOrderId) {
-            void loadAttachmentsForSelectedOrder(selectedOrderId);
+            void loadAttachmentsPage({orderId: selectedOrderId, pageNumber: 1, append: false});
           }
         }}
       />
+
+      <Modal
+        visible={Boolean(previewAttachment)}
+        transparent
+        animationType="fade"
+        onRequestClose={closeAttachmentPreview}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          justifyContent: 'center',
+          padding: 16,
+        }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 18,
+            overflow: 'hidden',
+            maxHeight: '90%',
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: '#E2E8F0',
+            }}>
+              <View style={{flex: 1, paddingRight: 12}}>
+                <Text style={{fontSize: 15, fontWeight: '800', color: '#0F172A'}} numberOfLines={1}>
+                  {previewAttachmentTitle || 'Evidência'}
+                </Text>
+                <Text style={{fontSize: 12, color: '#64748B'}} numberOfLines={1}>
+                  {resolveOrderAttachmentKind({file: previewAttachment})}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={closeAttachmentPreview} style={{padding: 8}}>
+                <Icon name="x" size={18} color="#334155" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{height: 520, backgroundColor: '#0F172A'}}>
+              {previewAttachmentIsImage && previewAttachmentUrl ? (
+                <Image
+                  source={{uri: previewAttachmentUrl}}
+                  style={{width: '100%', height: '100%'}}
+                  resizeMode="contain"
+                />
+              ) : Platform.OS === 'web' ? (
+                <iframe
+                  title={previewAttachmentTitle || 'attachment-preview'}
+                  src={previewAttachmentUrl}
+                  style={{width: '100%', height: '100%', border: 0, background: '#fff'}}
+                />
+              ) : NativeWebView ? (
+                <NativeWebView
+                  source={{uri: previewAttachmentUrl}}
+                  style={{flex: 1, backgroundColor: '#fff'}}
+                  startInLoadingState
+                />
+              ) : (
+                <View style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 24,
+                  backgroundColor: '#fff',
+                }}>
+                  <Icon name="file" size={40} color="#94A3B8" />
+                  <Text style={{marginTop: 12, fontSize: 14, color: '#334155', textAlign: 'center'}}>
+                    Pré-visualização não suportada para este tipo de arquivo neste dispositivo.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <StateStore stores={['orders', 'order_file', 'file']} />
     </SafeAreaView>

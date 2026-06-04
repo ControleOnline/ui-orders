@@ -1300,8 +1300,7 @@ const OrderDetails = ({ route, navigation }) => {
     ),
     [defaultCompany, item?.provider, orderParam?.provider],
   )
-  const notInformedLabel =
-    global.t?.t('orders', 'label', 'notInformed') || 'Não informado'
+  const notInformedLabel = global.t?.t('orders', 'label', 'notInformed')
   const localInvoiceCards = useMemo(
     () => activeLocalInvoices
       .map(invoice => {
