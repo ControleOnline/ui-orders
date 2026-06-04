@@ -1234,15 +1234,11 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam?.status?.color,
     '#0EA5E9',
   )
-  const translatedLocalStatusLabel = useMemo(
-    () => translateOrderStatus(effectiveLocalStatusNameKey || item?.status?.status || ''),
-    [effectiveLocalStatusNameKey, item?.status?.status],
+  const translatedLocalStatusLabel = translateOrderStatus(
+    effectiveLocalStatusNameKey || item?.status?.status || '',
   )
-  const translatedLocalRealStatusLabel = useMemo(
-    () => translateOrderStatus(
-      effectiveLocalRealStatusKey || item?.status?.realStatus || '',
-    ),
-    [effectiveLocalRealStatusKey, item?.status?.realStatus],
+  const translatedLocalRealStatusLabel = translateOrderStatus(
+    effectiveLocalRealStatusKey || item?.status?.realStatus || '',
   )
   const resolvedDisplayOrder = useMemo(() => {
     const baseOrder = item || orderParam
@@ -1434,7 +1430,7 @@ const OrderDetails = ({ route, navigation }) => {
     }),
     [localOrderTotal, localPendingAmount, localReceivedAmount],
   )
-  const localDisplayLabel = useMemo(() => {
+  const localDisplayLabel = (() => {
     const labelKey = resolveOperationalDisplayLabelKey({
       pendingAmount: localPendingAmount,
       receivedAmount: localReceivedAmount,
@@ -1449,7 +1445,7 @@ const OrderDetails = ({ route, navigation }) => {
     }
 
     return global.t?.t('orders', 'label', 'localTotal') || 'Total'
-  }, [localPendingAmount, localReceivedAmount])
+  })()
   const shouldShowInlineOrderTotal = shouldRenderOrderDetailsInlineTotal({
     useUnifiedKdsLayout,
     isKds,
