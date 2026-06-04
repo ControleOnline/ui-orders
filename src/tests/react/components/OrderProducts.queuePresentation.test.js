@@ -59,6 +59,9 @@ jest.mock('../../../react/components/OrderProducts.utils', () => ({
       itemColor: '#334155',
       key: 'card-1',
       name: 'Combo Alpha Gyros',
+      description: 'Pao Frances (Com Parmesao)',
+      observation: 'Sem cebola',
+      quantity: 1,
       queuePresentation: {
         color: '#2563EB',
         label: 'Gyros Churrasco / Pronto para Retirar',
@@ -113,5 +116,12 @@ describe('OrderProducts queue presentation', () => {
     expect(html).not.toContain(
       'Gyros Churrasco / Pronto para Retirar',
     )
+  })
+
+  it('hides descriptions independently from operational observations', () => {
+    const html = renderTree({showDetails: true, showDescriptions: false})
+
+    expect(html).not.toContain('Pao Frances (Com Parmesao)')
+    expect(html).toContain('Obs: Sem cebola')
   })
 })

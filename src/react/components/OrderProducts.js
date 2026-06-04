@@ -104,6 +104,7 @@ const OrderProducts = ({
   showRootQuantityPrefix = true,
   showQueuePresentation = true,
   showHierarchyGuides = false,
+  showDescriptions = showDetails,
 }) => {
   const hierarchyGuidesEnabled = Boolean(showHierarchyGuides)
   const resolvedOrderProducts = Array.isArray(orderProducts)
@@ -213,7 +214,7 @@ const OrderProducts = ({
                           />
                         ) : null}
 
-                        {showDetails && !!groupItem.description && (
+                        {showDescriptions && !!groupItem.description && (
                           <Text style={styles.groupItemMetaText}>
                             {groupItem.description}
                           </Text>
@@ -337,7 +338,7 @@ const OrderProducts = ({
                         <QueueBadge presentation={card.queuePresentation} styles={styles} />
                       ) : null}
 
-                      {showDetails && !!card.description && (
+                      {showDescriptions && !!card.description && (
                         <Text style={styles.subText} numberOfLines={2}>
                           {card.description}
                         </Text>
