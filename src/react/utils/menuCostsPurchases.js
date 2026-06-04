@@ -36,7 +36,7 @@ const resolvePeopleLabel = person =>
   );
 
 export const resolvePurchaseSupplierLabel = order =>
-  resolvePeopleLabel(order?.client) || 'Fornecedor';
+  resolvePeopleLabel(order?.provider) || 'Fornecedor';
 
 export const resolvePurchaseOrderLabel = order => {
   const orderId = normalizeEntityId(order);
@@ -148,7 +148,7 @@ export const buildPurchaseHistoryQuery = ({
   }
 
   const query = {
-    provider: `/people/${normalizedCompanyId}`,
+    client: `/people/${normalizedCompanyId}`,
     orderType: 'purchase',
     itemsPerPage: pageSize,
     page,
@@ -162,4 +162,3 @@ export const buildPurchaseHistoryQuery = ({
 
   return query;
 };
-

@@ -19,11 +19,14 @@ import React from 'react';
 export {WrappedOrderLogistics} from '@controleonline/ui-logistic/src/react/router/routes';
 
 const WrappedCloseCashRegister = ({ navigation, route }) => {
+  const cashRegisterTitle =
+    global.t?.t('orders', 'title', 'cashRegister') || 'Caixa';
+
   React.useEffect(() => {
     navigation.setOptions({
-      title: global.t?.t('orders', 'title', 'cashRegister'),
+      title: cashRegisterTitle,
     });
-  }, [navigation]);
+  }, [cashRegisterTitle, navigation]);
 
   return (
     <CloseCashRegister navigation={navigation} route={route} />
@@ -35,10 +38,11 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const { item: order } = ordersGetters;
+  const orderTitle = global.t?.t('orders', 'title', 'order') || 'Pedido';
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: global.t?.t('orders', 'title', 'order'),
+      title: orderTitle,
       headerTitle: () => (
         <OrderIdentityLabel
           order={order}
@@ -48,7 +52,7 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
       ),
       headerBackVisible: true,
     });
-  }, [navigation, order]);
+  }, [navigation, order, orderTitle]);
 
   return (
     <AddProductScreen navigation={navigation} route={route} />
@@ -57,10 +61,11 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
 
 const WrappedOrderDetails = ({ navigation, route }) => {
   const order = route.params?.order;
+  const orderTitle = global.t?.t('orders', 'title', 'order') || 'Pedido';
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: global.t?.t('orders', 'title', 'order'),
+      title: orderTitle,
       headerTitle: () => (
         <OrderIdentityLabel
           order={order}
@@ -70,7 +75,7 @@ const WrappedOrderDetails = ({ navigation, route }) => {
       ),
       headerBackVisible: true,
     });
-  }, [navigation, order]);
+  }, [navigation, order, orderTitle]);
 
   return (
     <OrderDetails navigation={navigation} route={route} />
@@ -86,7 +91,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       headerBackVisible: true,
-      title: global.t?.t('orders', 'title', 'cashRegister'),
+      title: () => global.t?.t('orders', 'title', 'cashRegister'),
     },
   },
   {
@@ -94,7 +99,7 @@ const ordersRoutes = [
     component: WrappedCloseCashRegister,
     options: {
       headerShown: true,
-      title: global.t?.t('orders', 'title', 'cashRegister'),
+      title: () => global.t?.t('orders', 'title', 'cashRegister'),
     },
   },
   {
@@ -102,7 +107,7 @@ const ordersRoutes = [
     component: Withdrawal,
     options: {
       headerShown: true,
-      title: global.t?.t('orders', 'title', 'withdrawal'),
+      title: () => global.t?.t('orders', 'title', 'withdrawal'),
     },
   },
   {
@@ -121,7 +126,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       showBottomCart: true,
-      title: global.t?.t('orders', 'title', 'chooseCategory'),
+      title: () => global.t?.t('orders', 'title', 'chooseCategory'),
     },
     initialParams: { store: 'categories' },
   },
@@ -131,7 +136,7 @@ const ordersRoutes = [
     options: ({route}) => ({
       headerShown: true,
       headerBackVisible: true,
-      title: global.t?.t('configs', 'title', 'orderHistory'),
+      title: () => global.t?.t('configs', 'title', 'orderHistory'),
       showCompanyFilter: shouldShowOrderHistoryCompanyFilter({
         appType: env.APP_TYPE,
         params: route?.params,
@@ -146,7 +151,7 @@ const ordersRoutes = [
       headerShown: true,
       showBottomCart: false,
       showBottomToolBar: false,
-      title: global.t?.t('orders', 'title', 'order'),
+      title: () => global.t?.t('orders', 'title', 'order'),
     },
     initialParams: { store: 'orders' },
   },
@@ -155,7 +160,7 @@ const ordersRoutes = [
     component: Checkout,
     options: {
       showBottomCart: false,
-      title: global.t?.t('orders', 'title', 'checkout') || 'Pagamento',
+      title: () => global.t?.t('orders', 'title', 'checkout') || 'Pagamento',
     },
     initialParams: { store: 'cart' },
   },

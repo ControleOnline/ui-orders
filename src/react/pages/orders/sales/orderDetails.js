@@ -2366,9 +2366,13 @@ const OrderDetails = ({ route, navigation }) => {
     topBarPrinterSelection,
   ])
 
+  const orderPageTitle = useUnifiedKdsLayout
+    ? ''
+    : global.t?.t('orders', 'title', 'order') || 'Pedido'
+
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: useUnifiedKdsLayout ? '' : global.t?.t('orders', 'title', 'order'),
+      title: orderPageTitle,
       headerShown: !shouldStackHeaderActions,
       headerStyle: shouldStackHeaderActions ? undefined : undefined,
       headerBackVisible: !shouldStackHeaderActions,
@@ -2394,7 +2398,7 @@ const OrderDetails = ({ route, navigation }) => {
           <View style={localStyles.topBarTitleWrap}>
             <View style={localStyles.topBarTitleContent}>
               <Text style={localStyles.topBarTitleText}>
-                {global.t?.t('orders', 'title', 'order')}
+                {orderPageTitle}
               </Text>
             </View>
           </View>
@@ -2418,6 +2422,7 @@ const OrderDetails = ({ route, navigation }) => {
     localStyles.topBarTitleWrap,
     marketplaceSummary.summary,
     navigation,
+    orderPageTitle,
     orderHeaderActionProps,
     orderIdentitySource,
     ppcColors.accentInfo,
@@ -2662,116 +2667,88 @@ const OrderDetails = ({ route, navigation }) => {
     ],
   )
 
-  const orderSummaryData = useMemo(() => {
-    const baseCards = hasMarketplaceIntegration
-      ? []
-      : [
-          {
-            key: 'application',
-            label: global.t?.t('orders', 'label', 'application'),
-            value: orderAppLabel || '-',
-          },
-          {
-            key: 'local-status',
-            label: global.t?.t('orders', 'label', 'localStatus'),
-            value: translatedLocalStatusLabel || '-',
-          },
-          {
-            key: 'local-real-status',
-            label:
-              global.t?.t('orders', 'label', 'localRealStatus') ||
-              'Real status local',
-            value: translatedLocalRealStatusLabel || '-',
-          },
-          {
-            key: 'payments',
-            label: global.t?.t('orders', 'title', 'payments') || 'Pagamentos',
-            value: localInvoiceCards.length,
-          },
-        ];
-
-    const baseLines = hasMarketplaceIntegration
-      ? []
-      : [
-          {
-            key: 'created-at',
-            label: global.t?.t('orders', 'label', 'createdAt'),
-            value: formatOrderDateTime(resolvedOrderDateValue),
-          },
-          {
-            key: 'updated-at',
-            label: global.t?.t('orders', 'label', 'updatedAt'),
-            value: formatOrderDateTime(item?.alterDate || resolvedOrderDateValue),
-          },
-          {
-            key: 'local-order-id',
-            label:
-              global.t?.t('orders', 'label', 'localOrderNumber') ||
-              'Pedido interno',
-            value: item?.id || orderParam?.id || '-',
-          },
-          {
-            key: 'local-total',
-            label: localDisplayLabel,
-            value: Formatter.formatMoney(localDisplayAmount || 0),
-          },
-          shouldShowOrderPartyDetails && !!orderCustomerName && {
-            key: 'customer',
-            label: global.t?.t('orders', 'label', 'customer'),
-            value: orderCustomerName,
-          },
-          shouldShowOrderPartyDetails && !!orderCustomerPhone && {
-            key: 'customer-phone',
-            label: global.t?.t('orders', 'label', 'phone'),
-            value: orderCustomerPhone,
-          },
-          shouldShowOrderPartyDetails && !!orderCustomerDocument && {
-            key: 'customer-document',
-            label: orderCustomerDocumentLabel,
-            value: orderCustomerDocument,
-          },
-          shouldShowOrderAddress && !!localOrderAddressParts.primary && {
-            key: 'address',
-            label: global.t?.t('orders', 'label', 'delivery'),
-            value: localOrderAddressParts.primary,
-          },
-          ...summaryInformationEntries,
-        ].filter(Boolean);
-
-    return {
-      title: global.t?.t('orders', 'title', 'orderSummary'),
-      base: {
-        order: orderIdentitySource,
-        cards: baseCards,
-        lines: baseLines,
-      },
-      tabs: [],
-      primaryAction: null,
-      marketplace: marketplaceSummary.summary,
-    }
-  }, [
-    hasMarketplaceIntegration,
-    formatOrderDateTime,
-    item?.alterDate,
-    localInvoiceCards.length,
-    localOrderAddressParts,
-    localDisplayAmount,
-    localDisplayLabel,
-    localOrderTotal,
-    marketplaceSummary.summary,
-    orderAppLabel,
-    orderCustomerDocument,
-    orderCustomerDocumentLabel,
-    orderCustomerName,
-    orderCustomerPhone,
-    orderIdentitySource,
-    resolvedOrderDateValue,
-    shouldShowOrderAddress,
-    shouldShowOrderPartyDetails,
-    summaryInformationEntries,
-    translatedLocalRealStatusLabel,
-    translatedLocalStatusLabel,
-  ])
+  const orderSummaryData = {
+    title: global.t?.t('orders', 'title', 'orderSummary'),
+    base: {
+      order: orderIdentitySource,
+      cards: hasMarketplaceIntegration
+        ? []
+        : [
+            {
+              key: 'application',
+              label: global.t?.t('orders', 'label', 'application'),
+              value: orderAppLabel || '-',
+            },
+            {
+              key: 'local-status',
+              label: global.t?.t('orders', 'label', 'localStatus'),
+              value: translatedLocalStatusLabel || '-',
+            },
+            {
+              key: 'local-real-status',
+              label:
+                global.t?.t('orders', 'label', 'localRealStatus') ||
+                'Real status local',
+              value: translatedLocalRealStatusLabel || '-',
+            },
+            {
+              key: 'payments',
+              label: global.t?.t('orders', 'title', 'payments') || 'Pagamentos',
+              value: localInvoiceCards.length,
+            },
+          ],
+      lines: hasMarketplaceIntegration
+        ? []
+        : [
+            {
+              key: 'created-at',
+              label: global.t?.t('orders', 'label', 'createdAt'),
+              value: formatOrderDateTime(resolvedOrderDateValue),
+            },
+            {
+              key: 'updated-at',
+              label: global.t?.t('orders', 'label', 'updatedAt'),
+              value: formatOrderDateTime(item?.alterDate || resolvedOrderDateValue),
+            },
+            {
+              key: 'local-order-id',
+              label:
+                global.t?.t('orders', 'label', 'localOrderNumber') ||
+                'Pedido interno',
+              value: item?.id || orderParam?.id || '-',
+            },
+            {
+              key: 'local-total',
+              label: localDisplayLabel,
+              value: Formatter.formatMoney(localDisplayAmount || 0),
+            },
+            shouldShowOrderPartyDetails && !!orderCustomerName && {
+              key: 'customer',
+              label: global.t?.t('orders', 'label', 'customer'),
+              value: orderCustomerName,
+            },
+            shouldShowOrderPartyDetails && !!orderCustomerPhone && {
+              key: 'customer-phone',
+              label: global.t?.t('orders', 'label', 'phone'),
+              value: orderCustomerPhone,
+            },
+            shouldShowOrderPartyDetails && !!orderCustomerDocument && {
+              key: 'customer-document',
+              label: orderCustomerDocumentLabel,
+              value: orderCustomerDocument,
+            },
+            shouldShowOrderAddress && !!localOrderAddressParts.primary && {
+              key: 'address',
+              label: global.t?.t('orders', 'label', 'delivery'),
+              value: localOrderAddressParts.primary,
+            },
+            ...summaryInformationEntries,
+          ].filter(Boolean),
+    },
+    tabs: [],
+    primaryAction: null,
+    marketplace: marketplaceSummary.summary,
+  }
   const renderKdsMobileContent = () => (
     <ScrollView
       contentContainerStyle={[

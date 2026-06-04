@@ -245,10 +245,7 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
       resolvePosCheckOrderType(runtimeDeviceConfig?.configs),
     [route?.params?.orderType, runtimeDeviceConfig?.configs],
   )
-  const orderLabel = useMemo(
-    () => resolveLinkedOrderLabel(linkedOrderType),
-    [linkedOrderType],
-  )
+  const orderLabel = resolveLinkedOrderLabel(linkedOrderType)
   const preferredInputType = useMemo(
     () =>
       normalizeStatusKey(runtimeDeviceConfig?.configs?.['check-type']) || 'manual',
@@ -339,13 +336,13 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     [],
   )
 
-  useEffect(() => {
-    const title =
-      global.t?.t('orders', 'title', 'linkedOrderSettlement') ||
-      `${orderLabel} settlement`
+  const settlementTitle =
+    global.t?.t('orders', 'title', 'linkedOrderSettlement') ||
+    `${orderLabel} settlement`
 
-    navigation.setOptions({title})
-  }, [navigation, orderLabel])
+  useEffect(() => {
+    navigation.setOptions({title: settlementTitle})
+  }, [navigation, settlementTitle])
 
   const invoiceSummary = useMemo(() => summarizeInvoices(treeInvoices), [treeInvoices])
   const primaryOrderTotal = Number(primaryOrder?.price || 0)

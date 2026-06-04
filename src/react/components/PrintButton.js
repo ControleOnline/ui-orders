@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import React from 'react';
 
 import {
   ActivityIndicator,
@@ -63,27 +63,20 @@ const PrinterButton = ({
   const resolvedVariant = layout?.variant || (compact ? 'compact' : 'default');
   const showCompactContent = resolvedVariant === 'compact' || resolvedVariant === 'icon';
   const resolvedIconSize = iconSize || (showCompactContent ? 19 : 24);
-  const resolvedLabel = useMemo(() => {
-    if (showCompactContent) {
-      return '';
-    }
-
+  let resolvedLabel = '';
+  if (!showCompactContent) {
     if (isRequestLoading) {
-      return global.t?.t('orders', 'button', 'printing') || 'Processando...';
-    }
-
-    if (label) {
-      return label;
-    }
-
-    if (selectedPrinter?.alias) {
-      return `${global.t?.t('orders', 'button', 'print') || 'Imprimir'} (${selectedPrinter.alias} • ${getDeviceTypeLabel(
+      resolvedLabel = global.t?.t('orders', 'button', 'printing') || 'Processando...';
+    } else if (label) {
+      resolvedLabel = label;
+    } else if (selectedPrinter?.alias) {
+      resolvedLabel = `${global.t?.t('orders', 'button', 'print') || 'Imprimir'} (${selectedPrinter.alias} • ${getDeviceTypeLabel(
         selectedPrinter?.type,
       )})`;
+    } else {
+      resolvedLabel = global.t?.t('orders', 'button', 'print') || 'Imprimir';
     }
-
-    return global.t?.t('orders', 'button', 'print') || 'Imprimir';
-  }, [isRequestLoading, label, selectedPrinter?.alias, selectedPrinter?.type, showCompactContent]);
+  }
 
   const renderPrinterItem = ({item}) => (
     <TouchableOpacity

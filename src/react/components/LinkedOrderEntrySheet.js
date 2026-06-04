@@ -89,7 +89,7 @@ const LinkedOrderEntrySheet = ({
   const editableTargetRef = useRef(false)
   const hasAutoOpenedScannerRef = useRef(false)
   const isNativeRuntime = NATIVE_PLATFORMS.has(Platform.OS)
-  const orderLabel = useMemo(() => resolveOrderLabel(orderType), [orderType])
+  const orderLabel = resolveOrderLabel(orderType)
   const [value, setValue] = useState('')
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)

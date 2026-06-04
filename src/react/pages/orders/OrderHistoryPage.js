@@ -170,7 +170,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     [themeColors, currentCompany?.id],
   );
 
-  const channelOptions = useMemo(() => ([
+  const channelOptions = [
     {
       key: 'all',
       label: normalizeText(global.t?.t('orders', 'label', 'all')) || 'All',
@@ -191,9 +191,9 @@ export default function OrderHistoryPage({ navigation, route }) {
       key: 'POS',
       label: resolveDisplayText(global.t?.t('orders', 'label', 'channel_pos'), 'POS', ['Channel ']),
     },
-  ]), []);
+  ];
 
-  const statusOptions = useMemo(() => ([
+  const statusOptions = [
     {
       key: 'all',
       label: normalizeText(global.t?.t('orders', 'label', 'all')) || 'All',
@@ -214,7 +214,7 @@ export default function OrderHistoryPage({ navigation, route }) {
       key: 'canceled',
       label: normalizeText(global.t?.t('orders', 'status', 'canceled')) || 'Canceled',
     },
-  ]), []);
+  ];
 
   /* ─── estado ──────────────────────────────────────────────────────── */
 
@@ -269,10 +269,9 @@ export default function OrderHistoryPage({ navigation, route }) {
     () => resolveOrderTypeFilter(route?.params?.orderTypeFilter),
     [route?.params?.orderTypeFilter],
   );
-  const defaultHistoryTitle = useMemo(
-    () => normalizeText(global.t?.t('configs', 'title', 'orderHistory')) || 'Historico de pedidos',
-    [],
-  );
+  const defaultHistoryTitle =
+    normalizeText(global.t?.t('configs', 'title', 'orderHistory')) ||
+    'Historico de pedidos';
   const historyPageTitle = useMemo(
     () => normalizeText(route?.params?.historyTitle) || defaultHistoryTitle,
     [defaultHistoryTitle, route?.params?.historyTitle],
@@ -304,12 +303,12 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     return [styles.filterSelectorSlot, styles.filterSelectorSlotFull];
   }, [visibleFilterCount]);
-  const searchPlaceholder = useMemo(() => {
+  const searchPlaceholder = (() => {
     if (orderTypeFilter === 'purchase') return global.t?.t('orders', 'placeholder', 'search_purchase');
     if (orderTypeFilter === 'transfer') return global.t?.t('orders', 'placeholder', 'search_transfer');
     if (orderTypeFilter === 'loss') return global.t?.t('orders', 'placeholder', 'search_loss');
     return global.t?.t('orders', 'placeholder', 'search_default');
-  }, [orderTypeFilter]);
+  })();
   const clearSearch = useCallback(() => setSearchText(''), []);
   const orderHistoryColumns = useMemo(() => {
     const columnsByName = new Map(
