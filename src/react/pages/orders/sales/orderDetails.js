@@ -1300,6 +1300,8 @@ const OrderDetails = ({ route, navigation }) => {
     ),
     [defaultCompany, item?.provider, orderParam?.provider],
   )
+  const notInformedLabel =
+    global.t?.t('orders', 'label', 'notInformed') || 'Não informado'
   const localInvoiceCards = useMemo(
     () => activeLocalInvoices
       .map(invoice => {
@@ -1310,7 +1312,7 @@ const OrderDetails = ({ route, navigation }) => {
         const invoiceId = String(invoice?.id || '').trim()
         const paymentTypeLabel =
           getInvoicePaymentTypeLabel(invoice) ||
-          (global.t?.t('orders', 'label', 'notInformed') || 'Não informado')
+          notInformedLabel
         const invoiceAmount = resolveInvoiceDisplayAmount(invoice)
         const invoiceType = resolvePreferredText(invoice?.invoiceType, invoice?.invoice_type)
 
@@ -1355,7 +1357,7 @@ const OrderDetails = ({ route, navigation }) => {
 
         return Number(right?.invoiceId || 0) - Number(left?.invoiceId || 0)
       }),
-    [activeLocalInvoices, localFinancialCompanyId],
+    [activeLocalInvoices, localFinancialCompanyId, notInformedLabel],
   )
   const localPaidAmount = useMemo(
     () => activeLocalInvoices.reduce((sum, invoice) => {
