@@ -2011,7 +2011,7 @@ const OrderDetails = ({ route, navigation }) => {
     global.t?.t('orders', 'title', 'payments') ||
     'Pagamentos'
   const shouldShowPreparationTime = !isTerminalOrder && !!orderWaitingLabel
-  const summaryInformationEntries = useMemo(() => {
+  const summaryInformationEntries = (() => {
     const entries = orderAdditionalInfoEntries.map(entry => ({
       key: entry.id,
       label: formatHumanLabel(entry.label || entry.name || entry.context) || 'Campo',
@@ -2027,11 +2027,7 @@ const OrderDetails = ({ route, navigation }) => {
     }
 
     return entries
-  }, [
-    orderAdditionalInfoEntries,
-    orderWaitingLabel,
-    shouldShowPreparationTime,
-  ])
+  })()
   const orderAppLabel = useMemo(() => {
     const resolvedApp = resolveMarketplaceAppLabel(item || orderParam)
     if (resolvedApp) {
