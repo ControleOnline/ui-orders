@@ -55,7 +55,6 @@ export default {
         },
       },
       {
-        translate: true,
         sortable: true,
         name: "orderType",
         editable: false,
@@ -66,7 +65,6 @@ export default {
         },
       },
       {
-        translate: true,
         sortable: true,
         sortField: "status.status",
         name: "status",
