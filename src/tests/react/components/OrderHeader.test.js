@@ -92,7 +92,7 @@ describe('OrderHeader', () => {
       status: {
         realStatus: 'pending',
         status: 'ready',
-        color: '#EF4444',
+        color: '#c10015',
       },
     })
 
@@ -100,7 +100,7 @@ describe('OrderHeader', () => {
     expect(status.labelUpper).toBe('READY')
     expect(status.key).toBe('pending')
     expect(status.isOpen).toBe(false)
-    expect(status.color).toBe('#EF4444')
+    expect(status.color).toBe('#c10015')
   })
 
   it('falls back to status.status when realStatus is absent', () => {
@@ -148,7 +148,7 @@ describe('OrderHeader', () => {
           status: {
             realStatus: 'working',
             status: 'Preparing',
-            color: '#22C55E',
+            color: '#10b981',
           },
         },
       }),
@@ -170,8 +170,8 @@ describe('OrderHeader', () => {
       {id: 'statusBadge'},
       {id: 'statusBadgeStacked'},
       {
-        backgroundColor: '#22C55E:0.08',
-        borderColor: '#22C55E:0.4',
+        backgroundColor: '#10b981:0.08',
+        borderColor: '#10b981:0.4',
       },
     ])
   })
@@ -186,7 +186,7 @@ describe('OrderHeader', () => {
           status: {
             realStatus: 'open',
             status: 'Open',
-            color: '#22C55E',
+            color: '#10b981',
           },
         },
       }),
@@ -210,7 +210,7 @@ describe('OrderHeader', () => {
           status: {
             realStatus: 'open',
             status: 'Open',
-            color: '#22C55E',
+            color: '#10b981',
           },
         },
       }),
@@ -235,7 +235,7 @@ describe('OrderHeader', () => {
           status: {
             realStatus: 'open',
             status: 'Open',
-            color: '#22C55E',
+            color: '#10b981',
           },
         },
       }),

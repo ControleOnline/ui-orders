@@ -10,9 +10,9 @@ import OrderCardHeader from './OrderCardHeader'
 import createStyles from './OrderHeader.styles'
 
 const WAITING_RULES = [
-  {max: 5, color: '#22C55E', blink: false},
+  {max: 5, color: '#10b981', blink: false},
   {max: 10, color: '#FACC15', blink: false},
-  {max: Infinity, color: '#EF4444', blink: true},
+  {max: Infinity, color: '#c10015', blink: true},
 ]
 
 const normalizeText = value => String(value || '').trim()

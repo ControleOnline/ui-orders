@@ -25,7 +25,7 @@ describe('OrderProducts.utils', () => {
             id: 10,
             updateTime: '2026-04-22T12:00:00Z',
             queue: { queue: 'Cozinha' },
-            status: { status: 'Em preparo', realStatus: 'working', color: '#F59E0B' },
+            status: { status: 'Em preparo', realStatus: 'working', color: '#e67e22' },
           },
         ],
       },
@@ -762,7 +762,7 @@ describe('OrderProducts.utils', () => {
           id: 1001,
           updateTime: '2026-04-22T12:00:00Z',
           queue: { queue: 'Cozinha' },
-          status: { status: 'Em preparo', realStatus: 'working', color: '#F59E0B' },
+          status: { status: 'Em preparo', realStatus: 'working', color: '#e67e22' },
         },
         {
           id: 1002,

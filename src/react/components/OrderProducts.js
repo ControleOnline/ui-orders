@@ -13,7 +13,7 @@ import {
   normalizeOrderProductQuantity,
 } from './OrderProducts.utils'
 
-const REMOVAL_COLOR = '#EF4444'
+const REMOVAL_COLOR = '#c10015'
 
 const resolveCardImageUrl = card => {
   const productFiles = getOrderProductFiles(card?.rootItem)

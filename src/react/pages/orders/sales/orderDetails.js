@@ -294,7 +294,7 @@ const resolveInvoiceStatusPresentation = invoice => {
   ) {
     return {
       label: formatHumanLabel(rawStatus || rawRealStatus || 'Canceled'),
-      color: '#EF4444',
+      color: '#c10015',
       backgroundColor: '#EF444422',
     }
   }
@@ -2213,7 +2213,7 @@ const OrderDetails = ({ route, navigation }) => {
                 <Icon
                   name={quantity <= 1 ? 'delete' : 'remove'}
                   size={18}
-                  color={quantity <= 1 ? '#EF4444' : ppcColors.textPrimary}
+                  color={quantity <= 1 ? '#c10015' : ppcColors.textPrimary}
                 />
               </TouchableOpacity>
               <View style={localStyles.editQtyBox}>
