@@ -152,6 +152,7 @@ const resolvePriceStyle = (orderType, styles) => {
 const OrderHeader = ({
   order,
   isKds = false,
+  showPricing = !isKds,
   showWaitingTime = isKds,
   stackRightSectionBelow = false,
   onCustomerPress = null,
@@ -332,7 +333,7 @@ const OrderHeader = ({
               {formattedOrderDate}
             </Text>
           </View>
-        ) : displayPrice > 0 ? (
+        ) : showPricing && displayPrice > 0 ? (
           <Text style={[styles.priceText, priceStyle]}>
             {Formatter.formatMoney(displayPrice)}
           </Text>

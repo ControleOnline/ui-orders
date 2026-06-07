@@ -702,6 +702,9 @@ const OrderDetails = ({ route, navigation }) => {
   const ordersActionsRef = useRef(ordersActions)
   const orderProductsActionsRef = useRef(orderProductsStore.actions)
   const orderInvoicesActionsRef = useRef(orderInvoicesActions)
+  const commitResolvedOrderProductsRef = useRef(null)
+  const loadOrderInvoicesRef = useRef(null)
+  const focusedOrderFetchKeyRef = useRef('')
   const showErrorRef = useRef(showError)
   const [customerModalVisible, setCustomerModalVisible] = useState(false)
   const [customerCreateModalVisible, setCustomerCreateModalVisible] = useState(false)
@@ -854,6 +857,14 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   useEffect(() => {
+    commitResolvedOrderProductsRef.current = commitResolvedOrderProducts
+  }, [commitResolvedOrderProducts])
+
+  useEffect(() => {
+    loadOrderInvoicesRef.current = loadOrderInvoices
+  }, [loadOrderInvoices])
+
+  useEffect(() => {
     storedOrderProductsRef.current = filteredStoredOrderProducts
 
     if (!hasDetailedOrderProductsPayload(filteredStoredOrderProducts)) {
@@ -866,8 +877,10 @@ const OrderDetails = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       let active = true
+      const focusFetchKey = String(routeOrderId || '')
 
-      if (routeOrderId) {
+      if (focusFetchKey && focusedOrderFetchKeyRef.current !== focusFetchKey) {
+        focusedOrderFetchKeyRef.current = focusFetchKey
         ordersActionsRef.current
           .get(routeOrderId)
           .then(fetchedOrder => {
@@ -875,17 +888,17 @@ const OrderDetails = ({ route, navigation }) => {
               return
             }
 
-            commitResolvedOrderProducts(fetchedOrder)
+            commitResolvedOrderProductsRef.current?.(fetchedOrder)
           })
           .catch(() => {})
       }
 
-      void loadOrderInvoices({silent: true})
+      void loadOrderInvoicesRef.current?.({silent: true})
 
       return () => {
         active = false
       }
-    }, [commitResolvedOrderProducts, loadOrderInvoices, routeOrderId]),
+    }, [routeOrderId]),
   )
 
   const handleAddProduct = () => {
@@ -983,18 +996,18 @@ const OrderDetails = ({ route, navigation }) => {
     const baseOrder = item?.id ? item : orderParam
 
     currentOrderProductsRef.current = normalizedOrderProducts
-    orderProductsStore.actions.setItems(normalizedOrderProducts)
+    orderProductsActionsRef.current.setItems(normalizedOrderProducts)
 
     if (!baseOrder) {
       return normalizedOrderProducts
     }
 
-    ordersActions.syncOrder(
+    ordersActionsRef.current.syncOrder(
       mergeOrderWithOrderProducts(baseOrder, normalizedOrderProducts),
     )
 
     return normalizedOrderProducts
-  }, [item, orderParam, orderProductsStore.actions, ordersActions])
+  }, [item, orderParam])
 
   const {
     flushAllChanges: flushPendingOrderProductChanges,
@@ -1022,11 +1035,11 @@ const OrderDetails = ({ route, navigation }) => {
       if (!orderProductId) return
 
       if (targetQuantity <= 0) {
-        await orderProductsStore.actions.remove(orderProductId)
+        await orderProductsActionsRef.current.remove(orderProductId)
         return
       }
 
-      const savedOrderProduct = await orderProductsStore.actions.save({
+      const savedOrderProduct = await orderProductsActionsRef.current.save({
         '@id': orderProduct?.['@id'],
         id: Number(orderProductId),
         quantity: targetQuantity,
