@@ -105,6 +105,9 @@ const OrderProducts = ({
   showQueuePresentation = true,
   showHierarchyGuides = false,
   showDescriptions = showDetails,
+  showRootStatusMarker = true,
+  showGroupStatusMarker = true,
+  resolveItemColor = null,
 }) => {
   const hierarchyGuidesEnabled = Boolean(showHierarchyGuides)
   const resolvedOrderProducts = Array.isArray(orderProducts)
@@ -124,8 +127,9 @@ const OrderProducts = ({
   const productCards = useMemo(
     () => buildOrderProductCards(resolvedOrderProducts, {
       fallbackColor: order?.status?.color,
+      resolveItemColor,
     }),
-    [order?.status?.color, resolvedOrderProducts],
+    [order?.status?.color, resolveItemColor, resolvedOrderProducts],
   )
 
   const visibleCards = useMemo(
@@ -194,7 +198,9 @@ const OrderProducts = ({
                   <View style={[sharedStyles.groupItemMainRow, styles.groupItemMainRow]}>
                     <View style={[sharedStyles.groupItemContent, styles.groupItemContent]}>
                       <Text style={styles.groupItemText}>
-                        <Text style={[styles.statusMarker, { color: childColor }]}>* </Text>
+                        {showGroupStatusMarker ? (
+                          <Text style={[styles.statusMarker, { color: childColor }]}>* </Text>
+                        ) : null}
                         {groupItem.isZero ? (
                           <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
                         ) : null}
@@ -323,7 +329,9 @@ const OrderProducts = ({
 
                   <View style={[sharedStyles.itemContent, styles.itemContent]}>
                     <Text style={styles.text} numberOfLines={2}>
-                      <Text style={[styles.statusMarker, { color: itemColor }]}>* </Text>
+                      {showRootStatusMarker ? (
+                        <Text style={[styles.statusMarker, { color: itemColor }]}>* </Text>
+                      ) : null}
                       {isRootZero ? (
                         <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
                       ) : null}

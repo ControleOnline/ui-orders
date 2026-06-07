@@ -283,12 +283,51 @@ const shouldShowInParentQueue = node =>
 const getCatalogProductKey = node =>
   toOrderProductEntityId(node?.product?.id || node?.product?.['@id'])
 
+const getCollectionItems = value => {
+  if (Array.isArray(value)) {
+    return value
+  }
+
+  if (Array.isArray(value?.member)) {
+    return value.member
+  }
+
+  if (Array.isArray(value?.['hydra:member'])) {
+    return value['hydra:member']
+  }
+
+  return []
+}
+
 const getParentCatalogProductKey = node =>
   toOrderProductEntityId(
     node?.productGroup?.parentProduct?.id ||
     node?.productGroup?.parentProduct?.['@id'] ||
     node?.productGroup?.parentProduct,
   )
+
+const getParentCatalogProductKeys = node => {
+  const parentKeys = new Set()
+  const directParentKey = getParentCatalogProductKey(node)
+
+  if (directParentKey) {
+    parentKeys.add(directParentKey)
+  }
+
+  getCollectionItems(node?.productGroup?.parentProducts).forEach(parentLink => {
+    const parentKey = toOrderProductEntityId(
+      parentLink?.parentProduct?.id ||
+      parentLink?.parentProduct?.['@id'] ||
+      parentLink?.parentProduct,
+    )
+
+    if (parentKey) {
+      parentKeys.add(parentKey)
+    }
+  })
+
+  return Array.from(parentKeys)
+}
 
 export const getOrderProductBucketLabel = orderProduct =>
   getCategoryLabel(orderProduct) ||
@@ -310,7 +349,10 @@ export const getOrderProductBucketKey = orderProduct =>
     getGroupKey(orderProduct),
   ) || DEFAULT_GROUP_KEY
 
-const resolveEntryColor = (orderProduct, fallbackColor) =>
+const resolveEntryColor = (orderProduct, fallbackColor, resolveItemColor = null) =>
+  (typeof resolveItemColor === 'function'
+    ? normalizeOrderProductText(resolveItemColor(orderProduct, fallbackColor))
+    : '') ||
   resolveOrderProductQueuePresentation(orderProduct)?.color ||
   normalizeOrderProductText(fallbackColor) ||
   DEFAULT_ITEM_COLOR
@@ -322,6 +364,7 @@ const createCard = ({
   cardsByRootKey,
   cardsByCatalogProductKey,
   fallbackColor,
+  resolveItemColor,
   cardKey,
   orderIndex,
   rootItem = null,
@@ -340,7 +383,7 @@ const createCard = ({
     quantity: 0,
     unitPrice: 0,
     totalPrice: 0,
-    itemColor: resolveEntryColor(rootItem, fallbackColor),
+    itemColor: resolveEntryColor(rootItem, fallbackColor, resolveItemColor),
     queuePresentation: resolveOrderProductQueuePresentation(rootItem),
     groups: new Map(),
   }
@@ -359,7 +402,10 @@ const createCard = ({
   return card
 }
 
-export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_ITEM_COLOR } = {}) => {
+export const buildOrderProductCards = (orderProducts, {
+  fallbackColor = DEFAULT_ITEM_COLOR,
+  resolveItemColor = null,
+} = {}) => {
   const items = Array.isArray(orderProducts) ? orderProducts : []
   const cards = []
   const cardsByRootKey = new Map()
@@ -385,10 +431,9 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   })
 
   const hasCatalogParentInCurrentOrder = item => {
-    const parentCatalogProductKey = getParentCatalogProductKey(item)
-    return !!(
-      parentCatalogProductKey &&
-      catalogProductKeysInOrder.has(parentCatalogProductKey)
+    const parentCatalogProductKeys = getParentCatalogProductKeys(item)
+    return parentCatalogProductKeys.some(parentCatalogProductKey =>
+      catalogProductKeysInOrder.has(parentCatalogProductKey),
     )
   }
 
@@ -463,7 +508,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       observation: getNodeObservation(item),
       totalPrice,
       unitPrice,
-      itemColor: resolveEntryColor(item, fallbackColor),
+      itemColor: resolveEntryColor(item, fallbackColor, resolveItemColor),
       isZero: forceRemoval || quantity === 0,
       order,
       orderProduct: item,
@@ -627,6 +672,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       cardsByRootKey,
       cardsByCatalogProductKey,
       fallbackColor,
+      resolveItemColor,
       cardKey: rootKey,
       orderIndex: index,
       rootItem: item,
@@ -638,7 +684,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
   const getFallbackCardForGroupedItem = (item, index) => {
     const parentReference = getParentReference(item)
     const fallbackKey =
-      `group-${toOrderProductEntityId(parentReference) || getParentCatalogProductKey(item) || index}`
+      `group-${toOrderProductEntityId(parentReference) || getParentCatalogProductKeys(item)[0] || index}`
 
     if (cardsByRootKey.has(fallbackKey)) {
       return cardsByRootKey.get(fallbackKey)
@@ -649,6 +695,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       cardsByRootKey,
       cardsByCatalogProductKey,
       fallbackColor,
+      resolveItemColor,
       cardKey: fallbackKey,
       orderIndex: index,
       rootItem: null,
@@ -671,7 +718,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     })
 
     const fallbackRootProductKey =
-      getParentCatalogProductKey(item) ||
+      getParentCatalogProductKeys(item)[0] ||
       toOrderProductEntityId(parentReference?.id || parentReference?.['@id'])
 
     if (fallbackRootProductKey) {
@@ -701,10 +748,8 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
       }
     }
 
-    const parentCatalogProductKey = getParentCatalogProductKey(item)
-    const productMatches = parentCatalogProductKey
-      ? (cardsByCatalogProductKey.get(parentCatalogProductKey) || [])
-      : []
+    const productMatches = getParentCatalogProductKeys(item)
+      .flatMap(parentCatalogProductKey => cardsByCatalogProductKey.get(parentCatalogProductKey) || [])
 
     if (productMatches.length) {
       const nearestPreviousCard =
@@ -750,7 +795,7 @@ export const buildOrderProductCards = (orderProducts, { fallbackColor = DEFAULT_
     card.quantity = quantity
     card.unitPrice = unitPrice > 0 ? unitPrice : card.unitPrice
     card.totalPrice = toMoney(item?.total ?? resolveOrderProductTotal(item))
-    card.itemColor = resolveEntryColor(item, fallbackColor)
+    card.itemColor = resolveEntryColor(item, fallbackColor, resolveItemColor)
     card.queuePresentation = resolveOrderProductQueuePresentation(item)
 
     appendEmbeddedGroupedItems({
