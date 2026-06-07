@@ -195,6 +195,65 @@ describe('OrderHeader', () => {
     expect(global.__orderCardHeaderProps.dateText).toBe('')
   })
 
+  it('shows price by default outside KDS', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        order: {
+          price: 42,
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+            color: '#10b981',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.rightContent?.props?.children).toBe('R$ 42')
+  })
+
+  it('does not show price by default on KDS headers', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        isKds: true,
+        order: {
+          price: 42,
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+            color: '#10b981',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.rightContent).toBeNull()
+  })
+
+  it('hides price when showPricing is disabled outside KDS', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        showPricing: false,
+        order: {
+          price: 42,
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+            color: '#10b981',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.rightContent).toBeNull()
+  })
+
   it('prefixes the customer name with the comanda code when mainOrder.externalCode exists', () => {
     global.__orderCardHeaderProps = null
 
