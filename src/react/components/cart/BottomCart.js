@@ -54,14 +54,15 @@ const BottomCart = ({
   const [pendingSelectionsState, setPendingSelectionsState] = useState(() =>
     listPendingAddProducts(),
   );
-  const primaryColor = themeColors.primary;
-  const cardBg = themeColors['cart-bottom-bg'];
-  const borderColor = themeColors['cart-bottom-border'];
-  const totalCardBg = themeColors['cart-bottom-total-bg'];
-  const labelColor = themeColors['cart-bottom-label'];
-  const textColor = themeColors['cart-bottom-text'];
+  const primaryColor = themeColors.primary || '#1B5587';
+  const cardBg = themeColors['cart-bottom-bg'] || '#FFFFFF';
+  const borderColor = themeColors['cart-bottom-border'] || '#D3DFEC';
+  const totalCardBg = themeColors['cart-bottom-total-bg'] || '#F8FBFF';
+  const labelColor = themeColors['cart-bottom-label'] || '#64748B';
+  const textColor = themeColors['cart-bottom-text'] || '#0F172A';
   const successColor = themeColors.success;
-  const warningColor = '#D97706';
+  // const warningColor = '#D97706';
+  const warningColor = themeColors.warning;
   const isCompact = width < 360;
   const isUltraCompact = width < 330;
   const isPaymentStatusVariant = variant === 'payment-status';
