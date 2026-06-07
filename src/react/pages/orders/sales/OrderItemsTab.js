@@ -188,6 +188,8 @@ const OrderItemsTab = ({
   const hasFallbackFetchError = !!orderProductsGetters?.error
   const fallbackFetchOrderIdRef = useRef('')
   const orderFetchOrderIdRef = useRef('')
+  const ordersActionsRef = useRef(ordersActions)
+  const orderProductsActionsRef = useRef(orderProductsActions)
 
   const fallbackOrderProducts = useMemo(
     () =>
@@ -248,6 +250,14 @@ const OrderItemsTab = ({
   }
 
   useEffect(() => {
+    ordersActionsRef.current = ordersActions
+  }, [ordersActions])
+
+  useEffect(() => {
+    orderProductsActionsRef.current = orderProductsActions
+  }, [orderProductsActions])
+
+  useEffect(() => {
     if (!fallbackRequestKey) {
       return;
     }
@@ -292,7 +302,7 @@ const OrderItemsTab = ({
     orderFetchOrderIdRef.current = fetchOrderId
     setIsLoadingOrderDetails(true)
 
-    ordersActions
+    ordersActionsRef.current
       .get(normalizedRouteOrderId)
       .then(fetchedOrder => {
         if (!cancelled && fetchedOrder) {
@@ -310,7 +320,7 @@ const OrderItemsTab = ({
     return () => {
       cancelled = true
     }
-  }, [normalizedRouteOrderId, ordersActions, shouldFetchOrderDetails])
+  }, [normalizedRouteOrderId, shouldFetchOrderDetails])
 
   useEffect(() => {
     if (requiresDetailedFallback) {
@@ -343,7 +353,7 @@ const OrderItemsTab = ({
       requestedFallbackOrderKeys.add(fallbackFetchOrderId);
     }
 
-    orderProductsActions
+    orderProductsActionsRef.current
       .getItems({
         'order.id': normalizedRouteOrderId,
         itemsPerPage: 200,
@@ -360,7 +370,6 @@ const OrderItemsTab = ({
     normalizedRouteOrderId,
     fallbackAlreadyRequested,
     fallbackRequestKey,
-    orderProductsActions,
     skipFallbackReason,
   ])
 
