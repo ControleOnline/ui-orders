@@ -533,6 +533,10 @@ const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProduct) => 
   }
 }
 
+const pendingOrderDetailRefreshes = new Map()
+const recentOrderDetailRefreshStarts = new Map()
+const ORDER_DETAIL_REFRESH_COOLDOWN_MS = 1500
+
 const OrderDetails = ({ route, navigation }) => {
   const appType = String(env.APP_TYPE || '').trim().toUpperCase()
   const routeOrderId = useMemo(
@@ -705,6 +709,8 @@ const OrderDetails = ({ route, navigation }) => {
   const commitResolvedOrderProductsRef = useRef(null)
   const loadOrderInvoicesRef = useRef(null)
   const focusedOrderFetchKeyRef = useRef('')
+  const refreshCurrentOrderInFlightRef = useRef(null)
+  const refreshCurrentOrderFingerprintRef = useRef('')
   const showErrorRef = useRef(showError)
   const [customerModalVisible, setCustomerModalVisible] = useState(false)
   const [customerCreateModalVisible, setCustomerCreateModalVisible] = useState(false)
@@ -864,6 +870,44 @@ const OrderDetails = ({ route, navigation }) => {
     loadOrderInvoicesRef.current = loadOrderInvoices
   }, [loadOrderInvoices])
 
+  const resolveCurrentOrderRefreshFingerprint = useCallback(
+    sourceOrder => {
+      const resolvedOrder = sourceOrder || item || orderParam || null
+
+      if (!resolvedOrder) {
+        return String(routeOrderId || '')
+      }
+
+      const resolvedOrderId = String(getEntityId(resolvedOrder) || routeOrderId || '')
+      const resolvedOrderDate = String(
+        resolvedOrder?.alterDate ||
+          resolvedOrder?.alter_date ||
+          resolvedOrder?.updatedAt ||
+          resolvedOrder?.updated_at ||
+          resolvedOrder?.orderDate ||
+          resolvedOrder?.order_date ||
+          '',
+      ).trim()
+      const resolvedOrderStatus = String(
+        resolvedOrder?.status?.realStatus ||
+          resolvedOrder?.status?.real_status ||
+          resolvedOrder?.status?.status ||
+          '',
+      ).trim()
+      const resolvedOrderProducts = Array.isArray(resolvedOrder?.orderProducts)
+        ? resolvedOrder.orderProducts
+        : []
+
+      return [
+        resolvedOrderId,
+        resolvedOrderDate,
+        resolvedOrderStatus,
+        resolvedOrderProducts.length,
+      ].join('|')
+    },
+    [item, orderParam, routeOrderId],
+  )
+
   useEffect(() => {
     storedOrderProductsRef.current = filteredStoredOrderProducts
 
@@ -876,28 +920,16 @@ const OrderDetails = ({ route, navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      let active = true
       const focusFetchKey = String(routeOrderId || '')
 
       if (focusFetchKey && focusedOrderFetchKeyRef.current !== focusFetchKey) {
         focusedOrderFetchKeyRef.current = focusFetchKey
-        ordersActionsRef.current
-          .get(routeOrderId)
-          .then(fetchedOrder => {
-            if (!active) {
-              return
-            }
-
-            commitResolvedOrderProductsRef.current?.(fetchedOrder)
-          })
-          .catch(() => {})
+        void refreshCurrentOrder({force: true})
       }
 
       void loadOrderInvoicesRef.current?.({silent: true})
 
-      return () => {
-        active = false
-      }
+      return undefined
     }, [routeOrderId]),
   )
 
@@ -916,12 +948,59 @@ const OrderDetails = ({ route, navigation }) => {
     )
   }
 
-  const refreshCurrentOrder = useCallback(async () => {
-    if (routeOrderId) {
-      const refreshedOrder = await ordersActionsRef.current.get(routeOrderId)
-      commitResolvedOrderProducts(refreshedOrder)
+  const refreshCurrentOrder = useCallback(async ({force = false} = {}) => {
+    if (!routeOrderId) {
+      return null
     }
-  }, [commitResolvedOrderProducts, routeOrderId])
+
+    const lastRefreshStart = recentOrderDetailRefreshStarts.get(routeOrderId) || 0
+    if (Date.now() - lastRefreshStart < ORDER_DETAIL_REFRESH_COOLDOWN_MS) {
+      return item || orderParam || null
+    }
+
+    const currentFingerprint = resolveCurrentOrderRefreshFingerprint()
+    if (
+      !force &&
+      refreshCurrentOrderFingerprintRef.current &&
+      refreshCurrentOrderFingerprintRef.current === currentFingerprint
+    ) {
+      return item || orderParam || null
+    }
+
+    const pendingRefresh = pendingOrderDetailRefreshes.get(routeOrderId)
+    if (pendingRefresh) {
+      return pendingRefresh
+    }
+
+    if (refreshCurrentOrderInFlightRef.current) {
+      return refreshCurrentOrderInFlightRef.current
+    }
+
+    const request = ordersActionsRef.current
+      .get(routeOrderId)
+      .then(refreshedOrder => {
+        recentOrderDetailRefreshStarts.set(routeOrderId, Date.now())
+        refreshCurrentOrderFingerprintRef.current =
+          resolveCurrentOrderRefreshFingerprint(refreshedOrder)
+        commitResolvedOrderProductsRef.current?.(refreshedOrder)
+        return refreshedOrder
+      })
+      .finally(() => {
+        if (pendingOrderDetailRefreshes.get(routeOrderId) === request) {
+          pendingOrderDetailRefreshes.delete(routeOrderId)
+        }
+        refreshCurrentOrderInFlightRef.current = null
+      })
+
+    pendingOrderDetailRefreshes.set(routeOrderId, request)
+    refreshCurrentOrderInFlightRef.current = request
+    return request
+  }, [
+    item,
+    orderParam,
+    resolveCurrentOrderRefreshFingerprint,
+    routeOrderId,
+  ])
   const refreshIntegrationFinancialData = useCallback(
     async () => loadOrderInvoices({silent: true}),
     [loadOrderInvoices],
@@ -930,7 +1009,7 @@ const OrderDetails = ({ route, navigation }) => {
   const marketplaceSummary = useOrderMarketplaceSummary({
     order: item,
     initialOrder: orderParam,
-    refreshOrder: refreshCurrentOrder,
+    refreshOrder: () => refreshCurrentOrder({force: true}),
     onFinancialGenerated: refreshIntegrationFinancialData,
     isKds,
     navigation,
@@ -1050,7 +1129,7 @@ const OrderDetails = ({ route, navigation }) => {
       )
     },
     onError: async error => {
-      await refreshCurrentOrder()
+      await refreshCurrentOrder({force: true})
       showError(formatApiError(error))
     },
   })
@@ -1070,7 +1149,7 @@ const OrderDetails = ({ route, navigation }) => {
       }
     }
 
-    await refreshCurrentOrder()
+    await refreshCurrentOrder({force: true})
 
     return savedOrder
   }, [
@@ -1545,7 +1624,7 @@ const OrderDetails = ({ route, navigation }) => {
           commitResolvedOrderProducts(updatedOrder)
         }
 
-        await refreshCurrentOrder()
+        await refreshCurrentOrder({force: true})
 
         setProductSearchText('')
         setProductSearchResults([])
@@ -3463,7 +3542,7 @@ const OrderDetails = ({ route, navigation }) => {
         onClose={() => setAttachmentsVisible(false)}
         order={orderIdentitySource}
         company={currentCompany || defaultCompany}
-        onChanged={refreshCurrentOrder}
+        onChanged={() => refreshCurrentOrder({force: true})}
       />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (

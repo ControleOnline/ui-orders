@@ -187,7 +187,6 @@ const OrderItemsTab = ({
   const isFallbackFetchLoading = Boolean(orderProductsGetters?.isLoading)
   const hasFallbackFetchError = !!orderProductsGetters?.error
   const fallbackFetchOrderIdRef = useRef('')
-  const orderFetchOrderIdRef = useRef('')
   const ordersActionsRef = useRef(ordersActions)
   const orderProductsActionsRef = useRef(orderProductsActions)
 
@@ -226,11 +225,6 @@ const OrderItemsTab = ({
           : fallbackOrderProducts,
     [fallbackOrderProducts, primaryOrderProducts, shouldUseFallbackOrderProducts],
   )
-  const shouldFetchOrderDetails = shouldRequestOrderDetails({
-    routeOrderId: normalizedRouteOrderId,
-    resolvedOrderId: resolvedOrder?.id,
-    orderProducts: primaryOrderProducts,
-  })
   const orderSyncSignature = useMemo(() => getOrderSyncSignature(order), [order])
 
   let skipFallbackReason = ''
@@ -281,46 +275,10 @@ const OrderItemsTab = ({
   }, [order, orderSyncSignature])
 
   useEffect(() => {
-    orderFetchOrderIdRef.current = ''
-  }, [normalizedRouteOrderId, order?.id])
-
-  useEffect(() => {
-    if (!shouldFetchOrderDetails) {
-      setIsLoadingOrderDetails(false)
-      return undefined
-    }
-
-    let cancelled = false
-    const fetchOrderId = getOrderProductsFallbackFetchKey(
-      normalizedRouteOrderId,
-    )
-
-    if (orderFetchOrderIdRef.current === fetchOrderId) {
-      return undefined
-    }
-
-    orderFetchOrderIdRef.current = fetchOrderId
-    setIsLoadingOrderDetails(true)
-
-    ordersActionsRef.current
-      .get(normalizedRouteOrderId)
-      .then(fetchedOrder => {
-        if (!cancelled && fetchedOrder) {
-          resolvedOrderSignatureRef.current = getOrderSyncSignature(fetchedOrder)
-          setResolvedOrder(fetchedOrder)
-        }
-      })
-      .catch(() => null)
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoadingOrderDetails(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [normalizedRouteOrderId, shouldFetchOrderDetails])
+    // The order-details screen already hydrates the parent order once.
+    // Keep this tab read-only there so it does not re-fetch the same order.
+    setIsLoadingOrderDetails(false)
+  }, [normalizedRouteOrderId])
 
   useEffect(() => {
     if (requiresDetailedFallback) {
