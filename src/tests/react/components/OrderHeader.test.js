@@ -195,11 +195,31 @@ describe('OrderHeader', () => {
     expect(global.__orderCardHeaderProps.dateText).toBe('')
   })
 
-  it('shows price by default outside KDS', () => {
+  it('hides price by default outside KDS', () => {
     global.__orderCardHeaderProps = null
 
     ReactDOMServer.renderToStaticMarkup(
       React.createElement(OrderHeader, {
+        order: {
+          price: 42,
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+            color: '#10b981',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.rightContent).toBeNull()
+  })
+
+  it('shows price when explicitly enabled outside KDS', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        showPricing: true,
         order: {
           price: 42,
           status: {

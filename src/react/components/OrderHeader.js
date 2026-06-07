@@ -152,7 +152,7 @@ const resolvePriceStyle = (orderType, styles) => {
 const OrderHeader = ({
   order,
   isKds = false,
-  showPricing = !isKds,
+  showPricing = false,
   showWaitingTime = isKds,
   stackRightSectionBelow = false,
   onCustomerPress = null,

@@ -1668,6 +1668,7 @@ const OrderDetails = ({ route, navigation }) => {
   const orderHeaderActionProps = useMemo(
     () =>
       ({
+        showPricing: true,
         showWaitingTime: isKds,
         ...(showTopBarCustomerAction
           ? {
