@@ -6,4 +6,5 @@
 - A tela de compras e evidencias da engenharia deve ficar em `ui-orders`, carregar pedidos com `orderType=purchase`, usar `OrderHeader` no resumo e abrir o mini gerenciador de anexos para evidencias.
 - Essa tela deve paginar com carregamento infinito e buscar os detalhes e anexos via `orders`, `order_file` e `files`, sem usar o seed JSON da engenharia.
 - O modo `single-item` do PDV tambem pertence a este modulo: o carrinho deve manter apenas um produto raiz por pedido, a troca precisa usar `PUT /orders/{id}/replace-products` e o fluxo final deve voltar para `OrderHistoryPage`.
+- No browser/web, `Cielo` nunca deve acionar plugin nativo local; a cobranca precisa seguir pelo fluxo remoto via websocket para uma maquina Cielo configurada, e so em device Cielo nativo a cobranca pode ser local.
 - Mudancas nesse fluxo devem vir acompanhadas de cobertura em browser em `src/tests/browser`, validando a troca de produto e a saida para a lista de pedidos apos o pagamento.

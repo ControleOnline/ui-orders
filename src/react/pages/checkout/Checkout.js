@@ -78,6 +78,7 @@ import {inlineStyle_534_10} from './Checkout.styles';
 
 const PAYMENT_CHANNEL_LOCAL = 'local';
 const PAYMENT_CHANNEL_REMOTE = 'remote';
+const IS_WEB_PLATFORM = Platform.OS === 'web';
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase();
 
@@ -258,8 +259,9 @@ const Checkout = () => {
       }),
     [device],
   );
-  const isCieloPdv =
+  const isLocalCieloPdv =
     !isManagerApp &&
+    !IS_WEB_PLATFORM &&
     deviceType === 'PDV' &&
     localGateway === PAYMENT_GATEWAY_CIELO;
   const isPdvInteractionMode = useMemo(
@@ -602,7 +604,7 @@ const Checkout = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!currentCompany?.id || isCieloPdv) {
+      if (!currentCompany?.id || isLocalCieloPdv) {
         setCompanyDeviceConfigs([]);
         return;
       }
@@ -619,7 +621,7 @@ const Checkout = () => {
         .catch(() => {
           setCompanyDeviceConfigs([]);
         });
-    }, [currentCompany?.id, deviceConfigActions, isCieloPdv]),
+    }, [currentCompany?.id, deviceConfigActions, isLocalCieloPdv]),
   );
 
   useEffect(() => {
@@ -655,19 +657,18 @@ const Checkout = () => {
 
       const localWalletIds = canUseLocalOperationalPayment
         ? buildWalletIdsForGateway({
-            gateway: localGateway,
+            gateway: IS_WEB_PLATFORM ? '' : localGateway,
             companyConfigs: effectiveCompanyConfigs,
             includeCashWallet: true,
           })
         : [];
-      const remoteWalletIds =
-        !isCieloPdv && selectedRemoteDevice?.gateway
-          ? buildWalletIdsForGateway({
-              gateway: selectedRemoteDevice.gateway,
-              companyConfigs: effectiveCompanyConfigs,
-              includeCashWallet: true,
-            })
-          : [];
+      const remoteWalletIds = selectedRemoteDevice?.gateway
+        ? buildWalletIdsForGateway({
+            gateway: selectedRemoteDevice.gateway,
+            companyConfigs: effectiveCompanyConfigs,
+            includeCashWallet: false,
+          })
+        : [];
 
       if (!localWalletIds.length && !remoteWalletIds.length) {
         setLoadingPaymentOptions(false);
@@ -755,7 +756,6 @@ const Checkout = () => {
     canUseLocalOperationalPayment,
     currentCompany?.id,
     effectiveCompanyConfigs,
-    isCieloPdv,
     localGateway,
     selectedRemoteDevice?.alias,
     selectedRemoteDevice?.deviceId,
