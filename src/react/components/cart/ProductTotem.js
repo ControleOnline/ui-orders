@@ -1,9 +1,8 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useStore} from '@store';
-import {useFocusEffect} from '@react-navigation/native';
-import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
+import {normalizeEntityId} from '@controleonline/ui-orders/src/utils/orderState';
 
 const styles = {
   container: {
@@ -19,78 +18,136 @@ const styles = {
   },
 };
 
+const getTopLevelOrderProducts = orderProducts =>
+  (Array.isArray(orderProducts) ? orderProducts : []).filter(
+    orderProduct => !normalizeEntityId(orderProduct?.orderProduct),
+  );
+
 const ProductTotem = ({product}) => {
   const ordersStore = useStore('orders');
-  const ordersProductsStore = useStore('order_products');
   const ordersGetters = ordersStore.getters;
-  const ordersProductsGetters = ordersProductsStore.getters;
   const ordersActions = ordersStore.actions;
-  const ordersProductsActions = ordersProductsStore.actions;
   const {item: order} = ordersGetters;
-  const {item: ordersProducts} = ordersProductsGetters;
-  const [selected, setSelected] = useState(false);
+  const [isSavingSelection, setIsSavingSelection] = useState(false);
 
-  const removeAllProducts = useCallback(async () => {
-    
-    
-    console.log(ordersProducts,order.orderProducts);
+  const productId = useMemo(
+    () => normalizeEntityId(product),
+    [product],
+  );
+  const currentOrderProducts = useMemo(
+    () => getTopLevelOrderProducts(order?.orderProducts),
+    [order?.orderProducts],
+  );
+  const isSelected = useMemo(
+    () =>
+      !!productId &&
+      currentOrderProducts.some(
+        orderProduct =>
+          normalizeEntityId(orderProduct?.product) === productId,
+      ),
+    [currentOrderProducts, productId],
+  );
+  const orderId = useMemo(() => normalizeEntityId(order), [order]);
 
+  const runQueuedOrderMutation = useCallback(
+    mutation => {
+      if (!orderId || typeof mutation !== 'function') {
+        return Promise.resolve(null);
+      }
 
-    if (!order?.orderProducts?.length) return;
+      if (typeof ordersActions.executeQueue === 'function') {
+        return new Promise((resolve, reject) => {
+          ordersActions.executeQueue(() =>
+            Promise.resolve()
+              .then(() => mutation())
+              .then(result => {
+                resolve(result);
+                return result;
+              })
+              .catch(error => {
+                reject(error);
+                throw error;
+              }),
+          );
+        });
+      }
 
-    for (const item of order.orderProducts) {
-      if (!item?.product) continue;
-      console.log(item.product);
+      if (
+        typeof ordersActions.addToQueue === 'function' &&
+        typeof ordersActions.initQueue === 'function'
+      ) {
+        return new Promise((resolve, reject) => {
+          ordersActions.addToQueue(() =>
+            Promise.resolve()
+              .then(() => mutation())
+              .then(result => {
+                resolve(result);
+                return result;
+              })
+              .catch(error => {
+                reject(error);
+                throw error;
+              }),
+          );
+          ordersActions.initQueue();
+        });
+      }
 
-      // ALEMAC // apaga corretamente o item do pedido
-      // await ordersProductsActions.remove(item.product['@id']);
-      await ordersProductsActions.remove(item['@id']);
+      return Promise.resolve(mutation());
+    },
+    [orderId, ordersActions],
+  );
+
+  const replaceCurrentProduct = useCallback(async () => {
+    if (!orderId || !productId || isSavingSelection) {
+      return;
     }
 
-    await ordersActions.setItem({...order, orderProducts: []});
-  }, [order, ordersActions]);
+    setIsSavingSelection(true);
 
-  const selectProduct = useCallback(async () => {
-    await removeAllProducts();
+    try {
+      const nextProducts = isSelected
+        ? []
+        : [{product: productId, quantity: 1}];
 
-    eventBus.emit('add-product', {
-      product: product['@id'].replace(/\D/g, ''),
-      quantity: 1,
-    });
+      const updatedOrder = await runQueuedOrderMutation(() =>
+        ordersActions.replaceProducts(orderId, nextProducts),
+      );
 
-    eventBus.emit('price', product.price);
-    setSelected(true);
-  }, [product, removeAllProducts]);
-
-  const unselectProduct = useCallback(async () => {
-    await removeAllProducts();
-    setSelected(false);
-  }, [removeAllProducts]);
-
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        if (selected) {
-          unselectProduct();
-        }
-      };
-    }, [selected, unselectProduct]),
-  );
+      if (updatedOrder && typeof ordersActions.syncOrder === 'function') {
+        ordersActions.syncOrder(updatedOrder);
+      }
+    } finally {
+      setIsSavingSelection(false);
+    }
+  }, [
+    isSavingSelection,
+    isSelected,
+    orderId,
+    ordersActions,
+    productId,
+    runQueuedOrderMutation,
+  ]);
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.button}
-        onPress={selected ? unselectProduct : selectProduct}>
+        disabled={isSavingSelection || !productId || !orderId}
+        onPress={replaceCurrentProduct}>
         <Icon
-          name={selected ? 'check-circle' : 'radio-button-unchecked'}
+          name={isSelected ? 'check-circle' : 'radio-button-unchecked'}
           size={24}
-          color="red"
+          color={isSelected ? '#16A34A' : 'red'}
         />
       </TouchableOpacity>
 
       <Text style={[styles.quantityText, {color: '#666'}]}>
-        {selected ? 'Selecionado' : 'Selecionar'}
+        {isSavingSelection
+          ? 'Salvando'
+          : isSelected
+            ? 'Selecionado'
+            : 'Selecionar'}
       </Text>
     </View>
   );

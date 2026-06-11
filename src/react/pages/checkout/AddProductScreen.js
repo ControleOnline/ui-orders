@@ -1,12 +1,15 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useStore} from '@store';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
+import ProductsPage from '@controleonline/ui-products/src/react/pages/Products';
+import {ALL_PRODUCTS_SENTINEL_ID} from '@controleonline/ui-products/src/react/constants/categorySentinels';
 import LinkedOrderEntrySheet from '@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet';
 import {
   isPosCashRegisterClosed,
   isPosKioskMode,
+  isPosSingleItemMode,
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
@@ -30,6 +33,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
   const {showError} = useMessage() || {};
   const isKioskMode = isPosKioskMode(runtimeDeviceConfig?.configs);
+  const isSingleItemMode = isPosSingleItemMode(runtimeDeviceConfig?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     runtimeDeviceConfig?.configs,
   );
@@ -68,8 +72,6 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   });
   const activeOrderId = activeOrder?.id || activeOrder?.['@id'] || null;
   const resumeOrderId = String(route?.params?.id || '').replace(/\D+/g, '');
-  const Component = Categories;
-
   const resolveLinkedOrderEntry = useCallback(result => {
     const resolve = linkedOrderEntryResolverRef.current;
     linkedOrderEntryResolverRef.current = null;
@@ -125,6 +127,24 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
     navigation.setParams({showBottomToolBar: true});
   }, [isKioskMode, navigation, route?.params?.showBottomToolBar]);
+
+  const effectiveRoute = useMemo(() => {
+    if (!isSingleItemMode) {
+      return route;
+    }
+
+    return {
+      ...route,
+      params: {
+        ...(route?.params || {}),
+        categoryId: ALL_PRODUCTS_SENTINEL_ID,
+        context: 'products',
+        singleItemMode: true,
+      },
+    };
+  }, [isSingleItemMode, route]);
+
+  const CatalogComponent = isSingleItemMode ? ProductsPage : Categories;
 
   useFocusEffect(
     useCallback(() => {
@@ -219,7 +239,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
   return (
     <>
-      <Component navigation={navigation} route={route} />
+      <CatalogComponent navigation={navigation} route={effectiveRoute} />
       <LinkedOrderEntrySheet
         onCancel={handleCancelLinkedOrderEntry}
         onSubmit={resolveLinkedOrderEntry}

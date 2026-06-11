@@ -23,6 +23,7 @@ import {
   isPosAutoPrintEnabled,
   isPosCounterMode,
   isPosSelfServiceMode,
+  isPosSingleItemMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
@@ -216,15 +217,25 @@ const Checkout = () => {
     useState(null);
 
   const effectiveCompanyConfigs = useMemo(() => {
-    if (companyConfigs && typeof companyConfigs === 'object') {
+    if (
+      companyConfigs &&
+      typeof companyConfigs === 'object' &&
+      Object.keys(companyConfigs).length > 0
+    ) {
       return companyConfigs;
     }
 
-    if (currentCompany?.configs && typeof currentCompany.configs === 'object') {
+    if (
+      currentCompany?.configs &&
+      typeof currentCompany.configs === 'object' &&
+      Object.keys(currentCompany.configs).length > 0
+    ) {
       return currentCompany.configs;
     }
 
-    return {};
+    return companyConfigs && typeof companyConfigs === 'object'
+      ? companyConfigs
+      : {};
   }, [companyConfigs, currentCompany?.configs]);
 
   const localGateway = useMemo(
@@ -261,6 +272,10 @@ const Checkout = () => {
   );
   const isCounterMode = useMemo(
     () => isPosCounterMode(device?.configs),
+    [device?.configs],
+  );
+  const isSingleItemMode = useMemo(
+    () => isPosSingleItemMode(device?.configs),
     [device?.configs],
   );
   const isAutoPrintEnabled = useMemo(
@@ -369,6 +384,13 @@ const Checkout = () => {
   }, [
     navigation,
   ]);
+
+  const resetToOrderHistory = useCallback(() => {
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'OrderHistoryPage'}],
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (!routeOrderId || typeof route.params?.order !== 'object') {
@@ -531,6 +553,12 @@ const Checkout = () => {
 
           ordersActions.setPayable(nextPayable < 0 ? nextPayable : 0);
 
+          if (isSingleItemMode && nextPayable >= 0) {
+            resetCompletedOrderState();
+            resetToOrderHistory();
+            return;
+          }
+
           if (routeOrderId) {
             await ordersActions.get(routeOrderId).catch(() => null);
           }
@@ -567,6 +595,9 @@ const Checkout = () => {
     pendingRemotePaymentRequest?.requestKey,
     resolveNextPayableAfterPayment,
     routeOrderId,
+    isSingleItemMode,
+    resetCompletedOrderState,
+    resetToOrderHistory,
   ]);
 
   useFocusEffect(
@@ -779,6 +810,12 @@ const Checkout = () => {
         const paidAmount = Number(createdInvoice.price || 0);
         const nextPayable = resolveNextPayableAfterPayment(paidAmount);
 
+        if (isSingleItemMode && nextPayable >= 0) {
+          resetCompletedOrderState();
+          resetToOrderHistory();
+          return createdInvoice;
+        }
+
         if (device?.configs?.['pos-type'] == 'simple') {
           if (nextPayable < 0) {
             appendInvoiceToStore(createdInvoice);
@@ -840,10 +877,12 @@ const Checkout = () => {
       invoiceActions,
       isCounterMode,
       isSelfServiceMode,
+      isSingleItemMode,
       navigation,
       order,
       ordersActions,
       resetToCounterDestination,
+      resetToOrderHistory,
       resetCompletedOrderState,
       resetToSelfServiceCatalog,
       resolveNextPayableAfterPayment,

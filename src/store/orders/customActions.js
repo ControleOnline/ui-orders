@@ -34,6 +34,26 @@ const appendOrdersPage = (currentItems, pageItems) => {
   return nextItems;
 };
 
+const normalizeOrderProductPayload = payload => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  if (Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  if (payload.product || payload.productId || payload.quantity) {
+    return [payload];
+  }
+
+  return [];
+};
+
 const commitSyncedOrder = ({commit, getters}, order, options = {}) => {
   if (!order || typeof order !== 'object') {
     return order;
@@ -125,6 +145,33 @@ export const addProducts = ({commit, getters}, order, products) => {
 
   return api
     .fetch(getters.resourceEndpoint + '/' + order + '/add-products', options)
+    .then(data => {
+      commit(types.SET_ERROR, null);
+      return commitSyncedOrder({commit, getters}, data, {
+        prependIfMissing: true,
+      });
+    })
+    .catch(e => {
+      commit(types.SET_ERROR, e.message);
+      throw e;
+    })
+    .finally(() => {
+      commit(types.SET_ISSAVING, false);
+    });
+};
+
+export const replaceProducts = ({commit, getters}, order, products) => {
+  const payload = normalizeOrderProductPayload(products);
+  const options = {
+    method: 'PUT',
+    body: payload,
+  };
+
+  commit(types.SET_ISSAVING, true);
+  commit(types.SET_ERROR, null);
+
+  return api
+    .fetch(getters.resourceEndpoint + '/' + order + '/replace-products', options)
     .then(data => {
       commit(types.SET_ERROR, null);
       return commitSyncedOrder({commit, getters}, data, {
