@@ -34,6 +34,7 @@ const PAGE_SIZE = 50;
 
 /* tabs sem filtro de canal/status */
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
+const POS_SALE_ORDER_TYPES = ['sale', 'quote'];
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
 const ORDER_HISTORY_COLUMN_NAMES = ['id', 'app', 'orderType', 'status', 'client', 'alterDate', 'price'];
 
@@ -68,6 +69,17 @@ const resolveDisplayText = (value, fallback = '', prefixes = []) => {
 const resolveOrderTypeFilter = value => {
   const normalizedValue = normalizeText(value).toLowerCase();
   return ORDER_TYPE_FILTER_KEYS.has(normalizedValue) ? normalizedValue : 'sale';
+};
+
+const resolveHistoryOrderTypeQuery = ({appType, orderTypeFilter}) => {
+  if (
+    resolveOrderTypeFilter(orderTypeFilter) === 'sale' &&
+    String(appType || '').trim().toUpperCase() === 'POS'
+  ) {
+    return POS_SALE_ORDER_TYPES;
+  }
+
+  return resolveOrderTypeFilter(orderTypeFilter);
 };
 
 const resolveDateRangeFilter = value => {
@@ -443,7 +455,12 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     query[`order[${currentSort.field}]`] = currentSort.direction;
 
-    if (orderTypeFilter !== 'all') query.orderType = orderTypeFilter;
+    if (orderTypeFilter !== 'all') {
+      query.orderType = resolveHistoryOrderTypeQuery({
+        appType: env.APP_TYPE,
+        orderTypeFilter,
+      });
+    }
     if (showAdvancedFilters && channelFilter !== 'all') query.app = channelFilter;
     if (showAdvancedFilters && statusFilter !== 'all') query['status.realStatus'] = statusFilter;
     if (searchText) query.search = searchText.replace(/^#/, '');
