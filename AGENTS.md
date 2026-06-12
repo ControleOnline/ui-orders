@@ -6,5 +6,8 @@
 - A tela de compras e evidencias da engenharia deve ficar em `ui-orders`, carregar pedidos com `orderType=purchase`, usar `OrderHeader` no resumo e abrir o mini gerenciador de anexos para evidencias.
 - Essa tela deve paginar com carregamento infinito e buscar os detalhes e anexos via `orders`, `order_file` e `files`, sem usar o seed JSON da engenharia.
 - O modo `single-item` do PDV tambem pertence a este modulo: o carrinho deve manter apenas um produto raiz por pedido, a troca precisa usar `PUT /orders/{id}/replace-products`, o `OrderDetails` nao deve permanecer no fluxo, o back do pagamento precisa cair em `AddProductScreen` e a conclusao da venda volta para `OrderHistoryPage`.
+- No POS, um pedido de venda pago sem entrega nem fila de producao deve fechar direto em `closed`; se ainda houver entrega ou fila de producao, o estado operacional seguinte deve ser `preparando`.
+- `paid` representa a cobranca concluida, nao o estado terminal do pedido quando ainda existe preparo a executar.
+- A liberacao de itens para `order_product_queues` deve seguir o mesmo contrato: apenas pedidos ja `paid` ou entregas com `order-charge-on-delivery-enabled` ativo podem enfileirar producao.
 - No browser/web, `Cielo` nunca deve acionar plugin nativo local; a cobranca precisa seguir pelo fluxo remoto via websocket para uma maquina Cielo configurada, e so em device Cielo nativo a cobranca pode ser local.
 - Mudancas nesse fluxo devem vir acompanhadas de cobertura em browser em `src/tests/browser`, validando a troca de produto, o retorno do `Checkout` para `AddProductScreen` e a saida para a lista de pedidos apos o pagamento.
