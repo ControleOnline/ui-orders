@@ -47,6 +47,12 @@ const normalizeOrderProductPayload = payload => {
     return payload.items;
   }
 
+  // Custom single-item precisa enviar o pai com `sub_products` no corpo raiz
+  // para o backend conseguir recriar os filhos junto da troca.
+  if (Object.prototype.hasOwnProperty.call(payload, 'sub_products')) {
+    return payload;
+  }
+
   if (payload.product || payload.productId || payload.quantity) {
     return [payload];
   }

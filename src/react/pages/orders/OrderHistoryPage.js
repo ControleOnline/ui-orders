@@ -17,10 +17,15 @@ import {
   canDeviceViewCompanyOrders,
   isPosCounterMode,
   isPosCashRegisterClosed,
+  isPosSingleItemMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import { getDateRange } from '@controleonline/ui-common/src/react/utils/dateRangeFilter';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
-import { buildOrderDetailsRouteParams } from '@controleonline/ui-orders/src/react/utils/orderRoute';
+import {
+  buildAddProductsRouteParams,
+  buildManagerPdvRouteParams,
+  buildOrderDetailsRouteParams,
+} from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import { resolveOrderIdentity } from '@controleonline/ui-orders/src/react/utils/orderIdentity';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import {shouldResumeCounterOrderFlow} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow';
@@ -698,8 +703,19 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   const openOrder = useCallback(order => {
     orderActions.syncOrder?.(order);
+    if (isPosSingleItemMode(deviceConfig?.configs)) {
+      navigation.navigate(
+        'AddProductScreen',
+        buildAddProductsRouteParams(
+          order,
+          buildManagerPdvRouteParams({singleItemMode: true}),
+        ),
+      );
+      return;
+    }
+
     navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(order));
-  }, [navigation, orderActions]);
+  }, [deviceConfig?.configs, navigation, orderActions]);
 
   /* ─── card de pedido ─────────────────────────────────────────────── */
 

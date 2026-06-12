@@ -18,6 +18,7 @@ import { useMessage } from '@controleonline/ui-common/src/react/components/Messa
 import {
   isDeviceRuntimeDebugInfoEnabled,
   isPosKioskMode,
+  isPosSingleItemMode,
   isTruthyValue,
   parseConfigsObject,
   isPosSelfServiceMode,
@@ -643,6 +644,9 @@ const OrderDetails = ({ route, navigation }) => {
   const deviceConfigs = parseConfigsObject(device?.configs)
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
   const isPosSelfServiceOperationMode = isPosSelfServiceMode(deviceConfigs)
+  const isSingleItemOperationMode =
+    route?.params?.singleItemMode === true ||
+    isPosSingleItemMode(deviceConfigs)
   const shouldShowBottomNavigation = useMemo(
     () =>
       shouldShowOperationalBottomNavigation({
@@ -677,6 +681,29 @@ const OrderDetails = ({ route, navigation }) => {
     navigation,
     route?.params?.showBottomToolBar,
     shouldShowBottomNavigation,
+  ])
+
+  useLayoutEffect(() => {
+    if (!isSingleItemOperationMode) {
+      return;
+    }
+
+    // No single-item o detalhe do pedido nao participa do fluxo.
+    // Voltar daqui significa trocar o item no AddProductScreen antes de pagar.
+    navigation.replace(
+      'AddProductScreen',
+      buildAddProductsRouteParams(
+        item || orderParam || routeOrderId,
+        buildManagerPdvRouteParams({singleItemMode: true}),
+      ),
+    )
+  }, [
+    item,
+    navigation,
+    orderParam,
+    route?.params?.interactionMode,
+    routeOrderId,
+    isSingleItemOperationMode,
   ])
 
   const isManualInput = productInputType === 'manual'
@@ -943,7 +970,11 @@ const OrderDetails = ({ route, navigation }) => {
       'AddProductScreen',
       buildAddProductsRouteParams(
         item || orderParam || routeOrderId,
-        shouldUseManagerPdv ? buildManagerPdvRouteParams() : {},
+        shouldUseManagerPdv
+          ? buildManagerPdvRouteParams({
+              singleItemMode: isSingleItemOperationMode,
+            })
+          : {singleItemMode: isSingleItemOperationMode},
       ),
     )
   }
@@ -1235,11 +1266,13 @@ const OrderDetails = ({ route, navigation }) => {
       orderProductId: getEntityId(rootOrderProduct),
       returnDepth: 1,
       interactionMode: route?.params?.interactionMode,
+      singleItemMode: isSingleItemOperationMode,
     })
   }, [
     canEditItems,
     navigation,
     route?.params?.interactionMode,
+    isSingleItemOperationMode,
     showError,
   ])
 

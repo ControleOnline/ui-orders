@@ -7,11 +7,13 @@ import {
   resolvePendingAddProductId,
 } from '@controleonline/ui-orders/src/react/utils/addProductSession';
 import {
+  buildAddProductsRouteParams,
   buildManagerPdvRouteParams,
   buildOrderDetailsRouteParams,
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import {getLinkedOrderContext} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext';
+import {isPosSingleItemMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 
 const normalizeOrderId = order =>
   String(order?.id || order?.['@id'] || '')
@@ -55,6 +57,11 @@ export default function usePosOrderMaterialization({
 
   const deviceStore = useStore('device');
   const {item: storagedDevice} = deviceStore.getters;
+  const deviceConfigStore = useStore('device_config');
+  const {item: runtimeDeviceConfig} = deviceConfigStore.getters;
+  const isSingleItemOperationMode =
+    interactionParams?.singleItemMode === true ||
+    isPosSingleItemMode(runtimeDeviceConfig?.configs);
 
   const {ensureActiveOrder} = usePosCartSession({
     companyId: currentCompany?.id,
@@ -111,7 +118,14 @@ export default function usePosOrderMaterialization({
         ...(Array.isArray(products) ? products : []),
       ]);
 
-      if (payload.length === 0) {
+      const normalizedPayload = isSingleItemOperationMode
+        ? payload.slice(-1).map(item => ({
+            product: item.product,
+            quantity: 1,
+          }))
+        : payload;
+
+      if (normalizedPayload.length === 0) {
         return targetOrder;
       }
 
@@ -121,12 +135,22 @@ export default function usePosOrderMaterialization({
         return targetOrder;
       }
 
-      const updatedOrder = await ordersActions.addProducts(orderId, payload);
+      const updatedOrder = isSingleItemOperationMode
+        ? await ordersActions.replaceProducts(orderId, normalizedPayload)
+        : await ordersActions.addProducts(orderId, normalizedPayload);
       clearPendingAddProducts();
 
       return updatedOrder || targetOrder;
     },
-    [ensureActiveOrder, interactionParams?.id, interactionParams?.resumeExistingOrder, order, ordersActions],
+    [
+      ensureActiveOrder,
+      interactionParams?.id,
+      interactionParams?.resumeExistingOrder,
+      interactionParams?.singleItemMode,
+      isSingleItemOperationMode,
+      order,
+      ordersActions,
+    ],
   );
 
   const openOrderDetails = useCallback(
@@ -135,13 +159,28 @@ export default function usePosOrderMaterialization({
         return orderItem;
       }
 
-      const shouldKeepPdvMode = isPdvRouteContext(interactionParams);
+      if (isSingleItemOperationMode) {
+        // No single-item a tela de detalhes nao entra no stack; o usuario
+        // precisa cair direto no add product para trocar o pai do pedido.
+        const replaceRoute = buildAddProductsRouteParams(
+          orderItem,
+          buildManagerPdvRouteParams({singleItemMode: true}),
+        );
+
+        if (typeof navigation.replace === 'function') {
+          navigation.replace('AddProductScreen', replaceRoute);
+        } else {
+          navigation.navigate('AddProductScreen', replaceRoute);
+        }
+
+        return orderItem;
+      }
 
       navigation.navigate(
         'OrderDetails',
         buildOrderDetailsRouteParams(
           orderItem,
-          shouldKeepPdvMode
+          isPdvRouteContext(interactionParams)
             ? buildManagerPdvRouteParams({
                 showBottomCart: false,
               })
@@ -151,7 +190,7 @@ export default function usePosOrderMaterialization({
 
       return orderItem;
     },
-    [interactionParams, navigation],
+    [interactionParams, isSingleItemOperationMode, navigation],
   );
 
   return {

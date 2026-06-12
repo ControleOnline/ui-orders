@@ -33,7 +33,9 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
   const {showError} = useMessage() || {};
   const isKioskMode = isPosKioskMode(runtimeDeviceConfig?.configs);
-  const isSingleItemMode = isPosSingleItemMode(runtimeDeviceConfig?.configs);
+  const isSingleItemMode =
+    route?.params?.singleItemMode === true ||
+    isPosSingleItemMode(runtimeDeviceConfig?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     runtimeDeviceConfig?.configs,
   );

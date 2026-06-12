@@ -28,7 +28,7 @@ const getTopLevelOrderProducts = orderProducts =>
     orderProduct => !normalizeEntityId(orderProduct?.orderProduct),
   );
 
-const ProductTotem = ({product, singleItemMode = false}) => {
+const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
   const navigation = useNavigation();
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
@@ -44,6 +44,10 @@ const ProductTotem = ({product, singleItemMode = false}) => {
     () => getTopLevelOrderProducts(order?.orderProducts),
     [order?.orderProducts],
   );
+  const resolvedOrderId = useMemo(
+    () => normalizeEntityId(orderId) || normalizeEntityId(order),
+    [order, orderId],
+  );
   const isSelected = useMemo(
     () =>
       !!productId &&
@@ -53,11 +57,10 @@ const ProductTotem = ({product, singleItemMode = false}) => {
       ),
     [currentOrderProducts, productId],
   );
-  const orderId = useMemo(() => normalizeEntityId(order), [order]);
 
   const runQueuedOrderMutation = useCallback(
     mutation => {
-      if (!orderId || typeof mutation !== 'function') {
+      if (!resolvedOrderId || typeof mutation !== 'function') {
         return Promise.resolve(null);
       }
 
@@ -101,11 +104,11 @@ const ProductTotem = ({product, singleItemMode = false}) => {
 
       return Promise.resolve(mutation());
     },
-    [orderId, ordersActions],
+    [resolvedOrderId, ordersActions],
   );
 
   const replaceCurrentProduct = useCallback(async () => {
-    if (!orderId || !productId || isSavingSelection) {
+    if (!resolvedOrderId || !productId || isSavingSelection) {
       return;
     }
 
@@ -117,7 +120,7 @@ const ProductTotem = ({product, singleItemMode = false}) => {
         : [{product: productId, quantity: 1}];
 
       const updatedOrder = await runQueuedOrderMutation(() =>
-        ordersActions.replaceProducts(orderId, nextProducts),
+        ordersActions.replaceProducts(resolvedOrderId, nextProducts),
       );
 
       if (updatedOrder && typeof ordersActions.syncOrder === 'function') {
@@ -128,7 +131,7 @@ const ProductTotem = ({product, singleItemMode = false}) => {
         navigation.navigate(
           'Checkout',
           buildCheckoutRouteParams(
-            updatedOrder || orderId,
+            updatedOrder || resolvedOrderId,
             buildManagerPdvRouteParams({showBottomCart: false}),
           ),
         );
@@ -139,7 +142,7 @@ const ProductTotem = ({product, singleItemMode = false}) => {
   }, [
     isSavingSelection,
     isSelected,
-    orderId,
+    resolvedOrderId,
     ordersActions,
     navigation,
     productId,
@@ -148,17 +151,17 @@ const ProductTotem = ({product, singleItemMode = false}) => {
   ]);
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.button}
-        disabled={isSavingSelection || !productId || !orderId}
-        onPress={replaceCurrentProduct}>
+    <TouchableOpacity
+      style={styles.container}
+      disabled={isSavingSelection || !productId || !resolvedOrderId}
+      onPress={replaceCurrentProduct}>
+      <View style={styles.button}>
         <Icon
           name={isSelected ? 'check-circle' : 'radio-button-unchecked'}
           size={24}
           color={isSelected ? '#16A34A' : 'red'}
         />
-      </TouchableOpacity>
+      </View>
 
       <Text style={[styles.quantityText, {color: '#666'}]}>
         {isSavingSelection
@@ -167,7 +170,7 @@ const ProductTotem = ({product, singleItemMode = false}) => {
             ? 'Selecionado'
             : 'Selecionar'}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
