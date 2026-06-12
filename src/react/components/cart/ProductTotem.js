@@ -1,7 +1,12 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useNavigation} from '@react-navigation/native';
 import {useStore} from '@store';
+import {
+  buildCheckoutRouteParams,
+  buildManagerPdvRouteParams,
+} from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import {normalizeEntityId} from '@controleonline/ui-orders/src/utils/orderState';
 
 const styles = {
@@ -23,7 +28,8 @@ const getTopLevelOrderProducts = orderProducts =>
     orderProduct => !normalizeEntityId(orderProduct?.orderProduct),
   );
 
-const ProductTotem = ({product}) => {
+const ProductTotem = ({product, singleItemMode = false}) => {
+  const navigation = useNavigation();
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const ordersActions = ordersStore.actions;
@@ -117,6 +123,16 @@ const ProductTotem = ({product}) => {
       if (updatedOrder && typeof ordersActions.syncOrder === 'function') {
         ordersActions.syncOrder(updatedOrder);
       }
+
+      if (!isSelected && singleItemMode === true) {
+        navigation.navigate(
+          'Checkout',
+          buildCheckoutRouteParams(
+            updatedOrder || orderId,
+            buildManagerPdvRouteParams({showBottomCart: false}),
+          ),
+        );
+      }
     } finally {
       setIsSavingSelection(false);
     }
@@ -125,7 +141,9 @@ const ProductTotem = ({product}) => {
     isSelected,
     orderId,
     ordersActions,
+    navigation,
     productId,
+    singleItemMode,
     runQueuedOrderMutation,
   ]);
 

@@ -61,7 +61,6 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     activeOrder,
     ensureActiveOrder,
     loadStoredDraftOrder,
-    prepareNewDraftOrder,
     refreshActiveOrder,
     usesLinkedCheckOrders,
   } = usePosCartSession({
@@ -176,7 +175,11 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
                 ensuredOrder?.['@id']
               );
             } else {
-              prepareNewDraftOrder();
+              const ensuredOrder = await ensureActiveOrder(undefined, {forceNew: true});
+              linkedSessionBootstrappedRef.current = !!(
+                ensuredOrder?.id ||
+                ensuredOrder?.['@id']
+              );
             }
             return;
           }
@@ -191,6 +194,15 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
             if (storedDraftOrder) {
               linkedSessionBootstrappedRef.current = true;
+              return;
+            }
+
+            if (isSingleItemMode) {
+              const ensuredOrder = await ensureActiveOrder(undefined, {forceNew: true});
+              linkedSessionBootstrappedRef.current = !!(
+                ensuredOrder?.id ||
+                ensuredOrder?.['@id']
+              );
               return;
             }
 
@@ -226,13 +238,13 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       isCashRegisterClosed,
       loadStoredDraftOrder,
       navigation,
-      prepareNewDraftOrder,
       refreshActiveOrder,
       resumeOrderId,
       route?.params?.resumeExistingOrder,
       route?.params?.startNewOrder,
       showError,
       shouldUseCashRegisterLifecycle,
+      isSingleItemMode,
       usesLinkedCheckOrders,
     ]),
   );
