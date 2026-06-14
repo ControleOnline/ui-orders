@@ -499,12 +499,15 @@ const Checkout = () => {
 
   useFocusEffect(
     useCallback(() => {
+      invoiceActions.setError('');
+      invoiceActions.setMessage(null);
+
       if (!routeOrderId || String(order?.id || '') === String(routeOrderId)) {
         return;
       }
 
       ordersActions.get(routeOrderId);
-    }, [order?.id, ordersActions, routeOrderId]),
+    }, [invoiceActions, order?.id, ordersActions, routeOrderId]),
   );
 
   useEffect(() => {
