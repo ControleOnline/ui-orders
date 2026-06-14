@@ -13,6 +13,16 @@ import BottomCart from '@controleonline/ui-orders/src/react/components/cart/Bott
 
 import panelStyles from './PaymentCheckoutPanel.styles';
 
+const resolvePaymentOptionIdentity = option =>
+  String(
+    option?.key ||
+      option?.payment?.id ||
+      option?.payment?.['@id'] ||
+      option?.payment?.paymentType?.id ||
+      option?.payment?.paymentType?.['@id'] ||
+      '',
+  );
+
 const PaymentCheckoutPanel = ({
   actionLabel,
   actionIcon = 'credit-card',
@@ -53,13 +63,18 @@ const PaymentCheckoutPanel = ({
   );
 
   const renderPaymentOption = option => {
-    const selected = selectedPaymentKey
-      ? selectedPaymentKey === option?.key
-      : selectedPayment?.paymentType?.id === option?.payment?.paymentType?.id;
+    const optionIdentity = resolvePaymentOptionIdentity(option);
+    const selectedPaymentIdentity = resolvePaymentOptionIdentity({
+      key: selectedPaymentKey,
+      payment: selectedPayment,
+    });
+    const selected = selectedPaymentIdentity !== ''
+      ? selectedPaymentIdentity === optionIdentity
+      : false;
 
     return (
       <TouchableOpacity
-        key={option?.key || option?.payment?.paymentType?.id}
+        key={optionIdentity}
         activeOpacity={actionLoading ? 1 : 0.85}
         disabled={actionLoading}
         onPress={() => onSelectPayment(option)}
@@ -124,7 +139,7 @@ const PaymentCheckoutPanel = ({
               {payments.map(payment =>
                 renderPaymentOption({
                   description: '',
-                  key: String(payment?.paymentType?.id || payment?.id || ''),
+                  key: String(payment?.id || payment?.['@id'] || payment?.paymentType?.id || ''),
                   label: payment?.paymentType?.paymentType || 'Pagamento',
                   payment,
                 }),

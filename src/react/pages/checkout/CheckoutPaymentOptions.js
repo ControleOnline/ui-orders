@@ -1,5 +1,8 @@
 import {getPaymentOptionLabel} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 
+const resolvePaymentSelectionIdentity = payment =>
+  payment?.id || payment?.['@id'] || payment?.paymentType?.id || payment?.paymentType?.['@id'] || '';
+
 export const buildPaymentSelectionOption = ({
   channel,
   payment,
@@ -7,7 +10,7 @@ export const buildPaymentSelectionOption = ({
   targetDeviceLabel = '',
 }) => ({
   channel,
-  key: [channel, targetDeviceId, payment?.paymentType?.id || payment?.id]
+  key: [channel, targetDeviceId, resolvePaymentSelectionIdentity(payment)]
     .filter(Boolean)
     .join(':'),
   label: getPaymentOptionLabel(payment),

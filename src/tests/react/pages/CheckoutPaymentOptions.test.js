@@ -64,4 +64,25 @@ describe('CheckoutPaymentOptions', () => {
     expect(sections[0].actionLabel).toBe('')
     expect(sections[0].onPressAction).toBeNull()
   })
+
+  it('builds unique keys for distinct wallet payment types with the same payment type', () => {
+    const firstCashOption = buildPaymentSelectionOption({
+      channel: 'local',
+      payment: {
+        id: 169,
+        paymentType: {id: 65, paymentType: 'Dinheiro'},
+      },
+    })
+    const secondCashOption = buildPaymentSelectionOption({
+      channel: 'local',
+      payment: {
+        id: 241,
+        paymentType: {id: 65, paymentType: 'Dinheiro'},
+      },
+    })
+
+    expect(firstCashOption.key).toBe('local:169')
+    expect(secondCashOption.key).toBe('local:241')
+    expect(firstCashOption.key).not.toBe(secondCashOption.key)
+  })
 })
