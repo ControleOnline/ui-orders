@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -10,6 +10,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
+import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
 
 import panelStyles from './PaymentCheckoutPanel.styles';
 
@@ -22,6 +23,53 @@ const resolvePaymentOptionIdentity = option =>
       option?.payment?.paymentType?.['@id'] ||
       '',
   );
+
+const resolvePixOptInErrorMessage = () =>
+  global.t?.t('orders', 'message', 'contactCieloToEnablePixBilling') ||
+  'Entrar em contato com a CIELO para liberar a cobranca por PIX';
+
+const normalizeText = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+const resolveErrorText = errorValue => {
+  if (!errorValue) {
+    return '';
+  }
+
+  if (typeof errorValue === 'string') {
+    return errorValue;
+  }
+
+  if (typeof errorValue?.message === 'string') {
+    return errorValue.message;
+  }
+
+  if (typeof errorValue?.reason === 'string') {
+    return errorValue.reason;
+  }
+
+  try {
+    return JSON.stringify(errorValue);
+  } catch (serializationError) {
+    return String(errorValue);
+  }
+};
+
+const resolveFeedbackState = ({invoiceError, error, emptyText}) => {
+  const fallbackMessage = resolveErrorText(invoiceError || error) || emptyText;
+  const normalizedMessage = normalizeText(fallbackMessage);
+  const isPixOptInError =
+    normalizedMessage.includes('nao elegivel ao optin') ||
+    normalizedMessage.includes('nao foi possivel efetuar a inicializacao do pos');
+
+  return {
+    isPixOptInError,
+    message: isPixOptInError ? resolvePixOptInErrorMessage() : fallbackMessage,
+  };
+};
 
 const PaymentCheckoutPanel = ({
   actionLabel,
@@ -43,7 +91,11 @@ const PaymentCheckoutPanel = ({
   topContent = null,
 }) => {
   const {styles} = css();
+  const {showError} = useMessage() || {};
+  const lastToastMessageRef = useRef('');
   const hasError = !!invoiceError || !!error;
+  const feedbackState = resolveFeedbackState({invoiceError, error, emptyText});
+  const feedbackMessage = feedbackState.message;
   const normalizedSections = Array.isArray(paymentSections)
     ? paymentSections.filter(section => Array.isArray(section?.options) && section.options.length > 0)
     : [];
@@ -51,6 +103,20 @@ const PaymentCheckoutPanel = ({
   const hasFlatPayments = Array.isArray(payments) && payments.length > 0;
   const hasPayments = hasSectionedPayments || hasFlatPayments;
   const primaryColor = '#1B5587';
+
+  useEffect(() => {
+    if (!hasError || !feedbackState.isPixOptInError || !feedbackMessage) {
+      lastToastMessageRef.current = '';
+      return;
+    }
+
+    if (lastToastMessageRef.current === feedbackMessage) {
+      return;
+    }
+
+    lastToastMessageRef.current = feedbackMessage;
+    showError?.(feedbackMessage);
+  }, [feedbackMessage, feedbackState.isPixOptInError, hasError, showError]);
 
   const renderSelectionIcon = selected => (
     <View style={panelStyles.selectionIconWrap}>
@@ -109,9 +175,7 @@ const PaymentCheckoutPanel = ({
             <Text style={panelStyles.feedbackTitle}>
               {hasError ? 'Falha ao montar o pagamento' : emptyTitle}
             </Text>
-            <Text style={panelStyles.feedbackText}>
-              {invoiceError || error || emptyText}
-            </Text>
+            <Text style={panelStyles.feedbackText}>{feedbackMessage}</Text>
           </View>
         ) : hasSectionedPayments ? (
           normalizedSections.map(section => (
