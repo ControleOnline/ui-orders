@@ -84,7 +84,6 @@ const resolvePosOpenOrderStatusIri = async fallbackStatusId => {
         context: 'order',
         realStatus: 'open',
         status: 'open',
-        itemsPerPage: 10,
       },
     })
     const items = extractCollectionItems(response)
@@ -400,7 +399,6 @@ export default function usePosCartSession({
     }
     const query = {
       ...legacyQuery,
-      itemsPerPage: 25,
       externalCode: normalizedExternalCode,
     }
 
@@ -415,7 +413,6 @@ export default function usePosCartSession({
 
     const items = await cartActions.getItems({
       ...legacyQuery,
-      itemsPerPage: 100,
     })
 
     return (Array.isArray(items) ? items : []).find(orderItem =>
@@ -434,7 +431,6 @@ export default function usePosCartSession({
       provider: '/people/' + companyId,
       'status.realStatus': 'open',
       'status.status': 'open',
-      itemsPerPage: 50,
       'order[id]': 'DESC',
       ...(deviceId ? {'device.device': deviceId} : {}),
     })
@@ -561,7 +557,6 @@ export default function usePosCartSession({
       provider: '/people/' + companyId,
       'status.realStatus': 'open',
       'status.status': 'open',
-      itemsPerPage: 50,
       'order[id]': 'DESC',
       ...(deviceId ? {'device.device': deviceId} : {}),
       ...(!usesLinkedCheckOrders ? {orderType: DRAFT_SALE_ORDER_TYPE} : {}),
@@ -987,3 +982,4 @@ export default function usePosCartSession({
     syncOrderPeople,
   }
 }
+// TODO(store-first): quando este arquivo for mexido, mover a leitura para stores, remover api.fetch e evitar repassar dados em objetos quando o store ja resolver isso.

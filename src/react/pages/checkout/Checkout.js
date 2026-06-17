@@ -107,7 +107,6 @@ const resolvePosPaidInvoiceStatusIri = async fallbackStatusId => {
         context: 'invoice',
         realStatus: 'closed',
         status: 'paid',
-        itemsPerPage: 10,
       },
     });
     const items = extractCollectionItems(response);
@@ -689,7 +688,6 @@ const Checkout = () => {
           localWalletIds.length
             ? api.fetch('wallet_payment_types', {
                 params: {
-                  itemsPerPage: 200,
                   people: '/people/' + currentCompany.id,
                   wallet: localWalletIds,
                 },
@@ -698,7 +696,6 @@ const Checkout = () => {
           remoteWalletIds.length
             ? api.fetch('wallet_payment_types', {
                 params: {
-                  itemsPerPage: 200,
                   people: '/people/' + currentCompany.id,
                   wallet: remoteWalletIds,
                 },
@@ -1458,3 +1455,4 @@ const Checkout = () => {
 };
 
 export default Checkout;
+// TODO(store-first): quando este arquivo for mexido, mover a leitura para stores, remover api.fetch e evitar repassar dados em objetos quando o store ja resolver isso.

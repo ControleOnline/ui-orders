@@ -845,7 +845,6 @@ const OrderDetails = ({ route, navigation }) => {
     try {
       const response = await currentOrderInvoicesActions.getItems({
         order: routeOrderIri,
-        itemsPerPage: 100,
       })
 
       return Array.isArray(response) ? response : []
@@ -1604,7 +1603,6 @@ const OrderDetails = ({ route, navigation }) => {
         const results = await searchCompanyProducts({
           companyId: orderCompanyId,
           query: normalizedProductSearch,
-          itemsPerPage: 8,
         })
 
         if (isMounted) {
@@ -1828,7 +1826,6 @@ const OrderDetails = ({ route, navigation }) => {
       setAddressOptionsLoading(true)
       const response = await addressActions.getItems({
         people: customerIri,
-        itemsPerPage: 50,
       })
       const items = Array.isArray(response) ? response : []
 
@@ -1957,7 +1954,6 @@ const OrderDetails = ({ route, navigation }) => {
           'link.company': orderCompanyIri,
           'link.linkType': 'client',
           search: normalizedSearch,
-          itemsPerPage: 20,
         })
 
         if (!isMounted) {

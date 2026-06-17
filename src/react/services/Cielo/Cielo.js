@@ -84,7 +84,6 @@ const loadTechnicalCieloConfig = async () => {
     .fetch('/configs', {
       params: {
         configKey: 'CIELO',
-        itemsPerPage: 1,
         people: '/people/' + defaultCompanyId,
         visibility: 'private',
       },
@@ -160,3 +159,4 @@ class CieloService {
 }
 
 export default CieloService;
+// TODO(store-first): quando este arquivo for mexido, mover a leitura para stores, remover api.fetch e evitar repassar dados em objetos quando o store ja resolver isso.

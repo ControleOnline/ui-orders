@@ -314,7 +314,6 @@ const OrderItemsTab = ({
     orderProductsActionsRef.current
       .getItems({
         'order.id': normalizedRouteOrderId,
-        itemsPerPage: 200,
       })
       .then(response => {
         if (fallbackFetchOrderId && hasDetailedOrderProductMetadata(response)) {

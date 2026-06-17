@@ -196,7 +196,6 @@ const resolveOpenOrderStatusIri = async fallbackStatusId => {
         context: 'order',
         realStatus: 'open',
         status: 'open',
-        itemsPerPage: 10,
       },
     })
     const items = extractCollectionItems(response)
@@ -462,7 +461,6 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
             app: 'POS',
             provider: companyIri,
             'status.realStatus': 'open',
-            itemsPerPage: 300,
             'order[id]': 'DESC',
           }),
           invoiceActions.getItems({
@@ -506,7 +504,6 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
       }
       const query = {
         ...legacyQuery,
-        itemsPerPage: 25,
         externalCode: normalizedExternalCode,
       }
 
@@ -526,7 +523,6 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
 
       const settlementOrders = await ordersActions.getItems({
         ...legacyQuery,
-        itemsPerPage: 250,
       })
 
       return (
@@ -1282,3 +1278,4 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     </SafeAreaView>
   )
 }
+// TODO(store-first): quando este arquivo for mexido, mover a leitura para stores, remover api.fetch e evitar repassar dados em objetos quando o store ja resolver isso.

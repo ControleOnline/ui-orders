@@ -112,7 +112,6 @@ const PrintQueuePage = ({navigation}) => {
         const response = await api.fetch('/spools', {
           params: {
             device: deviceEntityIri,
-            itemsPerPage: 200,
           },
         });
 
@@ -312,3 +311,4 @@ const PrintQueuePage = ({navigation}) => {
 };
 
 export default PrintQueuePage;
+// TODO(store-first): quando este arquivo for mexido, mover a leitura para stores, remover api.fetch e evitar repassar dados em objetos quando o store ja resolver isso.

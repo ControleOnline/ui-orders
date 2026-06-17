@@ -56,7 +56,6 @@ const resolvePosPaidInvoiceStatusIri = async fallbackStatusId => {
         context: 'invoice',
         realStatus: 'closed',
         status: 'paid',
-        itemsPerPage: 10,
       },
     });
     const items = extractCollectionItems(response);
@@ -266,3 +265,4 @@ export default function BleedScreen() {
     </SafeAreaView>
   );
 }
+// TODO(store-first): quando este arquivo for mexido, mover a leitura para stores, remover api.fetch e evitar repassar dados em objetos quando o store ja resolver isso.

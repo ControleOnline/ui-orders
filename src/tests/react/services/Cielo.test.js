@@ -89,7 +89,6 @@ describe('CieloService', () => {
     expect(mockFetch).toHaveBeenCalledWith('/configs', {
       params: {
         configKey: 'CIELO',
-        itemsPerPage: 1,
         people: '/people/99',
         visibility: 'private',
       },

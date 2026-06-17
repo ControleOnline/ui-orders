@@ -451,7 +451,6 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     const query = {
       provider: `/people/${currentCompany.id}`,
-      itemsPerPage: PAGE_SIZE,
     };
 
     const currentSort = sortState?.field && sortState?.direction
