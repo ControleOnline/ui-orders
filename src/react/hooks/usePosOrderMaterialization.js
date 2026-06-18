@@ -51,6 +51,8 @@ export default function usePosOrderMaterialization({
   const ordersStore = useStore('orders');
   const ordersActions = ordersStore.actions;
   const {item: order} = ordersStore.getters;
+  const orderProductsStore = useStore('order_products');
+  const orderProductsActions = orderProductsStore.actions;
 
   const peopleStore = useStore('people');
   const {currentCompany, defaultCompany} = peopleStore.getters;
@@ -72,6 +74,34 @@ export default function usePosOrderMaterialization({
         ? interactionParams.allowLinkedOrderManagement
         : null,
   });
+
+  const refreshMaterializedOrderProducts = useCallback(
+    async (orderId, fallbackOrder) => {
+      if (!orderId || typeof orderProductsActions?.getItems !== 'function') {
+        return fallbackOrder;
+      }
+
+      try {
+        const refreshedOrderProducts = await orderProductsActions.getItems({
+          'order.id': Number(orderId),
+        });
+
+        if (typeof ordersActions.syncOrderProducts === 'function') {
+          return ordersActions.syncOrderProducts({
+            orderId: Number(orderId),
+            orderProducts: Array.isArray(refreshedOrderProducts)
+              ? refreshedOrderProducts
+              : [],
+          }) || fallbackOrder;
+        }
+
+        return fallbackOrder;
+      } catch {
+        return fallbackOrder;
+      }
+    },
+    [orderProductsActions, ordersActions],
+  );
 
   const materializeOrderWithProducts = useCallback(
     async ({products = []} = {}) => {
@@ -140,7 +170,9 @@ export default function usePosOrderMaterialization({
         : await ordersActions.addProducts(orderId, normalizedPayload);
       clearPendingAddProducts();
 
-      return updatedOrder || targetOrder;
+      const materializedOrder = updatedOrder || targetOrder;
+
+      return await refreshMaterializedOrderProducts(orderId, materializedOrder);
     },
     [
       ensureActiveOrder,
@@ -150,6 +182,7 @@ export default function usePosOrderMaterialization({
       isSingleItemOperationMode,
       order,
       ordersActions,
+      refreshMaterializedOrderProducts,
     ],
   );
 
