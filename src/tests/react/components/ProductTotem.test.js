@@ -8,10 +8,16 @@ global.IS_REACT_ACT_ENVIRONMENT = true
 const mockNavigate = jest.fn()
 const mockReplaceProducts = jest.fn()
 const mockSyncOrder = jest.fn()
+const mockSyncOrderProducts = jest.fn()
+const mockGetOrderProducts = jest.fn()
 const mockExecuteQueue = jest.fn(callback => Promise.resolve(callback()))
 const mockUpdatedOrder = {
   id: 123,
+}
+const mockMaterializedOrder = {
+  ...mockUpdatedOrder,
   orderProducts: [{product: {id: 102}, quantity: 1}],
+  price: 8.9,
 }
 const mockOrder = {
   id: 123,
@@ -23,10 +29,18 @@ const mockOrdersStore = {
     executeQueue: mockExecuteQueue,
     replaceProducts: mockReplaceProducts,
     syncOrder: mockSyncOrder,
+    syncOrderProducts: mockSyncOrderProducts,
   },
   getters: {
     item: mockOrder,
   },
+}
+
+const mockOrderProductsStore = {
+  actions: {
+    getItems: mockGetOrderProducts,
+  },
+  getters: {},
 }
 
 jest.mock('react-native', () => {
@@ -53,6 +67,10 @@ jest.mock('@store', () => ({
       return mockOrdersStore
     }
 
+    if (name === 'order_products') {
+      return mockOrderProductsStore
+    }
+
     return {
       actions: {},
       getters: {},
@@ -70,8 +88,12 @@ describe('ProductTotem', () => {
     mockNavigate.mockClear()
     mockReplaceProducts.mockClear()
     mockSyncOrder.mockClear()
+    mockSyncOrderProducts.mockClear()
+    mockGetOrderProducts.mockClear()
     mockExecuteQueue.mockClear()
     mockReplaceProducts.mockResolvedValue(mockUpdatedOrder)
+    mockGetOrderProducts.mockResolvedValue(mockMaterializedOrder.orderProducts)
+    mockSyncOrderProducts.mockReturnValue(mockMaterializedOrder)
   })
 
   afterEach(() => {
@@ -104,9 +126,11 @@ describe('ProductTotem', () => {
     expect(mockReplaceProducts).toHaveBeenCalledWith('123', [
       {product: '102', quantity: 1},
     ])
-    expect(mockSyncOrder).toHaveBeenCalledWith({
-      id: 123,
-      orderProducts: [{product: {id: 102}, quantity: 1}],
+    expect(mockSyncOrder).toHaveBeenCalledWith({id: 123})
+    expect(mockGetOrderProducts).toHaveBeenCalledWith({'order.id': 123})
+    expect(mockSyncOrderProducts).toHaveBeenCalledWith({
+      orderId: 123,
+      orderProducts: mockMaterializedOrder.orderProducts,
     })
     expect(mockNavigate).toHaveBeenCalledWith(
       'Checkout',

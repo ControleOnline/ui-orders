@@ -33,6 +33,8 @@ const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
   const ordersActions = ordersStore.actions;
+  const orderProductsStore = useStore('order_products');
+  const orderProductsActions = orderProductsStore.actions;
   const {item: order} = ordersGetters;
   const [isSavingSelection, setIsSavingSelection] = useState(false);
 
@@ -107,6 +109,34 @@ const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
     [resolvedOrderId, ordersActions],
   );
 
+  const refreshOrderProducts = useCallback(
+    async fallbackOrder => {
+      if (!resolvedOrderId || typeof orderProductsActions?.getItems !== 'function') {
+        return fallbackOrder;
+      }
+
+      try {
+        const orderProducts = await orderProductsActions.getItems({
+          'order.id': Number(resolvedOrderId),
+        });
+
+        if (typeof ordersActions.syncOrderProducts === 'function') {
+          return (
+            ordersActions.syncOrderProducts({
+              orderId: Number(resolvedOrderId),
+              orderProducts: Array.isArray(orderProducts) ? orderProducts : [],
+            }) || fallbackOrder
+          );
+        }
+      } catch {
+        return fallbackOrder;
+      }
+
+      return fallbackOrder;
+    },
+    [orderProductsActions, ordersActions, resolvedOrderId],
+  );
+
   const replaceCurrentProduct = useCallback(async () => {
     if (!resolvedOrderId || !productId || isSavingSelection) {
       return;
@@ -127,11 +157,15 @@ const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
         ordersActions.syncOrder(updatedOrder);
       }
 
+      const materializedOrder = await refreshOrderProducts(
+        updatedOrder || order || {id: resolvedOrderId},
+      );
+
       if (!isSelected && singleItemMode === true) {
         navigation.navigate(
           'Checkout',
           buildCheckoutRouteParams(
-            updatedOrder || resolvedOrderId,
+            materializedOrder || updatedOrder || resolvedOrderId,
             buildManagerPdvRouteParams({showBottomCart: false}),
           ),
         );
@@ -146,8 +180,10 @@ const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
     ordersActions,
     navigation,
     productId,
+    order,
     singleItemMode,
     runQueuedOrderMutation,
+    refreshOrderProducts,
   ]);
 
   return (
