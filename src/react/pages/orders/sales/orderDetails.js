@@ -723,6 +723,7 @@ const OrderDetails = ({ route, navigation }) => {
     isTerminalOrderStatus(orderParam?.status?.realStatus)
   const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
   const shouldShowOrderPartyDetails = isPurchaseOrder || isDeviceDeliveryEnabled
+  const localOrderTypeKey = resolveEditableOrderType(item?.orderType || orderParam?.orderType || '')
 
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
@@ -960,7 +961,7 @@ const OrderDetails = ({ route, navigation }) => {
   )
 
   const handleAddProduct = () => {
-    if (!canEditItems) return
+    if (!canMutateOrderProducts) return
     const shouldUseManagerPdv =
       String(env.APP_TYPE || '').toUpperCase() === 'MANAGER' ||
       route?.params?.interactionMode === 'pdv'
@@ -1077,12 +1078,17 @@ const OrderDetails = ({ route, navigation }) => {
   const canEditItems =
     !hasMarketplaceIntegration &&
     !isTerminalOrderStatus(localRealStatusKey)
+  // Item mutations are cart-only; sale and terminal orders stay read-only here.
+  const canMutateOrderProducts =
+    !hasMarketplaceIntegration &&
+    localOrderTypeKey === DRAFT_SALE_ORDER_TYPE &&
+    !isLocallyTerminalOrder
 
   useEffect(() => {
-    if (!canEditItems) {
+    if (!canMutateOrderProducts) {
       setConfirmRemoveItemId(null)
     }
-  }, [canEditItems])
+  }, [canMutateOrderProducts])
 
   useEffect(() => {
     if (Array.isArray(item?.orderProducts)) {
@@ -1243,7 +1249,7 @@ const OrderDetails = ({ route, navigation }) => {
   }, [scheduleQuantityChange])
 
   const handleEditCustomizableOrderProduct = useCallback(orderProduct => {
-    if (!canEditItems) {
+    if (!canMutateOrderProducts) {
       return
     }
 
@@ -1268,7 +1274,7 @@ const OrderDetails = ({ route, navigation }) => {
       singleItemMode: isSingleItemOperationMode,
     })
   }, [
-    canEditItems,
+    canMutateOrderProducts,
     navigation,
     route?.params?.interactionMode,
     isSingleItemOperationMode,
@@ -1577,7 +1583,7 @@ const OrderDetails = ({ route, navigation }) => {
     isTvDisplay,
     displayAmount: localDisplayAmount,
   })
-  const canAddProductsToOrder = canEditItems
+  const canAddProductsToOrder = canMutateOrderProducts
   const addProductsButtonLabel =
     global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
 
@@ -2263,7 +2269,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderProduct,
     entryType,
   }) => {
-    if (!canEditItems || !orderProduct) {
+    if (!canMutateOrderProducts || !orderProduct) {
       return null
     }
 
@@ -2353,7 +2359,7 @@ const OrderDetails = ({ route, navigation }) => {
       </View>
     )
   }, [
-    canEditItems,
+    canMutateOrderProducts,
     confirmRemoveItemId,
     handleDecreaseOpQuantity,
     handleEditCustomizableOrderProduct,
@@ -2753,7 +2759,7 @@ const OrderDetails = ({ route, navigation }) => {
           productSearchResults={productSearchResults}
           productSearchSelectionId={productSearchSelectionId}
           productSearchText={productSearchText}
-          renderOrderProductActions={canEditItems ? renderOrderProductActions : null}
+          renderOrderProductActions={canMutateOrderProducts ? renderOrderProductActions : null}
           routeOrderId={routeOrderId}
           setProductSearchText={setProductSearchText}
           showPricing={!isKds && !isTvDisplay}
@@ -2764,7 +2770,7 @@ const OrderDetails = ({ route, navigation }) => {
     [
       addProductsButtonLabel,
       canAddProductsToOrder,
-      canEditItems,
+      canMutateOrderProducts,
       handleQuickAddProductFromSearch,
       handleAddProduct,
       item,
