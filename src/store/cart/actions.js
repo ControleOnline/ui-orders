@@ -5,6 +5,7 @@ export const discoveryCart = ({commit}, params = {}) => {
   commit(types.SET_ISLOADING, true);
   const nextParams = {
     ...params,
+    // O POS sempre nasce como cart; sale so aparece depois da promocao do pedido.
     orderType: 'cart',
   };
 

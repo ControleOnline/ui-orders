@@ -9,5 +9,6 @@
 - No POS, um pedido de venda pago sem entrega nem fila de producao deve fechar direto em `closed`; se ainda houver entrega ou fila de producao, o estado operacional seguinte deve ser `preparando`.
 - `paid` representa a cobranca concluida, nao o estado terminal do pedido quando ainda existe preparo a executar.
 - A liberacao de itens para `order_product_queues` deve seguir o mesmo contrato: apenas pedidos ja `paid` ou entregas com `order-charge-on-delivery-enabled` ativo podem enfileirar producao.
+- O carrinho do POS nasce como `cart`; a criacao real do pedido e o `order.created` so acontecem quando o fluxo vira `sale`.
 - No browser/web, `Cielo` nunca deve acionar plugin nativo local; a cobranca precisa seguir pelo fluxo remoto via websocket para uma maquina Cielo configurada, e so em device Cielo nativo a cobranca pode ser local.
 - Mudancas nesse fluxo devem vir acompanhadas de cobertura em browser em `src/tests/browser`, validando a troca de produto, o retorno do `Checkout` para `AddProductScreen` e a saida para a lista de pedidos apos o pagamento.
