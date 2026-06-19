@@ -40,6 +40,7 @@ const PAGE_SIZE = 50;
 /* tabs sem filtro de canal/status */
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
 const POS_SALE_ORDER_TYPES = ['sale', 'quote'];
+const MANAGER_SALE_ORDER_TYPES = ['sale', 'Online'];
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
 const ORDER_HISTORY_COLUMN_NAMES = ['id', 'app', 'orderType', 'status', 'client', 'alterDate', 'price'];
 
@@ -77,14 +78,17 @@ const resolveOrderTypeFilter = value => {
 };
 
 const resolveHistoryOrderTypeQuery = ({appType, orderTypeFilter}) => {
-  if (
-    resolveOrderTypeFilter(orderTypeFilter) === 'sale' &&
-    String(appType || '').trim().toUpperCase() === 'POS'
-  ) {
-    return POS_SALE_ORDER_TYPES;
+  const normalizedOrderType = resolveOrderTypeFilter(orderTypeFilter);
+
+  if (normalizedOrderType === 'sale') {
+    if (String(appType || '').trim().toUpperCase() === 'POS') {
+      return POS_SALE_ORDER_TYPES;
+    }
+
+    return MANAGER_SALE_ORDER_TYPES;
   }
 
-  return resolveOrderTypeFilter(orderTypeFilter);
+  return normalizedOrderType;
 };
 
 const resolveDateRangeFilter = value => {
