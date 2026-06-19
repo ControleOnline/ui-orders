@@ -3,8 +3,13 @@ import * as types from '@controleonline/ui-default/src/store/default/mutation_ty
 
 export const discoveryCart = ({commit}, params = {}) => {
   commit(types.SET_ISLOADING, true);
+  const nextParams = {
+    ...params,
+    orderType: 'cart',
+  };
+
   return api
-    .fetch('cart', {params: params})
+    .fetch('cart', {params: nextParams})
     .then(data => {
       commit(types.SET_ITEM, data);
       return data;
