@@ -27,6 +27,7 @@ import {
   searchCompanyProducts,
   toEntityIri,
 } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
+import {api} from '@controleonline/ui-common/src/api'
 
 import {
   buildAddressOptionSummary,
@@ -100,6 +101,9 @@ import {
 } from './orderMarketplaceFinancialPresentation'
 import {
   shouldRenderOrderDetailsInlineTotal,
+  resolveOrderDetailsPrimaryActionIcon,
+  resolveOrderDetailsPrimaryActionLabel,
+  resolveOrderDetailsPrimaryActionMode,
   shouldRenderOrderDetailsPaymentAction,
   shouldRenderOrderDetailsPaymentBar,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetailsPaymentBar'
@@ -126,8 +130,9 @@ const formatApiError = error => {
 }
 
 const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
+// `cart` is the canonical draft sale order. `quote` is a separate purchase draft
+// and must stay distinct so sale-only actions never treat it as a cart.
 const DRAFT_SALE_ORDER_TYPE = 'cart'
-const LEGACY_DRAFT_SALE_ORDER_TYPE = 'quote'
 const POS_DELIVERY_ENABLED_CONFIG_KEY = 'pos-delivery-enabled'
 
 const isTerminalOrderStatus = value =>
@@ -136,7 +141,7 @@ const isTerminalOrderStatus = value =>
 const resolveEditableOrderType = value => {
   const normalizedOrderType = String(value || '').trim().toLowerCase()
 
-  if (!normalizedOrderType || normalizedOrderType === LEGACY_DRAFT_SALE_ORDER_TYPE) {
+  if (!normalizedOrderType) {
     return DRAFT_SALE_ORDER_TYPE
   }
 
@@ -578,6 +583,7 @@ const OrderDetails = ({ route, navigation }) => {
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
   const [financialDetailsVisible, setFinancialDetailsVisible] = useState(false)
   const [attachmentsVisible, setAttachmentsVisible] = useState(false)
+  const [primaryActionLoading, setPrimaryActionLoading] = useState(false)
   const insets = useSafeAreaInsets()
 
   const ordersStore = useStore('orders')
@@ -1217,6 +1223,82 @@ const OrderDetails = ({ route, navigation }) => {
     route?.params,
   ])
 
+  const currentOrderSnapshot = useMemo(
+    () =>
+      item || orderParam
+        ? {
+            ...(orderParam || {}),
+            ...(item || {}),
+          }
+        : null,
+    [item, orderParam],
+  )
+
+  const handleProduceOrder = useCallback(async () => {
+    const targetOrder = currentOrderSnapshot
+    const orderId = getEntityId(targetOrder)
+
+    if (!orderId || isLocallyTerminalOrder) {
+      return
+    }
+
+    // Cart orders with mesa/comanda context are promoted here instead of opening Checkout.
+    // The backend confirm endpoint turns cart -> sale and resolves the operational status.
+    setPrimaryActionLoading(true)
+
+    try {
+      await flushPendingOrderProductChanges()
+
+      const response = await api.post(`/orders/${orderId}/confirm`, {})
+      const result = response?.result || response
+
+      if (String(result?.errno ?? '0') !== '0') {
+        throw result || response
+      }
+
+      await refreshCurrentOrder({force: true})
+      showSuccess(
+        global.t?.t('orders', 'message', 'orderSentToProduction') ||
+          'Pedido enviado para producao.',
+      )
+    } catch (error) {
+      showError(formatApiError(error))
+    } finally {
+      setPrimaryActionLoading(false)
+    }
+  }, [
+    flushPendingOrderProductChanges,
+    item,
+    isLocallyTerminalOrder,
+    currentOrderSnapshot,
+    refreshCurrentOrder,
+    showError,
+    showSuccess,
+  ])
+
+  const primaryActionSourceOrder = currentOrderSnapshot
+  const primaryActionMode = resolveOrderDetailsPrimaryActionMode({
+    appType,
+    order: primaryActionSourceOrder,
+  })
+  const primaryActionLabel = resolveOrderDetailsPrimaryActionLabel({
+    appType,
+    order: primaryActionSourceOrder,
+  })
+  const primaryActionIcon = resolveOrderDetailsPrimaryActionIcon({
+    appType,
+    order: primaryActionSourceOrder,
+  })
+
+  const handlePrimaryAction = useCallback(async () => {
+    if (primaryActionMode === 'produce') {
+      await handleProduceOrder()
+      return
+    }
+
+    await handleAddPayment()
+  }, [handleAddPayment, handleProduceOrder, primaryActionMode])
+
   const handleUpdateOpQuantity = useCallback((op, newQtyOrUpdater) => {
     const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
     if (!id) return
@@ -1688,9 +1770,12 @@ const OrderDetails = ({ route, navigation }) => {
     !!item?.id &&
     localPendingAmount > 0 &&
     !isTerminalOrder
-  const showInlineAddPaymentAction =
+  // The same primary slot can render Pagar or Produzir; the action helper
+  // decides which CTA the current cart should expose.
+  const showInlinePrimaryAction =
     canAddOrderPayment &&
     !useUnifiedKdsLayout
+  const primaryActionDisabled = !canAddOrderPayment || primaryActionLoading
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
   const orderWaitingMinutes = resolvedOrderDateValue
     ? Math.max(0, Math.floor((Date.now() - new Date(resolvedOrderDateValue).getTime()) / 60000))
@@ -3599,14 +3684,15 @@ const OrderDetails = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
 
-                {showInlineAddPaymentAction && (
+                {showInlinePrimaryAction && (
                   <TouchableOpacity
-                    onPress={handleAddPayment}
+                    onPress={handlePrimaryAction}
+                    disabled={primaryActionLoading}
                     style={[globalStyles.button, { marginRight: 5 }]}
                   >
-                    <Icon name="payments" size={24} color="#fff" />
+                    <Icon name={primaryActionIcon} size={24} color="#fff" />
                     <Text style={inlineStyle_2737_26}>
-                      {global.t?.t('orders', 'button', 'pay') || 'Pagar'}
+                      {primaryActionLabel}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -3642,9 +3728,9 @@ const OrderDetails = ({ route, navigation }) => {
           {shouldShowMobilePaymentBar && (
             <BottomCart
               bottomOffset={mobileBottomCartOffset}
-              actionLabel={global.t?.t('orders', 'button', 'pay') || 'Pagar'}
-              actionIcon="credit-card"
-              actionDisabled={!canAddOrderPayment}
+              actionLabel={primaryActionLabel}
+              actionIcon={primaryActionIcon}
+              actionDisabled={primaryActionDisabled}
               collapsePayableWhenPaid={false}
               paymentPendingAmount={hasMarketplaceIntegration ? 0 : localPendingAmount}
               paymentPendingLabel={global.t?.t('orders', 'label', 'pending') || 'Pendente'}
@@ -3662,7 +3748,7 @@ const OrderDetails = ({ route, navigation }) => {
                   ? 'Valor do pagamento'
                   : global.t?.t('orders', 'label', 'paid') || 'Recebido'
               }
-              onActionPress={handleAddPayment}
+              onActionPress={handlePrimaryAction}
               onPaidDetailsPress={handleOpenFinancialDetails}
               showPaidBreakdown
               showActionButton={shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}

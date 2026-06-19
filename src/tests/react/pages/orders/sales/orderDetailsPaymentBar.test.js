@@ -2,6 +2,9 @@ const {describe, expect, it} = global
 
 const {
   shouldRenderOrderDetailsInlineTotal,
+  resolveOrderDetailsPrimaryActionIcon,
+  resolveOrderDetailsPrimaryActionLabel,
+  resolveOrderDetailsPrimaryActionMode,
   shouldRenderOrderDetailsPaymentAction,
   shouldRenderOrderDetailsPaymentBar,
 } = require('../../../../../react/pages/orders/sales/orderDetailsPaymentBar')
@@ -55,5 +58,51 @@ describe('orderDetailsPaymentBar', () => {
     expect(
       shouldRenderOrderDetailsPaymentAction({canAddOrderPayment: false}),
     ).toBe(false)
+  })
+
+  it('switches the primary action to produzir for POS carts with mesa context', () => {
+    const options = {
+      appType: 'POS',
+      order: {
+        app: 'POS',
+        externalCode: 'MESA-10',
+        orderType: 'cart',
+      },
+    }
+
+    expect(resolveOrderDetailsPrimaryActionMode(options)).toBe('produce')
+    expect(resolveOrderDetailsPrimaryActionLabel(options)).toBe('Produzir')
+    expect(resolveOrderDetailsPrimaryActionIcon(options)).toBe('send')
+  })
+
+  it('switches the primary action to produzir when the comanda code comes from the main order', () => {
+    const options = {
+      appType: 'POS',
+      order: {
+        app: 'POS',
+        mainOrder: {
+          externalCode: 'COM-42',
+        },
+        mainOrderId: 42,
+        orderType: 'cart',
+      },
+    }
+
+    expect(resolveOrderDetailsPrimaryActionMode(options)).toBe('produce')
+  })
+
+  it('keeps quote orders out of the producao CTA', () => {
+    const options = {
+      appType: 'POS',
+      order: {
+        app: 'POS',
+        externalCode: 'MESA-10',
+        orderType: 'quote',
+      },
+    }
+
+    expect(resolveOrderDetailsPrimaryActionMode(options)).toBe('pay')
+    expect(resolveOrderDetailsPrimaryActionLabel(options)).toBe('Pagar')
+    expect(resolveOrderDetailsPrimaryActionIcon(options)).toBe('credit-card')
   })
 })
