@@ -41,7 +41,7 @@ const PAGE_SIZE = 50;
 /* tabs sem filtro de canal/status */
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
 const POS_SALE_ORDER_TYPES = ['sale', 'quote'];
-const MANAGER_SALE_ORDER_TYPES = ['sale', 'Online'];
+const MANAGER_SALE_ORDER_TYPES = ['sale', 'Online', 'cart'];
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
 const ORDER_HISTORY_COLUMN_NAMES = ['id', 'app', 'orderType', 'status', 'client', 'alterDate', 'price'];
 
@@ -368,7 +368,7 @@ export default function OrderHistoryPage({ navigation, route }) {
         return {
           ...column,
           format: value => {
-            const statusKey = normalizeText(value?.realStatus || value?.status || value);
+            const statusKey = normalizeText(value?.status || value?.realStatus || value);
             return normalizeText(global.t?.t('orders', 'status', statusKey)) || statusKey;
           },
         };
