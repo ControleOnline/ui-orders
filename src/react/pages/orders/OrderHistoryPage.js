@@ -10,6 +10,7 @@ import { useIsFocused } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import { env } from '@env';
 import { useStore } from '@store';
+import {api} from '@controleonline/ui-common/src/api';
 import CompactFilterSelector from '@controleonline/ui-default/src/react/components/filters/CompactFilterSelector';
 import DateShortcutFilter from '@controleonline/ui-default/src/react/components/filters/DateShortcutFilter';
 import DefaultTable from '@controleonline/ui-default/src/react/components/table/DefaultTable';
@@ -48,28 +49,36 @@ const ORDER_HISTORY_COLUMN_NAMES = ['id', 'app', 'orderType', 'status', 'client'
 
 const normalizeText = value => String(value || '').trim();
 
-const stripLeadingPrefixes = (value, prefixes = []) => {
-  const label = normalizeText(value);
-  if (!label) return '';
+const resolveSummaryApps = response => {
+  const apps =
+    response?.summary?.report?.apps ||
+    response?.summary?.apps ||
+    response?.report?.apps ||
+    response?.apps;
 
-  const matchedPrefix = prefixes.find(prefix =>
-    label.toLowerCase().startsWith(String(prefix || '').toLowerCase()),
-  );
-
-  return matchedPrefix ? label.slice(String(matchedPrefix).length).trim() : label;
-};
-
-const looksLikeTranslationKey = value =>
-  /^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(normalizeText(value));
-
-const resolveDisplayText = (value, fallback = '', prefixes = []) => {
-  const label = stripLeadingPrefixes(value, prefixes);
-
-  if (!label || looksLikeTranslationKey(label)) {
-    return fallback;
+  if (!Array.isArray(apps)) {
+    return [];
   }
 
-  return label;
+  const seenKeys = new Set();
+
+  return apps
+    .map(app => {
+      const key = normalizeText(app?.key || app?.app || app?.label);
+      const label = normalizeText(app?.label || key);
+
+      if (!key || seenKeys.has(key)) {
+        return null;
+      }
+
+      seenKeys.add(key);
+
+      return {
+        key,
+        label: label || key,
+      };
+    })
+    .filter(Boolean);
 };
 
 const resolveOrderTypeFilter = value => {
@@ -191,28 +200,18 @@ export default function OrderHistoryPage({ navigation, route }) {
     [themeColors, currentCompany?.id],
   );
 
-  const channelOptions = [
-    {
+  const [dynamicChannelOptions, setDynamicChannelOptions] = useState([]);
+  const allChannelOption = useMemo(
+    () => ({
       key: 'all',
       label: normalizeText(global.t?.t('orders', 'label', 'all')) || 'All',
-    },
-    {
-      key: 'Food99',
-      label: resolveDisplayText(global.t?.t('orders', 'label', 'channel_food99'), '99Food', ['Channel ']),
-    },
-    {
-      key: 'iFood',
-      label: resolveDisplayText(global.t?.t('orders', 'label', 'channel_ifood'), 'iFood', ['Channel ']),
-    },
-    {
-      key: 'SHOP',
-      label: resolveDisplayText(global.t?.t('orders', 'label', 'channel_shop'), 'Shop', ['Channel ']),
-    },
-    {
-      key: 'POS',
-      label: resolveDisplayText(global.t?.t('orders', 'label', 'channel_pos'), 'POS', ['Channel ']),
-    },
-  ];
+    }),
+    [],
+  );
+  const channelOptions = useMemo(
+    () => [allChannelOption, ...dynamicChannelOptions],
+    [allChannelOption, dynamicChannelOptions],
+  );
 
   const statusOptions = [
     {
@@ -330,6 +329,26 @@ export default function OrderHistoryPage({ navigation, route }) {
     if (orderTypeFilter === 'loss') return global.t?.t('orders', 'placeholder', 'search_loss');
     return global.t?.t('orders', 'placeholder', 'search_default');
   })();
+  const channelSummaryQuery = useMemo(() => {
+    if (!currentCompany?.id || !showAdvancedFilters || orderTypeFilter !== 'sale') {
+      return null;
+    }
+
+    return {
+      provider: `/people/${currentCompany.id}`,
+      orderType: resolveHistoryOrderTypeQuery({
+        appType: env.APP_TYPE,
+        orderTypeFilter,
+      }),
+      page: 1,
+      itemsPerPage: 1,
+      report: 1,
+    };
+  }, [
+    currentCompany?.id,
+    orderTypeFilter,
+    showAdvancedFilters,
+  ]);
   const clearSearch = useCallback(() => setSearchText(''), []);
   const orderHistoryColumns = useMemo(() => {
     const columnsByName = new Map(
@@ -449,6 +468,48 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     navigation.navigate('CloseCashRegister');
   }, [isFocused, isCashRegisterClosed, navigation]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isFocused || !channelSummaryQuery) {
+      setDynamicChannelOptions([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    api.fetch('orders', {params: channelSummaryQuery})
+      .then(response => {
+        if (!cancelled) {
+          setDynamicChannelOptions(resolveSummaryApps(response));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDynamicChannelOptions([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    channelSummaryQuery,
+    isFocused,
+  ]);
+
+  useEffect(() => {
+    if (
+      channelFilter !== 'all' &&
+      !channelOptions.some(option => option.key === channelFilter)
+    ) {
+      setChannelFilter('all');
+    }
+  }, [
+    channelFilter,
+    channelOptions,
+  ]);
 
   const historyQuery = useMemo(() => {
     if (!currentCompany?.id) return null;
