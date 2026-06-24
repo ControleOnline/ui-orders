@@ -1,9 +1,12 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Modal,
   Platform,
+  ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -28,6 +31,7 @@ import {
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
+import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';
 import {
   buildPaymentSections,
@@ -37,6 +41,16 @@ import {
   appendSyntheticOrderInvoice,
   resolveNextOperationalPayable,
 } from '@controleonline/ui-orders/src/react/utils/checkoutInvoices';
+import {
+  buildLoyaltyCpfSearchParams,
+  buildLoyaltyCpfSearchResults,
+  digitsOnly,
+  isLoyaltyCouponsEnabledForCheckout,
+  LOYALTY_CPF_MIN_SEARCH_LENGTH,
+  resolveCheckoutCompanyConfigs,
+  resolveCheckoutLoyaltySelection,
+  resolvePeopleId,
+} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 
 import {
   buildWalletIdsForGateway,
@@ -74,7 +88,7 @@ import {
 
 import {useStore} from '@store';
 import styles from './Checkout.styles';
-import {inlineStyle_534_10} from './Checkout.styles';
+import {inlineStyle_491_14, inlineStyle_534_10} from './Checkout.styles';
 
 const PAYMENT_CHANNEL_LOCAL = 'local';
 const PAYMENT_CHANNEL_REMOTE = 'remote';
@@ -215,28 +229,22 @@ const Checkout = () => {
   const [selectedRemoteDeviceId, setSelectedRemoteDeviceId] = useState('');
   const [pendingRemotePaymentRequest, setPendingRemotePaymentRequest] =
     useState(null);
+  const [loyaltyCpfInput, setLoyaltyCpfInput] = useState('');
+  const [loyaltyCpfResults, setLoyaltyCpfResults] = useState([]);
+  const [loyaltyCpfLoading, setLoyaltyCpfLoading] = useState(false);
+  const [selectedLoyaltyPerson, setSelectedLoyaltyPerson] = useState(null);
+  const [loyaltyCpfStepCompleted, setLoyaltyCpfStepCompleted] = useState(true);
+  const [loyaltyCpfStepSkipped, setLoyaltyCpfStepSkipped] = useState(false);
 
-  const effectiveCompanyConfigs = useMemo(() => {
-    if (
-      companyConfigs &&
-      typeof companyConfigs === 'object' &&
-      Object.keys(companyConfigs).length > 0
-    ) {
-      return companyConfigs;
-    }
-
-    if (
-      currentCompany?.configs &&
-      typeof currentCompany.configs === 'object' &&
-      Object.keys(currentCompany.configs).length > 0
-    ) {
-      return currentCompany.configs;
-    }
-
-    return companyConfigs && typeof companyConfigs === 'object'
-      ? companyConfigs
-      : {};
-  }, [companyConfigs, currentCompany?.configs]);
+  const effectiveCompanyConfigs = useMemo(
+    () =>
+      resolveCheckoutCompanyConfigs({
+        companyConfigs,
+        currentCompanyConfigs: currentCompany?.configs,
+        defaultCompanyConfigs: defaultCompany?.configs,
+      }),
+    [companyConfigs, currentCompany?.configs, defaultCompany?.configs],
+  );
 
   const localGateway = useMemo(
     () => getPaymentGatewayFromConfigs(device),
@@ -248,6 +256,10 @@ const Checkout = () => {
   );
   const isManagerApp = useMemo(
     () => String(env.APP_TYPE || '').trim().toUpperCase() === 'MANAGER',
+    [],
+  );
+  const isPosApp = useMemo(
+    () => String(env.APP_TYPE || '').trim().toUpperCase() === 'POS',
     [],
   );
   const isLocalPaymentDevice = useMemo(
@@ -295,6 +307,16 @@ const Checkout = () => {
       (isLocalPaymentDevice || deviceType === 'PDV' || isPdvInteractionMode),
     [deviceType, isLocalPaymentDevice, isManagerApp, isPdvInteractionMode],
   );
+  const loyaltyCouponsEnabled = useMemo(
+    () => isLoyaltyCouponsEnabledForCheckout(effectiveCompanyConfigs),
+    [effectiveCompanyConfigs],
+  );
+  const requiresLoyaltyCpfStep = useMemo(
+    () =>
+      loyaltyCouponsEnabled &&
+      (isPosApp || deviceType === 'PDV' || isPdvInteractionMode),
+    [deviceType, isPdvInteractionMode, isPosApp, loyaltyCouponsEnabled],
+  );
   const canChangePaymentDeviceDuringCheckout = useMemo(
     () => isOrderPaymentDeviceChangeAllowed(effectiveCompanyConfigs),
     [effectiveCompanyConfigs],
@@ -336,6 +358,17 @@ const Checkout = () => {
 
     return Number(order?.price || 0);
   }, [order?.price, payable]);
+  const loyaltyCpfDigits = useMemo(
+    () => digitsOnly(loyaltyCpfInput).slice(0, 11),
+    [loyaltyCpfInput],
+  );
+  const loyaltySearchCompanyId = useMemo(
+    () =>
+      resolvePeopleId(defaultCompany?.id || defaultCompany?.['@id']) ||
+      resolvePeopleId(currentCompany?.id || currentCompany?.['@id']) ||
+      null,
+    [currentCompany?.['@id'], currentCompany?.id, defaultCompany?.['@id'], defaultCompany?.id],
+  );
   const cashPaymentContext = useMemo(() => {
     if (amountEntryModalMode === 'cash-local') {
       return PAYMENT_CHANNEL_LOCAL;
@@ -432,6 +465,108 @@ const Checkout = () => {
     [selectedPaymentChannel],
   );
 
+  useEffect(() => {
+    if (!requiresLoyaltyCpfStep) {
+      setLoyaltyCpfInput('');
+      setLoyaltyCpfResults([]);
+      setLoyaltyCpfLoading(false);
+      setSelectedLoyaltyPerson(null);
+      setLoyaltyCpfStepCompleted(true);
+      setLoyaltyCpfStepSkipped(false);
+      return;
+    }
+
+    const restoredSelection = resolveCheckoutLoyaltySelection(order);
+
+    if (restoredSelection?.id) {
+      setSelectedLoyaltyPerson(restoredSelection);
+      setLoyaltyCpfInput(restoredSelection.cpfDisplay || restoredSelection.cpf || '');
+      setLoyaltyCpfResults([]);
+      setLoyaltyCpfLoading(false);
+      setLoyaltyCpfStepCompleted(true);
+      setLoyaltyCpfStepSkipped(false);
+      return;
+    }
+
+    setSelectedLoyaltyPerson(null);
+    setLoyaltyCpfInput('');
+    setLoyaltyCpfResults([]);
+    setLoyaltyCpfLoading(false);
+    setLoyaltyCpfStepCompleted(false);
+    setLoyaltyCpfStepSkipped(false);
+  }, [order, requiresLoyaltyCpfStep]);
+
+  useEffect(() => {
+    if (!requiresLoyaltyCpfStep || loyaltyCpfStepCompleted) {
+      setLoyaltyCpfLoading(false);
+      setLoyaltyCpfResults([]);
+      return undefined;
+    }
+
+    if (loyaltyCpfDigits.length < LOYALTY_CPF_MIN_SEARCH_LENGTH) {
+      setLoyaltyCpfLoading(false);
+      setLoyaltyCpfResults([]);
+      return undefined;
+    }
+
+    const selectedCpfDigits = digitsOnly(
+      selectedLoyaltyPerson?.cpf || selectedLoyaltyPerson?.cpfDisplay || '',
+    );
+
+    if (selectedCpfDigits && selectedCpfDigits === loyaltyCpfDigits) {
+      setLoyaltyCpfLoading(false);
+      setLoyaltyCpfResults([]);
+      return undefined;
+    }
+
+    let isActive = true;
+    const timeoutId = setTimeout(async () => {
+      setLoyaltyCpfLoading(true);
+
+      try {
+        const response = await api.fetch('people', {
+          params: buildLoyaltyCpfSearchParams({
+            companyId: loyaltySearchCompanyId,
+            query: loyaltyCpfDigits,
+          }),
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        setLoyaltyCpfResults(
+          buildLoyaltyCpfSearchResults(
+            extractCollectionItems(response),
+            loyaltyCpfDigits,
+          ),
+        );
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setLoyaltyCpfResults([]);
+      } finally {
+        if (isActive) {
+          setLoyaltyCpfLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
+    };
+  }, [
+    loyaltyCpfDigits,
+    loyaltySearchCompanyId,
+    loyaltyCpfStepCompleted,
+    requiresLoyaltyCpfStep,
+    selectedLoyaltyPerson?.cpf,
+    selectedLoyaltyPerson?.cpfDisplay,
+  ]);
+
   const appendInvoiceToStore = useCallback(
     invoiceData => {
       if (!invoiceData) {
@@ -475,6 +610,63 @@ const Checkout = () => {
         remainingAmount,
       }),
     [payable, remainingAmount],
+  );
+
+  const syncLoyaltySelectionToOrder = useCallback(
+    async currentOrder => {
+      if (!requiresLoyaltyCpfStep) {
+        return currentOrder || order;
+      }
+
+      const targetOrderId = resolvePeopleId(currentOrder?.id) || routeOrderId;
+
+      if (!targetOrderId) {
+        return currentOrder || order;
+      }
+
+      const selectedPeopleId = resolvePeopleId(selectedLoyaltyPerson?.id);
+      const nextClient = selectedPeopleId ? `/people/${selectedPeopleId}` : null;
+      const nextPayer = selectedPeopleId ? `/people/${selectedPeopleId}` : null;
+      const currentClientId = resolvePeopleId(currentOrder?.client || order?.client);
+      const currentPayerId = resolvePeopleId(currentOrder?.payer || order?.payer);
+      const shouldClearSelection =
+        loyaltyCpfStepSkipped && !selectedPeopleId && (currentClientId || currentPayerId);
+      const hasSameSelection =
+        currentClientId === selectedPeopleId && currentPayerId === selectedPeopleId;
+
+      if (!shouldClearSelection && hasSameSelection) {
+        return currentOrder || order;
+      }
+
+      try {
+        const updatedOrder = await ordersActions.save({
+          id: targetOrderId,
+          client: nextClient,
+          payer: nextPayer,
+        });
+
+        if (updatedOrder) {
+          ordersActions.syncOrder?.(updatedOrder);
+          return updatedOrder;
+        }
+      } catch (error) {
+        invoiceActions.setError(
+          error?.message ||
+            'Pagamento confirmado, mas nao foi possivel vincular o CPF ao pedido.',
+        );
+      }
+
+      return currentOrder || order;
+    },
+    [
+      invoiceActions,
+      loyaltyCpfStepSkipped,
+      order,
+      ordersActions,
+      requiresLoyaltyCpfStep,
+      routeOrderId,
+      selectedLoyaltyPerson?.id,
+    ],
   );
 
   const resetCompletedOrderState = useCallback(() => {
@@ -557,21 +749,28 @@ const Checkout = () => {
 
           ordersActions.setPayable(nextPayable < 0 ? nextPayable : 0);
 
+          let resolvedOrder = invoiceMessage?.order || order;
+
+          if (routeOrderId) {
+            const fetchedOrder = await ordersActions.get(routeOrderId).catch(() => null);
+            if (fetchedOrder) {
+              resolvedOrder = fetchedOrder;
+            }
+          }
+
+          const syncedOrder = await syncLoyaltySelectionToOrder(resolvedOrder);
+          const navigationOrder =
+            syncedOrder || resolvedOrder || invoiceMessage?.order || routeOrderId || order;
+
           if (isSingleItemMode && nextPayable >= 0) {
             resetCompletedOrderState();
             resetToOrderHistory();
             return;
           }
 
-          if (routeOrderId) {
-            await ordersActions.get(routeOrderId).catch(() => null);
-          }
-
           navigation.navigate(
             'OrderDetails',
-            buildOrderDetailsNavigationParams(
-              invoiceMessage?.order || routeOrderId || order,
-            ),
+            buildOrderDetailsNavigationParams(navigationOrder),
           );
           return;
         }
@@ -598,6 +797,7 @@ const Checkout = () => {
     ordersActions,
     pendingRemotePaymentRequest?.requestKey,
     resolveNextPayableAfterPayment,
+    syncLoyaltySelectionToOrder,
     routeOrderId,
     isSingleItemMode,
     resetCompletedOrderState,
@@ -809,6 +1009,8 @@ const Checkout = () => {
 
         const paidAmount = Number(createdInvoice.price || 0);
         const nextPayable = resolveNextPayableAfterPayment(paidAmount);
+        const syncedOrder = await syncLoyaltySelectionToOrder(order);
+        const resolvedOrder = syncedOrder || order;
 
         if (isSingleItemMode && nextPayable >= 0) {
           resetCompletedOrderState();
@@ -821,10 +1023,10 @@ const Checkout = () => {
             appendInvoiceToStore(createdInvoice);
             appendOrderInvoiceToStore(createdInvoice, paidAmount);
             ordersActions.setPayable(nextPayable);
-            ordersActions.syncOrder?.(order);
+            ordersActions.syncOrder?.(resolvedOrder);
             navigation.navigate(
               'OrderDetails',
-              buildOrderDetailsNavigationParams(order),
+              buildOrderDetailsNavigationParams(resolvedOrder),
             );
           } else {
             resetCompletedOrderState();
@@ -848,10 +1050,10 @@ const Checkout = () => {
               resetToSelfServiceCatalog();
             }
           } else {
-            ordersActions.syncOrder?.(order);
+            ordersActions.syncOrder?.(resolvedOrder);
             navigation.navigate(
               'OrderDetails',
-              buildOrderDetailsNavigationParams(order),
+              buildOrderDetailsNavigationParams(resolvedOrder),
             );
           }
         }
@@ -886,6 +1088,7 @@ const Checkout = () => {
       resetCompletedOrderState,
       resetToSelfServiceCatalog,
       resolveNextPayableAfterPayment,
+      syncLoyaltySelectionToOrder,
     ],
   );
 
@@ -1206,7 +1409,76 @@ const Checkout = () => {
     remotePaymentOptions,
     selectedRemoteDevice,
   ]);
-  const paymentTopContent = null;
+
+  const handleLoyaltyCpfInputChange = useCallback(value => {
+    const nextDigits = digitsOnly(value).slice(0, 11);
+    const selectedCpfDigits = digitsOnly(
+      selectedLoyaltyPerson?.cpf || selectedLoyaltyPerson?.cpfDisplay || '',
+    );
+
+    setLoyaltyCpfInput(Formatter.maskCPF(nextDigits));
+    setLoyaltyCpfStepSkipped(false);
+
+    if (selectedCpfDigits && selectedCpfDigits !== nextDigits) {
+      setSelectedLoyaltyPerson(null);
+    }
+  }, [selectedLoyaltyPerson?.cpf, selectedLoyaltyPerson?.cpfDisplay]);
+
+  const handleSelectLoyaltyPerson = useCallback(person => {
+    setSelectedLoyaltyPerson(person);
+    setLoyaltyCpfInput(person?.cpfDisplay || Formatter.maskCPF(person?.cpf || ''));
+    setLoyaltyCpfResults([]);
+    setLoyaltyCpfStepSkipped(false);
+  }, []);
+
+  const handleSkipLoyaltyCpfStep = useCallback(() => {
+    setSelectedLoyaltyPerson(null);
+    setLoyaltyCpfInput('');
+    setLoyaltyCpfResults([]);
+    setLoyaltyCpfStepSkipped(true);
+    setLoyaltyCpfStepCompleted(true);
+  }, []);
+
+  const handleContinueAfterLoyaltyCpf = useCallback(() => {
+    if (!resolvePeopleId(selectedLoyaltyPerson?.id)) {
+      invoiceActions.setError(
+        'Selecione um CPF da lista ou toque em pular para seguir sem identificar o cliente.',
+      );
+      return;
+    }
+
+    setLoyaltyCpfStepSkipped(false);
+    setLoyaltyCpfStepCompleted(true);
+  }, [invoiceActions, selectedLoyaltyPerson?.id]);
+
+  const shouldRenderLoyaltyCpfStep =
+    requiresLoyaltyCpfStep && !loyaltyCpfStepCompleted;
+
+  const paymentTopContent =
+    requiresLoyaltyCpfStep && loyaltyCpfStepCompleted ? (
+      <View style={styles.loyaltySummaryCard}>
+        <View style={styles.loyaltySummaryHeader}>
+          <Text style={styles.loyaltySummaryTitle}>CPF fidelidade</Text>
+          <TouchableOpacity
+            disabled={submittingPayment}
+            onPress={() => {
+              setLoyaltyCpfStepCompleted(false);
+              setLoyaltyCpfStepSkipped(false);
+              setLoyaltyCpfResults([]);
+            }}
+            style={styles.loyaltySecondaryAction}>
+            <Text style={styles.loyaltySecondaryActionText}>Alterar</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.loyaltySummaryText}>
+          {selectedLoyaltyPerson?.id
+            ? `${selectedLoyaltyPerson.label} - ${
+                selectedLoyaltyPerson.cpfDisplay || selectedLoyaltyPerson.cpf || ''
+              }`
+            : 'Venda seguindo sem CPF informado.'}
+        </Text>
+      </View>
+    ) : null;
 
   const emptyTitle = 'Nenhum meio de pagamento disponível';
   const emptyText =
@@ -1296,26 +1568,130 @@ const Checkout = () => {
 
       {canRenderCheckout ? (
         <>
-          <PaymentCheckoutPanel
-            actionLabel={actionLabel}
-            actionIcon={actionIcon}
-            actionLoading={submittingPayment}
-            emptyText={emptyText}
-            emptyTitle={emptyTitle}
-            error={paymentOptionsError}
-            invoiceError={invoiceError}
-            isLoadingPayments={loadingPaymentOptions}
-            onPay={handlePay}
-            onSelectPayment={option => {
-              setSelectedPaymentOption(option);
-              setPaymentExplanationVisible(false);
-            }}
-            paymentSections={paymentSections}
-            payDisabled={payDisabled}
-            pendingAmount={remainingAmount}
-            selectedPaymentKey={selectedPaymentOption?.key}
-            topContent={paymentTopContent}
-          />
+          {shouldRenderLoyaltyCpfStep ? (
+            <>
+              <View style={inlineStyle_491_14}>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.loyaltyStepScrollContent}>
+                  <View style={styles.loyaltyCard}>
+                    <Text style={styles.loyaltyTitle}>Identificar cliente</Text>
+                    <Text style={styles.loyaltySubtitle}>
+                      Informe o CPF antes do pagamento quando a fidelidade estiver habilitada.
+                      Se preferir, você pode pular esta etapa e seguir direto para o pagamento.
+                    </Text>
+                    <TextInput
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="number-pad"
+                      maxLength={14}
+                      onChangeText={handleLoyaltyCpfInputChange}
+                      placeholder="Digite o CPF"
+                      style={styles.loyaltyInput}
+                      value={loyaltyCpfInput}
+                    />
+                    <Text style={styles.loyaltyHint}>
+                      A busca começa após 5 dígitos e uma pausa curta de digitação.
+                    </Text>
+
+                    {selectedLoyaltyPerson?.id ? (
+                      <View style={styles.loyaltySelectedPill}>
+                        <Text style={styles.loyaltySelectedTitle}>Selecionado</Text>
+                        <Text style={styles.loyaltySelectedValue}>
+                          {selectedLoyaltyPerson.label}
+                        </Text>
+                        <Text style={styles.loyaltyResultSubtitle}>
+                          {selectedLoyaltyPerson.cpfDisplay || selectedLoyaltyPerson.cpf || ''}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    {loyaltyCpfLoading ? (
+                      <View style={styles.loyaltyInlineRow}>
+                        <ActivityIndicator size="small" color="#1B5587" />
+                        <Text style={styles.loyaltyHint}>Buscando CPFs cadastrados...</Text>
+                      </View>
+                    ) : null}
+
+                    {!loyaltyCpfLoading &&
+                    loyaltyCpfDigits.length >= LOYALTY_CPF_MIN_SEARCH_LENGTH &&
+                    !loyaltyCpfResults.length ? (
+                      <Text style={styles.loyaltyHint}>
+                        Nenhum CPF encontrado com os dígitos informados.
+                      </Text>
+                    ) : null}
+
+                    {loyaltyCpfResults.map(person => {
+                      const isActive =
+                        String(person?.id || '') === String(selectedLoyaltyPerson?.id || '');
+
+                      return (
+                        <TouchableOpacity
+                          key={String(person.id)}
+                          activeOpacity={0.85}
+                          onPress={() => handleSelectLoyaltyPerson(person)}
+                          style={[
+                            styles.loyaltyResultItem,
+                            isActive && styles.loyaltyResultItemActive,
+                          ]}>
+                          <Text style={styles.loyaltyResultTitle}>{person.label}</Text>
+                          <Text style={styles.loyaltyResultSubtitle}>
+                            {person.cpfDisplay || person.cpf || ''}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={handleSkipLoyaltyCpfStep}
+                      style={styles.loyaltySecondaryAction}>
+                      <Text style={styles.loyaltySecondaryActionText}>
+                        Pular e ir para pagamento
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+
+                <BottomCart
+                  actionDisabled={!resolvePeopleId(selectedLoyaltyPerson?.id)}
+                  actionIcon="arrow-right"
+                  actionLabel="Continuar para pagamento"
+                  bottomOffset={-8}
+                  collapsePayableWhenPaid={false}
+                  onActionPress={handleContinueAfterLoyaltyCpf}
+                  paymentPaidLabel="Pago"
+                  paymentPendingAmount={remainingAmount}
+                  paymentPendingLabel="Pendente"
+                  showPayableBadge={false}
+                  variant="payment-status"
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <PaymentCheckoutPanel
+                actionLabel={actionLabel}
+                actionIcon={actionIcon}
+                actionLoading={submittingPayment}
+                emptyText={emptyText}
+                emptyTitle={emptyTitle}
+                error={paymentOptionsError}
+                invoiceError={invoiceError}
+                isLoadingPayments={loadingPaymentOptions}
+                onPay={handlePay}
+                onSelectPayment={option => {
+                  setSelectedPaymentOption(option);
+                  setPaymentExplanationVisible(false);
+                }}
+                paymentSections={paymentSections}
+                payDisabled={payDisabled}
+                pendingAmount={remainingAmount}
+                selectedPaymentKey={selectedPaymentOption?.key}
+                topContent={paymentTopContent}
+              />
+            </>
+          )}
 
           <Modal
             visible={remoteDeviceModalVisible}
