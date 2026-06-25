@@ -59,6 +59,39 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Bacon', 'Catupiry'])
   })
 
+  it('hides descriptions that only repeat the product name', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 1,
+        quantity: 1,
+        product: {
+          id: 101,
+          product: 'Pizza',
+          description: 'Pizza Grande 8 Pedaços',
+        },
+        orderProductComponents: [
+          {
+            id: 2,
+            quantity: 1,
+            product: {
+              id: 29,
+              product: 'Calabreza Fatiada',
+              description: '  calabreza   fatiada ',
+            },
+            productGroup: {
+              id: 900,
+              productGroup: 'Sabores',
+              parentProduct: { id: 101, product: 'Pizza' },
+            },
+          },
+        ],
+      },
+    ])
+
+    expect(cards[0].description).toBe('Pizza Grande 8 Pedaços')
+    expect(cards[0].groups[0].items[0].description).toBe('')
+  })
+
   it('hides the group title when showInDisplay is false without collapsing the bucket', () => {
     const cards = buildOrderProductCards([
       {

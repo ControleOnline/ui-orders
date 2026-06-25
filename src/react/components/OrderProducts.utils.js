@@ -191,8 +191,22 @@ const getNodeName = node =>
     '',
   )
 
-const getNodeDescription = node =>
-  normalizeOrderProductText(node?.product?.description || node?.description || '')
+const normalizeComparableOrderProductText = value =>
+  normalizeOrderProductText(value)
+    .toLocaleLowerCase('pt-BR')
+    .replace(/\s+/g, ' ')
+
+const getNodeDescription = node => {
+  const name = getNodeName(node)
+  const description = normalizeOrderProductText(
+    node?.product?.description || node?.description || '',
+  )
+
+  return normalizeComparableOrderProductText(description) ===
+    normalizeComparableOrderProductText(name)
+    ? ''
+    : description
+}
 
 const getNodeObservation = node =>
   normalizeOrderProductText(
