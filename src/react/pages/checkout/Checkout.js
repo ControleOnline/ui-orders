@@ -53,14 +53,15 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 
 import {
-  buildWalletIdsForGateway,
   filterDeviceConfigsByCompany,
+  filterWalletPaymentTypesByAllowedIds,
   getPaymentGatewayFromConfigs,
   getPaymentGatewayLabel,
   isOrderPaymentDeviceChangeAllowed,
   PAYMENT_GATEWAY_CIELO,
   PAYMENT_GATEWAY_INFINITE_PAY,
   resolveRemotePaymentDeviceOptions,
+  resolveDevicePaymentTypeIds,
   supportsLocalCardPayment,
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
 import {
@@ -857,22 +858,14 @@ const Checkout = () => {
         return;
       }
 
-      const localWalletIds = canUseLocalOperationalPayment
-        ? buildWalletIdsForGateway({
-            gateway: IS_WEB_PLATFORM ? '' : localGateway,
-            companyConfigs: effectiveCompanyConfigs,
-            includeCashWallet: true,
-          })
+      const localPaymentTypeIds = canUseLocalOperationalPayment
+        ? resolveDevicePaymentTypeIds(device?.configs)
         : [];
-      const remoteWalletIds = selectedRemoteDevice?.gateway
-        ? buildWalletIdsForGateway({
-            gateway: selectedRemoteDevice.gateway,
-            companyConfigs: effectiveCompanyConfigs,
-            includeCashWallet: false,
-          })
+      const remotePaymentTypeIds = selectedRemoteDevice?.config
+        ? resolveDevicePaymentTypeIds(selectedRemoteDevice.config?.configs)
         : [];
 
-      if (!localWalletIds.length && !remoteWalletIds.length) {
+      if (!localPaymentTypeIds.length && !remotePaymentTypeIds.length) {
         setLoadingPaymentOptions(false);
         setLocalPaymentOptions([]);
         setRemotePaymentOptions([]);
@@ -884,31 +877,22 @@ const Checkout = () => {
       setPaymentOptionsError('');
 
       try {
-        const [localResponse, remoteResponse] = await Promise.all([
-          localWalletIds.length
-            ? api.fetch('wallet_payment_types', {
-                params: {
-                  people: '/people/' + currentCompany.id,
-                  wallet: localWalletIds,
-                },
-              })
-            : Promise.resolve([]),
-          remoteWalletIds.length
-            ? api.fetch('wallet_payment_types', {
-                params: {
-                  people: '/people/' + currentCompany.id,
-                  wallet: remoteWalletIds,
-                },
-              })
-            : Promise.resolve([]),
-        ]);
+        const paymentTypeResponse = await api.fetch('wallet_payment_types', {
+          params: {
+            people: '/people/' + currentCompany.id,
+          },
+        });
 
         if (!isMounted) {
           return;
         }
 
+        const allPaymentTypes = extractCollectionItems(paymentTypeResponse);
         setLocalPaymentOptions(
-          extractCollectionItems(localResponse).map(payment =>
+          filterWalletPaymentTypesByAllowedIds(
+            allPaymentTypes,
+            localPaymentTypeIds,
+          ).map(payment =>
             buildPaymentSelectionOption({
               channel: PAYMENT_CHANNEL_LOCAL,
               payment,
@@ -916,7 +900,10 @@ const Checkout = () => {
           ),
         );
         setRemotePaymentOptions(
-          extractCollectionItems(remoteResponse)
+          filterWalletPaymentTypesByAllowedIds(
+            allPaymentTypes,
+            remotePaymentTypeIds,
+          )
             .filter(isIntegratedPaymentOption)
             .map(payment =>
             buildPaymentSelectionOption({
@@ -956,10 +943,10 @@ const Checkout = () => {
     canUseLocalOperationalPayment,
     currentCompany?.id,
     effectiveCompanyConfigs,
-    localGateway,
+    device?.configs,
     selectedRemoteDevice?.alias,
     selectedRemoteDevice?.deviceId,
-    selectedRemoteDevice?.gateway,
+    selectedRemoteDevice?.config?.configs,
   ]);
 
   useEffect(() => {

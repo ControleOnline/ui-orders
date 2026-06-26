@@ -15,6 +15,10 @@ import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
+import {
+  filterWalletPaymentTypesByAllowedIds,
+  resolveDevicePaymentTypeIds,
+} from '@controleonline/ui-common/src/react/utils/paymentDevices';
 
 import {
   inlineStyle_173_12,
@@ -87,8 +91,11 @@ export default function BleedScreen() {
   const paymentTypeActions = walletPaymentTypeStore.actions;
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
+  const deviceConfigStore = useStore('device_config');
+  const deviceConfigGetters = deviceConfigStore.getters;
   const {items: paymentTypes} = paymentTypeGetters;
   const {currentCompany, defaultCompany} = peopleGetters;
+  const {item: device} = deviceConfigGetters;
   const invoiceStore = useStore('invoice');
   const invoiceActions = invoiceStore.actions;
   const [selectedPaymentType, setSelectedPaymentType] = useState(null);
@@ -118,11 +125,28 @@ export default function BleedScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (cashWallet)
-        paymentTypeActions.getItems({
-          wallet: cashWallet,
+      const selectedPaymentTypeIds = resolveDevicePaymentTypeIds(
+        device?.configs,
+      );
+
+      if (!currentCompany?.id || !selectedPaymentTypeIds.length) {
+        paymentTypeActions.setItems([]);
+        return;
+      }
+
+      paymentTypeActions
+        .getItems({
+          people: '/people/' + currentCompany.id,
+        })
+        .then(data => {
+          paymentTypeActions.setItems(
+            filterWalletPaymentTypesByAllowedIds(data, selectedPaymentTypeIds),
+          );
+        })
+        .catch(() => {
+          paymentTypeActions.setItems([]);
         });
-    }, [cashWallet]),
+    }, [currentCompany?.id, device?.configs, paymentTypeActions]),
   );
 
   useFocusEffect(

@@ -7,6 +7,10 @@ import StateStore from '@controleonline/ui-layout/src/react/components/StateStor
 import { useStore } from '@store';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {
+  filterWalletPaymentTypesByAllowedIds,
+  resolveDevicePaymentTypeIds,
+} from '@controleonline/ui-common/src/react/utils/paymentDevices';
 
 import {
   inlineStyle_154_18,
@@ -24,12 +28,9 @@ const CashRegister = ({ navigation }) => {
   const invoiceActions = invoiceStore.actions;
   const walletPaymentTypeStore = useStore('walletPaymentType');
   const paymentTypeActions = walletPaymentTypeStore.actions;
-  const configsStore = useStore('configs');
-  const configsGetters = configsStore.getters;
   const device_configStore = useStore('device_config');
   const deviceConfigGetters = device_configStore.getters;
   const { item: device } = deviceConfigGetters;
-  const { items: companyConfigs } = configsGetters;
   const { currentCompany } = peopleGetters;
   const { items: payments, isLoading, error } = invoiceGetters;
   const deviceStore = useStore('device');
@@ -41,28 +42,6 @@ const CashRegister = ({ navigation }) => {
     total: 0,
   });
 
-  const [defaultWallets, setDefaultWallets] = useState(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (
-        companyConfigs &&
-        device &&
-        device.configs &&
-        Object.entries(device.configs).length > 0 &&
-        device.configs['pos-gateway'] &&
-        companyConfigs['pos-cash-wallet']
-      ) {
-        let w = [];
-        w.push(
-          companyConfigs['pos-' + device.configs['pos-gateway'] + '-wallet'],
-        );
-        w.push(companyConfigs['pos-cash-wallet']);
-        setDefaultWallets(w);
-      }
-    }, [companyConfigs, device]),
-  );
-
   const handleWithdrawal = () => {
     navigation.navigate('Withdrawal');
   };
@@ -73,12 +52,28 @@ const CashRegister = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (defaultWallets)
-        paymentTypeActions.getItems({
+      const selectedPaymentTypeIds = resolveDevicePaymentTypeIds(
+        device?.configs,
+      );
+
+      if (!currentCompany?.id || !selectedPaymentTypeIds.length) {
+        paymentTypeActions.setItems([]);
+        return;
+      }
+
+      paymentTypeActions
+        .getItems({
           people: '/people/' + currentCompany.id,
-          wallet: defaultWallets,
+        })
+        .then(data => {
+          paymentTypeActions.setItems(
+            filterWalletPaymentTypesByAllowedIds(data, selectedPaymentTypeIds),
+          );
+        })
+        .catch(() => {
+          paymentTypeActions.setItems([]);
         });
-    }, [currentCompany, defaultWallets]),
+    }, [currentCompany?.id, device?.configs, paymentTypeActions]),
   );
 
   useFocusEffect(
