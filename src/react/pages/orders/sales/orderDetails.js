@@ -70,6 +70,7 @@ import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
 
 import {
+  calculateOrderProductsSubtotal,
   mergeOrderProductIntoList,
   mergeOrderWithOrderProducts,
   removeOrderProductFromList,
@@ -246,6 +247,7 @@ const filterOrderProductsByOrderId = (orderProducts, orderId) =>
 const choosePreferredOrderProducts = ({
   primaryOrderProducts,
   fallbackOrderProducts,
+  primaryHasOwnOrderProducts = false,
 }) => {
   if (hasOrderProducts(primaryOrderProducts)) {
     if (
@@ -256,6 +258,10 @@ const choosePreferredOrderProducts = ({
     }
 
     return primaryOrderProducts
+  }
+
+  if (primaryHasOwnOrderProducts) {
+    return []
   }
 
   if (hasOrderProducts(fallbackOrderProducts)) {
@@ -869,6 +875,7 @@ const OrderDetails = ({ route, navigation }) => {
     const sourceOrderId = getEntityId(sourceOrder) || currentDisplayOrderId
     const preferredOrderProducts = choosePreferredOrderProducts({
       primaryOrderProducts: orderProducts,
+      primaryHasOwnOrderProducts: hasOwnOrderProducts,
       fallbackOrderProducts: filterOrderProductsByOrderId(
         storedOrderProductsRef.current,
         sourceOrderId,
@@ -1364,18 +1371,20 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   const resolvedDisplayOrderProducts = useMemo(() => {
-    const currentOrderProducts = resolveEmbeddedOrderProducts(item).orderProducts
-    const initialOrderProducts = resolveEmbeddedOrderProducts(orderParam).orderProducts
+    const currentOrderProductsPayload = resolveEmbeddedOrderProducts(item)
+    const initialOrderProductsPayload = resolveEmbeddedOrderProducts(orderParam)
     const marketplaceOrderProducts = Array.isArray(marketplaceSummary.fallbackOrderProducts)
       ? marketplaceSummary.fallbackOrderProducts
       : []
 
     return choosePreferredOrderProducts({
-      primaryOrderProducts: currentOrderProducts,
+      primaryOrderProducts: currentOrderProductsPayload.orderProducts,
+      primaryHasOwnOrderProducts: currentOrderProductsPayload.hasOwnOrderProducts,
       fallbackOrderProducts: choosePreferredOrderProducts({
         primaryOrderProducts: filteredStoredOrderProducts,
         fallbackOrderProducts: choosePreferredOrderProducts({
-          primaryOrderProducts: initialOrderProducts,
+          primaryOrderProducts: initialOrderProductsPayload.orderProducts,
+          primaryHasOwnOrderProducts: initialOrderProductsPayload.hasOwnOrderProducts,
           fallbackOrderProducts: marketplaceOrderProducts,
         }),
       }),
@@ -1633,7 +1642,37 @@ const OrderDetails = ({ route, navigation }) => {
 
     return Object.values(sectionsMap)
   }, [localInvoiceCards])
-  const localOrderTotal = Number(item?.price || 0)
+  const hasAuthoritativeEmptyOrderProducts = useMemo(() => {
+    const itemOrderProductsPayload = resolveEmbeddedOrderProducts(item)
+    if (itemOrderProductsPayload.hasOwnOrderProducts) {
+      return !hasOrderProducts(itemOrderProductsPayload.orderProducts)
+    }
+
+    const orderParamOrderProductsPayload = resolveEmbeddedOrderProducts(orderParam)
+    return (
+      orderParamOrderProductsPayload.hasOwnOrderProducts &&
+      !hasOrderProducts(orderParamOrderProductsPayload.orderProducts)
+    )
+  }, [item, item?.orderProducts, orderParam, orderParam?.orderProducts])
+  const localOrderTotal = useMemo(() => {
+    if (
+      hasOrderProducts(resolvedDisplayOrderProductsWithProductDetails) ||
+      hasAuthoritativeEmptyOrderProducts
+    ) {
+      return calculateOrderProductsSubtotal(resolvedDisplayOrderProductsWithProductDetails)
+    }
+
+    const fallbackTotal = Number(
+      resolvedDisplayOrder?.price ?? item?.price ?? orderParam?.price ?? 0,
+    )
+    return Number.isFinite(fallbackTotal) ? fallbackTotal : 0
+  }, [
+    hasAuthoritativeEmptyOrderProducts,
+    item?.price,
+    orderParam?.price,
+    resolvedDisplayOrder?.price,
+    resolvedDisplayOrderProductsWithProductDetails,
+  ])
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
   const localDisplayAmount = useMemo(
     () => resolveOperationalDisplayAmount({

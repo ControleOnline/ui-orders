@@ -186,6 +186,10 @@ const resolveNextOrderPrice = (order, nextOrderProducts) => {
   }
 
   const currentSubtotal = calculateOrderProductsSubtotal(order?.orderProducts)
+  if (currentPrice <= 0 && currentSubtotal > 0 && nextSubtotal > 0) {
+    return nextSubtotal
+  }
+
   const adjustedPrice = currentPrice + (nextSubtotal - currentSubtotal)
 
   return roundMoney(Math.max(0, adjustedPrice))

@@ -60,6 +60,12 @@ const getEmbeddedOrderProducts = order => {
   return []
 }
 
+const resolveEmbeddedOrderProducts = order => ({
+  hasOwnOrderProducts:
+    !!order && Object.prototype.hasOwnProperty.call(order, 'orderProducts'),
+  orderProducts: getEmbeddedOrderProducts(order),
+})
+
 const getOrderProductCollectionSignature = orderProducts =>
   (Array.isArray(orderProducts) ? orderProducts : [])
     .map(orderProduct =>
@@ -174,16 +180,23 @@ const OrderItemsTab = ({
   const normalizedRouteOrderId = Number(routeOrderId || 0)
   const fallbackRequestKey = getOrderProductsFallbackFetchKey(normalizedRouteOrderId)
   const resolvedOrderProductsFromOrder = useMemo(
-    () => getEmbeddedOrderProducts(resolvedOrder),
+    () => resolveEmbeddedOrderProducts(resolvedOrder),
     [resolvedOrder],
   )
+  const hasProvidedOrderProducts = Array.isArray(orderProducts)
   const primaryOrderProducts = useMemo(
     () =>
-      hasOrderProducts(providedOrderProducts)
+      hasProvidedOrderProducts
         ? providedOrderProducts
-        : resolvedOrderProductsFromOrder,
-    [providedOrderProducts, resolvedOrderProductsFromOrder],
+        : resolvedOrderProductsFromOrder.orderProducts,
+    [
+      hasProvidedOrderProducts,
+      providedOrderProducts,
+      resolvedOrderProductsFromOrder.orderProducts,
+    ],
   )
+  const primaryHasOwnOrderProducts =
+    hasProvidedOrderProducts || resolvedOrderProductsFromOrder.hasOwnOrderProducts
   const isFallbackFetchLoading = Boolean(orderProductsGetters?.isLoading)
   const hasFallbackFetchError = !!orderProductsGetters?.error
   const fallbackFetchOrderIdRef = useRef('')
@@ -212,6 +225,7 @@ const OrderItemsTab = ({
   const fallbackAlreadyRequested =
     !!fallbackRequestKey && requestedFallbackOrderKeys.has(fallbackRequestKey)
   const shouldUseFallbackOrderProducts =
+    (!primaryHasOwnOrderProducts || hasOrderProducts(primaryOrderProducts)) &&
     requiresDetailedFallback &&
     fallbackOrderProducts.length > 0 &&
     fallbackHasDetailedPayload
@@ -222,8 +236,15 @@ const OrderItemsTab = ({
         ? fallbackOrderProducts
         : hasOrderProducts(primaryOrderProducts)
           ? primaryOrderProducts
-          : fallbackOrderProducts,
-    [fallbackOrderProducts, primaryOrderProducts, shouldUseFallbackOrderProducts],
+          : primaryHasOwnOrderProducts
+            ? []
+            : fallbackOrderProducts,
+    [
+      fallbackOrderProducts,
+      primaryHasOwnOrderProducts,
+      primaryOrderProducts,
+      shouldUseFallbackOrderProducts,
+    ],
   )
   const orderSyncSignature = useMemo(() => getOrderSyncSignature(order), [order])
 
@@ -231,6 +252,8 @@ const OrderItemsTab = ({
 
   if (!routeOrderId) {
     skipFallbackReason = 'missing-route-order-id'
+  } else if (primaryHasOwnOrderProducts && !hasOrderProducts(primaryOrderProducts)) {
+    skipFallbackReason = 'embedded-order-products-empty'
   } else if (!requiresDetailedFallback) {
     skipFallbackReason = 'embedded-order-products-sufficient'
   } else if (isFallbackFetchLoading) {
@@ -327,6 +350,7 @@ const OrderItemsTab = ({
     normalizedRouteOrderId,
     fallbackAlreadyRequested,
     fallbackRequestKey,
+    primaryHasOwnOrderProducts,
     skipFallbackReason,
   ])
 

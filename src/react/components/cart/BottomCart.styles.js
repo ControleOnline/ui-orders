@@ -181,6 +181,8 @@ const createStyles = ({
       borderColor: successColor,
       justifyContent: 'center',
       alignItems: 'center',
+      flexDirection: 'row',
+      gap: compact ? 4 : 6,
       paddingHorizontal: compact ? 6 : 7,
     },
     paidDetailsButtonText: {

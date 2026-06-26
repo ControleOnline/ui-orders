@@ -68,14 +68,20 @@ const BottomCart = ({
   const isPaymentStatusVariant = variant === 'payment-status';
   const resolvedPendingAmount = Math.max(Number(paymentPendingAmount || 0), 0);
   const hasPendingPayment = resolvedPendingAmount > 0.009;
-  const shouldShowActionButton = showActionButton && (!isPaymentStatusVariant || hasPendingPayment);
   const isPaidStateBar = isPaymentStatusVariant && !hasPendingPayment;
+  const shouldShowPaidBreakdown = isPaymentStatusVariant && showPaidBreakdown;
+  const shouldShowPaidBreakdownActionButton =
+    shouldShowPaidBreakdown && showActionButton && hasPendingPayment;
+  const shouldShowActionButton =
+    showActionButton &&
+    !shouldShowPaidBreakdown &&
+    (!isPaymentStatusVariant || hasPendingPayment);
   const shouldShowDetailsButton =
-    isPaymentStatusVariant &&
+    (shouldShowPaidBreakdown || isPaymentStatusVariant) &&
     typeof onPaidDetailsPress === 'function' &&
-    (!shouldShowActionButton || isPaidStateBar);
+    !shouldShowPaidBreakdownActionButton &&
+    (!shouldShowActionButton || isPaidStateBar || shouldShowPaidBreakdown);
   const pendingLabel = paymentPendingLabel || global.t?.t('orders', 'label', 'pending') || 'Pendente';
-  const shouldShowPaidBreakdown = isPaidStateBar && showPaidBreakdown;
   const resolvedPaidOrderAmount = Math.max(Number(paidOrderAmount || 0), 0);
   const resolvedPaidReceivedAmount = Math.max(Number(paidReceivedAmount || 0), 0);
   const resolvedPaidOrderLabel =
@@ -193,37 +199,48 @@ const BottomCart = ({
           collapseWhenPaid={collapsePayableWhenPaid}
         />
       )}
-      {isPaidStateBar ? (
-        shouldShowPaidBreakdown ? (
-          <View
-            style={[
-              styles.paidBreakdownToolbar,
-              {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
-            ]}
-          >
-            <View style={styles.paidMetricWrap}>
-              <Text style={styles.paidMetricLabel}>{resolvedPaidOrderLabel}</Text>
-              <Text style={styles.paidMetricValue}>
-                {Formatter.formatMoney(resolvedPaidOrderAmount)}
-              </Text>
-            </View>
-            <View style={styles.paidMetricWrap}>
-              <Text style={styles.paidMetricLabel}>{resolvedPaidReceivedLabel}</Text>
-              <Text style={styles.paidMetricValue}>
-                {Formatter.formatMoney(resolvedPaidReceivedAmount)}
-              </Text>
-            </View>
-            {shouldShowDetailsButton && (
-              <TouchableOpacity
-                onPress={onPaidDetailsPress}
-                style={styles.paidDetailsButton}>
-                <Text style={styles.paidDetailsButtonText}>
-                  {resolvedPaidDetailsLabel}
-                </Text>
-              </TouchableOpacity>
-            )}
+      {shouldShowPaidBreakdown ? (
+        <View
+          style={[
+            styles.paidBreakdownToolbar,
+            {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+          ]}
+        >
+          <View style={styles.paidMetricWrap}>
+            <Text style={styles.paidMetricLabel}>{resolvedPaidOrderLabel}</Text>
+            <Text style={styles.paidMetricValue}>
+              {Formatter.formatMoney(resolvedPaidOrderAmount)}
+            </Text>
           </View>
-        ) : (
+          <View style={styles.paidMetricWrap}>
+            <Text style={styles.paidMetricLabel}>{resolvedPaidReceivedLabel}</Text>
+            <Text style={styles.paidMetricValue}>
+              {Formatter.formatMoney(resolvedPaidReceivedAmount)}
+            </Text>
+          </View>
+          {shouldShowDetailsButton && (
+            <TouchableOpacity
+              onPress={onPaidDetailsPress}
+              style={styles.paidDetailsButton}>
+              <Text style={styles.paidDetailsButtonText}>
+                {resolvedPaidDetailsLabel}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {shouldShowPaidBreakdownActionButton && (
+            <TouchableOpacity
+              disabled={isActionDisabled}
+              onPress={handleActionPress}
+              style={[
+                styles.paidDetailsButton,
+                isActionDisabled && styles.checkoutButtonDisabled,
+              ]}>
+              <Icon color="#fff" name={actionIcon} size={isCompact ? 15 : 16} />
+              <Text style={styles.paidDetailsButtonText}>{actionLabel}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : isPaidStateBar ? (
           <View
             style={[
               styles.paidToolbar,
@@ -233,7 +250,6 @@ const BottomCart = ({
             <Icon color={successColor} name="check-circle" size={isCompact ? 14 : 15} />
             <Text style={styles.paidToolbarText}>{paymentPaidLabel}</Text>
           </View>
-        )
       ) : (
         <View
           style={[

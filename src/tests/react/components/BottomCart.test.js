@@ -11,6 +11,10 @@ jest.mock('react-native', () => {
       global.__bottomCartViewProps = global.__bottomCartViewProps || []
       global.__bottomCartViewProps.push(props)
     }
+    if (name === 'Text') {
+      global.__bottomCartTextChildren = global.__bottomCartTextChildren || []
+      global.__bottomCartTextChildren.push(props.children)
+    }
 
     return React.createElement(name, props, props.children)
   }
@@ -99,6 +103,7 @@ describe('BottomCart', () => {
   beforeEach(() => {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
     global.__bottomCartViewProps = []
+    global.__bottomCartTextChildren = []
   })
 
   afterEach(() => {
@@ -124,7 +129,7 @@ describe('BottomCart', () => {
     const toolbar = global.__bottomCartViewProps.find(
       props =>
         Array.isArray(props?.style) &&
-        props.style.some(style => style && style.bottom === 16),
+        props.style.some(style => style && style.backgroundColor === '#F3FFF7'),
     )
 
     expect(toolbar.style).toEqual([
@@ -147,9 +152,63 @@ describe('BottomCart', () => {
         shadowRadius: 8,
       },
       {
-        bottom: 16,
-        minHeight: 68,
+        bottom: 20,
+        minHeight: 78,
       },
     ])
+  })
+
+  it('keeps the financial breakdown visible and uses checkout as the pending action', () => {
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(BottomCart, {
+        actionLabel: 'Pay',
+        onActionPress: jest.fn(),
+        onPaidDetailsPress: jest.fn(),
+        paidDetailsLabel: 'Details',
+        paidOrderAmount: 13,
+        paidOrderLabel: 'Local total',
+        paidReceivedAmount: 0,
+        paidReceivedLabel: 'Paid',
+        paymentPendingAmount: 13,
+        showPaidBreakdown: true,
+        variant: 'payment-status',
+      }),
+    )
+
+    const textChildren = global.__bottomCartTextChildren
+      .flatMap(children => React.Children.toArray(children))
+      .filter(child => typeof child === 'string')
+
+    expect(textChildren).toEqual(
+      expect.arrayContaining(['Local total', 'Paid', 'Pay']),
+    )
+    expect(textChildren).not.toContain('Details')
+  })
+
+  it('keeps details as the financial breakdown action when there is no pending amount', () => {
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(BottomCart, {
+        actionLabel: 'Pay',
+        onActionPress: jest.fn(),
+        onPaidDetailsPress: jest.fn(),
+        paidDetailsLabel: 'Details',
+        paidOrderAmount: 13,
+        paidOrderLabel: 'Local total',
+        paidReceivedAmount: 13,
+        paidReceivedLabel: 'Paid',
+        paymentPendingAmount: 0,
+        showPaidBreakdown: true,
+        variant: 'payment-status',
+      }),
+    )
+
+    const textChildren = global.__bottomCartTextChildren
+      .flatMap(children => React.Children.toArray(children))
+      .filter(child => typeof child === 'string')
+
+    expect(textChildren).toEqual(
+      expect.arrayContaining(['Local total', 'Paid', 'Details']),
+    )
+    expect(textChildren).not.toContain('Pay')
   })
 })
