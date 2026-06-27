@@ -17,7 +17,7 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   isDeviceRuntimeDebugInfoEnabled,
-  isPosKioskMode,
+  isPosTotemMode,
   isPosSingleItemMode,
   isTruthyValue,
   parseConfigsObject,
@@ -664,7 +664,7 @@ const OrderDetails = ({ route, navigation }) => {
       shouldShowOperationalBottomNavigation({
         appType,
         interactionMode: route?.params?.interactionMode,
-        isKioskMode: isPosKioskMode(deviceConfigs),
+        isTotemMode: isPosTotemMode(deviceConfigs),
       }),
     [appType, deviceConfigs, route?.params?.interactionMode],
   )

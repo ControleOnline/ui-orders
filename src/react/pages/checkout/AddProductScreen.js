@@ -8,7 +8,7 @@ import {ALL_PRODUCTS_SENTINEL_ID} from '@controleonline/ui-products/src/react/co
 import LinkedOrderEntrySheet from '@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet';
 import {
   isPosCashRegisterClosed,
-  isPosKioskMode,
+  isPosTotemMode,
   isPosSingleItemMode,
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
@@ -32,7 +32,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {item: storagedDevice} = deviceGetters;
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
   const {showError} = useMessage() || {};
-  const isKioskMode = isPosKioskMode(runtimeDeviceConfig?.configs);
+  const isTotemMode = isPosTotemMode(runtimeDeviceConfig?.configs);
   const isSingleItemMode =
     route?.params?.singleItemMode === true ||
     isPosSingleItemMode(runtimeDeviceConfig?.configs);
@@ -113,7 +113,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   }, [ordersActions]);
 
   useEffect(() => {
-    if (isKioskMode) {
+    if (isTotemMode) {
       if (route?.params?.showBottomToolBar !== true) {
         return;
       }
@@ -127,7 +127,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     }
 
     navigation.setParams({showBottomToolBar: true});
-  }, [isKioskMode, navigation, route?.params?.showBottomToolBar]);
+  }, [isTotemMode, navigation, route?.params?.showBottomToolBar]);
 
   const effectiveRoute = useMemo(() => {
     if (!isSingleItemMode) {

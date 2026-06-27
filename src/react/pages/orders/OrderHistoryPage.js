@@ -32,6 +32,10 @@ import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosC
 import {shouldResumeCounterOrderFlow} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow';
 import { colors } from '@controleonline/../../src/styles/colors';
 import { resolveThemePalette } from '@controleonline/../../src/styles/branding';
+import {
+  resolveHistoryOrderTypeQuery,
+  resolveHistoryStatusQuery,
+} from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
 import styles from './OrderHistoryPage.styles';
 
 /* ─── constantes ────────────────────────────────────────────────────── */
@@ -40,8 +44,6 @@ const PAGE_SIZE = 50;
 
 /* tabs sem filtro de canal/status */
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
-const POS_SALE_ORDER_TYPES = ['sale', 'quote'];
-const MANAGER_SALE_ORDER_TYPES = ['sale', 'Online', 'cart'];
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
 const ORDER_HISTORY_COLUMN_NAMES = ['id', 'app', 'orderType', 'status', 'client', 'alterDate', 'price'];
 
@@ -84,20 +86,6 @@ const resolveSummaryApps = response => {
 const resolveOrderTypeFilter = value => {
   const normalizedValue = normalizeText(value).toLowerCase();
   return ORDER_TYPE_FILTER_KEYS.has(normalizedValue) ? normalizedValue : 'sale';
-};
-
-const resolveHistoryOrderTypeQuery = ({appType, orderTypeFilter}) => {
-  const normalizedOrderType = resolveOrderTypeFilter(orderTypeFilter);
-
-  if (normalizedOrderType === 'sale') {
-    if (String(appType || '').trim().toUpperCase() === 'POS') {
-      return POS_SALE_ORDER_TYPES;
-    }
-
-    return MANAGER_SALE_ORDER_TYPES;
-  }
-
-  return normalizedOrderType;
 };
 
 const resolveDateRangeFilter = value => {
@@ -176,6 +164,7 @@ const getSearchText = o => {
 export default function OrderHistoryPage({ navigation, route }) {
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
+  const statusStore = useStore('status');
   const themeStore = useStore('theme');
   const deviceConfigStore = useStore('device_config');
   const isFocused = useIsFocused();
@@ -184,6 +173,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { item: storagedDevice } = deviceGetters;
   const { item: deviceConfig } = deviceConfigStore.getters;
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
+  const { actions: statusActions, getters: statusGetters } = statusStore;
   const { currentCompany, defaultCompany } = peopleGetters;
   const { colors: themeColors } = themeStore.getters;
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
@@ -200,7 +190,16 @@ export default function OrderHistoryPage({ navigation, route }) {
     [themeColors, currentCompany?.id],
   );
 
+  const canViewCompanyOrders = useMemo(
+    () => canDeviceViewCompanyOrders(deviceConfig?.configs),
+    [deviceConfig?.configs],
+  );
   const [dynamicChannelOptions, setDynamicChannelOptions] = useState([]);
+  const showAdvancedFilters = env.APP_TYPE !== 'POS' || canViewCompanyOrders;
+  const statusItems = useMemo(
+    () => (Array.isArray(statusGetters.items) ? statusGetters.items : []),
+    [statusGetters.items],
+  );
   const allChannelOption = useMemo(
     () => ({
       key: 'all',
@@ -213,28 +212,47 @@ export default function OrderHistoryPage({ navigation, route }) {
     [allChannelOption, dynamicChannelOptions],
   );
 
-  const statusOptions = [
-    {
+  useEffect(() => {
+    if (!isFocused || !showAdvancedFilters || !currentCompany?.id) {
+      return;
+    }
+
+    statusActions.getItems({ context: 'order' }).catch(() => {});
+  }, [
+    currentCompany?.id,
+    isFocused,
+    showAdvancedFilters,
+    statusActions,
+  ]);
+
+  const statusOptions = useMemo(() => {
+    const allStatusOption = {
       key: 'all',
       label: normalizeText(global.t?.t('orders', 'label', 'all')) || 'All',
-    },
-    {
-      key: 'open',
-      label: normalizeText(global.t?.t('orders', 'status', 'open')) || 'Open',
-    },
-    {
-      key: 'pending',
-      label: normalizeText(global.t?.t('orders', 'status', 'pending')) || 'Pending',
-    },
-    {
-      key: 'closed',
-      label: normalizeText(global.t?.t('orders', 'status', 'closed')) || 'Closed',
-    },
-    {
-      key: 'canceled',
-      label: normalizeText(global.t?.t('orders', 'status', 'canceled')) || 'Canceled',
-    },
-  ];
+    };
+    const seenKeys = new Set(['all']);
+    const mappedStatuses = statusItems
+      .filter(item => normalizeText(item?.context).toLowerCase() === 'order')
+      .reduce((accumulator, status) => {
+        const key = normalizeText(status?.['@id'] || status?.id ? `/statuses/${status?.id}` : '').trim() || '';
+
+        if (!key || seenKeys.has(key)) {
+          return accumulator;
+        }
+
+        seenKeys.add(key);
+        accumulator.push({
+          key,
+          label:
+            normalizeText(global.t?.t('orders', 'status', status?.status)) ||
+            normalizeText(status?.status) ||
+            key,
+        });
+        return accumulator;
+      }, []);
+
+    return [allStatusOption, ...mappedStatuses];
+  }, [statusItems]);
 
   /* ─── estado ──────────────────────────────────────────────────────── */
 
@@ -252,6 +270,18 @@ export default function OrderHistoryPage({ navigation, route }) {
   const [tableFilters, setTableFilters] = useState({});
   const [sortState, setSortState] = useState({ field: 'id', direction: 'desc' });
   const [purchaseSuppliersById, setPurchaseSuppliersById] = useState({});
+
+  useEffect(() => {
+    if (
+      statusFilter !== 'all' &&
+      !statusOptions.some(option => option.key === statusFilter)
+    ) {
+      setStatusFilter('all');
+    }
+  }, [
+    statusFilter,
+    statusOptions,
+  ]);
 
   const isCashRegisterClosed = useMemo(() => {
     return isPosCashRegisterClosed(deviceConfig?.configs);
@@ -274,12 +304,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
   });
 
-  const canViewCompanyOrders = useMemo(
-    () => canDeviceViewCompanyOrders(deviceConfig?.configs),
-    [deviceConfig?.configs],
-  );
-
-  const showAdvancedFilters = env.APP_TYPE !== 'POS' || canViewCompanyOrders;
   const orders = useMemo(
     () => (Array.isArray(storedOrders) ? storedOrders : []),
     [storedOrders],
@@ -337,7 +361,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     return {
       provider: `/people/${currentCompany.id}`,
       orderType: resolveHistoryOrderTypeQuery({
-        appType: env.APP_TYPE,
         orderTypeFilter,
       }),
       page: 1,
@@ -526,12 +549,23 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     if (orderTypeFilter !== 'all') {
       query.orderType = resolveHistoryOrderTypeQuery({
-        appType: env.APP_TYPE,
         orderTypeFilter,
       });
     }
+
+    if (!showAdvancedFilters) {
+      const activeStatusQuery = resolveHistoryStatusQuery({
+        appType: env.APP_TYPE,
+        orderTypeFilter,
+      });
+
+      if (activeStatusQuery) {
+        query['status.realStatus'] = activeStatusQuery;
+      }
+    }
+
     if (showAdvancedFilters && channelFilter !== 'all') query.app = channelFilter;
-    if (showAdvancedFilters && statusFilter !== 'all') query['status.realStatus'] = statusFilter;
+    if (showAdvancedFilters && statusFilter !== 'all') query.status = statusFilter;
     if (searchText) query.search = searchText.replace(/^#/, '');
 
     Object.entries(tableFilters || {}).forEach(([key, value]) => {

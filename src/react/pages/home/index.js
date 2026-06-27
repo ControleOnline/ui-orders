@@ -54,7 +54,7 @@
  * - Ao abrir `InvoiceDetailsPage` a partir de `OrderDetails`, passar apenas o `id` da invoice na rota e preaquecer o store com a invoice completa, nunca com um card resumido.
  * - Quando `OrderDetails` abrir `InvoiceDetailsPage`, a tela de invoice deve listar os pedidos vinculados reaproveitando `OrderHeader` para cada pedido ligado por `order_invoice`.
  * - `OrderDetails` nao deve exibir o `BottomCart` global com acao `Conferir pedido`. Quando a tela estiver aberta, ela mesma controla a barra operacional necessaria e o layout deve manter `showBottomCart: false`.
- * - Em `POS` nao-kiosk e nos fluxos `pdv` hospedados por outras visoes, `OrderDetails` deve preservar a dock inferior de navegacao enquanto mantem o `BottomCart` global desligado. A barra propria de pagamento da tela precisa subir acima dessa dock, nunca ficar escondida por tras dela.
+ * - Em `POS` fora do totem e nos fluxos `pdv` hospedados por outras visoes, `OrderDetails` deve preservar a dock inferior de navegacao enquanto mantem o `BottomCart` global desligado. A barra propria de pagamento da tela precisa subir acima dessa dock, nunca ficar escondida por tras dela.
  * - O param `kds` em `OrderDetails` pertence apenas aos fluxos reais de `PPC`/KDS. Modulos administrativos ou historicos comuns nao devem forcar esse param ao abrir o detalhe.
  * - O numero principal do pedido nao deve ser repetido no topo da navegacao quando a propria tela ja abre com um cabecalho/resumo do pedido.
  * - `Total to charge` pertence a barra de finalizacao/pagamento do pedido. Descontos, pendencias e invoices pertencem ao bloco financeiro.
@@ -93,17 +93,17 @@
  * - O botao principal de pagar no canal remoto deve deixar claro qual equipamento configurado recebera a cobranca.
  * - Depois de enviar a cobranca remota, o checkout do web deve permanecer aguardando a resposta do equipamento remoto antes de concluir a tela.
  *
- * ## Regras operacionais de POS e kiosk
- * - Nao existe `APP_TYPE=TOTEM`. O totem e sempre `APP_TYPE=POS` com `pos-operation-mode=kiosk`.
- * - Em Android dedicado/Cielo, a camada nativa pode travar o sistema em `Lock Task Mode`, mas isso so e bloqueio forte quando o device estiver provisionado como Device Owner/MDM/OEM. O fluxo de venda continua sendo o mesmo `POS` kiosk.
- * - Em `BALCAO`, a entrada do app deve continuar em `HomePage`. O fluxo continuo de retomada so comeca a partir de `OrderHistoryPage`, nunca pulando a home como no `kiosk`.
+ * ## Regras operacionais de POS e totem
+ * - Nao existe `APP_TYPE=TOTEM`. O totem e sempre `APP_TYPE=POS` com `pos-operation-mode=totem`.
+ * - Em Android dedicado/Cielo, a camada nativa pode travar o sistema em `Lock Task Mode`, mas isso so e bloqueio forte quando o device estiver provisionado como Device Owner/MDM/OEM. O fluxo de venda continua sendo o mesmo `POS` totem.
+ * - Em `BALCAO`, a entrada do app deve continuar em `HomePage`. O fluxo continuo de retomada so comeca a partir de `OrderHistoryPage`, nunca pulando a home como no `totem`.
  * - Em `BALCAO`, quando a lista de pedidos for aberta em modo de retomada, vale a prioridade de foco unico: sem pedido aberto vai para `AddProductScreen`; com um pedido aberto vai direto para ele; com mais de um pedido aberto permanece em `OrderHistoryPage` para escolha explicita.
  * - Em `BALCAO`, quando o operador pedir um novo pedido a partir do historico, o fluxo nao deve reabrir automaticamente o rascunho salvo anterior; ele precisa limpar a referencia ativa para materializar um novo `cart` no proximo item adicionado.
  * - Em `BALCAO`, depois de concluir o pagamento de um pedido, o proximo destino depende dos pedidos abertos restantes no device: mais de um volta ao historico, um volta direto ao pedido restante, nenhum volta ao catalogo.
  * - Em `BALCAO`, quando a configuracao do device exigir abertura e fechamento de caixa, `HomePage`, `AddProductScreen` e atalhos de inicio de venda nao podem liberar o catalogo com o caixa fechado; nesses casos o fluxo deve redirecionar para `CloseCashRegister`.
- * - No `kiosk`, o cliente entra direto no fluxo de compra e nao deve passar por abertura/fechamento de caixa nem por telas administrativas do PDV.
- * - Em `kiosk`, `OrderDetails` nao deve mostrar blocos de cliente, endereco, observacoes, sumario ou logs. Logs e summary so podem reaparecer quando o device estiver com `device-runtime-debug-info-enabled`.
- * - Em `kiosk`, a faixa operacional de preparo/cancelamento nao deve aparecer junto da barra de pagamento. Quando a propria tela tiver barra operacional propria, o layout nao deve reservar outra barra por baixo.
+ * - No `totem`, o cliente entra direto no fluxo de compra e nao deve passar por abertura/fechamento de caixa nem por telas administrativas do PDV.
+ * - Em `totem`, `OrderDetails` nao deve mostrar blocos de cliente, endereco, observacoes, sumario ou logs. Logs e summary so podem reaparecer quando o device estiver com `device-runtime-debug-info-enabled`.
+ * - Em `totem`, a faixa operacional de preparo/cancelamento nao deve aparecer junto da barra de pagamento. Quando a propria tela tiver barra operacional propria, o layout nao deve reservar outra barra por baixo.
  * - Atendimento vinculado por `tab` e `table` deve usar esses nomes canonicos em codigo, configuracoes e metadados internos. Traducao vale apenas para labels visuais.
  * - Nao criar sinonimos, aliases ou fallbacks paralelos para tipos, chaves de configuracao ou metadados de `tab/table`. O contrato interno deve ter um unico nome por conceito.
  * - As regras operacionais de `tab/table`, identificacao, leitura e vinculo valem para qualquer superficie de `PDV` renderizada por `ui-orders`, inclusive quando a `PdvPage` estiver hospedada dentro de `APP_TYPE=MANAGER`.
@@ -122,7 +122,7 @@
  * - Quando um bip ou a selecao de um produto pelo auto-complete precisar materializar um pedido inexistente, o fluxo deve criar apenas um pedido e reutilizar a mesma promise de criacao concorrente.
  * - Fora da conferencia, bip e atalho de auto-complete podem levar o usuario para `OrderDetails` apos adicionar o item. Dentro de `OrderDetails`, novos bipes devem continuar adicionando itens sem sair da tela.
  * - `OrderDetails` em contexto `PDV` pode pesquisar e adicionar produto diretamente na aba `Itens`, sem sair da conferencia.
- * - A pesquisa de produtos com auto-complete e a leitura de codigo de barras fazem parte do fluxo operacional de `POS`, nao apenas do `kiosk`.
+ * - A pesquisa de produtos com auto-complete e a leitura de codigo de barras fazem parte do fluxo operacional de `POS`, nao apenas do `totem`.
  *
  * ## Pagar Na Entrega
  * - `Pagar na entrega` sempre exige selecionar qual device fara a cobranca.
@@ -146,7 +146,7 @@ import {useStore} from '@store';
 import {
   isPosCashRegisterClosed,
   isPosCounterMode,
-  isPosKioskMode,
+  isPosTotemMode,
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import AppMenuGrid from '@controleonline/ui-layout/src/react/components/AppMenuGrid';
@@ -162,7 +162,7 @@ export default function HomePage({navigation}) {
   const {item: device} = deviceConfigGetters;
   const {colors, menus} = getters;
   const {currentCompany} = peopleGetters;
-  const isKioskMode = isPosKioskMode(device?.configs);
+  const isTotemMode = isPosTotemMode(device?.configs);
   const isCounterMode = isPosCounterMode(device?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     device?.configs,
@@ -220,7 +220,7 @@ export default function HomePage({navigation}) {
   };
 
   if (
-    isKioskMode ||
+    isTotemMode ||
     !device?.configs ||
     !currentCompany ||
     Object.entries(currentCompany).length === 0 ||
