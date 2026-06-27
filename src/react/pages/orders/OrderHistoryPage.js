@@ -553,7 +553,7 @@ export default function OrderHistoryPage({ navigation, route }) {
       });
     }
 
-    if (!showAdvancedFilters) {
+    if (!showAdvancedFilters && orderTypeFilter === 'sale') {
       query['status.realStatus'] = 'open';
     }
 
