@@ -21,19 +21,3 @@ export const resolveHistoryOrderTypeQuery = ({orderTypeFilter} = {}) => {
 
   return normalizedOrderType || 'sale';
 };
-
-export const resolveHistoryStatusQuery = ({appType, orderTypeFilter} = {}) => {
-  const normalizedAppType = normalizeText(appType).toUpperCase();
-  const normalizedOrderType = normalizeText(orderTypeFilter).toLowerCase();
-
-  if (normalizedAppType === 'POS' && normalizedOrderType === 'sale') {
-    return ACTIVE_HISTORY_REAL_STATUSES;
-  }
-
-  return null;
-};
-
-export const resolveHistoryStatusQueryKey = ({
-  showAdvancedFilters = false,
-} = {}) =>
-  showAdvancedFilters ? 'status.status' : 'status.realStatus';
