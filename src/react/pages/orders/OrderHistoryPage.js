@@ -33,7 +33,6 @@ import {shouldResumeCounterOrderFlow} from '@controleonline/ui-orders/src/react/
 import { colors } from '@controleonline/../../src/styles/colors';
 import { resolveThemePalette } from '@controleonline/../../src/styles/branding';
 import {
-  ACTIVE_HISTORY_REAL_STATUSES,
   resolveHistoryOrderTypeQuery,
 } from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
 import styles from './OrderHistoryPage.styles';
@@ -329,20 +328,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     () => statusOptions.find(option => option.key === statusFilter)?.label || statusOptions[0]?.label || 'All',
     [statusFilter, statusOptions],
   );
-  const isStatusLoading = Boolean(statusGetters.isLoading);
-  const forcedStatusFilters = useMemo(() => {
-    if (showAdvancedFilters) {
-      return [];
-    }
-
-    return statusItems
-      .filter(status => {
-        const normalizedRealStatus = normalizeText(status?.realStatus).toLowerCase();
-        return ACTIVE_HISTORY_REAL_STATUSES.includes(normalizedRealStatus);
-      })
-      .map(status => normalizeText(status?.['@id'] || (status?.id ? `/statuses/${status.id}` : '')))
-      .filter(Boolean);
-  }, [showAdvancedFilters, statusItems]);
   const visibleFilterCount = useMemo(
     () => [
       orderTypeFilter === 'sale',
@@ -551,9 +536,6 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   const historyQuery = useMemo(() => {
     if (!currentCompany?.id) return null;
-    if (!showAdvancedFilters && (isStatusLoading || !forcedStatusFilters.length)) {
-      return null;
-    }
 
     const query = {
       provider: `/people/${currentCompany.id}`,
@@ -571,8 +553,8 @@ export default function OrderHistoryPage({ navigation, route }) {
       });
     }
 
-    if (!showAdvancedFilters && forcedStatusFilters.length) {
-      query.status = forcedStatusFilters;
+    if (!showAdvancedFilters) {
+      query['status.realStatus'] = 'open';
     }
 
     if (showAdvancedFilters && channelFilter !== 'all') query.app = channelFilter;
@@ -632,8 +614,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     customRange,
     searchText,
     tableFilters,
-    isStatusLoading,
-    forcedStatusFilters,
   ]); 
 
   const historyLoadedKey = useMemo(

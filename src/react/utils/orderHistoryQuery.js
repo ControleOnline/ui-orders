@@ -7,11 +7,6 @@ export const POS_SALE_ORDER_TYPES = Object.freeze([
   'manual',
 ]);
 
-export const ACTIVE_HISTORY_REAL_STATUSES = Object.freeze([
-  'open',
-  'pending',
-]);
-
 export const resolveHistoryOrderTypeQuery = ({orderTypeFilter} = {}) => {
   const normalizedOrderType = normalizeText(orderTypeFilter).toLowerCase();
 
