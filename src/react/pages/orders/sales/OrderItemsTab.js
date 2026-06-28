@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {
   ActivityIndicator,
+  Image,
   Text,
   TextInput,
   TouchableOpacity,
@@ -8,9 +9,11 @@ import {
 } from 'react-native'
 
 import {useStore} from '@store'
+import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import {resolveProductCoverUrl} from '@controleonline/ui-products/src/react/domain/productMedia'
 import {
   hasDetailedOrderProductMetadata,
   hasOrderProducts,
@@ -144,6 +147,7 @@ const OrderItemsTab = ({
   addProductsButtonLabel,
   canAddProductsToOrder = false,
   onAddProduct,
+  onCustomizeProduct = null,
   onQuickAddProduct = null,
   order = null,
   orderProducts = null,
@@ -477,17 +481,36 @@ const OrderItemsTab = ({
                 productSearchResults.map(product => {
                   const productId = String(product?.id || product?.['@id'] || '')
                   const isSelecting = productSearchSelectionId === productId
+                  const coverUrl = resolveProductCoverUrl(product)
+                  const isCustomProduct =
+                    String(product?.type || '').trim() === 'custom'
 
                   return (
                     <TouchableOpacity
                       key={productId || product?.sku || product?.product}
-                      onPress={() => onQuickAddProduct?.(product)}
+                      onPress={() =>
+                        isCustomProduct
+                          ? onCustomizeProduct?.(product)
+                          : onQuickAddProduct?.(product)
+                      }
                       disabled={isSelecting}
                       style={[
                         localStyles.assignmentOptionCard,
+                        localStyles.detailsProductSearchResultCard,
                         isSelecting && localStyles.inlineActionButtonDisabled,
                       ]}
                     >
+                      <View style={localStyles.detailsProductSearchThumb}>
+                        {coverUrl ? (
+                          <Image
+                            source={{uri: coverUrl}}
+                            resizeMode="cover"
+                            style={localStyles.detailsProductSearchImage}
+                          />
+                        ) : (
+                          <Icon name="image" size={20} color={ppcColors.textSecondary} />
+                        )}
+                      </View>
                       <View style={localStyles.assignmentOptionTextWrap}>
                         <Text
                           style={localStyles.assignmentOptionTitle}
@@ -496,19 +519,20 @@ const OrderItemsTab = ({
                           {product?.product || 'Produto sem nome'}
                         </Text>
                         <Text
-                          style={localStyles.assignmentOptionMeta}
+                          style={localStyles.detailsProductSearchPrice}
                           numberOfLines={1}
                         >
-                          {[
-                            product?.sku ? `SKU ${product.sku}` : '',
-                            product?.description || '',
-                          ]
-                            .filter(Boolean)
-                            .join(' • ')}
+                          {Formatter.formatMoney(product?.price || 0)}
                         </Text>
                       </View>
                       {isSelecting ? (
                         <ActivityIndicator size="small" color={ppcColors.primary} />
+                      ) : isCustomProduct ? (
+                        <View style={localStyles.detailsProductSearchCustomButton}>
+                          <Text style={localStyles.detailsProductSearchCustomText}>
+                            CUSTOMIZAR
+                          </Text>
+                        </View>
                       ) : (
                         <Icon name="add-circle" size={20} color={ppcColors.accentInfo} />
                       )}

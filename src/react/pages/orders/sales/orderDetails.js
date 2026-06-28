@@ -1804,6 +1804,37 @@ const OrderDetails = ({ route, navigation }) => {
       showSuccess,
     ],
   )
+  const handleCustomizeProductFromSearch = useCallback(
+    product => {
+      if (!canAddProductsToOrder) {
+        return
+      }
+
+      const productId = getEntityId(product)
+      if (!productId) {
+        showError('Nao foi possivel identificar o produto selecionado.')
+        return
+      }
+
+      setProductSearchText('')
+      setProductSearchResults([])
+      setProductSearchSelectionId('')
+
+      navigation.navigate('CustomizeScreen', {
+        productId,
+        returnDepth: 1,
+        interactionMode: route?.params?.interactionMode,
+        singleItemMode: isSingleItemOperationMode,
+      })
+    },
+    [
+      canAddProductsToOrder,
+      isSingleItemOperationMode,
+      navigation,
+      route?.params?.interactionMode,
+      showError,
+    ],
+  )
   const canAddOrderPayment =
     !hasMarketplaceIntegration &&
     !!item?.id &&
@@ -2595,6 +2626,7 @@ const OrderDetails = ({ route, navigation }) => {
       logisticsDisabled={!topBarOrderId}
       attachmentsDisabled={!topBarOrderId}
       logsDisabled={!topBarOrderId}
+      showActions={false}
     />
   ), [
     handleOrderLogs,
@@ -2876,6 +2908,7 @@ const OrderDetails = ({ route, navigation }) => {
           addProductsButtonLabel={addProductsButtonLabel}
           canAddProductsToOrder={canAddProductsToOrder}
           onAddProduct={handleAddProduct}
+          onCustomizeProduct={handleCustomizeProductFromSearch}
           onQuickAddProduct={handleQuickAddProductFromSearch}
           order={resolvedDisplayOrder || item}
           orderProducts={resolvedDisplayOrderProductsWithProductDetails}
@@ -2895,6 +2928,7 @@ const OrderDetails = ({ route, navigation }) => {
       addProductsButtonLabel,
       canAddProductsToOrder,
       canMutateOrderProducts,
+      handleCustomizeProductFromSearch,
       handleQuickAddProductFromSearch,
       handleAddProduct,
       item,

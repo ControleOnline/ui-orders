@@ -13,10 +13,107 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import { useStore } from '@store';
 import { env } from '@env';
+import {MaterialCommunityIcons} from '@expo/vector-icons';
 
 import React from 'react';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 
 export {WrappedOrderLogistics} from '@controleonline/ui-logistic/src/react/router/routes';
+
+const routeStyles = StyleSheet.create({
+  addProductHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: 0,
+  },
+  addProductBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DCE7F3',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -2,
+  },
+  addProductModeBadge: {
+    minHeight: 30,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DCE7F3',
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 9,
+  },
+  addProductModeText: {
+    color: '#022736',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  addProductTitleWrap: {
+    minWidth: 0,
+  },
+});
+
+const normalizeOrderId = value => String(value || '').replace(/\D+/g, '');
+
+const AddProductHeader = ({navigation, order, route}) => {
+  const routeOrderId = normalizeOrderId(route?.params?.id);
+  const displayOrder = routeOrderId
+    ? {...(order || {}), id: routeOrderId}
+    : order;
+  const routeStore = String(route?.params?.store || '').trim().toLowerCase();
+  const isCategoryRoot =
+    ['category', 'categories'].includes(routeStore) &&
+    !route?.params?.categoryId &&
+    route?.params?.resumeExistingOrder !== true;
+  const showBackButton = !isCategoryRoot;
+  const shouldShowPosBadge =
+    String(route?.params?.interactionMode || '').toLowerCase() === 'pdv' ||
+    String(env.APP_TYPE || '').toUpperCase() === 'POS';
+
+  const handleBack = () => {
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation?.navigate?.('HomePage');
+  };
+
+  return (
+    <View style={routeStyles.addProductHeader}>
+      {showBackButton && (
+        <Pressable
+          accessibilityLabel="Voltar"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={handleBack}
+          style={routeStyles.addProductBackButton}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#022736" />
+        </Pressable>
+      )}
+      {shouldShowPosBadge && (
+        <View style={routeStyles.addProductModeBadge}>
+          <Text style={routeStyles.addProductModeText}>POS</Text>
+        </View>
+      )}
+      <OrderIdentityLabel
+        containerStyle={routeStyles.addProductTitleWrap}
+        numberOfLines={1}
+        order={displayOrder}
+        primaryTextStyle={{fontSize: 18, fontWeight: '900', color: '#0F172A'}}
+        secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '700'}}
+        showSecondary={false}
+      />
+    </View>
+  );
+};
 
 const WrappedCloseCashRegister = ({ navigation, route }) => {
   const cashRegisterTitle =
@@ -43,16 +140,20 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
   React.useEffect(() => {
     navigation.setOptions({
       title: orderTitle,
-      headerTitle: () => (
-        <OrderIdentityLabel
-          order={order}
-          primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
-          secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
-        />
+      headerBackVisible: false,
+      headerLeft: () => (
+        <AddProductHeader navigation={navigation} order={order} route={route} />
       ),
-      headerBackVisible: true,
+      headerTitle: () => null,
+      headerShadowVisible: true,
+      headerStyle: {
+        backgroundColor: '#FFFFFF',
+      },
+      headerLeftContainerStyle: {
+        paddingLeft: 4,
+      },
     });
-  }, [navigation, order, orderTitle]);
+  }, [navigation, order, orderTitle, route]);
 
   return (
     <AddProductScreen navigation={navigation} route={route} />
