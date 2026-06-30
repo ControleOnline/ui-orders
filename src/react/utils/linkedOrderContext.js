@@ -51,6 +51,8 @@ export const normalizeEntityId = value => {
       normalizeEntityId(value?.id) ||
       normalizeEntityId(value?.['@id']) ||
       normalizeEntityId(value?.mainOrderId) ||
+      normalizeEntityId(value?.main_order_id) ||
+      normalizeEntityId(value?.mainorderid) ||
       null
     )
   }
@@ -133,6 +135,8 @@ export const getLinkedOrderContext = order => {
   )
   const mainOrderId =
     normalizeEntityId(order?.mainOrderId) ||
+    normalizeEntityId(order?.main_order_id) ||
+    normalizeEntityId(order?.mainorderid) ||
     normalizeEntityId(order?.mainOrder)
 
   return {
