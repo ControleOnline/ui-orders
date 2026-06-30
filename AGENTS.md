@@ -13,5 +13,6 @@
 - O carrinho do POS nasce como `cart`; a criacao real do pedido e o `order.created` so acontecem quando o fluxo vira `sale`.
 - Em `OrderDetails`, adicionar produto, mudar quantidade e remover item so podem acontecer enquanto o pedido ainda for `cart`; depois da promocao para `sale` ou em qualquer estado terminal, a area de itens fica somente leitura.
 - Em `OrderDetails`, quando um `cart` de POS vier com contexto de mesa/comanda, o CTA principal deve ser `Produzir`; essa acao chama `/orders/{id}/confirm` para promover `cart -> sale` e deixar o pedido em `preparing`.
+- `OrderDetails` e um dispatcher de componentes: `orderType=delivery` deve incluir a tela de logistica, enquanto `sale` e `cart` devem incluir o detalhe de venda. Nao duplicar essa decisao na listagem.
 - No browser/web, `Cielo` nunca deve acionar plugin nativo local; a cobranca precisa seguir pelo fluxo remoto via websocket para uma maquina Cielo configurada, e so em device Cielo nativo a cobranca pode ser local.
 - Mudancas nesse fluxo devem vir acompanhadas de cobertura em browser em `src/tests/browser`, validando a troca de produto, o retorno do `Checkout` para `AddProductScreen` e a saida para a lista de pedidos apos o pagamento.

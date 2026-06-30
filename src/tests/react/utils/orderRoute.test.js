@@ -2,6 +2,7 @@ const {describe, expect, it} = global
 
 const {
   buildAddProductsRouteParams,
+  buildOrderDetailsRouteParams,
   isPdvRouteContext,
   shouldShowOrderHistoryCompanyFilter,
 } = require('../../../react/utils/orderRoute')
@@ -54,6 +55,15 @@ describe('orderRoute', () => {
       id: '71736',
       interactionMode: 'pdv',
       resumeExistingOrder: true,
+    })
+  })
+
+  it('carries the explicit order type into the order details params', () => {
+    expect(
+      buildOrderDetailsRouteParams({id: 72532, orderType: 'delivery'}),
+    ).toEqual({
+      id: '72532',
+      orderType: 'delivery',
     })
   })
 })

@@ -2,6 +2,24 @@ import {normalizeEntityId} from '@controleonline/ui-orders/src/utils/orderState'
 
 export const getOrderRouteId = orderOrId => normalizeEntityId(orderOrId)
 
+const normalizeOrderType = value => String(value || '').trim().toLowerCase()
+
+export const resolveOrderDetailsScreenType = orderOrParams => {
+  const orderType = normalizeOrderType(
+    orderOrParams?.orderType || orderOrParams?.order_type || '',
+  )
+
+  if (orderType === 'delivery') {
+    return 'delivery'
+  }
+
+  if (orderType === 'sale' || orderType === 'cart') {
+    return 'sale'
+  }
+
+  return ''
+}
+
 export const isPdvRouteContext = params =>
   String(params?.interactionMode || '').trim().toLowerCase() === 'pdv' ||
   params?.showBottomToolBar === true
@@ -27,6 +45,11 @@ export const buildOrderDetailsRouteParams = (orderOrId, extraParams = {}) => {
 
   if (orderId) {
     nextParams.id = orderId
+  }
+
+  const orderType = resolveOrderDetailsScreenType(orderOrId)
+  if (orderType) {
+    nextParams.orderType = orderType
   }
 
   return nextParams

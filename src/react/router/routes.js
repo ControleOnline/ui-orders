@@ -1,4 +1,5 @@
-import OrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails';
+/* eslint-disable no-unused-vars */
+import OrderDetailsPage from '@controleonline/ui-orders/src/react/pages/orders/OrderDetailsPage';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
@@ -6,7 +7,6 @@ import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/W
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
 import OrderHistoryPage from '@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage';
-import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import {
   shouldShowOrderHistoryCompanyFilter,
@@ -160,29 +160,6 @@ const WrappedAddProductsPage = ({ navigation, route }) => {
   );
 };
 
-const WrappedOrderDetails = ({ navigation, route }) => {
-  const order = route.params?.order;
-  const orderTitle = global.t?.t('orders', 'title', 'order') || 'Pedido';
-
-  React.useEffect(() => {
-    navigation.setOptions({
-      title: orderTitle,
-      headerTitle: () => (
-        <OrderIdentityLabel
-          order={order}
-          primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
-          secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
-        />
-      ),
-      headerBackVisible: true,
-    });
-  }, [navigation, order, orderTitle]);
-
-  return (
-    <OrderDetails navigation={navigation} route={route} />
-  );
-};
-
 const ordersRoutes = [
 
   menuStorefrontRoute,
@@ -247,7 +224,7 @@ const ordersRoutes = [
   },
   {
     name: 'OrderDetails',
-    component: WrappedOrderDetails,
+    component: OrderDetailsPage,
     options: {
       headerShown: true,
       showBottomCart: false,

@@ -32,8 +32,15 @@ jest.mock('@store', () => ({
 }))
 
 jest.mock('react-native', () => ({
+  Pressable: props => React.createElement('pressable', null, props.children),
+  StyleSheet: {create: value => value},
+  Text: props => React.createElement('text', null, props.children),
   View: props => React.createElement('view', null, props.children),
 }))
+
+jest.mock('@expo/vector-icons', () => ({
+  MaterialCommunityIcons: 'material-community-icons',
+}), {virtual: true})
 
 jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails', () => () =>
   React.createElement('order-details', null),
@@ -62,6 +69,17 @@ jest.mock('@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage', (
 jest.mock('@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage', () => () =>
   React.createElement('order-logistics-page', null),
 )
+jest.mock('@controleonline/ui-logistic/src/react/router/routes', () => ({
+  WrappedOrderLogistics: ({navigation}) => {
+    navigation.setOptions({
+      headerShown: false,
+      showBottomCart: false,
+      showBottomToolBar: false,
+    })
+
+    return React.createElement('order-logistics-route', null)
+  },
+}), {virtual: true})
 jest.mock('@controleonline/ui-orders/src/react/components/OrderIdentityLabel', () => props =>
   React.createElement('order-identity-label', props, props.children),
 )
