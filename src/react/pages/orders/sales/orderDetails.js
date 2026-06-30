@@ -2566,6 +2566,8 @@ const OrderDetails = ({ route, navigation }) => {
         displayId: selectedDisplay?.id,
       }
     : {enabled: true}
+  const shouldHideCompactTopBarActions =
+    appType === 'POS' && isPosSelfServiceOperationMode
 
   const renderTopBarActions = useCallback(
     containerStyle => (
@@ -2626,9 +2628,10 @@ const OrderDetails = ({ route, navigation }) => {
       logisticsDisabled={!topBarOrderId}
       attachmentsDisabled={!topBarOrderId}
       logsDisabled={!topBarOrderId}
-      showActions={false}
+      showActions={!shouldHideCompactTopBarActions}
     />
   ), [
+    shouldHideCompactTopBarActions,
     handleOrderLogs,
     handleOrderTools,
     handleOrderAttachments,
