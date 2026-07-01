@@ -34,6 +34,9 @@ export default {
         name: "id",
         label: "id",
         align: "left",
+        defaultSort: {
+          direction: "desc",
+        },
         to: function (value) {
           return {
             name: 'OrderDetails',
@@ -113,6 +116,7 @@ export default {
         sortable: true,
         editable: true,
         name: "addressDestination",
+        show: false,
         align: "center",
         label: "addressDestination",
         externalFilter: false,
@@ -138,6 +142,7 @@ export default {
         sortable: true,
         editable: false,
         name: "orderDate",
+        show: false,
         align: "center",
         label: "orderDate",
         externalFilter: true,
