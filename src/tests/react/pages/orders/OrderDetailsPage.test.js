@@ -78,7 +78,14 @@ describe('OrderDetailsPage', () => {
     )
 
     expect(markup).toContain('Carregando...')
-    expect(mockGetOrder).toHaveBeenCalledWith('72532')
+    expect(mockGetOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: '72532',
+        __storeMeta: expect.objectContaining({
+          preserveItem: true,
+        }),
+      }),
+    )
     expect(navigation.setOptions).toHaveBeenCalledWith(
       expect.objectContaining({
         headerBackVisible: true,

@@ -1021,7 +1021,12 @@ const OrderDetails = ({ route, navigation }) => {
     }
 
     const request = ordersActionsRef.current
-      .get(routeOrderId)
+      .get({
+        id: routeOrderId,
+        __storeMeta: {
+          preserveItem: true,
+        },
+      })
       .then(refreshedOrder => {
         recentOrderDetailRefreshStarts.set(routeOrderId, Date.now())
         refreshCurrentOrderFingerprintRef.current =

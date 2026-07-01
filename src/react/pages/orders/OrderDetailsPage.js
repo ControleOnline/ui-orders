@@ -48,7 +48,14 @@ export default function OrderDetailsPage({navigation, route}) {
       return undefined
     }
 
-    Promise.resolve(ordersActions.get?.(routeOrderId)).catch(() => undefined)
+    Promise.resolve(
+      ordersActions.get?.({
+        id: routeOrderId,
+        __storeMeta: {
+          preserveItem: true,
+        },
+      }),
+    ).catch(() => undefined)
   }, [ordersActions, resolvedOrderId, routeOrderId])
 
   const screenType = useMemo(
