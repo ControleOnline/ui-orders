@@ -266,6 +266,33 @@ describe('orderLogisticsPresentation', () => {
     )
   })
 
+  it('does not fall back to the provider address when the order has no origin', () => {
+    const snapshot = resolveOrderLogisticsSnapshot({
+      order: {
+        id: 71110,
+        app: 'POS',
+        provider: {
+          id: 7,
+          name: 'Loja Teste',
+          address: [
+            {
+              id: 1,
+              nickname: 'Endereço antigo do provider',
+              number: 100,
+            },
+          ],
+        },
+      },
+    })
+
+    expect(snapshot.pickupAddressParts).toBeNull()
+    expect(snapshot.route).toEqual(
+      expect.objectContaining({
+        pickupAddress: null,
+      }),
+    )
+  })
+
   it('treats a connected integration as eligible even when it is offline', () => {
     const snapshot = resolveOrderLogisticsSnapshot({
       order: {

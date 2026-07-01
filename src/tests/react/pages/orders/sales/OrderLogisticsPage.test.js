@@ -46,6 +46,7 @@ jest.mock('react-native', () => {
     ActivityIndicator: createComponent('ActivityIndicator'),
     Image: createComponent('Image'),
     Modal: props => (props.visible ? React.createElement('modal', null, props.children) : null),
+    Platform: {OS: 'web'},
     ScrollView: createComponent('ScrollView'),
     StyleSheet: {create: value => value},
     Text: createComponent('Text'),
@@ -125,6 +126,10 @@ jest.mock('@controleonline/ui-common/src/api', () => ({
   },
 }))
 
+jest.mock('@controleonline/ui-layout/src/react/components/StateStore', () => props =>
+  React.createElement('state-store', null, props.children),
+)
+
 jest.mock('@assets/ppc/channels', () => ({
   getOrderChannelLabel: jest.fn(({app}) => {
     const value = String(app || '').toLowerCase()
@@ -148,6 +153,18 @@ jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/useOrderDetail
   },
 }))
 
+jest.mock(
+  '@controleonline/ui-shop/src/react/components/storefront/ShopGoogleMap',
+  () => props => React.createElement('shop-google-map', null, props.children),
+  {virtual: true},
+)
+
+jest.mock(
+  '@controleonline/ui-shop/src/react/components/storefront/ShopNativeMap',
+  () => props => React.createElement('shop-native-map', null, props.children),
+  {virtual: true},
+)
+
 jest.mock('@controleonline/ui-logistic/src/react/pages/orders/orderLogisticsPresentation', () => ({
   __esModule: true,
   default: jest.fn(() => mockLogisticsSnapshot),
@@ -160,9 +177,13 @@ jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/components/Ord
 })
 
 jest.mock('react-native-vector-icons/MaterialIcons', () => 'material-icons')
-jest.mock('@expo/vector-icons', () => ({
-  MaterialCommunityIcons: 'material-community-icons',
-}))
+jest.mock(
+  '@expo/vector-icons',
+  () => ({
+    MaterialCommunityIcons: 'material-community-icons',
+  }),
+  {virtual: true},
+)
 
 const OrderLogisticsPage =
   require('../../../../../react/pages/orders/sales/OrderLogisticsPage').default
@@ -332,6 +353,52 @@ describe('OrderLogisticsPage', () => {
           phone: '+55 (11) 98888-8888',
           email: 'caroline@email.com',
         },
+        addressOrigin: {
+          id: 11,
+          latitude: -23.55052,
+          longitude: -46.633308,
+          number: 123,
+          nickname: 'Loja Teste',
+          street: {
+            street: 'Rua Teste',
+            district: {
+              district: 'Centro',
+              city: {
+                city: 'Sao Paulo',
+                state: {
+                  uf: 'SP',
+                  state: 'Sao Paulo',
+                },
+              },
+            },
+            cep: {
+              cep: '01234567',
+            },
+          },
+        },
+        addressDestination: {
+          id: 12,
+          latitude: -23.563987,
+          longitude: -46.654321,
+          number: 321,
+          nickname: 'Destino Teste',
+          street: {
+            street: 'Rua Cliente',
+            district: {
+              district: 'Bairro',
+              city: {
+                city: 'Sao Paulo',
+                state: {
+                  uf: 'SP',
+                  state: 'Sao Paulo',
+                },
+              },
+            },
+            cep: {
+              cep: '09876543',
+            },
+          },
+        },
       },
     }
 
@@ -348,15 +415,17 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).toContain('Logística')
-    expect(markup).toContain('Cliente do pedido')
+    expect(markup).toContain('Entrega')
+    expect(markup).toContain('Cliente')
+    expect(markup).toContain('Cliente vinculado')
     expect(markup).toContain('Trocar cliente')
     expect(markup).toContain('Alterar endereco')
     expect(markup).toContain('caroline@email.com')
     expect(markup).toContain('Atualizar tela')
-    expect(markup).toContain('Origem')
-    expect(markup).toContain('Destino')
-    expect(markup).toContain('Contato da entrega')
+    expect(markup).toContain('Coleta')
+    expect(markup).toContain('Entrega')
+    expect(markup).toContain('Mapa da entrega')
+    expect(markup).toContain('Detalhes da entrega')
     expect(markup).toContain('CAROLINE')
     expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
     expect(markup).toContain('11950751998')
@@ -429,7 +498,7 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).toContain('Logística')
+    expect(markup).toContain('Entrega')
     expect(markup).toContain('Vincular cliente')
     expect(markup).toContain('Nenhuma cotacao ainda')
     expect(markup).toContain('Informe um endereço de entrega válido')
@@ -529,7 +598,7 @@ describe('OrderLogisticsPage', () => {
       }),
     )
 
-    expect(markup).toContain('Logística')
+    expect(markup).toContain('Entrega')
     expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
     expect(markup).toContain('11950751998')
     expect(markup).toContain('99 Food')
