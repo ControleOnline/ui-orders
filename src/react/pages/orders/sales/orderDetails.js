@@ -748,7 +748,6 @@ const OrderDetails = ({ route, navigation }) => {
   const orderInvoicesActionsRef = useRef(orderInvoicesActions)
   const commitResolvedOrderProductsRef = useRef(null)
   const loadOrderInvoicesRef = useRef(null)
-  const focusedOrderFetchKeyRef = useRef('')
   const refreshCurrentOrderInFlightRef = useRef(null)
   const refreshCurrentOrderFingerprintRef = useRef('')
   const showErrorRef = useRef(showError)
@@ -960,17 +959,10 @@ const OrderDetails = ({ route, navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      const focusFetchKey = String(routeOrderId || '')
-
-      if (focusFetchKey && focusedOrderFetchKeyRef.current !== focusFetchKey) {
-        focusedOrderFetchKeyRef.current = focusFetchKey
-        void refreshCurrentOrder({force: true})
-      }
-
       void loadOrderInvoicesRef.current?.({silent: true})
 
       return undefined
-    }, [routeOrderId]),
+    }, []),
   )
 
   const handleAddProduct = () => {
