@@ -15,5 +15,7 @@
 - Em `OrderDetails`, quando um `cart` de POS vier com contexto de mesa/comanda, o CTA principal deve ser `Produzir`; essa acao chama `/orders/{id}/confirm` para promover `cart -> sale` e deixar o pedido em `preparing`.
 - `OrderDetailsPage` e um router: recebe apenas `id`, busca o pedido no store e escolhe a apresentacao pelo `orderType` materializado. `delivery` abre a tela de logistica; `sale` e `cart` abrem o detalhe de venda. Nao duplicar essa decisao na listagem nem depender de `orderType` em params de rota.
 - Quando `OrderDetailsPage`, `OrderLogisticsPage` ou o detalhe de venda recarregarem o pedido corrente, a chamada ao store deve usar `__storeMeta.preserveItem = true` para manter o item montado enquanto a resposta chega e evitar loops de foco/loading.
+- Em `OrderLogisticsPage`, a entrega deve exibir o pedido corrente materializado (`displayId`, `addressOrigin`, `addressDestination`, `price`, `status`, `deliveryPeople`), nunca o `mainOrder` como fonte do dado visivel.
+- No estado `aguardando aceite`, a area de cliente/endereco vira somente leitura, a barra inferior some e o aceite/recusa fica em card flutuante.
 - No browser/web, `Cielo` nunca deve acionar plugin nativo local; a cobranca precisa seguir pelo fluxo remoto via websocket para uma maquina Cielo configurada, e so em device Cielo nativo a cobranca pode ser local.
 - Mudancas nesse fluxo devem vir acompanhadas de cobertura em browser em `src/tests/browser`, validando a troca de produto, o retorno do `Checkout` para `AddProductScreen` e a saida para a lista de pedidos apos o pagamento.

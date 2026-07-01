@@ -474,6 +474,164 @@ describe('OrderLogisticsPage', () => {
     expect(markup).not.toContain('Escolher cotacao')
   })
 
+  it('shows the current delivery order data while awaiting acceptance', () => {
+    mockLogisticsSnapshot = {
+      canQuote: false,
+      currentIntegration: null,
+      delivery: {
+        deliveryPeopleId: 321,
+        deliveryPeople: {
+          name: 'PAULO VINICIUS CLEMENTINO DIAS',
+          phone: '11950751998',
+          email: '',
+        },
+        trackingUrl: 'https://tracking.99food.com/delivery/321',
+        requestedAt: '2026-05-17 10:00:00',
+        status: 'Aguardando aceite',
+        currentIntegrationKey: 'food99',
+      },
+      dropoffAddressParts: {
+        primary: 'Rua Cliente, 321',
+        secondary: 'Bairro • Sao Paulo / SP',
+        complement: '',
+      },
+      dropoffContact: {
+        name: 'CAROLINE',
+        phone: '+55 (11) 98888-8888',
+        email: '',
+      },
+      hasDeliveryOrder: true,
+      isClosedOrder: false,
+      management: {
+        managedByStore: false,
+        label: 'Entrega gerenciada pela integracao',
+        mode: 'integration',
+        source: 'Food99',
+      },
+      pickupAddressParts: {
+        primary: 'Rua Teste, 123',
+        secondary: 'Centro • Sao Paulo / SP',
+        complement: 'Apto 10',
+      },
+      pickupContact: {
+        name: 'Loja Teste',
+        phone: '+55 (11) 99999-9999',
+        email: '',
+      },
+      providers: [],
+      quoteStatus: {
+        providers: 0,
+        quotes: 0,
+        ready: 0,
+        pending: 0,
+        selected: 0,
+        unavailable: 0,
+        error: 0,
+      },
+      quotes: [],
+      selection: {
+        quoteOrderId: null,
+        providerKey: '',
+        price: null,
+        trackingUrl: null,
+        selectedAt: '',
+      },
+      order: {
+        displayId: '72532',
+        mainOrder: {
+          id: 71134,
+          externalCode: '71134',
+        },
+        mainOrderId: 71134,
+        client: {
+          id: 88,
+          '@id': '/people/88',
+          name: 'CAROLINE',
+          phone: '+55 (11) 98888-8888',
+          email: 'caroline@email.com',
+        },
+        addressOrigin: {
+          id: 11,
+          latitude: -23.55052,
+          longitude: -46.633308,
+          number: 123,
+          nickname: 'Loja Teste',
+          street: {
+            street: 'Rua Teste',
+            district: {
+              district: 'Centro',
+              city: {
+                city: 'Sao Paulo',
+                state: {
+                  uf: 'SP',
+                  state: 'Sao Paulo',
+                },
+              },
+            },
+            cep: {
+              cep: '01234567',
+            },
+          },
+        },
+        addressDestination: {
+          id: 12,
+          latitude: -23.563987,
+          longitude: -46.654321,
+          number: 321,
+          nickname: 'Destino Teste',
+          street: {
+            street: 'Rua Cliente',
+            district: {
+              district: 'Bairro',
+              city: {
+                city: 'Sao Paulo',
+                state: {
+                  uf: 'SP',
+                  state: 'Sao Paulo',
+                },
+              },
+            },
+            cep: {
+              cep: '09876543',
+            },
+          },
+        },
+        status: {
+          status: 'Aguardando aceite',
+        },
+      },
+      route: {
+        pickupAddress: null,
+        dropoffAddress: null,
+      },
+    }
+
+    const markup = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderLogisticsPage, {
+        navigation: {
+          goBack: jest.fn(),
+        },
+        route: {
+          params: {
+            id: 71119,
+          },
+        },
+      }),
+    )
+
+    expect(markup).toContain('Aguardando aceite')
+    expect(markup).toContain('Aceitar corrida')
+    expect(markup).toContain('Cancelar corrida')
+    expect(markup).toContain('Pedido atual')
+    expect(markup).toContain('#72532')
+    expect(markup).not.toContain('#71134')
+    expect(markup).not.toContain('Trocar cliente')
+    expect(markup).not.toContain('Vincular cliente')
+    expect(markup).not.toContain('Alterar endereco')
+    expect(markup).not.toContain('Cadastro rapido de cliente')
+    expect(markup).not.toContain('Selecionar endereco de entrega')
+  })
+
   it('shows the empty state and hides quote request when delivery address is missing', () => {
     mockLogisticsSnapshot = {
       canQuote: true,
