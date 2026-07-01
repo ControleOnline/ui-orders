@@ -5,12 +5,15 @@ const {jest} = require('@jest/globals')
 const {afterAll, beforeEach, describe, expect, it} = global
 
 let mockOrder = null
+let mockGetOrder = jest.fn()
 
 jest.mock('@store', () => ({
   useStore: jest.fn(name => {
     if (name === 'orders') {
       return {
-        actions: {},
+        actions: {
+          get: mockGetOrder,
+        },
         getters: {
           item: mockOrder,
         },
@@ -25,6 +28,8 @@ jest.mock('@store', () => ({
 }))
 
 jest.mock('react-native', () => ({
+  ActivityIndicator: props => React.createElement('activity-indicator', props),
+  Text: props => React.createElement('text', null, props.children),
   View: props => React.createElement('view', null, props.children),
 }))
 
@@ -53,9 +58,10 @@ describe('OrderDetailsPage', () => {
 
   beforeEach(() => {
     mockOrder = null
+    mockGetOrder = jest.fn(() => Promise.resolve(mockOrder))
   })
 
-  it('renders the delivery component when the route already knows the order type', () => {
+  it('requests the order by id while it is being resolved', () => {
     const navigation = {
       setOptions: jest.fn(),
     }
@@ -66,13 +72,44 @@ describe('OrderDetailsPage', () => {
         route: {
           params: {
             id: 72532,
-            orderType: 'delivery',
+          },
+        },
+      }),
+    )
+
+    expect(markup).toContain('Carregando...')
+    expect(mockGetOrder).toHaveBeenCalledWith('72532')
+    expect(navigation.setOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headerBackVisible: true,
+        title: 'Pedido',
+      }),
+    )
+  })
+
+  it('renders the delivery component when the loaded order is delivery', () => {
+    mockOrder = {
+      id: 72532,
+      orderType: 'delivery',
+    }
+
+    const navigation = {
+      setOptions: jest.fn(),
+    }
+
+    const markup = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderDetailsPage, {
+        navigation,
+        route: {
+          params: {
+            id: 72532,
           },
         },
       }),
     )
 
     expect(markup).toContain('delivery-order-details')
+    expect(mockGetOrder).not.toHaveBeenCalled()
     expect(navigation.setOptions).toHaveBeenCalledWith(
       expect.objectContaining({
         headerShown: false,
@@ -104,6 +141,7 @@ describe('OrderDetailsPage', () => {
     )
 
     expect(markup).toContain('sale-order-details')
+    expect(mockGetOrder).not.toHaveBeenCalled()
     expect(navigation.setOptions).toHaveBeenCalledWith(
       expect.objectContaining({
         headerBackVisible: true,

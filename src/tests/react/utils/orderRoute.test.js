@@ -58,12 +58,9 @@ describe('orderRoute', () => {
     })
   })
 
-  it('carries the explicit order type into the order details params', () => {
+  it('only carries the order id into the order details params', () => {
     expect(
       buildOrderDetailsRouteParams({id: 72532, orderType: 'delivery'}),
-    ).toEqual({
-      id: '72532',
-      orderType: 'delivery',
-    })
+    ).toEqual({id: '72532'})
   })
 })

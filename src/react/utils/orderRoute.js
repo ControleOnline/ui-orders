@@ -47,11 +47,6 @@ export const buildOrderDetailsRouteParams = (orderOrId, extraParams = {}) => {
     nextParams.id = orderId
   }
 
-  const orderType = resolveOrderDetailsScreenType(orderOrId)
-  if (orderType) {
-    nextParams.orderType = orderType
-  }
-
   return nextParams
 }
 
