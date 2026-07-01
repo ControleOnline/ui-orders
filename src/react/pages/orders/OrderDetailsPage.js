@@ -161,6 +161,20 @@ export default function OrderDetailsPage({navigation, route}) {
     routeOrderId && !resolvedOrder && !orderLoadError,
   )
   const screenType = resolveOrderDetailsScreenType(resolvedOrder) || 'sale'
+  const screenRoute = useMemo(
+    () =>
+      resolvedOrder
+        ? {
+            ...route,
+            params: {
+              ...(route?.params || {}),
+              id: routeOrderId || route?.params?.id,
+              order: resolvedOrder,
+            },
+          }
+        : route,
+    [resolvedOrder, route, routeOrderId],
+  )
   useEffect(() => {
     if (!routeOrderId) {
       navigation.setOptions({
@@ -227,5 +241,5 @@ export default function OrderDetailsPage({navigation, route}) {
 
   const Screen = screenType === 'delivery' ? OrderLogisticsPage : SaleOrderDetails
 
-  return <Screen navigation={navigation} route={route} />
+  return <Screen navigation={navigation} route={screenRoute} />
 }
