@@ -1,5 +1,5 @@
 import React from 'react';
-import {ActivityIndicator, Text, TouchableOpacity, View} from 'react-native';
+import {Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import useOrderDetailsVisuals from '../useOrderDetailsVisuals';
 
@@ -39,7 +39,9 @@ const OrderMarketplaceActionBar = ({actions}) => {
             action.disabled && styles.kdsActionButtonDisabled,
           ]}>
           {action.loading ? (
-            <ActivityIndicator size="small" color="#F8FAFC" />
+            <Text style={styles.kdsActionText}>
+              {global.t?.t('orders', 'label', 'loading') || 'Carregando...'}
+            </Text>
           ) : (
             <>
               {!!action.icon && (

@@ -1,5 +1,5 @@
 import React, {useCallback, useState, useRef, useMemo} from 'react';
-import {Text, ActivityIndicator, useWindowDimensions} from 'react-native';
+import {Text, useWindowDimensions} from 'react-native';
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import {useStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
@@ -94,11 +94,9 @@ const OrderTotalToolbar = ({textStyle = null}) => {
   );
 
   return !order && price <= 0 ? (
-    <ActivityIndicator
-      size="small"
-      color={styles.primary?.color}
-      style={inlineStyle_79_6}
-    />
+    <Text style={[styles.primary, totalStyles.valueText, textStyle, inlineStyle_79_6]}>
+      Carregando...
+    </Text>
   ) : (
     <Text style={[styles.primary, totalStyles.valueText, textStyle]}>
       {Formatter.formatMoney(price)}

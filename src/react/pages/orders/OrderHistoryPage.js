@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Text,
   TouchableOpacity,
   View,
@@ -31,6 +30,7 @@ import { shouldResumeCounterOrderFlow } from '@controleonline/ui-orders/src/reac
 import { colors } from '@controleonline/../../src/styles/colors';
 import { resolveThemePalette } from '@controleonline/../../src/styles/branding';
 import { resolveHistoryOrderTypeQuery } from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
+import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
 import styles from './OrderHistoryPage.styles';
 
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
@@ -663,21 +663,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   }, [openOrder, purchaseSuppliersById]);
 
   if (shouldResumeCounterFlow || !currentCompany?.id) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: brandColors.background }]}
-        edges={['bottom']}
-      >
-        <View style={styles.content}>
-          <View style={styles.centerState}>
-            <ActivityIndicator size="large" color={brandColors.primary} />
-            <Text style={styles.centerStateTitle}>
-              {global.t?.t('orders', 'label', 'loading')}
-            </Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
+    return <StateStore loading={global.t?.t('orders', 'label', 'loading')} />;
   }
 
   return (

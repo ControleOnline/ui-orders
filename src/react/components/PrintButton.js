@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {
-  ActivityIndicator,
   FlatList,
   Modal,
   Text,
@@ -113,18 +112,11 @@ const PrinterButton = ({
         }
         onPress={handlePrint}
         disabled={printDisabled}>
-        {isRequestLoading ? (
-          <ActivityIndicator
-            size={showCompactContent ? 'small' : 'small'}
-            color={iconColor}
-          />
-        ) : (
-          <Icon
-            name="print"
-            size={resolvedIconSize}
-            color={iconColor}
-          />
-        )}
+        <Icon
+          name={isRequestLoading ? 'autorenew' : 'print'}
+          size={resolvedIconSize}
+          color={iconColor}
+        />
         {!showCompactContent && (
           <Text
             numberOfLines={1}

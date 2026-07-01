@@ -1,5 +1,5 @@
 import React, {useCallback, useState, useEffect, useMemo} from 'react';
-import { View, Text, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, useWindowDimensions } from 'react-native';
 import {useStore} from '@store';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {useFocusEffect} from '@react-navigation/native';
@@ -123,11 +123,9 @@ const PayableToolbar = ({
       },
     ]}>
     {isLoading ? (
-      <ActivityIndicator
-        size="small"
-        color={primaryColor}
-        style={inlineStyle_125_12}
-      />
+      <Text style={[styles.badgeText, {color: primaryColor}, inlineStyle_125_12]}>
+        Carregando...
+      </Text>
     ) : (
       <View style={[styles.badge, isDebt ? styles.badgeDanger : styles.badgeSuccess]}>
         <Icon

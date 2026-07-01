@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react'
 import {
-  ActivityIndicator,
   Modal,
   Platform,
   Text,
@@ -204,12 +203,9 @@ const LinkedOrderNfcScanner = ({
               {global.t?.t('orders', 'message', 'keepNfcTagNearReader')}
             </Text>
             {loading && (
-              <>
-                <ActivityIndicator color="#38BDF8" size="large" />
-                <Text style={styles.loadingText}>
-                  {global.t?.t('orders', 'message', 'waitingForNfcTagHelp')}
-                </Text>
-              </>
+              <Text style={styles.loadingText}>
+                {global.t?.t('orders', 'message', 'waitingForNfcTagHelp')}
+              </Text>
             )}
           </View>
         </View>

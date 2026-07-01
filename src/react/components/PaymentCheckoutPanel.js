@@ -1,6 +1,5 @@
 import React, {useEffect, useRef} from 'react';
 import {
-  ActivityIndicator,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -168,7 +167,7 @@ const PaymentCheckoutPanel = ({
 
         {isLoadingPayments && !hasError && !hasPayments ? (
           <View style={panelStyles.feedbackCard}>
-            <ActivityIndicator size="small" color={primaryColor} />
+            <Text style={panelStyles.feedbackText}>Carregando pagamentos...</Text>
           </View>
         ) : hasError || !hasPayments ? (
           <View style={panelStyles.feedbackCard}>

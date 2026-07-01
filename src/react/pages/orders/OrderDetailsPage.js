@@ -9,20 +9,18 @@ import {
   resolveOrderDetailsScreenType,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.__orderDetailsDebugLoaded = true
-}
-
 const getOrderDetailsTitle = () =>
   global.t?.t('orders', 'title', 'order') || 'Pedido'
 
 const normalizeOrder = order => (order && typeof order === 'object' ? order : null)
+const pendingOrderDetailLoads = new Map()
 
 export default function OrderDetailsPage({navigation, route}) {
   const ordersStore = useStore('orders')
   const ordersActions = ordersStore?.actions || {}
   const storeOrder = normalizeOrder(ordersStore?.getters?.item)
   const storeOrderId = getOrderRouteId(storeOrder)
+  const storeLoadedKey = getOrderRouteId(ordersStore?.getters?.loadedKey)
   const storeOrderType = resolveOrderDetailsScreenType(storeOrder)
   const [resolvedOrderFromFetch, setResolvedOrderFromFetch] = useState(null)
   const [orderLoadError, setOrderLoadError] = useState(null)
@@ -32,7 +30,10 @@ export default function OrderDetailsPage({navigation, route}) {
   )
   const requestedRouteOrderIdRef = useRef('')
   const shouldTrustStoreOrder =
-    Boolean(routeOrderId && storeOrderId === routeOrderId) &&
+    Boolean(
+      routeOrderId &&
+        (storeLoadedKey === routeOrderId || storeOrderId === routeOrderId),
+    ) &&
     (storeOrderType === 'delivery' || storeOrderType === 'cart')
 
   useEffect(() => {
@@ -70,15 +71,26 @@ export default function OrderDetailsPage({navigation, route}) {
     }
 
     let isCancelled = false
+    let request = pendingOrderDetailLoads.get(routeOrderId) || null
 
-    Promise.resolve(
-      ordersActions.get({
-        id: routeOrderId,
-        __storeMeta: {
-          preserveItem: true,
-        },
-      }),
-    )
+    if (!request) {
+      try {
+        request = Promise.resolve(
+          ordersActions.get({
+            id: routeOrderId,
+            __storeMeta: {
+              preserveItem: true,
+            },
+          }),
+        )
+        pendingOrderDetailLoads.set(routeOrderId, request)
+      } catch (error) {
+        setOrderLoadError(error || true)
+        return undefined
+      }
+    }
+
+    request
       .then(order => {
         if (isCancelled) {
           return order
@@ -104,6 +116,11 @@ export default function OrderDetailsPage({navigation, route}) {
 
         return undefined
       })
+      .finally(() => {
+        if (pendingOrderDetailLoads.get(routeOrderId) === request) {
+          pendingOrderDetailLoads.delete(routeOrderId)
+        }
+      })
 
     return () => {
       isCancelled = true
@@ -119,20 +136,6 @@ export default function OrderDetailsPage({navigation, route}) {
     () => resolveOrderDetailsScreenType(resolvedOrder) || 'sale',
     [resolvedOrder],
   )
-
-  if (typeof globalThis !== 'undefined') {
-    globalThis.__orderDetailsDebug = {
-      orderLoadError: Boolean(orderLoadError),
-      resolvedOrderType:
-        resolvedOrder?.orderType || resolvedOrder?.order_type || '',
-      routeOrderId,
-      screenType,
-      shouldTrustStoreOrder,
-      storeLoadedKey,
-      storeOrderType,
-    }
-  }
-
   useEffect(() => {
     if (!routeOrderId) {
       navigation.setOptions({

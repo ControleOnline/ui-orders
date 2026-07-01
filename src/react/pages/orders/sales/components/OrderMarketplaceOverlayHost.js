@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  ActivityIndicator,
   Modal,
   ScrollView,
   Text,
@@ -114,7 +113,6 @@ const OrderMarketplaceOverlayHost = ({marketplace}) => {
 
               {cancelFlow?.reasonsLoading ? (
                 <View style={styles.cancelReasonLoadingState}>
-                  <ActivityIndicator size="small" color="#38BDF8" />
                   <Text style={styles.cancelReasonLoadingText}>
                     {global.t?.t('orders', 'message', 'loadingOfficialReasons')}
                   </Text>
@@ -212,7 +210,9 @@ const OrderMarketplaceOverlayHost = ({marketplace}) => {
                       styles.kdsActionButtonDisabled,
                   ]}>
                   {cancelFlow?.actionLoading === 'cancel' ? (
-                    <ActivityIndicator size="small" color="#F8FAFC" />
+                    <Text style={styles.deliveryCodeButtonPrimaryText}>
+                      {global.t?.t('orders', 'label', 'loading') || 'Carregando...'}
+                    </Text>
                   ) : (
                     <Text style={styles.deliveryCodeButtonPrimaryText}>
                       {global.t?.t('orders', 'button', 'cancelOrder')}
@@ -506,9 +506,11 @@ const OrderMarketplaceOverlayHost = ({marketplace}) => {
                       styles.deliveryCodeButtonPrimary,
                       !!deliveryFlow?.actionLoading &&
                         styles.kdsActionButtonDisabled,
-                    ]}>
+                  ]}>
                     {deliverySubmitLoading ? (
-                      <ActivityIndicator size="small" color="#F8FAFC" />
+                      <Text style={styles.deliveryCodeButtonPrimaryText}>
+                        {global.t?.t('orders', 'label', 'loading') || 'Carregando...'}
+                      </Text>
                     ) : (
                       <Text style={styles.deliveryCodeButtonPrimaryText}>
                         {deliveryFlow?.step === 'locator'
@@ -651,7 +653,9 @@ const OrderMarketplaceOverlayHost = ({marketplace}) => {
                     negotiationSubmitDisabled && styles.kdsActionButtonDisabled,
                   ]}>
                   {negotiationLoading ? (
-                    <ActivityIndicator size="small" color="#F8FAFC" />
+                    <Text style={styles.deliveryCodeButtonPrimaryText}>
+                      {global.t?.t('orders', 'label', 'loading') || 'Carregando...'}
+                    </Text>
                   ) : (
                     <Text style={styles.deliveryCodeButtonPrimaryText}>
                       {negotiationFlow?.actionLabel || 'Enviar resposta'}

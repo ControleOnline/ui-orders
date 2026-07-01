@@ -1,5 +1,5 @@
 import React from 'react'
-import {ActivityIndicator, Text, View} from 'react-native'
+import {Text, View} from 'react-native'
 
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 
@@ -83,7 +83,6 @@ const OrderInvoices = ({
   if (shouldRenderLoadingState) {
     return (
       <View style={localStyles.detailsLoadingState}>
-        <ActivityIndicator size="small" color={ppcColors.accentInfo} />
         <Text style={localStyles.detailsLoadingText}>
           {global.t?.t('orders', 'label', 'loading') || 'Carregando financeiro...'}
         </Text>
@@ -107,7 +106,6 @@ const OrderInvoices = ({
     if (shouldRenderInvoiceSectionLoading) {
       return (
         <View style={localStyles.detailsLoadingState}>
-          <ActivityIndicator size="small" color={ppcColors.accentInfo} />
           <Text style={localStyles.detailsLoadingText}>
             {global.t?.t('orders', 'label', 'loading') || 'Carregando invoices...'}
           </Text>
@@ -159,7 +157,6 @@ const OrderInvoices = ({
         ) : null}
         {shouldRenderInvoiceSectionLoading ? (
           <View style={localStyles.detailsLoadingState}>
-            <ActivityIndicator size="small" color={ppcColors.accentInfo} />
             <Text style={localStyles.detailsLoadingText}>
               {global.t?.t('orders', 'label', 'loading') || 'Carregando invoices...'}
             </Text>

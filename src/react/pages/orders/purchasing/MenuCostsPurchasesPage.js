@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Modal,
@@ -732,10 +731,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
         </View>
 
         {attachmentsLoading && attachedFiles.length === 0 ? (
-          <View style={styles.emptyState}>
-            <ActivityIndicator size="small" color={MENU_COLORS.brand} />
-            <Text style={styles.emptyStateText}>Carregando evidências...</Text>
-          </View>
+          <StateStore compact loading="Carregando evidências..." />
         ) : attachedFiles.length ? (
           <View style={styles.attachmentList}>
             {attachedFiles.map(relation => (
@@ -748,7 +744,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
             ))}
             {attachmentsLoadingMore ? (
               <View style={styles.loadingMore}>
-                <ActivityIndicator size="small" color={MENU_COLORS.brand} />
+                <Text style={styles.emptyStateText}>Carregando mais...</Text>
               </View>
             ) : null}
           </View>
@@ -820,10 +816,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
                   onEndReachedThreshold={0.35}
                   ListEmptyComponent={
                     isLoadingList ? (
-                      <View style={styles.emptyState}>
-                        <ActivityIndicator size="small" color={MENU_COLORS.brand} />
-                        <Text style={styles.emptyStateText}>Carregando compras do ERP...</Text>
-                      </View>
+                      <StateStore compact loading="Carregando compras do ERP..." />
                     ) : (
                       <EmptyState text="Nenhuma compra encontrada para esta empresa." />
                     )
@@ -831,7 +824,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
                   ListFooterComponent={
                     loadingMore ? (
                       <View style={styles.loadingMore}>
-                        <ActivityIndicator size="small" color={MENU_COLORS.brand} />
+                        <Text style={styles.emptyStateText}>Carregando mais...</Text>
                       </View>
                     ) : null
                   }
@@ -840,10 +833,7 @@ export default function MenuCostsPurchasesPage({navigation}) {
 
               <View style={[styles.detailPanel, !isWide && styles.detailPanelCompact]}>
                 {selectedOrderLoading && !selectedOrder ? (
-                  <View style={styles.emptyState}>
-                    <ActivityIndicator size="small" color={MENU_COLORS.brand} />
-                    <Text style={styles.emptyStateText}>Carregando detalhes da compra...</Text>
-                  </View>
+                  <StateStore compact loading="Carregando detalhes da compra..." />
                 ) : (
                   detailContent
                 )}

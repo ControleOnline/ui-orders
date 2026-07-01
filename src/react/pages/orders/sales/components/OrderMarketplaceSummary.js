@@ -1,5 +1,5 @@
 import React from 'react';
-import {ActivityIndicator, Text, TouchableOpacity, View} from 'react-native';
+import {Text, TouchableOpacity, View} from 'react-native';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import useOrderDetailsVisuals from '../useOrderDetailsVisuals';
@@ -19,7 +19,6 @@ const OrderMarketplaceSummary = ({marketplace}) => {
   if (marketplace.isLoading && !marketplace.hasVisualData && !hasActionButtons) {
     return (
       <View style={styles.detailsLoadingState}>
-        <ActivityIndicator size="small" color="#38BDF8" />
         <Text style={styles.detailsLoadingText}>
           {global.t?.t('orders', 'message', 'loadingIntegrationData')} {marketplace.platformLabel}...
         </Text>
@@ -46,7 +45,9 @@ const OrderMarketplaceSummary = ({marketplace}) => {
             financialAction.disabled && styles.kdsActionButtonDisabled,
           ]}>
           {financialAction.loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <Text style={styles.detailsMarkPaidButtonText}>
+              {global.t?.t('orders', 'label', 'loading') || 'Carregando...'}
+            </Text>
           ) : (
             <>
               <Icon name="receipt-long" size={18} color="#FFFFFF" />
@@ -60,7 +61,6 @@ const OrderMarketplaceSummary = ({marketplace}) => {
 
       {marketplace.isLoading && !marketplace.hasVisualData ? (
         <View style={styles.detailsLoadingState}>
-          <ActivityIndicator size="small" color="#38BDF8" />
           <Text style={styles.detailsLoadingText}>
             {global.t?.t('orders', 'message', 'loadingIntegrationData')} {marketplace.platformLabel}...
           </Text>

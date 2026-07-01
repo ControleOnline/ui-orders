@@ -1,6 +1,5 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {
-  ActivityIndicator,
   Image,
   Text,
   TextInput,
@@ -459,7 +458,7 @@ const OrderItemsTab = ({
               localStyles.assignmentSearchBox,
               localStyles.detailsProductSearchBox,
             ]}
-          >
+            >
             <Icon name="search" size={18} color={ppcColors.textSecondary} />
             <TextInput
               value={productSearchText}
@@ -471,7 +470,9 @@ const OrderItemsTab = ({
               style={localStyles.assignmentSearchInput}
             />
             {productSearchLoading && (
-              <ActivityIndicator size="small" color={ppcColors.primary} />
+              <Text style={localStyles.assignmentOptionBadge}>
+                {global.t?.t('orders', 'label', 'loading') || 'Buscando'}
+              </Text>
             )}
           </View>
 
@@ -526,7 +527,9 @@ const OrderItemsTab = ({
                         </Text>
                       </View>
                       {isSelecting ? (
-                        <ActivityIndicator size="small" color={ppcColors.primary} />
+                        <Text style={localStyles.assignmentOptionBadge}>
+                          {global.t?.t('orders', 'label', 'loading') || 'Carregando'}
+                        </Text>
                       ) : isCustomProduct ? (
                         <View style={localStyles.detailsProductSearchCustomButton}>
                           <Text style={localStyles.detailsProductSearchCustomText}>
@@ -562,7 +565,6 @@ const OrderItemsTab = ({
       >
         {showLoadingState ? (
           <View style={localStyles.detailsLoadingState}>
-            <ActivityIndicator size="small" color={ppcColors.accentInfo} />
             <Text style={localStyles.detailsLoadingText}>
               {global.t?.t('orders', 'label', 'loading') || 'Carregando itens...'}
             </Text>

@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
-  ActivityIndicator,
   Image,
   Platform,
   ScrollView,
@@ -532,7 +531,7 @@ const OrderAttachmentManager = ({
             >
               <MaterialCommunityIcons name="open-in-new" size={18} color="#0F172A" />
             </TouchableOpacity>
-            <TouchableOpacity
+              <TouchableOpacity
               onPress={() => handleRemove(relation)}
               disabled={isRemoving}
               style={[
@@ -541,11 +540,11 @@ const OrderAttachmentManager = ({
                 isRemoving && {opacity: 0.65},
               ]}
             >
-              {isRemoving ? (
-                <ActivityIndicator size="small" color="#B91C1C" />
-              ) : (
-                <MaterialCommunityIcons name="delete-outline" size={18} color="#B91C1C" />
-              )}
+              <MaterialCommunityIcons
+                name={isRemoving ? 'progress-clock' : 'delete-outline'}
+                size={18}
+                color="#B91C1C"
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -618,15 +617,11 @@ const OrderAttachmentManager = ({
                 (isAttached || isSaving) && {opacity: 0.65},
               ]}
             >
-              {isSaving ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <MaterialCommunityIcons
-                  name={isAttached ? 'check' : 'paperclip'}
-                  size={18}
-                  color="#fff"
-                />
-              )}
+              <MaterialCommunityIcons
+                name={isSaving ? 'progress-clock' : isAttached ? 'check' : 'paperclip'}
+                size={18}
+                color="#fff"
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -695,11 +690,11 @@ const OrderAttachmentManager = ({
               disabled={uploading}
               style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
             >
-              {uploading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <MaterialCommunityIcons name="cloud-upload-outline" size={18} color="#fff" />
-              )}
+              <MaterialCommunityIcons
+                name={uploading ? 'progress-clock' : 'cloud-upload-outline'}
+                size={18}
+                color="#fff"
+              />
               <Text style={styles.uploadButtonText}>
                 {uploading
                   ? global.t?.t('orders', 'label', 'uploading') || 'Enviando'
@@ -816,7 +811,7 @@ const OrderAttachmentManager = ({
 
             {loadingLibrary && filteredLibraryFiles.length === 0 ? (
               <View style={styles.loadingState}>
-                <ActivityIndicator size="small" color="#0F172A" />
+                <MaterialCommunityIcons name="progress-clock" size={18} color="#0F172A" />
                 <Text style={styles.loadingText}>
                   {global.t?.t('orders', 'label', 'loading') || 'Carregando arquivos...'}
                 </Text>
@@ -841,7 +836,7 @@ const OrderAttachmentManager = ({
                 style={styles.loadMoreButton}
               >
                 {loadingMore ? (
-                  <ActivityIndicator size="small" color="#0F172A" />
+                  <MaterialCommunityIcons name="progress-clock" size={18} color="#0F172A" />
                 ) : (
                   <Text style={styles.loadMoreButtonText}>
                     {global.t?.t('orders', 'button', 'loadMore') || 'Carregar mais'}

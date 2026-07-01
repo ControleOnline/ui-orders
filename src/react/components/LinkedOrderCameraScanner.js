@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react'
 import {
-  ActivityIndicator,
   Modal,
   Text,
   TouchableOpacity,
@@ -78,7 +77,6 @@ const LinkedOrderCameraScanner = ({
     if (permission === null) {
       return (
         <View style={styles.centerState}>
-          <ActivityIndicator color="#38BDF8" size="large" />
           <Text style={styles.loadingText}>
             {global.t?.t('orders', 'message', 'preparingCamera')}
           </Text>
@@ -168,7 +166,9 @@ const LinkedOrderCameraScanner = ({
 
               {busy && (
                 <View style={styles.busyOverlay}>
-                  <ActivityIndicator color="#38BDF8" size="large" />
+                  <Text style={styles.loadingText}>
+                    {global.t?.t('orders', 'message', 'loading')}
+                  </Text>
                 </View>
               )}
             </>
