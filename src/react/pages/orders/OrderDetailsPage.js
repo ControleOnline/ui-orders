@@ -29,12 +29,11 @@ export default function OrderDetailsPage({navigation, route}) {
     [route?.params?.id],
   )
   const requestedRouteOrderIdRef = useRef('')
-  const shouldTrustStoreOrder =
-    Boolean(
-      routeOrderId &&
-        (storeLoadedKey === routeOrderId || storeOrderId === routeOrderId),
-    ) &&
-    (storeOrderType === 'delivery' || storeOrderType === 'cart')
+  const shouldTrustStoreOrder = Boolean(
+    routeOrderId &&
+      (storeLoadedKey === routeOrderId || storeOrderId === routeOrderId) &&
+      storeOrderType,
+  )
 
   useEffect(() => {
     requestedRouteOrderIdRef.current = ''
@@ -48,9 +47,8 @@ export default function OrderDetailsPage({navigation, route}) {
     }
 
     if (shouldTrustStoreOrder) {
-      setResolvedOrderFromFetch(storeOrder)
-      setOrderLoadError(null)
       requestedRouteOrderIdRef.current = routeOrderId
+      setOrderLoadError(null)
       return undefined
     }
 
@@ -125,17 +123,14 @@ export default function OrderDetailsPage({navigation, route}) {
     return () => {
       isCancelled = true
     }
-  }, [ordersActions.get, routeOrderId, shouldTrustStoreOrder, storeOrder])
+  }, [ordersActions.get, routeOrderId, shouldTrustStoreOrder])
 
   const resolvedOrder =
     resolvedOrderFromFetch || (shouldTrustStoreOrder ? storeOrder : null)
   const isFetchingCurrentOrder = Boolean(
     routeOrderId && !resolvedOrder && !orderLoadError,
   )
-  const screenType = useMemo(
-    () => resolveOrderDetailsScreenType(resolvedOrder) || 'sale',
-    [resolvedOrder],
-  )
+  const screenType = resolveOrderDetailsScreenType(resolvedOrder) || 'sale'
   useEffect(() => {
     if (!routeOrderId) {
       navigation.setOptions({
@@ -173,7 +168,7 @@ export default function OrderDetailsPage({navigation, route}) {
         />
       ),
     })
-  }, [navigation, resolvedOrder, routeOrderId, screenType])
+  }, [navigation, resolvedOrder?.id, routeOrderId, screenType])
 
   if (!routeOrderId) {
     return (
