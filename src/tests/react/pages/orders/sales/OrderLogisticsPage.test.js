@@ -154,14 +154,8 @@ jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/useOrderDetail
 }))
 
 jest.mock(
-  '@controleonline/ui-shop/src/react/components/storefront/ShopGoogleMap',
-  () => props => React.createElement('shop-google-map', null, props.children),
-  {virtual: true},
-)
-
-jest.mock(
-  '@controleonline/ui-shop/src/react/components/storefront/ShopNativeMap',
-  () => props => React.createElement('shop-native-map', null, props.children),
+  '@controleonline/ui-default/src/react/components/map/DefaultMap',
+  () => props => React.createElement('default-map', null, props.children),
   {virtual: true},
 )
 
