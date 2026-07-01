@@ -38,7 +38,7 @@ const OrderTotalToolbar = ({textStyle = null}) => {
 
   const addProducts = useCallback((currentOrder, currentProducts) => {
     if (currentProducts.length > 0 && currentOrder && currentOrder['@id']) {
-      const orderId = currentOrder['@id'].replace(/\D/g, '');
+      const orderId = String(currentOrder['@id'] || currentOrder.id || '').replace(/\D/g, '');
       const lastProduct = currentProducts[currentProducts.length - 1];
       if (isSingleItemMode && !lastProduct?.product) {
         products = [];

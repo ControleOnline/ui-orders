@@ -1,9 +1,9 @@
-import React, {useEffect, useMemo} from 'react'
-import {ActivityIndicator, Text, View} from 'react-native'
+import React, {useEffect, useMemo, useState} from 'react'
 import {useStore} from '@store'
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
 import SaleOrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails'
 import OrderLogisticsPage from '@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage'
+import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import {
   getOrderRouteId,
   resolveOrderDetailsScreenType,
@@ -14,54 +14,90 @@ const getOrderDetailsTitle = () =>
 
 const normalizeOrder = order => (order && typeof order === 'object' ? order : null)
 
-const LoadingState = ({message}) => (
-  <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
-    <ActivityIndicator size="large" />
-    <Text>{message || global.t?.t('orders', 'label', 'loading') || 'Carregando...'}</Text>
-  </View>
-)
-
-const ErrorState = ({message}) => (
-  <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
-    <Text>{message || global.t?.t('orders', 'message', 'unableCompleteOperation') || 'Nao foi possivel carregar o pedido.'}</Text>
-  </View>
-)
-
 export default function OrderDetailsPage({navigation, route}) {
   const ordersStore = useStore('orders')
   const ordersActions = ordersStore?.actions || {}
-  const storeOrder = normalizeOrder(ordersStore?.getters?.item)
+  const [resolvedOrderFromFetch, setResolvedOrderFromFetch] = useState(null)
+  const [orderLoadError, setOrderLoadError] = useState(null)
   const routeOrderId = useMemo(
     () => getOrderRouteId(route?.params?.id),
     [route?.params?.id],
   )
-  const resolvedOrderId = getOrderRouteId(storeOrder)
-  const resolvedOrder =
-    routeOrderId && resolvedOrderId === routeOrderId ? storeOrder : null
 
   useEffect(() => {
+    let isCancelled = false
+
+    setResolvedOrderFromFetch(null)
+    setOrderLoadError(null)
+
     if (!routeOrderId) {
       return undefined
     }
 
-    if (resolvedOrderId === routeOrderId) {
+    if (typeof ordersActions.get !== 'function') {
+      setOrderLoadError(
+        global.t?.t('orders', 'message', 'unableCompleteOperation') ||
+          'Nao foi possivel carregar o pedido.',
+      )
       return undefined
     }
 
     Promise.resolve(
-      ordersActions.get?.({
+      ordersActions.get({
         id: routeOrderId,
         __storeMeta: {
           preserveItem: true,
         },
       }),
-    ).catch(() => undefined)
-  }, [ordersActions, resolvedOrderId, routeOrderId])
+    )
+      .then(order => {
+        if (isCancelled) {
+          return order
+        }
+
+        const normalizedOrder = normalizeOrder(order)
+
+        if (!normalizedOrder) {
+          setOrderLoadError(
+            global.t?.t('orders', 'message', 'unableCompleteOperation') ||
+              'Nao foi possivel carregar o pedido.',
+          )
+          return order
+        }
+
+        setResolvedOrderFromFetch(normalizedOrder)
+        return order
+      })
+      .catch(error => {
+        if (!isCancelled) {
+          setOrderLoadError(error || true)
+        }
+
+        return undefined
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [ordersActions, routeOrderId])
+
+  const isFetchingCurrentOrder = Boolean(routeOrderId && !resolvedOrderFromFetch && !orderLoadError)
 
   const screenType = useMemo(
-    () => resolveOrderDetailsScreenType(resolvedOrder) || 'sale',
-    [resolvedOrder],
+    () => resolveOrderDetailsScreenType(resolvedOrderFromFetch) || 'sale',
+    [resolvedOrderFromFetch],
   )
+
+  if (routeOrderId) {
+    console.error(
+      '[OrderDetailsPage debug]',
+      `route=${routeOrderId}`,
+      `loading=${isFetchingCurrentOrder}`,
+      `error=${Boolean(orderLoadError)}`,
+      `orderType=${resolvedOrderFromFetch?.orderType || resolvedOrderFromFetch?.order_type || ''}`,
+      `screenType=${screenType}`,
+    )
+  }
 
   useEffect(() => {
     if (!routeOrderId) {
@@ -72,7 +108,7 @@ export default function OrderDetailsPage({navigation, route}) {
       return
     }
 
-    if (!resolvedOrder && routeOrderId) {
+    if (!resolvedOrderFromFetch) {
       navigation.setOptions({
         title: getOrderDetailsTitle(),
         headerBackVisible: true,
@@ -94,32 +130,37 @@ export default function OrderDetailsPage({navigation, route}) {
       headerBackVisible: true,
       headerTitle: () => (
         <OrderIdentityLabel
-          order={resolvedOrder}
+          order={resolvedOrderFromFetch}
           primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
           secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
         />
       ),
     })
-  }, [navigation, resolvedOrder, routeOrderId, screenType])
+  }, [navigation, resolvedOrderFromFetch, routeOrderId, screenType])
 
   if (!routeOrderId) {
     return (
-      <ErrorState
-        message={global.t?.t('orders', 'message', 'unableCompleteOperation') || 'Pedido nao informado.'}
+      <StateStore
+        error={global.t?.t('orders', 'message', 'unableCompleteOperation') || 'Pedido nao informado.'}
       />
     )
   }
 
-  if (routeOrderId && !resolvedOrder) {
-    if (!ordersStore?.getters?.isLoading && ordersStore?.getters?.error) {
-      return (
-        <ErrorState
-          message={ordersStore?.getters?.error}
-        />
-      )
-    }
+  if (isFetchingCurrentOrder) {
+    return <StateStore loading="Carregando pedido..." />
+  }
 
-    return <LoadingState />
+  if (orderLoadError && !resolvedOrderFromFetch) {
+    return (
+      <StateStore
+        error={orderLoadError}
+        errorText="Nao foi possivel carregar o pedido."
+      />
+    )
+  }
+
+  if (!resolvedOrderFromFetch) {
+    return <StateStore loading="Carregando pedido..." />
   }
 
   const Screen = screenType === 'delivery' ? OrderLogisticsPage : SaleOrderDetails

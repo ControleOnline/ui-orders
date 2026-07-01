@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import {
-  ActivityIndicator,
   Modal,
   Text,
   TextInput,
@@ -129,6 +128,12 @@ const formatApiError = error => {
 
   return error?.message || error?.description || error?.errmsg || global.t?.t('orders', 'message', 'unableCompleteOperation')
 }
+
+const InlineLoadingText = ({children, color, style}) => (
+  <Text style={[{fontSize: 12, fontWeight: '700', color}, style]}>
+    {children}
+  </Text>
+)
 
 const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
 // `cart` is the canonical draft sale order. `quote` is a separate purchase draft
@@ -2473,7 +2478,7 @@ const OrderDetails = ({ route, navigation }) => {
                 disabled={isOpLoading}
               >
                 {isOpLoading
-                  ? <ActivityIndicator size="small" color="#fff" />
+                  ? <InlineLoadingText color="#fff">...</InlineLoadingText>
                   : <Icon name="check" size={15} color="#fff" />}
               </TouchableOpacity>
               <TouchableOpacity
@@ -3167,7 +3172,7 @@ const OrderDetails = ({ route, navigation }) => {
                       ]}
                     >
                       {observationSaving ? (
-                        <ActivityIndicator size="small" color={ppcColors.accentInfo} />
+                        <InlineLoadingText color={ppcColors.accentInfo}>Salvando...</InlineLoadingText>
                       ) : (
                         <>
                           <Icon name="check" size={15} color={ppcColors.accentInfo} />
@@ -3339,7 +3344,7 @@ const OrderDetails = ({ route, navigation }) => {
                         style={localStyles.assignmentSearchInput}
                       />
                       {customerSearchLoading && (
-                        <ActivityIndicator size="small" color={ppcColors.primary} />
+                        <InlineLoadingText color={ppcColors.primary}>...</InlineLoadingText>
                       )}
                     </View>
 
@@ -3354,10 +3359,7 @@ const OrderDetails = ({ route, navigation }) => {
                       </View>
                     ) : customerSearchLoading ? (
                       <View style={localStyles.assignmentEmptyState}>
-                        <ActivityIndicator size="small" color={ppcColors.primary} />
-                        <Text style={localStyles.assignmentEmptyStateText}>
-                          Buscando clientes...
-                        </Text>
+                        <InlineLoadingText color={ppcColors.primary}>Buscando clientes...</InlineLoadingText>
                       </View>
                     ) : customerSearchResults.length > 0 ? (
                       customerSearchResults.map(customer => {
@@ -3393,7 +3395,7 @@ const OrderDetails = ({ route, navigation }) => {
                             </View>
 
                             {isSaving ? (
-                              <ActivityIndicator size="small" color={ppcColors.primary} />
+                              <InlineLoadingText color={ppcColors.primary}>...</InlineLoadingText>
                             ) : isCurrent ? (
                               <Text style={localStyles.assignmentOptionBadge}>Atual</Text>
                             ) : (
@@ -3516,10 +3518,7 @@ const OrderDetails = ({ route, navigation }) => {
 
                 {addressOptionsLoading ? (
                   <View style={localStyles.assignmentEmptyState}>
-                    <ActivityIndicator size="small" color={ppcColors.primary} />
-                    <Text style={localStyles.assignmentEmptyStateText}>
-                      Carregando enderecos...
-                    </Text>
+                    <InlineLoadingText color={ppcColors.primary}>Carregando enderecos...</InlineLoadingText>
                   </View>
                 ) : addressOptions.length > 0 ? (
                   addressOptions.map(address => {
@@ -3551,7 +3550,7 @@ const OrderDetails = ({ route, navigation }) => {
                         </View>
 
                         {isSaving ? (
-                          <ActivityIndicator size="small" color={ppcColors.primary} />
+                          <InlineLoadingText color={ppcColors.primary}>...</InlineLoadingText>
                         ) : isCurrent ? (
                           <Text style={localStyles.assignmentOptionBadge}>Atual</Text>
                         ) : (
@@ -3702,7 +3701,7 @@ const OrderDetails = ({ route, navigation }) => {
                     ]}
                   >
                     {addressSaveLoading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <InlineLoadingText color="#FFFFFF">Salvando...</InlineLoadingText>
                     ) : (
                       <Text style={localStyles.deliveryCodeButtonPrimaryText}>
                         Salvar endereco
