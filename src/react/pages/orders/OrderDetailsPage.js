@@ -14,6 +14,18 @@ const getOrderDetailsTitle = () =>
 
 const normalizeOrder = order => (order && typeof order === 'object' ? order : null)
 const pendingOrderDetailLoads = new Map()
+const hasAddressCoordinates = address =>
+  Number.isFinite(Number(address?.latitude)) && Number.isFinite(Number(address?.longitude))
+
+const hasDeliveryDetailPayload = order =>
+  Boolean(
+    order &&
+      typeof order === 'object' &&
+      order.addressOrigin &&
+      order.addressDestination &&
+      hasAddressCoordinates(order.addressOrigin) &&
+      hasAddressCoordinates(order.addressDestination),
+  )
 
 export default function OrderDetailsPage({navigation, route}) {
   const ordersStore = useStore('orders')
@@ -28,14 +40,25 @@ export default function OrderDetailsPage({navigation, route}) {
     () => getOrderRouteId(route?.params?.id),
     [route?.params?.id],
   )
+  const lastResetRouteOrderIdRef = useRef('')
+  const lastTrustedRouteOrderIdRef = useRef('')
   const requestedRouteOrderIdRef = useRef('')
+  const hasStoreOrderProducts = Array.isArray(storeOrder?.orderProducts)
   const shouldTrustStoreOrder = Boolean(
     routeOrderId &&
       (storeLoadedKey === routeOrderId || storeOrderId === routeOrderId) &&
-      storeOrderType,
+      (
+        (storeOrderType === 'delivery' && hasDeliveryDetailPayload(storeOrder)) ||
+        ((storeOrderType === 'sale' || storeOrderType === 'cart') && hasStoreOrderProducts)
+      ),
   )
 
   useEffect(() => {
+    if (lastResetRouteOrderIdRef.current === routeOrderId) {
+      return undefined
+    }
+
+    lastResetRouteOrderIdRef.current = routeOrderId
     requestedRouteOrderIdRef.current = ''
     setResolvedOrderFromFetch(null)
     setOrderLoadError(null)
@@ -47,8 +70,15 @@ export default function OrderDetailsPage({navigation, route}) {
     }
 
     if (shouldTrustStoreOrder) {
+      if (lastTrustedRouteOrderIdRef.current === routeOrderId) {
+        return undefined
+      }
+
+      lastTrustedRouteOrderIdRef.current = routeOrderId
       requestedRouteOrderIdRef.current = routeOrderId
-      setOrderLoadError(null)
+      if (orderLoadError !== null) {
+        setOrderLoadError(null)
+      }
       return undefined
     }
 
@@ -152,7 +182,7 @@ export default function OrderDetailsPage({navigation, route}) {
       navigation.setOptions({
         headerShown: false,
         showBottomCart: false,
-        showBottomToolBar: false,
+        showBottomToolBar: true,
       })
       return
     }

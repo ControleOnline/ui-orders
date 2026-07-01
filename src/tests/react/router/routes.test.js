@@ -74,7 +74,7 @@ jest.mock('@controleonline/ui-logistic/src/react/router/routes', () => ({
     navigation.setOptions({
       headerShown: false,
       showBottomCart: false,
-      showBottomToolBar: false,
+      showBottomToolBar: true,
     })
 
     return React.createElement('order-logistics-route', null)

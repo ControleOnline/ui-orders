@@ -228,7 +228,7 @@ const ordersRoutes = [
     options: {
       headerShown: true,
       showBottomCart: false,
-      showBottomToolBar: false,
+      showBottomToolBar: String(env.APP_TYPE || '').toUpperCase() === 'DELIVERY',
       title: () => global.t?.t('orders', 'title', 'order'),
     },
     initialParams: { store: 'orders' },

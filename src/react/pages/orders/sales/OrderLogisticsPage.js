@@ -1,1 +1,4 @@
-export {default} from '@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage';
+export {
+  default,
+  buildOrderLogisticsSnapshotSource,
+} from '@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage';

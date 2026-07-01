@@ -187,8 +187,50 @@ jest.mock(
 
 const OrderLogisticsPage =
   require('../../../../../react/pages/orders/sales/OrderLogisticsPage').default
+const {
+  buildOrderLogisticsSnapshotSource,
+} = require('../../../../../react/pages/orders/sales/OrderLogisticsPage')
 
 describe('OrderLogisticsPage', () => {
+  it('keeps the delivery order as the snapshot source when logistics payload also sends order data', () => {
+    const deliveryOrder = {
+      id: 72532,
+      orderType: 'delivery',
+      addressOrigin: {
+        id: 63,
+      },
+      addressDestination: {
+        id: 12790,
+      },
+    }
+    const logisticsPayload = {
+      order: {
+        id: 71134,
+        orderType: 'sale',
+        addressOrigin: null,
+        addressDestination: null,
+      },
+      route: {
+        pickupAddress: null,
+        dropoffAddress: null,
+      },
+      management: {
+        mode: 'quote',
+        managedByStore: true,
+      },
+    }
+
+    expect(
+      buildOrderLogisticsSnapshotSource(deliveryOrder, logisticsPayload),
+    ).toEqual(
+      expect.objectContaining({
+        order: deliveryOrder,
+        route: logisticsPayload.route,
+        management: logisticsPayload.management,
+      }),
+    )
+  })
+
   it('renders the stacked order header in the logistics body', () => {
     mockLogisticsSnapshot = {
       ...mockLogisticsSnapshot,

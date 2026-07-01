@@ -45,6 +45,10 @@ jest.mock('@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage
   React.createElement('delivery-order-details', null),
 )
 
+jest.mock('@controleonline/ui-layout/src/react/components/StateStore', () => props =>
+  React.createElement('state-store', null, props.loading || props.error || props.children),
+)
+
 const originalUseEffect = React.useEffect
 React.useEffect = effect => effect()
 
@@ -77,7 +81,7 @@ describe('OrderDetailsPage', () => {
       }),
     )
 
-    expect(markup).toContain('Carregando...')
+    expect(markup).toContain('Carregando pedido...')
     expect(mockGetOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         id: '72532',
@@ -98,6 +102,14 @@ describe('OrderDetailsPage', () => {
     mockOrder = {
       id: 72532,
       orderType: 'delivery',
+      addressOrigin: {
+        latitude: -23.55052,
+        longitude: -46.633308,
+      },
+      addressDestination: {
+        latitude: -23.563987,
+        longitude: -46.654321,
+      },
     }
 
     const navigation = {
@@ -121,7 +133,7 @@ describe('OrderDetailsPage', () => {
       expect.objectContaining({
         headerShown: false,
         showBottomCart: false,
-        showBottomToolBar: false,
+        showBottomToolBar: true,
       }),
     )
   })
@@ -130,6 +142,7 @@ describe('OrderDetailsPage', () => {
     mockOrder = {
       id: 72532,
       orderType: 'cart',
+      orderProducts: [],
     }
 
     const navigation = {
