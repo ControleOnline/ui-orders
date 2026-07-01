@@ -707,13 +707,17 @@ const OrderDetails = ({ route, navigation }) => {
 
     // No single-item o detalhe do pedido nao participa do fluxo.
     // Voltar daqui significa trocar o item no AddProductScreen antes de pagar.
-    navigation.replace(
-      'AddProductScreen',
-      buildAddProductsRouteParams(
-        item || orderParam || routeOrderId,
-        buildManagerPdvRouteParams({singleItemMode: true}),
-      ),
+    const replaceRoute = buildAddProductsRouteParams(
+      item || orderParam || routeOrderId,
+      buildManagerPdvRouteParams({singleItemMode: true}),
     )
+
+    if (typeof navigation?.replace === 'function') {
+      navigation.replace('AddProductScreen', replaceRoute)
+      return
+    }
+
+    navigation?.navigate?.('AddProductScreen', replaceRoute)
   }, [
     item,
     navigation,

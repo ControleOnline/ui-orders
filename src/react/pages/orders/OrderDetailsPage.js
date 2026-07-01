@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {useStore} from '@store'
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
 import SaleOrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails'
@@ -9,6 +9,10 @@ import {
   resolveOrderDetailsScreenType,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 
+if (typeof globalThis !== 'undefined') {
+  globalThis.__orderDetailsDebugLoaded = true
+}
+
 const getOrderDetailsTitle = () =>
   global.t?.t('orders', 'title', 'order') || 'Pedido'
 
@@ -17,22 +21,45 @@ const normalizeOrder = order => (order && typeof order === 'object' ? order : nu
 export default function OrderDetailsPage({navigation, route}) {
   const ordersStore = useStore('orders')
   const ordersActions = ordersStore?.actions || {}
+  const storeOrder = normalizeOrder(ordersStore?.getters?.item)
+  const storeOrderId = getOrderRouteId(storeOrder)
+  const storeOrderType = resolveOrderDetailsScreenType(storeOrder)
   const [resolvedOrderFromFetch, setResolvedOrderFromFetch] = useState(null)
   const [orderLoadError, setOrderLoadError] = useState(null)
   const routeOrderId = useMemo(
     () => getOrderRouteId(route?.params?.id),
     [route?.params?.id],
   )
+  const requestedRouteOrderIdRef = useRef('')
+  const shouldTrustStoreOrder =
+    Boolean(routeOrderId && storeOrderId === routeOrderId) &&
+    (storeOrderType === 'delivery' || storeOrderType === 'cart')
 
   useEffect(() => {
-    let isCancelled = false
-
+    requestedRouteOrderIdRef.current = ''
     setResolvedOrderFromFetch(null)
     setOrderLoadError(null)
+  }, [routeOrderId])
 
+  useEffect(() => {
     if (!routeOrderId) {
       return undefined
     }
+
+    if (shouldTrustStoreOrder) {
+      setResolvedOrderFromFetch(storeOrder)
+      setOrderLoadError(null)
+      requestedRouteOrderIdRef.current = routeOrderId
+      return undefined
+    }
+
+    if (requestedRouteOrderIdRef.current === routeOrderId) {
+      return undefined
+    }
+
+    requestedRouteOrderIdRef.current = routeOrderId
+    setResolvedOrderFromFetch(null)
+    setOrderLoadError(null)
 
     if (typeof ordersActions.get !== 'function') {
       setOrderLoadError(
@@ -41,6 +68,8 @@ export default function OrderDetailsPage({navigation, route}) {
       )
       return undefined
     }
+
+    let isCancelled = false
 
     Promise.resolve(
       ordersActions.get({
@@ -79,24 +108,29 @@ export default function OrderDetailsPage({navigation, route}) {
     return () => {
       isCancelled = true
     }
-  }, [ordersActions, routeOrderId])
+  }, [ordersActions.get, routeOrderId, shouldTrustStoreOrder, storeOrder])
 
-  const isFetchingCurrentOrder = Boolean(routeOrderId && !resolvedOrderFromFetch && !orderLoadError)
-
+  const resolvedOrder =
+    resolvedOrderFromFetch || (shouldTrustStoreOrder ? storeOrder : null)
+  const isFetchingCurrentOrder = Boolean(
+    routeOrderId && !resolvedOrder && !orderLoadError,
+  )
   const screenType = useMemo(
-    () => resolveOrderDetailsScreenType(resolvedOrderFromFetch) || 'sale',
-    [resolvedOrderFromFetch],
+    () => resolveOrderDetailsScreenType(resolvedOrder) || 'sale',
+    [resolvedOrder],
   )
 
-  if (routeOrderId) {
-    console.error(
-      '[OrderDetailsPage debug]',
-      `route=${routeOrderId}`,
-      `loading=${isFetchingCurrentOrder}`,
-      `error=${Boolean(orderLoadError)}`,
-      `orderType=${resolvedOrderFromFetch?.orderType || resolvedOrderFromFetch?.order_type || ''}`,
-      `screenType=${screenType}`,
-    )
+  if (typeof globalThis !== 'undefined') {
+    globalThis.__orderDetailsDebug = {
+      orderLoadError: Boolean(orderLoadError),
+      resolvedOrderType:
+        resolvedOrder?.orderType || resolvedOrder?.order_type || '',
+      routeOrderId,
+      screenType,
+      shouldTrustStoreOrder,
+      storeLoadedKey,
+      storeOrderType,
+    }
   }
 
   useEffect(() => {
@@ -108,7 +142,7 @@ export default function OrderDetailsPage({navigation, route}) {
       return
     }
 
-    if (!resolvedOrderFromFetch) {
+    if (!resolvedOrder) {
       navigation.setOptions({
         title: getOrderDetailsTitle(),
         headerBackVisible: true,
@@ -130,13 +164,13 @@ export default function OrderDetailsPage({navigation, route}) {
       headerBackVisible: true,
       headerTitle: () => (
         <OrderIdentityLabel
-          order={resolvedOrderFromFetch}
+          order={resolvedOrder}
           primaryTextStyle={{fontSize: 16, fontWeight: '700'}}
           secondaryTextStyle={{fontSize: 11, color: '#64748B', fontWeight: '600'}}
         />
       ),
     })
-  }, [navigation, resolvedOrderFromFetch, routeOrderId, screenType])
+  }, [navigation, resolvedOrder, routeOrderId, screenType])
 
   if (!routeOrderId) {
     return (
@@ -150,7 +184,7 @@ export default function OrderDetailsPage({navigation, route}) {
     return <StateStore loading="Carregando pedido..." />
   }
 
-  if (orderLoadError && !resolvedOrderFromFetch) {
+  if (orderLoadError && !resolvedOrder) {
     return (
       <StateStore
         error={orderLoadError}
@@ -159,7 +193,7 @@ export default function OrderDetailsPage({navigation, route}) {
     )
   }
 
-  if (!resolvedOrderFromFetch) {
+  if (!resolvedOrder) {
     return <StateStore loading="Carregando pedido..." />
   }
 
