@@ -462,6 +462,8 @@ describe('OrderLogisticsPage', () => {
     expect(markup).toContain('Entrega')
     expect(markup).toContain('Mapa da entrega')
     expect(markup).toContain('Detalhes da entrega')
+    expect(markup).toContain('01234567')
+    expect(markup).toContain('09876543')
     expect(markup).toContain('CAROLINE')
     expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
     expect(markup).toContain('11950751998')
@@ -469,6 +471,8 @@ describe('OrderLogisticsPage', () => {
     expect(markup).toContain('Uber')
     expect(markup).toContain('R$ 14,66')
     expect(markup).toContain('Fechado')
+    expect(markup).not.toContain('Aceitar corrida')
+    expect(markup).not.toContain('Cancelar corrida')
     expect(markup).not.toContain('Aguardando cotacao')
     expect(markup).not.toContain('Atualizar cotações')
     expect(markup).not.toContain('Escolher cotacao')
@@ -493,6 +497,7 @@ describe('OrderLogisticsPage', () => {
       dropoffAddressParts: {
         primary: 'Rua Cliente, 321',
         secondary: 'Bairro • Sao Paulo / SP',
+        postalCode: '09876543',
         complement: '',
       },
       dropoffContact: {
@@ -511,6 +516,7 @@ describe('OrderLogisticsPage', () => {
       pickupAddressParts: {
         primary: 'Rua Teste, 123',
         secondary: 'Centro • Sao Paulo / SP',
+        postalCode: '01234567',
         complement: 'Apto 10',
       },
       pickupContact: {
@@ -614,6 +620,7 @@ describe('OrderLogisticsPage', () => {
         route: {
           params: {
             id: 71119,
+            order: mockLogisticsSnapshot.order,
           },
         },
       }),
@@ -625,6 +632,12 @@ describe('OrderLogisticsPage', () => {
     expect(markup).toContain('Pedido atual')
     expect(markup).toContain('#72532')
     expect(markup).not.toContain('#71134')
+    expect(markup).toContain('01234567')
+    expect(markup).toContain('09876543')
+    expect(markup).not.toContain('iFood')
+    expect(markup).not.toContain('Uber')
+    expect(markup).not.toContain('Atualizar cotações')
+    expect(markup).not.toContain('Nenhuma cotacao ainda')
     expect(markup).not.toContain('Trocar cliente')
     expect(markup).not.toContain('Vincular cliente')
     expect(markup).not.toContain('Alterar endereco')
