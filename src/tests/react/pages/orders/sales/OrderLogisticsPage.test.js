@@ -165,6 +165,23 @@ jest.mock('@controleonline/ui-logistic/src/react/pages/orders/orderLogisticsPres
   resolveOrderLogisticsSnapshot: jest.fn(() => mockLogisticsSnapshot),
 }))
 
+jest.mock('@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsQuotesList', () => props => {
+  const React = require('react')
+
+  const quotes = Array.isArray(mockLogisticsSnapshot?.quotes) ? mockLogisticsSnapshot.quotes : []
+  const currentIntegration = mockLogisticsSnapshot?.currentIntegration
+  const labels = [
+    ...quotes.map(quote => quote?.providerLabel || quote?.providerKey || quote?.app || 'Cotacao'),
+    currentIntegration?.providerLabel || currentIntegration?.providerKey || currentIntegration?.app || null,
+  ].filter(Boolean)
+
+  return React.createElement(
+    'order-logistics-quotes-list',
+    null,
+    labels.map((label, index) => React.createElement('quote-item', {key: `${label}-${index}`}, label)),
+  )
+})
+
 jest.mock('@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar', () => props => {
   global.__orderStackedTopBarProps = props
   return React.createElement('order-stacked-top-bar', null, props.children)
