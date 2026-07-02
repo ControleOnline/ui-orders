@@ -170,15 +170,43 @@ jest.mock('@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsQuot
 
   const quotes = Array.isArray(mockLogisticsSnapshot?.quotes) ? mockLogisticsSnapshot.quotes : []
   const currentIntegration = mockLogisticsSnapshot?.currentIntegration
+  const hasDeliveryOrder = Boolean(mockLogisticsSnapshot?.hasDeliveryOrder)
+  const hasDropoffAddress = Boolean(mockLogisticsSnapshot?.dropoffAddressParts)
+  const deliveryPeople = mockLogisticsSnapshot?.delivery?.deliveryPeople || null
+  const deliveryStatus = mockLogisticsSnapshot?.delivery?.status || ''
   const labels = [
     ...quotes.map(quote => quote?.providerLabel || quote?.providerKey || quote?.app || 'Cotacao'),
     currentIntegration?.providerLabel || currentIntegration?.providerKey || currentIntegration?.app || null,
   ].filter(Boolean)
 
+  if (quotes.length === 0 && !hasDeliveryOrder) {
+    return React.createElement(
+      'order-logistics-quotes-list',
+      null,
+      React.createElement('empty-state-title', null, 'Nenhuma cotacao ainda'),
+      React.createElement(
+        'empty-state-text',
+        null,
+        hasDropoffAddress
+          ? 'Solicite cotações para exibir as opções vinculadas.'
+          : 'Informe um endereço de entrega válido para solicitar cotações.',
+      ),
+    )
+  }
+
   return React.createElement(
     'order-logistics-quotes-list',
     null,
     labels.map((label, index) => React.createElement('quote-item', {key: `${label}-${index}`}, label)),
+    deliveryPeople?.name
+      ? React.createElement('delivery-name', {key: 'delivery-name'}, deliveryPeople.name)
+      : null,
+    deliveryPeople?.phone
+      ? React.createElement('delivery-phone', {key: 'delivery-phone'}, deliveryPeople.phone)
+      : null,
+    deliveryStatus
+      ? React.createElement('delivery-status', {key: 'delivery-status'}, deliveryStatus)
+      : null,
   )
 })
 
@@ -303,6 +331,7 @@ describe('OrderLogisticsPage', () => {
       dropoffAddressParts: {
         primary: 'Rua Cliente, 321',
         secondary: 'Bairro • Sao Paulo / SP',
+        postalCode: '09876543',
         complement: '',
       },
       dropoffContact: {
@@ -332,6 +361,7 @@ describe('OrderLogisticsPage', () => {
       pickupAddressParts: {
         primary: 'Rua Teste, 123',
         secondary: 'Centro • Sao Paulo / SP',
+        postalCode: '01234567',
         complement: 'Apto 10',
       },
       pickupContact: {
@@ -477,6 +507,7 @@ describe('OrderLogisticsPage', () => {
     expect(markup).toContain('Atualizar tela')
     expect(markup).toContain('Coleta')
     expect(markup).toContain('Entrega')
+    expect(markup).not.toContain('Posição atual')
     expect(markup).toContain('Mapa da entrega')
     expect(markup).toContain('Detalhes da entrega')
     expect(markup).toContain('01234567')
