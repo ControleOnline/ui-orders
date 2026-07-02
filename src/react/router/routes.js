@@ -7,6 +7,7 @@ import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/W
 import CloseCashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister/CloseCashRegister';
 import PrintQueuePage from '@controleonline/ui-orders/src/react/pages/Prints';
 import OrderHistoryPage from '@controleonline/ui-orders/src/react/pages/orders/OrderHistoryPage';
+import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {menuStorefrontRoute} from '@controleonline/ui-shop/src/react/router/routes';
 import {
   shouldShowOrderHistoryCompanyFilter,
