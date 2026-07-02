@@ -11,7 +11,7 @@ const createStyles = (colors, insets) =>
       elevation: 1000,
     },
     wrapper: {
-      paddingHorizontal: 0,
+      paddingBottom: Math.max(insets?.bottom || 0, 8),
       paddingTop: 0,
       backgroundColor: 'transparent',
     },
@@ -19,13 +19,19 @@ const createStyles = (colors, insets) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      minHeight: 60,
+      minHeight: 64,
       paddingHorizontal: 8,
       paddingTop: 8,
-      paddingBottom: Math.max(insets?.bottom || 0, 10),
-      borderTopWidth: 1,
-      borderTopColor: colors?.border || '#D7E1EC',
+      paddingBottom: 8,
+      borderWidth: 1,
+      borderColor: colors?.border || '#D7E1EC',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0,
+      borderBottomWidth: 0,
       backgroundColor: colors?.background || '#FFFFFF',
+      overflow: 'hidden',
       ...(Platform.OS === 'android'
         ? { elevation: 10 }
         : {
