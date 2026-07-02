@@ -1,7 +1,4 @@
 import React from 'react';
-import { View, TouchableOpacity, Text } from 'react-native';
-
-import Icon from 'react-native-vector-icons/Feather';
 import { useNavigationState } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '@store';
@@ -9,7 +6,7 @@ import {
   isPosCashRegisterClosed,
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import createStyles from './PDVToolbar.styles';
+import BottomNavigationBar from '@controleonline/ui-common/src/react/components/BottomNavigationBar';
 
 const ShopToolbar = ({ navigation }) => {
   const state = useNavigationState(state => state);
@@ -24,124 +21,52 @@ const ShopToolbar = ({ navigation }) => {
   const { colors } = getters;
   const insets = useSafeAreaInsets();
   const { currentCompany } = peopleGetters;
-  const styles = createStyles(colors, insets);
-  const primaryColor = colors?.primary || '#007AFF';
-  const inactiveColor = colors?.textSecondary || '#666';
 
   const isCashRegisterClosed = isPosCashRegisterClosed(device?.configs);
   const shouldShowCashRegisterButton = shouldUsePosCashRegisterLifecycle(
     device?.configs,
   );
-  const isCashRegisterTab =
-    activeTab === 'CashRegisterIndex' || activeTab === 'CloseCashRegister';
 
-  const handleOrdersPress = () => {
-    if (isCashRegisterClosed) {
-      navigation.navigate('CloseCashRegister');
-      return;
-    }
-
-    navigation.navigate('OrderHistoryPage');
-  };
-
-  const handleCashRegisterPress = () => {
-    navigation.navigate(
-      isCashRegisterClosed ? 'CloseCashRegister' : 'CashRegisterIndex',
-    );
-  };
+  const items = [
+    ...(device?.configs && Object.entries(device.configs).length > 0
+      ? [
+          {
+            route: 'HomePage',
+            icon: 'home',
+            label: global.t?.t('orders', 'label', 'home'),
+          },
+        ]
+      : []),
+    {
+      route: 'OrderHistoryPage',
+      icon: 'shopping-bag',
+      label: global.t?.t('orders', 'label', 'orders'),
+    },
+    ...(shouldShowCashRegisterButton
+      ? [
+          {
+            route: isCashRegisterClosed ? 'CloseCashRegister' : 'CashRegisterIndex',
+            icon: 'credit-card',
+            label: global.t?.t('orders', 'title', 'cashRegister'),
+          },
+        ]
+      : []),
+    {
+      route: 'ProfilePage',
+      icon: 'user',
+      label: global.t?.t('orders', 'label', 'profile'),
+    },
+  ];
 
   return (
-    <View pointerEvents="box-none" style={styles.overlay}>
-      <View style={styles.wrapper}>
-        <View accessibilityRole="navigation" style={styles.toolbar} testID="bottom-navigation">
-          {device?.configs && Object.entries(device.configs).length > 0 && (
-            <TouchableOpacity
-              style={styles.button}
-              disabled={
-                !currentCompany || Object.entries(currentCompany).length === 0
-              }
-              onPress={() => {
-                navigation.navigate('HomePage');
-              }}>
-              <Icon
-                name="home"
-                size={18}
-                color={activeTab === 'HomePage' ? primaryColor : inactiveColor}
-              />
-              <Text
-                style={[
-                  styles.buttonText,
-                  activeTab === 'HomePage' && styles.activeText,
-                ]}>
-                {global.t?.t('orders', 'label', 'home')}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleOrdersPress}
-            disabled={
-              !currentCompany || Object.entries(currentCompany).length === 0
-            }>
-            <Icon
-              name="shopping-bag"
-              size={18}
-              color={activeTab === 'OrderHistoryPage' ? primaryColor : inactiveColor}
-            />
-            <Text
-              style={[
-                styles.buttonText,
-                activeTab === 'OrderHistoryPage' && styles.activeText,
-              ]}>
-                {global.t?.t('orders', 'label', 'orders')}
-              </Text>
-          </TouchableOpacity>
-          {shouldShowCashRegisterButton && (
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleCashRegisterPress}
-              disabled={
-                !currentCompany || Object.entries(currentCompany).length === 0
-              }>
-              <Icon
-                name="credit-card"
-                size={18}
-                color={isCashRegisterTab ? primaryColor : inactiveColor}
-              />
-              <Text
-                style={[
-                  styles.buttonText,
-                  isCashRegisterTab && styles.activeText,
-                ]}>
-                {global.t?.t('orders', 'title', 'cashRegister')}
-              </Text>
-            </TouchableOpacity>
-          )}
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => {
-                navigation.navigate('ProfilePage');
-              }}
-              disabled={
-                !currentCompany || Object.entries(currentCompany).length === 0
-              }>
-              <Icon
-                name="user"
-                size={18}
-                color={activeTab === 'ProfilePage' ? primaryColor : inactiveColor}
-              />
-            <Text
-              style={[
-                styles.buttonText,
-                activeTab === 'ProfilePage' && styles.activeText,
-              ]}>
-              {global.t?.t('orders', 'label', 'profile')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    <BottomNavigationBar
+      activeRouteName={activeTab}
+      colors={colors}
+      disabled={!currentCompany || Object.entries(currentCompany).length === 0}
+      insets={insets}
+      items={items}
+      navigation={navigation}
+    />
   );
 };
 export default ShopToolbar;
