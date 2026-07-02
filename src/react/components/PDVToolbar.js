@@ -25,6 +25,8 @@ const ShopToolbar = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { currentCompany } = peopleGetters;
   const styles = createStyles(colors, insets);
+  const primaryColor = colors?.primary || '#007AFF';
+  const inactiveColor = colors?.textSecondary || '#666';
 
   const isCashRegisterClosed = isPosCashRegisterClosed(device?.configs);
   const shouldShowCashRegisterButton = shouldUsePosCashRegisterLifecycle(
@@ -51,7 +53,7 @@ const ShopToolbar = ({ navigation }) => {
   return (
     <View pointerEvents="box-none" style={styles.overlay}>
       <View style={styles.wrapper}>
-        <View style={styles.toolbar}>
+        <View accessibilityRole="navigation" style={styles.toolbar} testID="bottom-navigation">
           {device?.configs && Object.entries(device.configs).length > 0 && (
             <TouchableOpacity
               style={styles.button}
@@ -63,8 +65,8 @@ const ShopToolbar = ({ navigation }) => {
               }}>
               <Icon
                 name="home"
-                size={15}
-                color={activeTab === 'HomePage' ? '#007AFF' : '#666'}
+                size={18}
+                color={activeTab === 'HomePage' ? primaryColor : inactiveColor}
               />
               <Text
                 style={[
@@ -84,8 +86,8 @@ const ShopToolbar = ({ navigation }) => {
             }>
             <Icon
               name="shopping-bag"
-              size={15}
-              color={activeTab === 'OrderHistoryPage' ? '#007AFF' : '#666'}
+              size={18}
+              color={activeTab === 'OrderHistoryPage' ? primaryColor : inactiveColor}
             />
             <Text
               style={[
@@ -104,8 +106,8 @@ const ShopToolbar = ({ navigation }) => {
               }>
               <Icon
                 name="credit-card"
-                size={15}
-                color={isCashRegisterTab ? '#007AFF' : '#666'}
+                size={18}
+                color={isCashRegisterTab ? primaryColor : inactiveColor}
               />
               <Text
                 style={[
@@ -116,19 +118,19 @@ const ShopToolbar = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => {
-              navigation.navigate('ProfilePage');
-            }}
-            disabled={
-              !currentCompany || Object.entries(currentCompany).length === 0
-            }>
-            <Icon
-              name="user"
-              size={15}
-              color={activeTab === 'ProfilePage' ? '#007AFF' : '#666'}
-            />
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => {
+                navigation.navigate('ProfilePage');
+              }}
+              disabled={
+                !currentCompany || Object.entries(currentCompany).length === 0
+              }>
+              <Icon
+                name="user"
+                size={18}
+                color={activeTab === 'ProfilePage' ? primaryColor : inactiveColor}
+              />
             <Text
               style={[
                 styles.buttonText,

@@ -11,42 +11,47 @@ const createStyles = (colors, insets) =>
       elevation: 1000,
     },
     wrapper: {
-      paddingHorizontal: 10,
-      paddingTop: 8,
-      paddingBottom: Math.max(insets?.bottom || 0, 8),
+      paddingHorizontal: 0,
+      paddingTop: 0,
       backgroundColor: 'transparent',
     },
     toolbar: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
       alignItems: 'center',
+      justifyContent: 'space-between',
       minHeight: 60,
-      borderRadius: 18,
-      backgroundColor: '#f8f8f8',
+      paddingHorizontal: 8,
+      paddingTop: 8,
+      paddingBottom: Math.max(insets?.bottom || 0, 10),
       borderTopWidth: 1,
-      borderTopColor: '#ddd',
+      borderTopColor: colors?.border || '#D7E1EC',
+      backgroundColor: colors?.background || '#FFFFFF',
       ...(Platform.OS === 'android'
-        ? { elevation: 8 }
+        ? { elevation: 10 }
         : {
             shadowColor: '#0F172A',
-            shadowOpacity: 0.14,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 14,
+            shadowOffset: { width: 0, height: -6 },
           }),
     },
     button: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
+      minHeight: 44,
+      paddingVertical: 6,
+      paddingHorizontal: 4,
     },
     buttonText: {
       fontSize: 12,
-      color: '#666',
+      color: colors?.textSecondary || '#666',
       marginTop: 6,
+      textAlign: 'center',
     },
     activeText: {
       color: colors?.primary,
-      fontWeight: 'bold',
+      fontWeight: '800',
     },
   });
 
