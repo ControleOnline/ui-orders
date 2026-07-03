@@ -98,6 +98,36 @@ describe('OrderDetailsPage', () => {
     )
   })
 
+  it('falls back to the route order payload when the id param is missing', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+    }
+
+    const markup = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderDetailsPage, {
+        navigation,
+        route: {
+          params: {
+            order: {
+              id: 72532,
+              orderType: 'delivery',
+            },
+          },
+        },
+      }),
+    )
+
+    expect(markup).toContain('Carregando pedido...')
+    expect(mockGetOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: '72532',
+        __storeMeta: expect.objectContaining({
+          preserveItem: true,
+        }),
+      }),
+    )
+  })
+
   it('renders the delivery component when the loaded order is delivery', () => {
     mockOrder = {
       id: 72532,

@@ -34,11 +34,12 @@ export default function OrderDetailsPage({navigation, route}) {
   const storeOrderId = getOrderRouteId(storeOrder)
   const storeLoadedKey = getOrderRouteId(ordersStore?.getters?.loadedKey)
   const storeOrderType = resolveOrderDetailsScreenType(storeOrder)
+  const routeOrder = normalizeOrder(route?.params?.order)
   const [resolvedOrderFromFetch, setResolvedOrderFromFetch] = useState(null)
   const [orderLoadError, setOrderLoadError] = useState(null)
   const routeOrderId = useMemo(
-    () => getOrderRouteId(route?.params?.id),
-    [route?.params?.id],
+    () => getOrderRouteId(route?.params?.id || routeOrder || storeOrder),
+    [route?.params?.id, routeOrder, storeOrder],
   )
   const lastResetRouteOrderIdRef = useRef('')
   const lastTrustedRouteOrderIdRef = useRef('')
@@ -168,12 +169,12 @@ export default function OrderDetailsPage({navigation, route}) {
             ...route,
             params: {
               ...(route?.params || {}),
-              id: routeOrderId || route?.params?.id,
+              id: routeOrderId || route?.params?.id || routeOrder?.id,
               order: resolvedOrder,
             },
           }
         : route,
-    [resolvedOrder, route, routeOrderId],
+    [resolvedOrder, route, routeOrderId, routeOrder?.id],
   )
   useEffect(() => {
     if (!routeOrderId) {
