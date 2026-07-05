@@ -3,6 +3,7 @@ import {useStore} from '@store'
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
 import SaleOrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails'
 import OrderLogisticsPage from '@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage'
+import DefaultErrors from '@controleonline/ui-default/src/react/components/errors/DefaultErrors'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
 import {
   getOrderRouteId,
@@ -105,13 +106,14 @@ export default function OrderDetailsPage({navigation, route}) {
     if (!request) {
       try {
         request = Promise.resolve(
-          ordersActions.get({
-            id: routeOrderId,
-            __storeMeta: {
-              preserveItem: true,
-            },
-          }),
-        )
+        ordersActions.get({
+          id: routeOrderId,
+          __storeMeta: {
+            preserveItem: true,
+            skipSystemError: true,
+          },
+        }),
+      )
         pendingOrderDetailLoads.set(routeOrderId, request)
       } catch (error) {
         setOrderLoadError(error || true)
@@ -217,27 +219,25 @@ export default function OrderDetailsPage({navigation, route}) {
 
   if (!routeOrderId) {
     return (
-      <StateStore
-        error={global.t?.t('orders', 'message', 'unableCompleteOperation') || 'Pedido nao informado.'}
-      />
+      <DefaultErrors title="Pedido nao informado." />
     )
   }
 
   if (isFetchingCurrentOrder) {
-    return <StateStore loading="Carregando pedido..." />
+    return <StateStore mode="orders" loading="Carregando pedido..." />
   }
 
   if (orderLoadError && !resolvedOrder) {
     return (
-      <StateStore
+      <DefaultErrors
         error={orderLoadError}
-        errorText="Nao foi possivel carregar o pedido."
+        title="Nao foi possivel carregar o pedido."
       />
     )
   }
 
   if (!resolvedOrder) {
-    return <StateStore loading="Carregando pedido..." />
+    return <StateStore mode="orders" loading="Carregando pedido..." />
   }
 
   const Screen = screenType === 'delivery' ? OrderLogisticsPage : SaleOrderDetails

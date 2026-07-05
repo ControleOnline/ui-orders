@@ -84,6 +84,25 @@ jest.mock('@store', () => ({
       }
     }
 
+    if (name === 'order_logistics') {
+      return {
+        actions: {
+          get: jest.fn(),
+          requestQuotes: jest.fn(),
+          selectQuote: jest.fn(),
+          confirm: jest.fn(),
+          cancel: jest.fn(),
+          delivered: jest.fn(),
+        },
+        getters: {
+          item: mockLogisticsSnapshot,
+          isLoading: false,
+          isSaving: false,
+          error: '',
+        },
+      }
+    }
+
     if (name === 'websocket') {
       return {
         actions: {},

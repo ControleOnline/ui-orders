@@ -113,6 +113,15 @@ export const fetchHistoryPage = ({commit, getters}, {query = {}, append = false,
     });
 };
 
+export const getHistorySummaryApps = ({getters}, {query = {}} = {}) =>
+  api
+    .fetch(getters.resourceEndpoint, {params: query})
+    .then(response => {
+      const apps = response?.summary?.apps;
+
+      return Array.isArray(apps) ? apps : [];
+    });
+
 export const syncOrder = ({commit, getters}, order) =>
   commitSyncedOrder({commit, getters}, order, {prependIfMissing: true});
 

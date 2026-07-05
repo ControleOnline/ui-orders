@@ -8,7 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import { env } from '@env';
 import { useStore } from '@store';
-import { api } from '@controleonline/ui-common/src/api';
 import CompactFilterSelector from '@controleonline/ui-default/src/react/components/filters/CompactFilterSelector';
 import DateShortcutFilter from '@controleonline/ui-default/src/react/components/filters/DateShortcutFilter';
 import DefaultTable from '@controleonline/ui-default/src/react/components/table/DefaultTable';
@@ -37,38 +36,6 @@ const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss'])
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
 
 const normalizeText = value => String(value || '').trim();
-
-const resolveSummaryApps = response => {
-  const apps =
-    response?.summary?.report?.apps ||
-    response?.summary?.apps ||
-    response?.report?.apps ||
-    response?.apps;
-
-  if (!Array.isArray(apps)) {
-    return [];
-  }
-
-  const seenKeys = new Set();
-
-  return apps
-    .map(app => {
-      const key = normalizeText(app?.key || app?.app || app?.label);
-      const label = normalizeText(app?.label || key);
-
-      if (!key || seenKeys.has(key)) {
-        return null;
-      }
-
-      seenKeys.add(key);
-
-      return {
-        key,
-        label: label || key,
-      };
-    })
-    .filter(Boolean);
-};
 
 const resolveOrderTypeFilter = value => {
   const normalizedValue = normalizeText(value).toLowerCase();
@@ -419,10 +386,17 @@ export default function OrderHistoryPage({ navigation, route }) {
       };
     }
 
-    api.fetch('orders', { params: channelSummaryQuery })
-      .then(response => {
+    if (typeof orderActions.getHistorySummaryApps !== 'function') {
+      setDynamicChannelOptions([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    orderActions.getHistorySummaryApps({query: channelSummaryQuery})
+      .then(apps => {
         if (!cancelled) {
-          setDynamicChannelOptions(resolveSummaryApps(response));
+          setDynamicChannelOptions(Array.isArray(apps) ? apps : []);
         }
       })
       .catch(() => {
@@ -437,6 +411,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   }, [
     channelSummaryQuery,
     isFocused,
+    orderActions,
   ]);
 
   const searchPlaceholder = useMemo(() => {
@@ -663,7 +638,12 @@ export default function OrderHistoryPage({ navigation, route }) {
   }, [openOrder, purchaseSuppliersById]);
 
   if (shouldResumeCounterFlow || !currentCompany?.id) {
-    return <StateStore loading={global.t?.t('orders', 'label', 'loading')} />;
+    return (
+      <StateStore
+        mode="orders"
+        loading={global.t?.t('orders', 'label', 'loading')}
+      />
+    );
   }
 
   return (

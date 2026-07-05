@@ -46,7 +46,11 @@ jest.mock('@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage
 )
 
 jest.mock('@controleonline/ui-layout/src/react/components/StateStore', () => props =>
-  React.createElement('state-store', null, props.loading || props.error || props.children),
+  React.createElement('state-store', {mode: props.mode || ''}, props.loading || props.children),
+)
+
+jest.mock('@controleonline/ui-default/src/react/components/errors/DefaultErrors', () => props =>
+  React.createElement('default-errors', null, props.title || props.message || props.children),
 )
 
 const originalUseEffect = React.useEffect
@@ -81,6 +85,7 @@ describe('OrderDetailsPage', () => {
       }),
     )
 
+    expect(markup).toContain('mode="orders"')
     expect(markup).toContain('Carregando pedido...')
     expect(mockGetOrder).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -117,6 +122,7 @@ describe('OrderDetailsPage', () => {
       }),
     )
 
+    expect(markup).toContain('mode="orders"')
     expect(markup).toContain('Carregando pedido...')
     expect(mockGetOrder).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -126,6 +132,25 @@ describe('OrderDetailsPage', () => {
         }),
       }),
     )
+  })
+
+  it('renders an inline error when the route does not provide a pedido', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+    }
+
+    const markup = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderDetailsPage, {
+        navigation,
+        route: {
+          params: {},
+        },
+      }),
+    )
+
+    expect(markup).toContain('default-errors')
+    expect(markup).toContain('Pedido nao informado.')
+    expect(mockGetOrder).not.toHaveBeenCalled()
   })
 
   it('renders the delivery component when the loaded order is delivery', () => {
