@@ -1,10 +1,11 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {useStore} from '@store'
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel'
 import SaleOrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails'
 import OrderLogisticsPage from '@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage'
 import DefaultErrors from '@controleonline/ui-default/src/react/components/errors/DefaultErrors'
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
+import resolveSystemErrorMessage from '@controleonline/ui-common/src/react/utils/systemErrorMessage'
 import {
   getOrderRouteId,
   resolveOrderDetailsScreenType,
@@ -46,6 +47,18 @@ export default function OrderDetailsPage({navigation, route}) {
   const lastTrustedRouteOrderIdRef = useRef('')
   const requestedRouteOrderIdRef = useRef('')
   const hasStoreOrderProducts = Array.isArray(storeOrder?.orderProducts)
+  const reportOrderLoadError = useCallback(errorValue => {
+    const errorMessage =
+      resolveSystemErrorMessage(errorValue) ||
+      global.t?.t('orders', 'message', 'unableCompleteOperation') ||
+      'Nao foi possivel carregar o pedido.'
+
+    setOrderLoadError(errorValue)
+
+    if (typeof ordersActions.setError === 'function') {
+      ordersActions.setError(errorMessage)
+    }
+  }, [ordersActions])
   const shouldTrustStoreOrder = Boolean(
     routeOrderId &&
       (storeLoadedKey === routeOrderId || storeOrderId === routeOrderId) &&
@@ -64,6 +77,9 @@ export default function OrderDetailsPage({navigation, route}) {
     requestedRouteOrderIdRef.current = ''
     setResolvedOrderFromFetch(null)
     setOrderLoadError(null)
+    if (typeof ordersActions.setError === 'function') {
+      ordersActions.setError('')
+    }
   }, [routeOrderId])
 
   useEffect(() => {
@@ -80,6 +96,9 @@ export default function OrderDetailsPage({navigation, route}) {
       requestedRouteOrderIdRef.current = routeOrderId
       if (orderLoadError !== null) {
         setOrderLoadError(null)
+        if (typeof ordersActions.setError === 'function') {
+          ordersActions.setError('')
+        }
       }
       return undefined
     }
@@ -93,7 +112,7 @@ export default function OrderDetailsPage({navigation, route}) {
     setOrderLoadError(null)
 
     if (typeof ordersActions.get !== 'function') {
-      setOrderLoadError(
+      reportOrderLoadError(
         global.t?.t('orders', 'message', 'unableCompleteOperation') ||
           'Nao foi possivel carregar o pedido.',
       )
@@ -106,17 +125,17 @@ export default function OrderDetailsPage({navigation, route}) {
     if (!request) {
       try {
         request = Promise.resolve(
-        ordersActions.get({
-          id: routeOrderId,
-          __storeMeta: {
-            preserveItem: true,
-            skipSystemError: true,
-          },
-        }),
-      )
+          ordersActions.get({
+            id: routeOrderId,
+            __storeMeta: {
+              preserveItem: true,
+              skipSystemError: true,
+            },
+          }),
+        )
         pendingOrderDetailLoads.set(routeOrderId, request)
       } catch (error) {
-        setOrderLoadError(error || true)
+        reportOrderLoadError(error || true)
         return undefined
       }
     }
@@ -130,7 +149,7 @@ export default function OrderDetailsPage({navigation, route}) {
         const normalizedOrder = normalizeOrder(order)
 
         if (!normalizedOrder) {
-          setOrderLoadError(
+          reportOrderLoadError(
             global.t?.t('orders', 'message', 'unableCompleteOperation') ||
               'Nao foi possivel carregar o pedido.',
           )
@@ -142,7 +161,7 @@ export default function OrderDetailsPage({navigation, route}) {
       })
       .catch(error => {
         if (!isCancelled) {
-          setOrderLoadError(error || true)
+          reportOrderLoadError(error || true)
         }
 
         return undefined
@@ -156,7 +175,7 @@ export default function OrderDetailsPage({navigation, route}) {
     return () => {
       isCancelled = true
     }
-  }, [ordersActions.get, routeOrderId, shouldTrustStoreOrder])
+  }, [ordersActions.get, reportOrderLoadError, routeOrderId, shouldTrustStoreOrder])
 
   const resolvedOrder =
     resolvedOrderFromFetch || (shouldTrustStoreOrder ? storeOrder : null)
@@ -230,6 +249,7 @@ export default function OrderDetailsPage({navigation, route}) {
   if (orderLoadError && !resolvedOrder) {
     return (
       <DefaultErrors
+        store="orders"
         error={orderLoadError}
         title="Nao foi possivel carregar o pedido."
       />

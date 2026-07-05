@@ -1,6 +1,6 @@
 ## UI Orders
 - `OrderDetails` deve manter o atalho de anexos sempre visivel na barra do pedido e abrir o mini gerenciador de arquivos quando houver `orderId`.
-- `OrderDetailsPage` e `OrderHistoryPage` usam `StateStore` com modos genericos de tela, como `display`, para loading de pedido/historico e `DefaultErrors` para erros inline.
+- `OrderDetailsPage` e `OrderHistoryPage` usam `StateStore` com modos genericos de tela, como `display`, para loading de pedido/historico e `DefaultErrors` como popup de erro inline, lendo o `error` do store correspondente.
 - `OrderHistoryPage` nao deve chamar `api.fetch` direto; o resumo de canais precisa vir da action do store `orders`.
 - O gerenciador de anexos deve reaproveitar o padrao do upload de produtos, mas operar apenas com `order_file` e `files`.
 - Nao tocar em `products`, `components` ou `product_group` para resolver anexos de pedido.
