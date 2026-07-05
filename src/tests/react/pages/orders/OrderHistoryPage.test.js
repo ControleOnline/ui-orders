@@ -147,7 +147,7 @@ describe('OrderHistoryPage', () => {
     );
 
     expect(markup).toContain('state-store');
-    expect(markup).toContain('mode="orders"');
+    expect(markup).toContain('mode="display"');
     expect(markup).toContain('Carregando pedidos...');
   });
 });

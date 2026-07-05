@@ -640,7 +640,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   if (shouldResumeCounterFlow || !currentCompany?.id) {
     return (
       <StateStore
-        mode="orders"
+        mode="display"
         loading={global.t?.t('orders', 'label', 'loading')}
       />
     );

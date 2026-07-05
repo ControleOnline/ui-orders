@@ -85,7 +85,7 @@ describe('OrderDetailsPage', () => {
       }),
     )
 
-    expect(markup).toContain('mode="orders"')
+    expect(markup).toContain('mode="display"')
     expect(markup).toContain('Carregando pedido...')
     expect(mockGetOrder).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -122,7 +122,7 @@ describe('OrderDetailsPage', () => {
       }),
     )
 
-    expect(markup).toContain('mode="orders"')
+    expect(markup).toContain('mode="display"')
     expect(markup).toContain('Carregando pedido...')
     expect(mockGetOrder).toHaveBeenCalledWith(
       expect.objectContaining({

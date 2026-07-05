@@ -224,7 +224,7 @@ export default function OrderDetailsPage({navigation, route}) {
   }
 
   if (isFetchingCurrentOrder) {
-    return <StateStore mode="orders" loading="Carregando pedido..." />
+    return <StateStore mode="display" loading="Carregando pedido..." />
   }
 
   if (orderLoadError && !resolvedOrder) {
@@ -237,7 +237,7 @@ export default function OrderDetailsPage({navigation, route}) {
   }
 
   if (!resolvedOrder) {
-    return <StateStore mode="orders" loading="Carregando pedido..." />
+    return <StateStore mode="display" loading="Carregando pedido..." />
   }
 
   const Screen = screenType === 'delivery' ? OrderLogisticsPage : SaleOrderDetails
