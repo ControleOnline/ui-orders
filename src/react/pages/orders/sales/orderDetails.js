@@ -312,7 +312,7 @@ const resolveInvoiceStatusPresentation = invoice => {
     return {
       label: formatHumanLabel(rawStatus || rawRealStatus || 'Canceled'),
       color: '#c10015',
-      backgroundColor: '#EF444422',
+      backgroundColor: '#c1001522',
     }
   }
 

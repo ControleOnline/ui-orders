@@ -317,7 +317,7 @@ const css = () => {
         marginVertical: 4,
       },
       statusText: {
-        color: '#28a745',
+        color: '#10b981',
       },
       tableNumber: {
         fontSize: 14,
