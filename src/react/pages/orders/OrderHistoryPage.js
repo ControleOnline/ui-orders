@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import { env } from '@env';
+import {app_type} from '@appType';
 import { useStore } from '@store';
 import CompactFilterSelector from '@controleonline/ui-default/src/react/components/filters/CompactFilterSelector';
 import DateShortcutFilter from '@controleonline/ui-default/src/react/components/filters/DateShortcutFilter';

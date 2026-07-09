@@ -14,6 +14,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {api} from '@controleonline/ui-common/src/api';
 import {env} from '@env';
+import {app_type} from '@appType';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {

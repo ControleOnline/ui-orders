@@ -14,6 +14,7 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import { useStore } from '@store';
 import { env } from '@env';
+import {app_type} from '@appType';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 
 import React from 'react';
