@@ -555,7 +555,7 @@ const recentOrderDetailRefreshStarts = new Map()
 const ORDER_DETAIL_REFRESH_COOLDOWN_MS = 1500
 
 const OrderDetails = ({ route, navigation }) => {
-  const appType = String(env.APP_TYPE || '').trim().toUpperCase()
+  const appType = String(app_type || '').trim().toUpperCase()
   const routeOrderId = useMemo(
     () => getOrderRouteId(route.params?.id || route.params?.order),
     [route.params?.id, route.params?.order],
@@ -977,7 +977,7 @@ const OrderDetails = ({ route, navigation }) => {
   const handleAddProduct = () => {
     if (!canMutateOrderProducts) return
     const shouldUseManagerPdv =
-      String(env.APP_TYPE || '').toUpperCase() === 'MANAGER' ||
+      String(app_type || '').toUpperCase() === 'MANAGER' ||
       route?.params?.interactionMode === 'pdv'
 
     navigation.navigate(
@@ -2324,7 +2324,7 @@ const OrderDetails = ({ route, navigation }) => {
       return resolvedApp
     }
 
-    return String(env.APP_TYPE || '').trim().toUpperCase()
+    return String(app_type || '').trim().toUpperCase()
   }, [item, orderParam])
   const compactOrderSummary = useMemo(
     () => ({

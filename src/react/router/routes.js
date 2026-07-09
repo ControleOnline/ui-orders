@@ -75,7 +75,7 @@ const AddProductHeader = ({navigation, order, route}) => {
   const showBackButton = !isCategoryRoot;
   const shouldShowPosBadge =
     String(route?.params?.interactionMode || '').toLowerCase() === 'pdv' ||
-    String(env.APP_TYPE || '').toUpperCase() === 'POS';
+    String(app_type || '').toUpperCase() === 'POS';
 
   const handleBack = () => {
     if (navigation?.canGoBack?.()) {
@@ -217,7 +217,7 @@ const ordersRoutes = [
       headerBackVisible: true,
       title: () => global.t?.t('configs', 'title', 'orderHistory'),
       showCompanyFilter: shouldShowOrderHistoryCompanyFilter({
-        appType: env.APP_TYPE,
+        appType: app_type,
         params: route?.params,
       }),
       companyFilterMode: 'icon',

@@ -122,7 +122,7 @@ const buildHistoryRequestParams = ({
     query.status = statusFilter;
   }
 
-  if (env.APP_TYPE === 'POS' && !canViewCompanyOrders && currentDeviceId) {
+  if (app_type === 'POS' && !canViewCompanyOrders && currentDeviceId) {
     query['device.device'] = currentDeviceId;
   }
 
@@ -171,7 +171,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     [deviceConfig?.configs],
   );
 
-  const showAdvancedFilters = env.APP_TYPE !== 'POS' || canViewCompanyOrders;
+  const showAdvancedFilters = app_type !== 'POS' || canViewCompanyOrders;
   const statusItems = useMemo(
     () => (Array.isArray(statusGetters.items) ? statusGetters.items : []),
     [statusGetters.items],
@@ -292,7 +292,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const shouldResumeCounterFlow = useMemo(
     () =>
       shouldResumeCounterOrderFlow({
-        appType: env.APP_TYPE,
+        appType: app_type,
         isCounterMode,
         resumeCounterFlow: route?.params?.resumeCounterFlow,
       }),
@@ -351,7 +351,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   ]);
 
   useEffect(() => {
-    if (isFocused && env.APP_TYPE === 'POS' && isCashRegisterClosed) {
+    if (isFocused && app_type === 'POS' && isCashRegisterClosed) {
       navigation.navigate('CloseCashRegister');
     }
   }, [isCashRegisterClosed, isFocused, navigation]);
@@ -576,7 +576,7 @@ export default function OrderHistoryPage({ navigation, route }) {
       return;
     }
 
-    if (env.APP_TYPE === 'POS' && isCashRegisterClosed) {
+    if (app_type === 'POS' && isCashRegisterClosed) {
       navigation.navigate('CloseCashRegister');
       return;
     }

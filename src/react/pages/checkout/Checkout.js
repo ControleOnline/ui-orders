@@ -256,11 +256,11 @@ const Checkout = () => {
     [device?.device?.type, device?.type],
   );
   const isManagerApp = useMemo(
-    () => String(env.APP_TYPE || '').trim().toUpperCase() === 'MANAGER',
+    () => String(app_type || '').trim().toUpperCase() === 'MANAGER',
     [],
   );
   const isPosApp = useMemo(
-    () => String(env.APP_TYPE || '').trim().toUpperCase() === 'POS',
+    () => String(app_type || '').trim().toUpperCase() === 'POS',
     [],
   );
   const isLocalPaymentDevice = useMemo(

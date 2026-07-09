@@ -123,7 +123,7 @@ const BottomCart = ({
       isUltraCompact,
     ],
   );
-  const isPosApp = String(env.APP_TYPE || '').trim().toUpperCase() === 'POS';
+  const isPosApp = String(app_type || '').trim().toUpperCase() === 'POS';
   const isPdvMode = isPosApp || isPdvRouteContext(route?.params);
   const pendingSelections = pendingSelectionsState;
   const hasPendingSelections = pendingSelections.length > 0;
