@@ -16,7 +16,6 @@ import {useMessage} from '@controleonline/ui-common/src/react/components/Message
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization';
 import Icon from 'react-native-vector-icons/Feather';
-import {env} from '@env';
 import {app_type} from '@appType';
 import createStyles from './BottomCart.styles';
 

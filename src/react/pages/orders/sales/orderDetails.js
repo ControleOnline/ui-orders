@@ -64,7 +64,6 @@ import {
   isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
 import { resolveMarketplaceAppLabel } from '@controleonline/ui-orders/src/react/utils/orderIdentity'
-import { env } from '@env'
 import {app_type} from '@appType'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
