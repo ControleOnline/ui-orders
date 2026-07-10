@@ -1,6 +1,8 @@
 import {StyleSheet} from 'react-native'
 
-const createStyles = isKds =>
+import {withOpacity} from '@controleonline/../../src/styles/branding'
+
+const createStyles = (palette, isKds) =>
   StyleSheet.create({
     container: {
       flexDirection: 'row',
@@ -32,9 +34,9 @@ const createStyles = isKds =>
       height: isKds ? 40 : 38,
       paddingHorizontal: 6,
       borderRadius: 12,
-      backgroundColor: '#F8FAFC',
+      backgroundColor: palette.chipBackground,
       borderWidth: 1,
-      borderColor: '#E2E8F0',
+      borderColor: palette.chipBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -45,16 +47,16 @@ const createStyles = isKds =>
       paddingHorizontal: 5,
     },
     leadingWrapPurchase: {
-      backgroundColor: '#FFFBEB',
-      borderColor: '#FCD34D',
+      backgroundColor: withOpacity(palette.warning, 0.12),
+      borderColor: withOpacity(palette.warning, 0.35),
     },
     leadingWrapTransfer: {
-      backgroundColor: '#F5F3FF',
-      borderColor: '#DDD6FE',
+      backgroundColor: withOpacity(palette.info, 0.12),
+      borderColor: withOpacity(palette.info, 0.35),
     },
     leadingWrapLoss: {
-      backgroundColor: '#FEF2F2',
-      borderColor: '#FECACA',
+      backgroundColor: withOpacity(palette.textDanger, 0.12),
+      borderColor: withOpacity(palette.textDanger, 0.35),
     },
     leadingLogo: {
       width: 22,
@@ -64,7 +66,7 @@ const createStyles = isKds =>
     leadingLabel: {
       fontSize: isKds ? 11 : 10,
       fontWeight: '800',
-      color: '#0F172A',
+      color: palette.cardText,
       textTransform: 'uppercase',
     },
     titleWrap: {
@@ -88,7 +90,7 @@ const createStyles = isKds =>
       marginTop: 0,
     },
     orderId: {
-      color: '#0F172A',
+      color: palette.cardText,
       fontSize: isKds ? 18 : 15,
       fontWeight: '800',
     },
@@ -97,7 +99,7 @@ const createStyles = isKds =>
     },
     orderIdSecondary: {
       marginTop: 1,
-      color: '#475569',
+      color: palette.textMuted,
       fontSize: 12,
       fontWeight: '700',
     },
@@ -105,7 +107,7 @@ const createStyles = isKds =>
       fontSize: 11,
     },
     orderDate: {
-      color: '#64748B',
+      color: palette.textMuted,
       fontSize: 12,
       flexShrink: 1,
     },
@@ -117,8 +119,8 @@ const createStyles = isKds =>
       alignItems: 'center',
       gap: 4,
       borderWidth: 1,
-      borderColor: '#CBD5E1',
-      backgroundColor: '#F8FAFC',
+      borderColor: palette.chipBorder,
+      backgroundColor: palette.chipBackground,
       borderRadius: 999,
       paddingHorizontal: 7,
       paddingVertical: 3,
@@ -127,7 +129,7 @@ const createStyles = isKds =>
       opacity: 0.45,
     },
     customerActionText: {
-      color: '#0F172A',
+      color: palette.chipText,
       fontSize: 10,
       fontWeight: '800',
     },
@@ -193,7 +195,7 @@ const createStyles = isKds =>
     priceText: {
       fontSize: 15,
       fontWeight: '800',
-      color: '#16A34A',
+      color: palette.success,
       marginTop: 8,
     },
     priceTextInline: {
@@ -202,13 +204,13 @@ const createStyles = isKds =>
       flexShrink: 1,
     },
     priceTextPurchase: {
-      color: '#D97706',
+      color: palette.warning,
     },
     priceTextTransfer: {
-      color: '#7C3AED',
+      color: palette.info,
     },
     priceTextLoss: {
-      color: '#DC2626',
+      color: palette.textDanger,
     },
     waitingChip: {
       marginTop: 8,
@@ -234,8 +236,8 @@ const createStyles = isKds =>
       alignItems: 'center',
       gap: 4,
       borderWidth: 1,
-      borderColor: '#CBD5E1',
-      backgroundColor: '#F8FAFC',
+      borderColor: palette.chipBorder,
+      backgroundColor: palette.chipBackground,
       borderRadius: 999,
       paddingHorizontal: 6,
       paddingVertical: 3,
@@ -246,7 +248,7 @@ const createStyles = isKds =>
       flexShrink: 1,
     },
     metaChipText: {
-      color: '#475569',
+      color: palette.chipText,
       fontSize: 10,
       fontWeight: '800',
       lineHeight: 12,

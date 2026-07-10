@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-const styles = StyleSheet.create({
+const createStyles = palette => StyleSheet.create({
   container: { flex: 1 },
   content: {
     flex: 1,
@@ -9,9 +9,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 18,
   },
-  filtersCard: { backgroundColor: '#fff', borderRadius: 14, padding: 10, marginBottom: 8 },
+  filtersCard: { backgroundColor: palette.cardBackground, borderRadius: 14, padding: 10, marginBottom: 8 },
   filtersHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },
-  filtersTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  filtersTitle: { fontSize: 15, fontWeight: '700', color: palette.textPrimary },
   filterSelectorsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -34,9 +34,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  centerState: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', gap: 10, marginBottom: 10 },
-  centerStateTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A', textAlign: 'center' },
-  centerStateText: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 },
+  centerState: { backgroundColor: palette.cardBackground, borderRadius: 20, padding: 24, alignItems: 'center', gap: 10, marginBottom: 10 },
+  centerStateTitle: { fontSize: 18, fontWeight: '700', color: palette.textPrimary, textAlign: 'center' },
+  centerStateText: { fontSize: 14, color: palette.textSecondary, textAlign: 'center', lineHeight: 20 },
 
   tableWrap: {
     flex: 1,
@@ -44,11 +44,13 @@ const styles = StyleSheet.create({
   },
 
   orderCard: {
-    backgroundColor: '#fff',
+    backgroundColor: palette.cardBackground,
+    borderWidth: palette.cardBorder ? 1 : 0,
+    borderColor: palette.cardBorder,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    shadowColor: '#0F172A',
+    shadowColor: palette.cardShadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -58,10 +60,10 @@ const styles = StyleSheet.create({
   cardMetaRow: {
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: palette.dividerBorder,
   },
-  channelText: { fontSize: 13, fontWeight: '600', color: '#475569', flex: 1 },
+  channelText: { fontSize: 13, fontWeight: '600', color: palette.textSecondary, flex: 1 },
 
 });
 
-export default styles;
+export default createStyles;

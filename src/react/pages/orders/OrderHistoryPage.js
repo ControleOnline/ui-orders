@@ -30,7 +30,7 @@ import { colors } from '@controleonline/../../src/styles/colors';
 import { resolveThemePalette } from '@controleonline/../../src/styles/branding';
 import { resolveHistoryOrderTypeQuery } from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
 import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
-import styles from './OrderHistoryPage.styles';
+import createStyles from './OrderHistoryPage.styles';
 
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
@@ -87,6 +87,16 @@ const getPeopleLabel = entity =>
     entity?.company ||
     entity?.document
   );
+
+const buildOrderHistoryPalette = themeColors => ({
+  cardBackground: themeColors.cardBackground,
+  cardBorder: themeColors.cardBorder,
+  cardShadow: themeColors.cardShadow,
+  dividerBorder: themeColors.dividerBorder,
+  pageBackground: themeColors.pageBackground,
+  textPrimary: themeColors.textPrimary,
+  textSecondary: themeColors.textSecondary,
+});
 
 const buildHistoryRequestParams = ({
   canViewCompanyOrders,
@@ -160,6 +170,11 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { currentCompany, defaultCompany } = peopleGetters;
   const { colors: themeColors } = themeStore.getters || {};
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
+  const orderHistoryPalette = useMemo(
+    () => buildOrderHistoryPalette(themeColors),
+    [themeColors],
+  );
+  const styles = useMemo(() => createStyles(orderHistoryPalette), [orderHistoryPalette]);
 
   const brandColors = useMemo(
     () => resolveThemePalette({ ...themeColors, ...(currentCompany?.theme?.colors || {}) }, colors),
@@ -648,7 +663,7 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: brandColors.background }]}
+      style={[styles.container, { backgroundColor: orderHistoryPalette.pageBackground }]}
       edges={['bottom']}
     >
       <View style={styles.content}>

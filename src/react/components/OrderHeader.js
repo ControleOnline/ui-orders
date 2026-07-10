@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {Animated, Image, Text, TouchableOpacity, View} from 'react-native'
 import FeatherIcon from 'react-native-vector-icons/Feather'
+import {useStore} from '@store'
 
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import {withOpacity} from '@controleonline/../../src/styles/branding'
@@ -9,13 +10,18 @@ import {getOrderChannelLabel, getOrderChannelLogo} from '@assets/ppc/channels'
 import OrderCardHeader from './OrderCardHeader'
 import createStyles from './OrderHeader.styles'
 
-const WAITING_RULES = [
-  {max: 5, color: '#10b981', blink: false},
-  {max: 10, color: '#FACC15', blink: false},
-  {max: Infinity, color: '#c10015', blink: true},
-]
-
 const normalizeText = value => String(value || '').trim()
+const buildOrderHeaderPalette = themeColors => ({
+  cardText: themeColors.cardText,
+  chipBackground: themeColors.chipBackground,
+  chipBorder: themeColors.chipBorder,
+  chipText: themeColors.chipText,
+  info: themeColors.info,
+  success: themeColors.success,
+  textDanger: themeColors.textDanger,
+  textMuted: themeColors.textMuted,
+  warning: themeColors.warning,
+})
 const resolveOrderType = order =>
   normalizeText(order?.orderType || order?.order_type).toLowerCase()
 const resolveOrderCustomerLabel = order =>
@@ -55,7 +61,53 @@ export const shouldShowKdsWaitingTime = order => {
   )
 }
 
-export const resolveDisplayedOrderStatus = (order, fallbackColor = '#6B7280') => {
+const resolveWaitingRules = palette => [
+  {max: 5, color: palette.success, blink: false},
+  {max: 10, color: palette.warning, blink: false},
+  {max: Infinity, color: palette.textDanger, blink: true},
+]
+
+const resolveOrderStatusToneColor = (palette, statusKey) => {
+  switch (normalizeText(statusKey).toLowerCase()) {
+    case 'pending':
+    case 'pendente':
+    case 'waiting':
+    case 'aguardando':
+      return palette.warning
+    case 'working':
+    case 'preparing':
+    case 'preparando':
+    case 'em preparo':
+    case 'processing':
+      return palette.info
+    case 'paid':
+    case 'pago':
+    case 'finished':
+    case 'finalizado':
+    case 'completed':
+    case 'concluido':
+    case 'done':
+    case 'delivered':
+    case 'entregue':
+      return palette.success
+    case 'cancelled':
+    case 'canceled':
+    case 'cancelado':
+    case 'error':
+    case 'failed':
+    case 'refused':
+    case 'refused_payment':
+      return palette.textDanger
+    case 'open':
+    case 'aberto':
+    case 'new':
+    case 'novo':
+    default:
+      return palette.textMuted
+  }
+}
+
+export const resolveDisplayedOrderStatus = (order, fallbackColor = '') => {
   const displayLabel =
     normalizeText(order?.status?.status) ||
     normalizeText(order?.status?.realStatus) ||
@@ -99,28 +151,28 @@ const formatCompactOrderDate = value => {
 const resolveOrderDateValue = order =>
   normalizeText(order?.alterDate || order?.alter_date || order?.orderDate || order?.order_date)
 
-const getWaitingConfig = minutes =>
-  WAITING_RULES.find(rule => minutes <= rule.max)
+const getWaitingConfig = (minutes, palette) =>
+  resolveWaitingRules(palette).find(rule => minutes <= rule.max)
 
-const resolveLeadingVisual = (order, orderType, styles) => {
+const resolveLeadingVisual = (order, orderType, palette, styles) => {
   if (orderType === 'purchase') {
     return {
       wrapStyle: styles.leadingWrapPurchase,
-      content: <FeatherIcon name="truck" size={16} color="#D97706" />,
+      content: <FeatherIcon name="truck" size={16} color={palette.warning} />,
     }
   }
 
   if (orderType === 'transfer') {
     return {
       wrapStyle: styles.leadingWrapTransfer,
-      content: <FeatherIcon name="repeat" size={16} color="#7C3AED" />,
+      content: <FeatherIcon name="repeat" size={16} color={palette.info} />,
     }
   }
 
   if (orderType === 'loss') {
     return {
       wrapStyle: styles.leadingWrapLoss,
-      content: <FeatherIcon name="trending-down" size={16} color="#DC2626" />,
+      content: <FeatherIcon name="trending-down" size={16} color={palette.textDanger} />,
     }
   }
 
@@ -160,9 +212,12 @@ const OrderHeader = ({
   customerActionDisabled = false,
   metaText = '',
 }) => {
+  const themeStore = useStore('theme')
+  const themeColors = themeStore?.getters?.colors || {}
+  const palette = useMemo(() => buildOrderHeaderPalette(themeColors), [themeColors])
   const displayedStatus = useMemo(() => resolveDisplayedOrderStatus(order), [order])
   const orderType = useMemo(() => resolveOrderType(order), [order?.orderType, order?.order_type])
-  const styles = useMemo(() => createStyles(isKds), [isKds])
+  const styles = useMemo(() => createStyles(palette, isKds), [isKds, palette])
   const orderDateValue = useMemo(
     () => resolveOrderDateValue(order),
     [order?.alterDate, order?.alter_date, order?.orderDate, order?.order_date],
@@ -203,7 +258,7 @@ const OrderHeader = ({
     return () => clearInterval(interval)
   }, [orderDateValue, showWaitingChip])
 
-  const waitingConfig = showWaitingChip ? getWaitingConfig(waitingMinutes) : null
+  const waitingConfig = showWaitingChip ? getWaitingConfig(waitingMinutes, palette) : null
 
   useEffect(() => {
     if (!showWaitingChip) {
@@ -232,10 +287,13 @@ const OrderHeader = ({
   }, [blinkAnim, showWaitingChip, waitingConfig?.blink])
 
   const leadingVisual = useMemo(
-    () => resolveLeadingVisual(order, orderType, styles),
-    [order, orderType, styles],
+    () => resolveLeadingVisual(order, orderType, palette, styles),
+    [order, orderType, palette, styles],
   )
-  const statusColor = displayedStatus.color
+  const statusColor = useMemo(
+    () => resolveOrderStatusToneColor(palette, displayedStatus.key),
+    [displayedStatus.key, palette],
+  )
   const displayPrice = Number(order?.price || 0)
   const showStatus = !['transfer', 'loss'].includes(orderType)
   const priceStyle = useMemo(() => resolvePriceStyle(orderType, styles), [orderType, styles])
@@ -278,7 +336,7 @@ const OrderHeader = ({
             <FeatherIcon
               name={orderCustomerLabel ? 'refresh-cw' : 'user-plus'}
               size={11}
-              color="#0F172A"
+              color={palette.chipText}
             />
             <Text style={styles.customerActionText}>{customerActionLabel}</Text>
           </TouchableOpacity>
@@ -328,7 +386,7 @@ const OrderHeader = ({
               shouldStackRightSectionBelow && styles.metaChipStacked,
             ]}
           >
-            <FeatherIcon name="calendar" size={10} color="#475569" />
+            <FeatherIcon name="calendar" size={10} color={palette.chipText} />
             <Text style={styles.metaChipText}>
               {formattedOrderDate}
             </Text>

@@ -4,6 +4,30 @@ const ReactDOMServer = require('react-dom/server')
 
 const {describe, expect, it} = global
 
+jest.mock('@store', () => ({
+  useStore: jest.fn(name => {
+    if (name === 'theme') {
+      return {
+        getters: {
+          colors: {
+            cardText: '#212529',
+            chipBackground: '#F8FAFC',
+            chipBorder: '#DCE3EC',
+            chipText: '#64748B',
+            info: '#31ccec',
+            success: '#10b981',
+            textDanger: '#FF4444',
+            textMuted: '#64748B',
+            warning: '#f2c037',
+          },
+        },
+      }
+    }
+
+    return {actions: {}, getters: {}}
+  }),
+}))
+
 jest.mock('react-native', () => {
   const React = require('react')
   const createComponent = name => props =>
@@ -170,8 +194,8 @@ describe('OrderHeader', () => {
       {id: 'statusBadge'},
       {id: 'statusBadgeStacked'},
       {
-        backgroundColor: '#10b981:0.08',
-        borderColor: '#10b981:0.4',
+        backgroundColor: '#31ccec:0.08',
+        borderColor: '#31ccec:0.4',
       },
     ])
   })

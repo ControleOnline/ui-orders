@@ -153,4 +153,29 @@ describe('OrderHistoryPage', () => {
     expect(markup).toContain('mode="display"');
     expect(markup).toContain('Carregando pedidos...');
   });
+
+  it('passes a custom card renderer to the order history table', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+      navigate: jest.fn(),
+    };
+
+    mockStores.people.getters.currentCompany = {
+      id: 1,
+      theme: {
+        colors: {},
+      },
+    };
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHistoryPage, {
+        navigation,
+        route: {
+          params: {},
+        },
+      }),
+    );
+
+    expect(typeof defaultTableProps?.renderCard).toBe('function');
+  });
 });
