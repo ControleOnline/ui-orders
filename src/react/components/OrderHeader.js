@@ -15,12 +15,17 @@ const buildOrderHeaderPalette = themeColors => ({
   cardText: themeColors.cardText,
   chipBackground: themeColors.chipBackground,
   chipBorder: themeColors.chipBorder,
+  chipSelectedBackground: themeColors.chipSelectedBackground,
+  chipSelectedBorder: themeColors.chipSelectedBorder,
+  chipSelectedText: themeColors.chipSelectedText,
   chipText: themeColors.chipText,
-  info: themeColors.info,
-  success: themeColors.success,
+  iconDanger: themeColors.iconDanger,
+  iconInfo: themeColors.iconInfo,
+  iconWarning: themeColors.iconWarning,
   textDanger: themeColors.textDanger,
   textMuted: themeColors.textMuted,
-  warning: themeColors.warning,
+  textSuccess: themeColors.textSuccess,
+  textWarning: themeColors.textWarning,
 })
 const resolveOrderType = order =>
   normalizeText(order?.orderType || order?.order_type).toLowerCase()
@@ -62,8 +67,8 @@ export const shouldShowKdsWaitingTime = order => {
 }
 
 const resolveWaitingRules = palette => [
-  {max: 5, color: palette.success, blink: false},
-  {max: 10, color: palette.warning, blink: false},
+  {max: 5, color: palette.textSuccess, blink: false},
+  {max: 10, color: palette.textWarning, blink: false},
   {max: Infinity, color: palette.textDanger, blink: true},
 ]
 
@@ -73,13 +78,13 @@ const resolveOrderStatusToneColor = (palette, statusKey) => {
     case 'pendente':
     case 'waiting':
     case 'aguardando':
-      return palette.warning
+      return palette.textWarning
     case 'working':
     case 'preparing':
     case 'preparando':
     case 'em preparo':
     case 'processing':
-      return palette.info
+      return palette.iconInfo
     case 'paid':
     case 'pago':
     case 'finished':
@@ -89,7 +94,7 @@ const resolveOrderStatusToneColor = (palette, statusKey) => {
     case 'done':
     case 'delivered':
     case 'entregue':
-      return palette.success
+      return palette.textSuccess
     case 'cancelled':
     case 'canceled':
     case 'cancelado':
@@ -156,23 +161,23 @@ const getWaitingConfig = (minutes, palette) =>
 
 const resolveLeadingVisual = (order, orderType, palette, styles) => {
   if (orderType === 'purchase') {
-    return {
-      wrapStyle: styles.leadingWrapPurchase,
-      content: <FeatherIcon name="truck" size={16} color={palette.warning} />,
+      return {
+        wrapStyle: styles.leadingWrapPurchase,
+      content: <FeatherIcon name="truck" size={16} color={palette.iconWarning} />,
     }
   }
 
   if (orderType === 'transfer') {
     return {
       wrapStyle: styles.leadingWrapTransfer,
-      content: <FeatherIcon name="repeat" size={16} color={palette.info} />,
+      content: <FeatherIcon name="repeat" size={16} color={palette.iconInfo} />,
     }
   }
 
   if (orderType === 'loss') {
     return {
       wrapStyle: styles.leadingWrapLoss,
-      content: <FeatherIcon name="trending-down" size={16} color={palette.textDanger} />,
+      content: <FeatherIcon name="trending-down" size={16} color={palette.iconDanger} />,
     }
   }
 

@@ -47,12 +47,12 @@ const createStyles = (palette, isKds) =>
       paddingHorizontal: 5,
     },
     leadingWrapPurchase: {
-      backgroundColor: withOpacity(palette.warning, 0.12),
-      borderColor: withOpacity(palette.warning, 0.35),
+      backgroundColor: withOpacity(palette.textWarning, 0.12),
+      borderColor: withOpacity(palette.textWarning, 0.35),
     },
     leadingWrapTransfer: {
-      backgroundColor: withOpacity(palette.info, 0.12),
-      borderColor: withOpacity(palette.info, 0.35),
+      backgroundColor: palette.chipSelectedBackground,
+      borderColor: palette.chipSelectedBorder,
     },
     leadingWrapLoss: {
       backgroundColor: withOpacity(palette.textDanger, 0.12),
@@ -195,7 +195,7 @@ const createStyles = (palette, isKds) =>
     priceText: {
       fontSize: 15,
       fontWeight: '800',
-      color: palette.success,
+      color: palette.textSuccess,
       marginTop: 8,
     },
     priceTextInline: {
@@ -204,10 +204,10 @@ const createStyles = (palette, isKds) =>
       flexShrink: 1,
     },
     priceTextPurchase: {
-      color: palette.warning,
+      color: palette.textWarning,
     },
     priceTextTransfer: {
-      color: palette.info,
+      color: palette.chipSelectedText,
     },
     priceTextLoss: {
       color: palette.textDanger,

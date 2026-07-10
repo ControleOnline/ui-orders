@@ -13,12 +13,17 @@ jest.mock('@store', () => ({
             cardText: '#212529',
             chipBackground: '#F8FAFC',
             chipBorder: '#DCE3EC',
+            chipSelectedBackground: '#E7F3FF',
+            chipSelectedBorder: '#2529A1',
+            chipSelectedText: '#2529A1',
             chipText: '#64748B',
-            info: '#31ccec',
-            success: '#10b981',
+            iconDanger: '#E74C3C',
+            iconInfo: '#2529A1',
+            iconWarning: '#F2C037',
             textDanger: '#FF4444',
             textMuted: '#64748B',
-            warning: '#f2c037',
+            textSuccess: '#10B981',
+            textWarning: '#F2C037',
           },
         },
       }
@@ -194,8 +199,8 @@ describe('OrderHeader', () => {
       {id: 'statusBadge'},
       {id: 'statusBadgeStacked'},
       {
-        backgroundColor: '#31ccec:0.08',
-        borderColor: '#31ccec:0.4',
+        backgroundColor: '#2529A1:0.08',
+        borderColor: '#2529A1:0.4',
       },
     ])
   })
