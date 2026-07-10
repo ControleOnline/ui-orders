@@ -5,6 +5,7 @@ const {jest} = require('@jest/globals');
 const {beforeEach, describe, expect, it} = global;
 
 let mockStores = {};
+let defaultTableProps = null;
 
 jest.mock('@store', () => ({
   useStore: jest.fn(name => mockStores[name] || {actions: {}, getters: {}}),
@@ -39,9 +40,10 @@ jest.mock('@controleonline/ui-layout/src/react/components/StateStore', () => pro
   React.createElement('state-store', {mode: props.mode || ''}, props.loading || props.children),
 );
 
-jest.mock('@controleonline/ui-default/src/react/components/table/DefaultTable', () => () =>
-  React.createElement('default-table'),
-);
+jest.mock('@controleonline/ui-default/src/react/components/table/DefaultTable', () => props => {
+  defaultTableProps = props;
+  return React.createElement('default-table');
+});
 
 jest.mock('@controleonline/ui-default/src/react/components/filters/CompactFilterSelector', () => () =>
   React.createElement('compact-filter-selector'),
@@ -68,6 +70,7 @@ const OrderHistoryPage =
 
 describe('OrderHistoryPage', () => {
   beforeEach(() => {
+    defaultTableProps = null;
     global.t = {
       t: jest.fn((store, type, key) => {
         if (store === 'orders' && type === 'label' && key === 'loading') {
