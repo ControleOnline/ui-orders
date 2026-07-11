@@ -1413,7 +1413,9 @@ const Checkout = () => {
 
   const handleSelectLoyaltyPerson = useCallback(person => {
     setSelectedLoyaltyPerson(person);
-    setLoyaltyCpfInput(person?.cpfDisplay || Formatter.maskCPF(person?.cpf || ''));
+    setLoyaltyCpfInput(currentValue =>
+      person?.cpfDisplay || Formatter.maskCPF(person?.cpf || '') || currentValue,
+    );
     setLoyaltyCpfResults([]);
     setLoyaltyCpfStepSkipped(false);
   }, []);

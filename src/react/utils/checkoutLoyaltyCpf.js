@@ -77,24 +77,51 @@ export const buildLoyaltyCpfSearchResults = (items, query) => {
       const peopleId = resolvePeopleId(people);
       const name = String(people?.name || '').trim();
       const alias = String(people?.alias || '').trim();
+      const hasDocumentPayload =
+        people && Object.prototype.hasOwnProperty.call(people, 'document');
 
       return {
         cpf,
         cpfDisplay: formatCpfDisplay(cpf),
+        hasDocumentPayload,
         id: peopleId,
         label: [name, alias].filter(Boolean).join(' ').trim() || `Pessoa ${peopleId || ''}`.trim(),
         raw: people,
       };
     })
-    .filter(item => item.id && item.cpf.includes(normalizedQuery))
+    .filter(item => {
+      if (!item.id) {
+        return false;
+      }
+
+      if (item.cpf) {
+        return item.cpf.includes(normalizedQuery);
+      }
+
+      return !item.hasDocumentPayload;
+    })
     .sort((left, right) => {
-      const leftStarts = left.cpf.startsWith(normalizedQuery) ? 0 : 1;
-      const rightStarts = right.cpf.startsWith(normalizedQuery) ? 0 : 1;
+      const leftStarts = left.cpf
+        ? left.cpf.startsWith(normalizedQuery)
+          ? 0
+          : 1
+        : 2;
+      const rightStarts = right.cpf
+        ? right.cpf.startsWith(normalizedQuery)
+          ? 0
+          : 1
+        : 2;
       if (leftStarts !== rightStarts) {
         return leftStarts - rightStarts;
       }
 
-      return left.cpf.localeCompare(right.cpf);
+      if (left.cpf !== right.cpf) {
+        return left.cpf.localeCompare(right.cpf);
+      }
+
+      return left.label.localeCompare(right.label, 'pt-BR', {
+        sensitivity: 'base',
+      });
     });
 };
 
@@ -120,6 +147,8 @@ export const buildLoyaltyCpfSearchParams = ({
   if (normalizedCompanyId) {
     params.company = `/people/${normalizedCompanyId}`;
     params.linkType = 'client';
+    params['link.company'] = `/people/${normalizedCompanyId}`;
+    params['link.linkType'] = 'client';
     params.context = LOYALTY_CPF_SEARCH_CONTEXT;
   }
 

@@ -47,6 +47,28 @@ describe('checkoutLoyaltyCpf helpers', () => {
     expect(results[0].cpfDisplay).toBe('529.982.247-25')
   })
 
+  it('keeps api results when the collection payload omits document data', () => {
+    const results = buildLoyaltyCpfSearchResults(
+      [
+        {
+          id: 8,
+          name: 'Maria',
+          alias: 'Silva',
+        },
+      ],
+      '52998',
+    )
+
+    expect(results).toHaveLength(1)
+    expect(results[0]).toEqual(
+      expect.objectContaining({
+        id: 8,
+        cpf: '',
+        cpfDisplay: '',
+      }),
+    )
+  })
+
   it('builds loyalty cpf search params against the parent company context', () => {
     expect(
       buildLoyaltyCpfSearchParams({
@@ -59,6 +81,8 @@ describe('checkoutLoyaltyCpf helpers', () => {
       search: '15157',
       company: '/people/3',
       linkType: 'client',
+      'link.company': '/people/3',
+      'link.linkType': 'client',
       context: 'loyalty-cpf',
     })
   })
