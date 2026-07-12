@@ -16,8 +16,12 @@ import {useMessage} from '@controleonline/ui-common/src/react/components/Message
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import {
   POS_CHECK_ORDER_TYPE_NONE,
-  resolvePosCheckOrderType,
+  resolvePosCheckOrderTypeForShop,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
+import {
+  normalizeBooleanConfig,
+  SHOP_LOYALTY_COUPONS_ENABLED_CONFIG_KEY,
+} from '@controleonline/ui-common/src/react/utils/shopConfig'
 import {colors} from '@controleonline/../../src/styles/colors'
 import {
   resolveThemePalette,
@@ -238,11 +242,39 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     () => normalizeEntityId(route?.params?.rootOrderId),
     [route?.params?.rootOrderId],
   )
+  const loyaltyCouponsEnabled = useMemo(
+    () => {
+      const hasLoyaltyCouponsEnabledKey = Object.prototype.hasOwnProperty.call(
+        currentCompany?.configs || {},
+        SHOP_LOYALTY_COUPONS_ENABLED_CONFIG_KEY,
+      );
+
+      return hasLoyaltyCouponsEnabledKey
+        ? normalizeBooleanConfig(
+            currentCompany?.configs?.[SHOP_LOYALTY_COUPONS_ENABLED_CONFIG_KEY],
+          )
+        : true;
+    },
+    [currentCompany?.configs],
+  )
   const linkedOrderType = useMemo(
     () =>
-      normalizeLinkedOrderType(route?.params?.orderType) ||
-      resolvePosCheckOrderType(runtimeDeviceConfig?.configs),
-    [route?.params?.orderType, runtimeDeviceConfig?.configs],
+      (() => {
+        const routeOrderType = normalizeLinkedOrderType(route?.params?.orderType)
+
+        if (routeOrderType === 'stamp' && !loyaltyCouponsEnabled) {
+          return POS_CHECK_ORDER_TYPE_NONE
+        }
+
+        return (
+          routeOrderType ||
+          resolvePosCheckOrderTypeForShop(
+            runtimeDeviceConfig?.configs,
+            currentCompany?.configs,
+          )
+        )
+      })(),
+    [currentCompany?.configs, loyaltyCouponsEnabled, route?.params?.orderType, runtimeDeviceConfig?.configs],
   )
   const orderLabel = resolveLinkedOrderLabel(linkedOrderType)
   const preferredInputType = useMemo(

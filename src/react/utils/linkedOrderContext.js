@@ -1,4 +1,4 @@
-const LINKED_ORDER_TYPE_VALUES = ['tab', 'table']
+const LINKED_ORDER_TYPE_VALUES = ['tab', 'table', 'stamp']
 
 const normalizeText = value => String(value ?? '').trim()
 
@@ -33,6 +33,7 @@ const parseJsonObject = value => {
 
 export const LINKED_ORDER_TYPE_TAB = 'tab'
 export const LINKED_ORDER_TYPE_TABLE = 'table'
+export const LINKED_ORDER_TYPE_STAMP = 'stamp'
 
 export const normalizeEntityId = value => {
   if (value === null || value === undefined) return null
@@ -71,6 +72,10 @@ export const normalizeLinkedOrderType = value => {
     return LINKED_ORDER_TYPE_TABLE
   }
 
+  if (['stamp', 'carimbo'].includes(normalizedValue)) {
+    return LINKED_ORDER_TYPE_STAMP
+  }
+
   return ''
 }
 
@@ -82,6 +87,10 @@ export const resolveLinkedOrderLabel = value => {
 
   if (normalizedType === LINKED_ORDER_TYPE_TABLE) {
     return global.t?.t('orders', 'title', 'table') || 'Table'
+  }
+
+  if (normalizedType === LINKED_ORDER_TYPE_STAMP) {
+    return global.t?.t('orders', 'title', 'stamp') || 'Stamp'
   }
 
   if (normalizedType === LINKED_ORDER_TYPE_TAB) {

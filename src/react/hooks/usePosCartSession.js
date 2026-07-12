@@ -5,7 +5,7 @@ import {useMessage} from '@controleonline/ui-common/src/react/components/Message
 import {
   canManagePosCheckOrders,
   POS_CHECK_ORDER_TYPE_NONE,
-  resolvePosCheckOrderType,
+  resolvePosCheckOrderTypeForShop,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {useStore} from '@store'
 import {resolveCounterDestinationFromOrders} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow'
@@ -15,6 +15,7 @@ import {
   isLinkedChildOrder,
   isLinkedParentOrder,
   matchesLinkedOrderExternalCode,
+  resolveLinkedOrderLabel,
 } from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
@@ -121,6 +122,7 @@ export default function usePosCartSession({
   defaultStatusId = null,
   allowLinkedOrderManagement = null,
   requestLinkedOrderInput = null,
+  companyConfigs = null,
 } = {}) {
   const ordersStore = useStore('orders')
   const cartStore = useStore('cart')
@@ -132,8 +134,12 @@ export default function usePosCartSession({
   const {showPrompt} = useMessage() || {}
   const [activeOrderState, setActiveOrderState] = useState(null)
   const linkedOrderType = useMemo(
-    () => resolvePosCheckOrderType(runtimeDeviceConfig?.configs),
-    [runtimeDeviceConfig?.configs],
+    () =>
+      resolvePosCheckOrderTypeForShop(
+        runtimeDeviceConfig?.configs,
+        companyConfigs,
+      ),
+    [companyConfigs, runtimeDeviceConfig?.configs],
   )
   const usesLinkedCheckOrders = linkedOrderType !== POS_CHECK_ORDER_TYPE_NONE
   const canManageLinkedOrders = useMemo(
@@ -273,17 +279,14 @@ export default function usePosCartSession({
     const buildMissingLinkedOrderCodeError = () => {
       const missingLinkedOrderCodeError = new Error(
         global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
-          'A tab or table code is required to continue.',
+          'A tab, table or stamp code is required to continue.',
       )
       missingLinkedOrderCodeError.code = LINKED_ORDER_CODE_REQUIRED_ERROR
       return missingLinkedOrderCodeError
     }
 
     const buildLinkedOrderManagementError = () => {
-      const orderLabel =
-        linkedOrderType === 'table'
-          ? global.t?.t('orders', 'title', 'table') || 'Table'
-          : global.t?.t('orders', 'title', 'tab') || 'Tab'
+      const orderLabel = resolveLinkedOrderLabel(linkedOrderType)
 
       return new Error(
         global.t?.t(
@@ -354,9 +357,7 @@ export default function usePosCartSession({
     }
 
     const orderLabel =
-      linkedOrderType === 'table'
-        ? global.t?.t('orders', 'title', 'table') || 'Table'
-        : global.t?.t('orders', 'title', 'tab') || 'Tab'
+      resolveLinkedOrderLabel(linkedOrderType)
     const readMethodLabel =
       checkInputType === 'barcode'
         ? global.t?.t('orders', 'label', 'barcode') || 'barcode'
@@ -711,7 +712,7 @@ export default function usePosCartSession({
         if (!externalCode) {
           const missingLinkedOrderCodeError = new Error(
             global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
-              'A tab or table code is required to continue.',
+              'A tab, table or stamp code is required to continue.',
           )
           missingLinkedOrderCodeError.code = LINKED_ORDER_CODE_REQUIRED_ERROR
           throw missingLinkedOrderCodeError
@@ -734,9 +735,7 @@ export default function usePosCartSession({
 
         if (!settlementOrder) {
           const orderLabel =
-            linkedOrderType === 'table'
-              ? global.t?.t('orders', 'title', 'table') || 'Table'
-              : global.t?.t('orders', 'title', 'tab') || 'Tab'
+            resolveLinkedOrderLabel(linkedOrderType)
 
           throw new Error(
             global.t?.t(

@@ -317,6 +317,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+    companyConfigs: currentCompany?.configs,
   });
 
   useEffect(() => {

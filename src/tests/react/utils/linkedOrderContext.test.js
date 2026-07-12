@@ -1,6 +1,8 @@
 const {
   buildLinkedOrderMetadata,
   getLinkedOrderContext,
+  normalizeLinkedOrderType,
+  resolveLinkedOrderLabel,
 } = require('../../../react/utils/linkedOrderContext')
 
 const {describe, expect, it} = global
@@ -59,5 +61,24 @@ describe('linkedOrderContext', () => {
         order_type: 'table',
       },
     })
+  })
+
+  it('accepts stamp linked order types in normalization, labels and metadata', () => {
+    expect(normalizeLinkedOrderType('carimbo')).toBe('stamp')
+    expect(resolveLinkedOrderLabel('stamp')).toBe('Stamp')
+    expect(
+      buildLinkedOrderMetadata({
+        orderType: 'stamp',
+      }),
+    ).toEqual({
+      linked_order: {
+        order_type: 'stamp',
+      },
+    })
+    expect(
+      getLinkedOrderContext({
+        orderType: 'stamp',
+      }).isLinkedParent,
+    ).toBe(true)
   })
 })

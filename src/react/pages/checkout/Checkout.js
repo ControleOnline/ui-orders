@@ -301,6 +301,7 @@ const Checkout = () => {
       companyId: currentCompany?.id,
       deviceId: storagedDevice?.id,
       defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+      companyConfigs: currentCompany?.configs,
     });
   const canUseLocalOperationalPayment = useMemo(
     () =>

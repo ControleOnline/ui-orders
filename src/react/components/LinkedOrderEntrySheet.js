@@ -33,6 +33,10 @@ const resolveOrderLabel = orderType => {
     return global.t?.t('orders', 'title', 'table') || 'Table'
   }
 
+  if (String(orderType || '').trim().toLowerCase() === 'stamp') {
+    return global.t?.t('orders', 'title', 'stamp') || 'Stamp'
+  }
+
   return global.t?.t('orders', 'title', 'tab') || 'Tab'
 }
 

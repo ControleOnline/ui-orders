@@ -70,6 +70,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     deviceId: storagedDevice?.id,
     defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
     requestLinkedOrderInput,
+    companyConfigs: currentCompany?.configs,
   });
   const activeOrderId = activeOrder?.id || activeOrder?.['@id'] || null;
   const resumeOrderId = String(route?.params?.id || '').replace(/\D+/g, '');
