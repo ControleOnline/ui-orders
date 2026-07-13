@@ -21,6 +21,6 @@
 - Em `OrderLogisticsPage`, a entrega deve exibir o pedido corrente materializado (`displayId`, `addressOrigin`, `addressDestination`, `price`, `status`, `deliveryPeople`), nunca o `mainOrder` como fonte do dado visivel.
 - CEP e complemento devem aparecer na linha de endereco visivel sempre que existirem no pedido corrente.
 - No estado `aguardando aceite`, a area de cliente/endereco vira somente leitura, a barra inferior some e o aceite/recusa fica em card flutuante.
-- A action `getFidelitySnapshot` do store `orders` e o contrato canonico da tela de fidelidade do Shop. Nao sintetizar carimbos localmente nem reconstruir cartões a partir da coleção de pedidos; a tela deve renderizar o snapshot de `/orders/fidelityById/{id}`.
+- A action `getFidelitySnapshot` do store `orders` e o contrato canonico da tela de fidelidade do Shop. Nao sintetizar carimbos localmente nem reconstruir cartoes a partir da colecao de pedidos; a tela deve renderizar o snapshot de `/orders/fidelityById/{id}`.
 - No browser/web, `Cielo` nunca deve acionar plugin nativo local; a cobranca precisa seguir pelo fluxo remoto via websocket para uma maquina Cielo configurada, e so em device Cielo nativo a cobranca pode ser local.
 - Mudancas nesse fluxo devem vir acompanhadas de cobertura em browser em `src/tests/browser`, validando a troca de produto, o retorno do `Checkout` para `AddProductScreen` e a saida para a lista de pedidos apos o pagamento.
