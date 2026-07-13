@@ -1,26 +1,5 @@
 ## UI Orders
-- `OrderDetails` deve manter o atalho de anexos sempre visivel na barra do pedido e abrir o mini gerenciador de arquivos quando houver `orderId`.
-- `OrderDetailsPage` e `OrderHistoryPage` usam `StateStore` com modos genericos de tela, como `display`, para loading de pedido/historico e `DefaultErrors` como popup de erro inline, lendo o `error` do store correspondente.
-- `OrderHistoryPage` nao deve chamar `api.fetch` direto; o resumo de canais precisa vir da action do store `orders`.
-- O gerenciador de anexos deve reaproveitar o padrao do upload de produtos, mas operar apenas com `order_file` e `files`.
-- Nao tocar em `products`, `components` ou `product_group` para resolver anexos de pedido.
-- Loadings e falhas do fluxo de anexos devem seguir `StateStore` e `MessageService`, sem banners paralelos.
-- A tela de compras e evidencias da engenharia deve ficar em `ui-orders`, carregar pedidos com `orderType=purchase`, usar `OrderHeader` no resumo e abrir o mini gerenciador de anexos para evidencias.
-- Essa tela deve paginar com carregamento infinito e buscar os detalhes e anexos via `orders`, `order_file` e `files`, sem usar o seed JSON da engenharia.
-- O modo `single-item` do PDV tambem pertence a este modulo: o carrinho deve manter apenas um produto raiz por pedido, a troca precisa usar `PUT /orders/{id}/replace-products`, o `OrderDetails` nao deve permanecer no fluxo, o back do pagamento precisa cair em `AddProductScreen` e a conclusao da venda volta para `OrderHistoryPage`.
-- No POS, um pedido de venda pago sem entrega nem fila de producao deve fechar direto em `closed`; se ainda houver entrega ou fila de producao, o estado operacional seguinte deve ser `preparando`.
-- `paid` representa a cobranca concluida, nao o estado terminal do pedido quando ainda existe preparo a executar.
-- A liberacao de itens para `order_product_queues` deve seguir o mesmo contrato: apenas pedidos ja `paid` ou entregas com `order-charge-on-delivery-enabled` ativo podem enfileirar producao.
-- `cart` e o rascunho canonico de venda; `quote` e um rascunho de compra separado e nao deve ser tratado como o carrinho de venda.
-- O carrinho do POS nasce como `cart`; a criacao real do pedido e o `order.created` so acontecem quando o fluxo vira `sale`.
-- Em `OrderDetails`, adicionar produto, mudar quantidade e remover item so podem acontecer enquanto o pedido ainda for `cart`; depois da promocao para `sale` ou em qualquer estado terminal, a area de itens fica somente leitura.
-- Em `OrderDetails`, quando um `cart` de POS vier com contexto de mesa/comanda, o CTA principal deve ser `Produzir`; essa acao chama `/orders/{id}/confirm` para promover `cart -> sale` e deixar o pedido em `preparing`.
-- `OrderDetailsPage` e um router: recebe apenas `id`, busca o pedido no store e escolhe a apresentacao pelo `orderType` materializado. `delivery` abre `OrderLogisticsPage` no modo de detalhe da delivery; `sale` e `cart` abrem o detalhe de venda. Nao duplicar essa decisao na listagem nem depender de `orderType` em params de rota. Quando existir `order` em params, ele e apenas defesa contra caller legado e nao substitui o `id` na navegacao principal.
-- Quando `OrderDetailsPage`, `OrderLogisticsPage` ou o detalhe de venda recarregarem o pedido corrente, a chamada ao store deve usar `__storeMeta.preserveItem = true` para manter o item montado enquanto a resposta chega e evitar loops de foco/loading.
-- `OrderLogisticsPage` e compartilhada entre o overview do manager e o detalhe da delivery. O overview do manager mostra somente origem e destino e monta o bloco de lista abaixo do mapa; o detalhe da delivery pode acrescentar a posicao atual e a rota estimada do motoboy, sem montar esse bloco. A tela principal decide apenas por inclusao dos componentes `OrderLogisticsQuotesList` e `DeliveryAcceptanceCard`. No delivery, a fase pos-aceite e `aceito`, nao `preparando`; a corrida fica travada no card de progresso com `Marcar como entregue` ate a fila acabar.
-- Em `OrderLogisticsPage`, a entrega deve exibir o pedido corrente materializado (`displayId`, `addressOrigin`, `addressDestination`, `price`, `status`, `deliveryPeople`), nunca o `mainOrder` como fonte do dado visivel.
-- CEP e complemento devem aparecer na linha de endereco visivel sempre que existirem no pedido corrente.
-- No estado `aguardando aceite`, a area de cliente/endereco vira somente leitura, a barra inferior some e o aceite/recusa fica em card flutuante.
-- A action `getFidelitySnapshot` do store `orders` e o contrato canonico da tela de fidelidade do Shop. Nao sintetizar carimbos localmente nem reconstruir cartoes a partir da colecao de pedidos; a tela deve renderizar o snapshot de `/orders/fidelityById/{id}`.
-- No browser/web, `Cielo` nunca deve acionar plugin nativo local; a cobranca precisa seguir pelo fluxo remoto via websocket para uma maquina Cielo configurada, e so em device Cielo nativo a cobranca pode ser local.
-- Mudancas nesse fluxo devem vir acompanhadas de cobertura em browser em `src/tests/browser`, validando a troca de produto, o retorno do `Checkout` para `AddProductScreen` e a saida para a lista de pedidos apos o pagamento.
+- Keep this module focused on store-driven screens, small components, and thin route orchestration.
+- Keep CSS in separate files, prefer reusable shared components, and avoid mixing concerns between screens and data loading.
+- Use English code comments for business-specific decisions close to the implementation; keep AGENTS for reusable UI patterns and operating modes.
+- Keep module tests under `src/tests`, and add browser coverage under `src/tests/browser` when the visible flow changes.
