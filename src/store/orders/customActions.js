@@ -122,6 +122,24 @@ export const getHistorySummaryApps = ({getters}, {query = {}} = {}) =>
       return Array.isArray(apps) ? apps : [];
     });
 
+export const getFidelitySnapshot = ({getters}, params = {}) => {
+  const clientId = normalizeEntityId(params?.clientId || params?.id);
+  const history = Boolean(params?.history);
+
+  if (!clientId) {
+    return Promise.reject(new Error('Client not informed'));
+  }
+
+  return api.fetch(
+    `${getters.resourceEndpoint}/fidelityById/${clientId}`,
+    {
+      params: {
+        history: history ? 1 : 0,
+      },
+    },
+  );
+};
+
 export const syncOrder = ({commit, getters}, order) =>
   commitSyncedOrder({commit, getters}, order, {prependIfMissing: true});
 
