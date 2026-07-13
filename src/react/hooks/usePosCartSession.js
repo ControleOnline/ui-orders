@@ -20,7 +20,7 @@ import {
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
 const DRAFT_SALE_ORDER_TYPE = 'cart'
-const LINKED_CHILD_ORDER_TYPE = 'sale'
+const LINKED_SALE_ORDER_TYPE = 'sale'
 const LINKED_ORDER_CODE_REQUIRED_ERROR = 'LINKED_ORDER_CODE_REQUIRED'
 const RECENT_LINKED_ORDER_INPUT_TTL_MS = 20 * 1000
 
@@ -62,7 +62,7 @@ export const isOpenPosCartOrder = (
               !!linkedOrderContext.mainOrderId ||
               !!linkedOrderContext.externalCode
             ) &&
-            [DRAFT_SALE_ORDER_TYPE, LINKED_CHILD_ORDER_TYPE].includes(
+            [DRAFT_SALE_ORDER_TYPE, LINKED_SALE_ORDER_TYPE].includes(
               normalizeStatusKey(order?.orderType),
             )
           )
@@ -496,32 +496,12 @@ export default function usePosCartSession({
       return order
     }
 
-    const linkedOrderContext = getLinkedOrderContext(order)
     if (usesLinkedCheckOrders && isLinkedChildOrder(order)) {
-      if (normalizeStatusKey(order?.orderType) === LINKED_CHILD_ORDER_TYPE) {
-        return order
-      }
-
-      try {
-        return await ordersActions.save(
-          buildOrderPayload(
-            statusIri,
-            getOrderPeopleValue(order)?.['@id'] || null,
-            orderId,
-            LINKED_CHILD_ORDER_TYPE,
-            {
-              mainOrderId: linkedOrderContext.mainOrderId,
-              externalCode: linkedOrderContext.externalCode,
-              otherInformations: buildLinkedOrderMetadata({
-                inputType: linkedOrderContext.inputType || checkInputType,
-                orderType: linkedOrderContext.orderType || linkedOrderType,
-              }),
-            },
-          ),
-        )
-      } catch {
-        return order
-      }
+      /*
+       * @agents A linked POS child remains a cart while the waiter is adding items.
+       * Promotion to sale belongs to the explicit confirmation/production action.
+       */
+      return order
     }
 
     if (normalizeStatusKey(order?.orderType) === DRAFT_SALE_ORDER_TYPE) {
@@ -542,8 +522,6 @@ export default function usePosCartSession({
     }
   }, [
     buildOrderPayload,
-    checkInputType,
-    linkedOrderType,
     ordersActions,
     usesLinkedCheckOrders,
   ])
@@ -769,7 +747,7 @@ export default function usePosCartSession({
             orderOpenStatusIri,
             peopleIri,
             null,
-            LINKED_CHILD_ORDER_TYPE,
+            DRAFT_SALE_ORDER_TYPE,
             {
               externalCode,
               otherInformations: buildLinkedOrderMetadata({
@@ -862,8 +840,10 @@ export default function usePosCartSession({
 
     const currentLinkedOrderContext = getLinkedOrderContext(currentOrder)
     const nextOrderType =
-      usesLinkedCheckOrders && isLinkedChildOrder(currentOrder)
-        ? LINKED_CHILD_ORDER_TYPE
+      usesLinkedCheckOrders &&
+      isLinkedChildOrder(currentOrder) &&
+      normalizeStatusKey(currentOrder?.orderType) === LINKED_SALE_ORDER_TYPE
+        ? LINKED_SALE_ORDER_TYPE
         : DRAFT_SALE_ORDER_TYPE
     const updatedOrder = await ordersActions.save(
       buildOrderPayload(
