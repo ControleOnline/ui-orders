@@ -82,6 +82,7 @@ import {
 import {
   buildRemotePaymentRequestKey,
   isRemotePaymentResultMessage,
+  normalizeRemotePaymentResultStatus,
   normalizeRemotePaymentRequestKey,
   REMOTE_PAYMENT_MESSAGE_STORE,
   REMOTE_PAYMENT_REQUEST_ACTION,
@@ -736,7 +737,9 @@ const Checkout = () => {
 
     const handleRemotePaymentResult = async () => {
       try {
-        if (String(invoiceMessage?.status || '').trim().toLowerCase() === 'success') {
+        const resultStatus = normalizeRemotePaymentResultStatus(invoiceMessage);
+
+        if (resultStatus === 'success') {
           const paidAmount = Number(
             invoiceMessage?.paidAmount ??
             invoiceMessage?.invoice?.price ??
@@ -774,6 +777,11 @@ const Checkout = () => {
             'OrderDetails',
             buildOrderDetailsNavigationParams(navigationOrder),
           );
+          return;
+        }
+
+        if (resultStatus === 'canceled') {
+          invoiceActions.setError('');
           return;
         }
 
