@@ -4,7 +4,8 @@ import {api} from '@controleonline/ui-common/src/api'
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   canManagePosCheckOrders,
-  POS_CHECK_ORDER_TYPE_NONE,
+  POS_CHECK_ORDER_TYPE_TAB,
+  POS_CHECK_ORDER_TYPE_TABLE,
   resolvePosCheckOrderTypeForShop,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {useStore} from '@store'
@@ -141,7 +142,13 @@ export default function usePosCartSession({
       ),
     [companyConfigs, runtimeDeviceConfig?.configs],
   )
-  const usesLinkedCheckOrders = linkedOrderType !== POS_CHECK_ORDER_TYPE_NONE
+  /*
+   * @agents Stamp configures loyalty behavior at checkout. Only tabs and
+   * tables require a linked parent order and an identification code.
+   */
+  const usesLinkedCheckOrders =
+    linkedOrderType === POS_CHECK_ORDER_TYPE_TAB ||
+    linkedOrderType === POS_CHECK_ORDER_TYPE_TABLE
   const canManageLinkedOrders = useMemo(
     () =>
       typeof allowLinkedOrderManagement === 'boolean'
