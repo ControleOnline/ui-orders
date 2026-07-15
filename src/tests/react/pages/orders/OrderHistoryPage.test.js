@@ -6,6 +6,7 @@ const {beforeEach, describe, expect, it} = global;
 
 let mockStores = {};
 let defaultTableProps = null;
+let compactFilterSelectorProps = [];
 
 jest.mock('@store', () => ({
   useStore: jest.fn(name => mockStores[name] || {actions: {}, getters: {}}),
@@ -45,9 +46,10 @@ jest.mock('@controleonline/ui-default/src/react/components/table/DefaultTable', 
   return React.createElement('default-table');
 });
 
-jest.mock('@controleonline/ui-default/src/react/components/filters/CompactFilterSelector', () => () =>
-  React.createElement('compact-filter-selector'),
-);
+jest.mock('@controleonline/ui-default/src/react/components/filters/CompactFilterSelector', () => props => {
+  compactFilterSelectorProps.push(props);
+  return React.createElement('compact-filter-selector');
+});
 
 jest.mock('@controleonline/ui-default/src/react/components/filters/DateShortcutFilter', () => () =>
   React.createElement('date-shortcut-filter'),
@@ -76,6 +78,7 @@ const OrderHistoryPage =
 describe('OrderHistoryPage', () => {
   beforeEach(() => {
     defaultTableProps = null;
+    compactFilterSelectorProps = [];
     global.t = {
       t: jest.fn((store, type, key) => {
         if (store === 'orders' && type === 'label' && key === 'loading') {
@@ -196,6 +199,18 @@ describe('OrderHistoryPage', () => {
         colors: {},
       },
     };
+    mockStores.orders.getters.summary = {
+      report: {
+        apps: [
+          {
+            key: 'iFood',
+            label: 'iFood',
+            orders: 3,
+            units: 4,
+          },
+        ],
+      },
+    };
 
     ReactDOMServer.renderToStaticMarkup(
       React.createElement(OrderHistoryPage, {
@@ -212,6 +227,20 @@ describe('OrderHistoryPage', () => {
       provider: '/people/1',
       report: 1,
     });
+    const channelFilterProps = compactFilterSelectorProps.find(
+      props => props?.labelCaption === 'Canal' || props?.title === 'channel',
+    );
+
+    expect(channelFilterProps?.options).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'iFood',
+          label: 'iFood',
+          orders: 3,
+          units: 4,
+        }),
+      ]),
+    );
     expect(defaultTableProps?.requestParams?.orderType).toEqual([
       'sale',
       'cart',

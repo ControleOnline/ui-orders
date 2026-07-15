@@ -223,8 +223,19 @@ export default function OrderHistoryPage({ navigation, route }) {
     [defaultHistoryTitle, route?.params?.historyTitle],
   );
 
+  const dynamicChannelOptions = useMemo(
+    () => {
+      const summaryApps = ordersGetters.summary?.report?.apps;
+      return Array.isArray(summaryApps) ? summaryApps : [];
+    },
+    [ordersGetters.summary],
+  );
+
   const channelOptions = useMemo(
-    () => [allChannelOption, ...(Array.isArray(dynamicChannelOptions) ? dynamicChannelOptions : [])],
+    () => [
+      allChannelOption,
+      ...(Array.isArray(dynamicChannelOptions) ? dynamicChannelOptions : []),
+    ],
     [allChannelOption, dynamicChannelOptions],
   );
 
@@ -374,11 +385,6 @@ export default function OrderHistoryPage({ navigation, route }) {
       navigation.navigate('CloseCashRegister');
     }
   }, [isCashRegisterClosed, isFocused, navigation]);
-
-  const dynamicChannelOptions = useMemo(() => {
-    const summaryApps = ordersGetters.summary?.report?.apps;
-    return Array.isArray(summaryApps) ? summaryApps : [];
-  }, [ordersGetters.summary]);
 
   const searchPlaceholder = useMemo(() => {
     if (orderTypeFilter === 'purchase') {
