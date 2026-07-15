@@ -37,7 +37,7 @@ jest.mock('react-native-safe-area-context', () => ({
   },
 }));
 
-jest.mock('@controleonline/ui-layout/src/react/components/StateStore', () => props =>
+jest.mock('@controleonline/ui-common/src/react/components/StateStore', () => props =>
   React.createElement('state-store', {mode: props.mode || ''}, props.loading || props.children),
 );
 

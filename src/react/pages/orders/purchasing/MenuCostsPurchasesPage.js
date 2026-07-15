@@ -16,7 +16,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import {useStore} from '@store';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import OrderAttachmentManager from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderAttachmentManager';

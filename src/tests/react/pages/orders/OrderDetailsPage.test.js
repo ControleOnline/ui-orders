@@ -45,7 +45,7 @@ jest.mock('@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage
   React.createElement('delivery-order-details', null),
 )
 
-jest.mock('@controleonline/ui-layout/src/react/components/StateStore', () => props =>
+jest.mock('@controleonline/ui-common/src/react/components/StateStore', () => props =>
   React.createElement('state-store', {mode: props.mode || ''}, props.loading || props.children),
 )
 

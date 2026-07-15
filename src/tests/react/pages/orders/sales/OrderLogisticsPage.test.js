@@ -145,7 +145,7 @@ jest.mock('@controleonline/ui-common/src/api', () => ({
   },
 }))
 
-jest.mock('@controleonline/ui-layout/src/react/components/StateStore', () => props =>
+jest.mock('@controleonline/ui-common/src/react/components/StateStore', () => props =>
   React.createElement('state-store', null, props.children),
 )
 

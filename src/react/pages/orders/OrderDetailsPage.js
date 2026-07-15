@@ -4,7 +4,7 @@ import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/O
 import SaleOrderDetails from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetails'
 import OrderLogisticsPage from '@controleonline/ui-logistic/src/react/pages/orders/OrderLogisticsPage'
 import DefaultErrors from '@controleonline/ui-default/src/react/components/errors/DefaultErrors'
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
+import StateStore from '@controleonline/ui-common/src/react/components/StateStore'
 import resolveSystemErrorMessage from '@controleonline/ui-common/src/react/utils/systemErrorMessage'
 import {
   getOrderRouteId,

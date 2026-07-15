@@ -29,7 +29,7 @@ import {
   isPosSingleItemMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 import Calculate from '@controleonline/ui-orders/src/react/components/cart/Calculate';

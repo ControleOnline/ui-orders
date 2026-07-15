@@ -9,7 +9,7 @@ import {
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore';
+import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import {api} from '@controleonline/ui-common/src/api';
 import {useStore} from '@store';
 import Icon from 'react-native-vector-icons/MaterialIcons';

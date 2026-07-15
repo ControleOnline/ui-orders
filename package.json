@@ -8,13 +8,23 @@
   "scripts": {},
   "repository": {
     "type": "git",
-
     "url": "https://github.com/controleonline/conline-quasar-ui"
-
   },
   "bugs": "",
   "homepage": "https://www.controleonline.com/devs/plugins",
   "browserslist": [
     "last 1 version, not dead, ie >= 11"
-  ]
+  ],
+  "dependencies": {
+    "@controleonline/ui-common": "*",
+    "@controleonline/ui-crm": "*",
+    "@controleonline/ui-default": "*",
+    "@controleonline/ui-layout": "*",
+    "@controleonline/ui-logistic": "*",
+    "@controleonline/ui-manager": "*",
+    "@controleonline/ui-people": "*",
+    "@controleonline/ui-ppc": "*",
+    "@controleonline/ui-products": "*",
+    "@controleonline/ui-shop": "*"
+  }
 }

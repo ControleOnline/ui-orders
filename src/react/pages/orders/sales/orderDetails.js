@@ -43,7 +43,7 @@ import {
   getInvoicePaymentTypeLabel,
 } from '@controleonline/ui-common/src/react/utils/invoicePresentation'
 
-import StateStore from '@controleonline/ui-layout/src/react/components/StateStore'
+import StateStore from '@controleonline/ui-common/src/react/components/StateStore'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
