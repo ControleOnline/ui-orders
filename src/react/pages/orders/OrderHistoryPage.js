@@ -224,7 +224,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   const channelOptions = useMemo(
-    () => [allChannelOption, ...dynamicChannelOptions],
+    () => [allChannelOption, ...(Array.isArray(dynamicChannelOptions) ? dynamicChannelOptions : [])],
     [allChannelOption, dynamicChannelOptions],
   );
 
