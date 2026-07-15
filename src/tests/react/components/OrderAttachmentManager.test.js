@@ -106,7 +106,7 @@ jest.mock('@store', () => ({
   }),
 }))
 
-jest.mock('@controleonline/ui-crm/src/react/components/AnimatedModal', () => props =>
+jest.mock('@controleonline/ui-common/src/react/components/AnimatedModal', () => props =>
   (props.visible ? React.createElement('animatedmodal', null, props.children) : null),
 )
 

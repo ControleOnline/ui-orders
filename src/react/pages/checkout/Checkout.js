@@ -78,7 +78,7 @@ import {
 import {
   normalizeGatewayPaymentError,
   runConfiguredGatewayPayment,
-} from '@controleonline/ui-common/src/react/utils/paymentGatewayExecution';
+} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
 import {
   buildRemotePaymentRequestKey,
   isRemotePaymentResultMessage,
