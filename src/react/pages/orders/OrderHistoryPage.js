@@ -120,6 +120,10 @@ const buildHistoryRequestParams = ({
     }),
   };
 
+  if (showAdvancedFilters && orderTypeFilter === 'sale') {
+    query.report = 1;
+  }
+
   if (!showAdvancedFilters && orderTypeFilter === 'sale') {
     query['status.realStatus'] = 'open';
   }
@@ -198,7 +202,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     }),
     [],
   );
-  const [dynamicChannelOptions, setDynamicChannelOptions] = useState([]);
   const [channelFilter, setChannelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('today');
@@ -372,63 +375,10 @@ export default function OrderHistoryPage({ navigation, route }) {
     }
   }, [isCashRegisterClosed, isFocused, navigation]);
 
-  const channelSummaryQuery = useMemo(() => {
-    if (!currentCompany?.id || !showAdvancedFilters || orderTypeFilter !== 'sale') {
-      return null;
-    }
-
-    return {
-      provider: `/people/${currentCompany.id}`,
-      orderType: resolveHistoryOrderTypeQuery({
-        orderTypeFilter,
-      }),
-      page: 1,
-      itemsPerPage: 1,
-      report: 1,
-    };
-  }, [
-    currentCompany?.id,
-    orderTypeFilter,
-    showAdvancedFilters,
-  ]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!isFocused || !channelSummaryQuery) {
-      setDynamicChannelOptions([]);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    if (typeof orderActions.getHistorySummaryApps !== 'function') {
-      setDynamicChannelOptions([]);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    orderActions.getHistorySummaryApps({query: channelSummaryQuery})
-      .then(apps => {
-        if (!cancelled) {
-          setDynamicChannelOptions(Array.isArray(apps) ? apps : []);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDynamicChannelOptions([]);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    channelSummaryQuery,
-    isFocused,
-    orderActions,
-  ]);
+  const dynamicChannelOptions = useMemo(() => {
+    const summaryApps = ordersGetters.summary?.report?.apps;
+    return Array.isArray(summaryApps) ? summaryApps : [];
+  }, [ordersGetters.summary]);
 
   const searchPlaceholder = useMemo(() => {
     if (orderTypeFilter === 'purchase') {
@@ -757,6 +707,7 @@ export default function OrderHistoryPage({ navigation, route }) {
             }}
             showRowActions={false}
             storeName="orders"
+            summary={false}
           />
         </View>
       </View>

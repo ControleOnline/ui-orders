@@ -65,6 +65,11 @@ jest.mock('@controleonline/ui-orders/src/react/utils/counterOrderFlow', () => ({
   shouldResumeCounterOrderFlow: jest.fn(() => false),
 }));
 
+jest.mock('@appType', () => ({
+  app_type: 'MANAGER',
+  app_type_base: 'ADMIN',
+}));
+
 const OrderHistoryPage =
   require('../../../../react/pages/orders/OrderHistoryPage').default;
 
@@ -177,5 +182,41 @@ describe('OrderHistoryPage', () => {
     );
 
     expect(typeof defaultTableProps?.renderCard).toBe('function');
+  });
+
+  it('requests the report summary in the main history query for sale orders', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+      navigate: jest.fn(),
+    };
+
+    mockStores.people.getters.currentCompany = {
+      id: 1,
+      theme: {
+        colors: {},
+      },
+    };
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHistoryPage, {
+        navigation,
+        route: {
+          params: {
+            orderTypeFilter: 'sale',
+          },
+        },
+      }),
+    );
+
+    expect(defaultTableProps?.requestParams).toMatchObject({
+      provider: '/people/1',
+      report: 1,
+    });
+    expect(defaultTableProps?.requestParams?.orderType).toEqual([
+      'sale',
+      'cart',
+      'online',
+      'manual',
+    ]);
   });
 });
