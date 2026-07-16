@@ -30,6 +30,12 @@ jest.mock('@controleonline/ui-orders/src/react/components/cart/BottomCart', () =
   React.createElement('BottomCart', props),
 )
 
+jest.mock('@controleonline/ui-common/src/react/components/MessageService', () => ({
+  useMessage: () => ({
+    showError: jest.fn(),
+  }),
+}))
+
 jest.mock('react-native-vector-icons/MaterialIcons', () => 'Icon')
 
 const PaymentCheckoutPanel =
