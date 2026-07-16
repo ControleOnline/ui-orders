@@ -1100,11 +1100,27 @@ test.describe('waiter cart browser flow', () => {
     await page.getByText('Confirm', {exact: true}).click();
 
     await expect(page.getByRole('dialog')).not.toBeVisible();
+    await expect.poll(() =>
+      state.orders.find(
+        order => order.orderType === 'tab' && order.externalCode === 'CMD-42',
+      ),
+    ).toBeTruthy();
     const root = state.orders.find(
       order => order.orderType === 'tab' && order.externalCode === 'CMD-42',
     );
+    await expect.poll(() =>
+      state.orders.find(
+        order =>
+          Number(order.mainOrderId) === Number(root?.id) &&
+          order.orderType === 'cart' &&
+          order.externalCode === 'CMD-42',
+      ),
+    ).toBeTruthy();
     const operational = state.orders.find(
-      order => Number(order.mainOrderId) === Number(root?.id),
+      order =>
+        Number(order.mainOrderId) === Number(root?.id) &&
+        order.orderType === 'cart' &&
+        order.externalCode === 'CMD-42',
     );
     expect(root).toBeTruthy();
     expect(operational).toMatchObject({

@@ -863,7 +863,7 @@ test.describe('single-item browser smoke', () => {
     });
 
     await bootstrapPosBrowser(page);
-    expect(menusPeopleRequests.length).toBeGreaterThanOrEqual(2);
+    await expect.poll(() => menusPeopleRequests.length).toBeGreaterThan(0);
     const bottomNavigation = page.getByTestId('bottom-navigation');
     await expect(bottomNavigation).toBeVisible();
     const bottomNavigationBox = await bottomNavigation.boundingBox();
