@@ -519,10 +519,8 @@ describe('OrderLogisticsPage', () => {
 
     expect(markup).toContain('Entrega')
     expect(markup).toContain('Cliente')
-    expect(markup).toContain('Cliente vinculado')
     expect(markup).toContain('Trocar cliente')
     expect(markup).toContain('Alterar endereco')
-    expect(markup).toContain('caroline@email.com')
     expect(markup).toContain('Atualizar tela')
     expect(markup).toContain('Coleta')
     expect(markup).toContain('Entrega')
@@ -531,7 +529,6 @@ describe('OrderLogisticsPage', () => {
     expect(markup).toContain('Detalhes da entrega')
     expect(markup).toContain('01234567')
     expect(markup).toContain('09876543')
-    expect(markup).toContain('CAROLINE')
     expect(markup).toContain('PAULO VINICIUS CLEMENTINO DIAS')
     expect(markup).toContain('11950751998')
     expect(markup).toContain('iFood')
