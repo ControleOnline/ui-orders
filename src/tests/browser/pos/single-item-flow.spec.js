@@ -1013,4 +1013,18 @@ test.describe('single-item browser smoke', () => {
     await expect(page.getByText('#123', { exact: true })).toBeVisible();
     await expect(page.getByText('cart', { exact: true })).toBeVisible();
   });
+
+  test('keeps the order history toolbar on one line on narrow payment devices', async ({ page }) => {
+    bindBrowserDiagnostics(page);
+    await page.setViewportSize({width: 375, height: 667});
+    await createPosApiMock(page);
+
+    await bootstrapPosBrowser(page);
+    await page.goto('/order-history-page');
+
+    const searchButton = page.getByRole('button', {name: /search|buscar/i});
+    await expect(searchButton).toBeVisible();
+    await searchButton.click();
+    await expect(page.getByPlaceholder(/search|buscar/i)).toBeVisible();
+  });
 });
