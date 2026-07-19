@@ -11,7 +11,7 @@ const css = () => {
     container: {
       flex: 1,
       padding: 8,
-      backgroundColor: colors.background,
+      backgroundColor: colors.pageBackground,
     },
     scrollContent: {
       paddingBottom: 20,
@@ -35,7 +35,7 @@ const css = () => {
       fontWeight: '700',
     },
     boxTextColor: {
-      color: '#000000',
+      color: colors.cardText,
     },
     boxDateText: {
       fontSize: 13,
@@ -92,7 +92,9 @@ const css = () => {
       walletContainer: {
         borderRadius: 5,
         marginBottom: 10,
-        backgroundColor: '#fff',
+        backgroundColor: colors.cardBackground,
+        borderWidth: colors.cardBorder ? 1 : 0,
+        borderColor: colors.cardBorder,
         elevation: 2,
       },
       walletTitle: {
@@ -329,9 +331,9 @@ const css = () => {
     },
     CloseCashRegister: {
       footerContainer: {
-        backgroundColor: '#f8f8f8',
+        backgroundColor: colors.footerBackground,
         borderTopWidth: 1,
-        borderTopColor: '#ddd',
+        borderTopColor: colors.footerBorder,
         paddingHorizontal: 0,
         paddingVertical: 5,
       },
@@ -346,7 +348,7 @@ const css = () => {
       total: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#333',
+        color: colors.footerText,
       },
       buttonContainer: {
         flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useMemo} from 'react';
 import { Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import css from '@controleonline/ui-orders/src/react/css/orders';
@@ -16,11 +16,11 @@ import {
   inlineStyle_154_18,
   inlineStyle_176_18,
   inlineStyle_240_22,
-  inlineStyle_246_22,
 } from './index.styles';
 
 const CashRegister = ({ navigation }) => {
   const { styles, globalStyles } = css();
+  const themeStore = useStore('theme');
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
   const invoiceStore = useStore('invoice');
@@ -36,6 +36,18 @@ const CashRegister = ({ navigation }) => {
   const deviceStore = useStore('device');
   const deviceGetters = deviceStore.getters;
   const { item: storagedDevice } = deviceGetters;
+  const {colors: themeColors} = themeStore.getters;
+  const palette = useMemo(
+    () => ({
+      buttonBackground: themeColors.buttonBackground,
+      buttonIcon: themeColors.buttonIcon,
+      buttonText: themeColors.buttonText,
+      cardText: themeColors.cardText,
+      footerText: themeColors.footerText,
+      textDanger: themeColors.textDanger,
+    }),
+    [themeColors],
+  );
 
   const [processedData, setProcessedData] = useState({
     walletGroups: [],
@@ -136,10 +148,9 @@ const CashRegister = ({ navigation }) => {
           key={index}
           style={[
             styles.CashRegister.walletContainer,
-            styles.OrderHeader.boxWrap,
           ]}>
           <View style={styles.boxHeader}>
-            <Text style={[styles.CashRegister.walletTitle, styles.primary]}>
+            <Text style={[styles.CashRegister.walletTitle, {color: palette.cardText}]}>
               {group.walletName}
             </Text>
           </View>
@@ -157,6 +168,7 @@ const CashRegister = ({ navigation }) => {
                     style={[
                       styles.CashRegister.paymentText,
                       styles.boxTextColor,
+                      {color: palette.cardText},
                     ]}>
                     {payment.payment}
                   </Text>
@@ -164,6 +176,7 @@ const CashRegister = ({ navigation }) => {
                     style={[
                       styles.CashRegister.paymentText,
                       styles.boxTextColor,
+                      {color: palette.cardText},
                     ]}>
                     {Formatter.formatMoney(payment.inflow)}
                   </Text>
@@ -173,11 +186,17 @@ const CashRegister = ({ navigation }) => {
                 <View
                   style={inlineStyle_176_18}>
                   <Text
-                    style={[styles.CashRegister.paymentText, { color: 'red' }]}>
+                    style={[
+                      styles.CashRegister.paymentText,
+                      {color: palette.textDanger},
+                    ]}>
                     {global.t?.t('orders', 'title', 'withdrawal')} {group['withdrawal-wallet']}
                   </Text>
                   <Text
-                    style={[styles.CashRegister.paymentText, { color: 'red' }]}>
+                    style={[
+                      styles.CashRegister.paymentText,
+                      {color: palette.textDanger},
+                    ]}>
                     {Formatter.formatMoney(payment.withdrawal)}
                   </Text>
                 </View>
@@ -193,14 +212,14 @@ const CashRegister = ({ navigation }) => {
                 marginTop: 5,
               },
             ]}>
-            <Text style={[styles.CashRegister.walletTotal, styles.primary]}>
+            <Text style={[styles.CashRegister.walletTotal, {color: palette.cardText}]}>
               {global.t?.t('orders', 'label', 'total')}
             </Text>
             <Text
               style={[
                 styles.CashRegister.walletTotal,
-                styles.primary,
                 styles.boxPrice,
+                {color: palette.cardText},
               ]}>
               {Formatter.formatMoney(group.total)}
             </Text>
@@ -222,23 +241,29 @@ const CashRegister = ({ navigation }) => {
           </ScrollView>
           <View style={styles.CloseCashRegister.footerContainer}>
             <View style={styles.CloseCashRegister.totalContainer}>
-              <Text style={styles.CloseCashRegister.total}>{global.t?.t('orders', 'label', 'total').toUpperCase()}</Text>
-              <Text style={styles.CloseCashRegister.total}>
+              <Text style={[styles.CloseCashRegister.total, {color: palette.footerText}]}>
+                {global.t?.t('orders', 'label', 'total').toUpperCase()}
+              </Text>
+              <Text style={[styles.CloseCashRegister.total, {color: palette.footerText}]}>
                 {Formatter.formatMoney(processedData.total)}
               </Text>
             </View>
             <View style={styles.CloseCashRegister.buttonContainer}>
               <TouchableOpacity
-                style={[globalStyles.button]}
+                style={[globalStyles.button, {backgroundColor: palette.buttonBackground}]}
                 onPress={handleWithdrawal}>
-                <Icon name="print" size={24} color="#fff" />
-                <Text style={inlineStyle_240_22}>{global.t?.t('orders', 'title', 'withdrawal')}</Text>
+                <Icon name="print" size={24} color={palette.buttonIcon} />
+                <Text style={[inlineStyle_240_22, {color: palette.buttonText}]}>
+                  {global.t?.t('orders', 'title', 'withdrawal')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[globalStyles.button]}
+                style={[globalStyles.button, {backgroundColor: palette.buttonBackground}]}
                 onPress={handleCloseCashRegister}>
-                <Icon name="print" size={24} color="#fff" />
-                <Text style={inlineStyle_246_22}>{global.t?.t('orders', 'button', 'viewDetails')}</Text>
+                <Icon name="print" size={24} color={palette.buttonIcon} />
+                <Text style={[inlineStyle_240_22, {color: palette.buttonText}]}>
+                  {global.t?.t('orders', 'button', 'viewDetails')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

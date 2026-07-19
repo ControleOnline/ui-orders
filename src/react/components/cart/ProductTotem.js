@@ -28,7 +28,12 @@ const getTopLevelOrderProducts = orderProducts =>
     orderProduct => !normalizeEntityId(orderProduct?.orderProduct),
   );
 
-const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
+const ProductTotem = ({
+  product,
+  palette = {},
+  singleItemMode = false,
+  orderId = '',
+}) => {
   const navigation = useNavigation();
   const ordersStore = useStore('orders');
   const ordersGetters = ordersStore.getters;
@@ -58,6 +63,14 @@ const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
           normalizeEntityId(orderProduct?.product) === productId,
       ),
     [currentOrderProducts, productId],
+  );
+  const resolvedPalette = useMemo(
+    () => ({
+      iconDisabled: palette.iconDisabled,
+      iconSuccess: palette.iconSuccess,
+      textMuted: palette.textMuted,
+    }),
+    [palette],
   );
 
   const runQueuedOrderMutation = useCallback(
@@ -195,11 +208,11 @@ const ProductTotem = ({product, singleItemMode = false, orderId = ''}) => {
         <Icon
           name={isSelected ? 'check-circle' : 'radio-button-unchecked'}
           size={24}
-          color={isSelected ? '#16A34A' : 'red'}
+          color={isSelected ? resolvedPalette.iconSuccess : resolvedPalette.iconDisabled}
         />
       </View>
 
-      <Text style={[styles.quantityText, {color: '#666'}]}>
+      <Text style={[styles.quantityText, {color: resolvedPalette.textMuted}]}>
         {isSavingSelection
           ? 'Salvando'
           : isSelected

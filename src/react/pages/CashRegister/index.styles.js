@@ -9,11 +9,5 @@ export const inlineStyle_176_18 = {
 };
 
 export const inlineStyle_240_22 = {
-  color: '#fff',
-  marginLeft: 8,
-};
-
-export const inlineStyle_246_22 = {
-  color: '#fff',
   marginLeft: 8,
 };
