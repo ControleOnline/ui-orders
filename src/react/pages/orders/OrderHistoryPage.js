@@ -175,7 +175,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { item: storagedDevice } = deviceStore.getters || {};
   const { item: deviceConfig } = deviceConfigStore.getters || {};
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
-  const { actions: statusActions, getters: statusGetters } = statusStore;
+  const { getters: statusGetters } = statusStore;
   const { currentCompany, defaultCompany } = peopleGetters;
   const { colors: themeColors } = themeStore.getters || {};
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
@@ -267,18 +267,6 @@ export default function OrderHistoryPage({ navigation, route }) {
         return accumulator;
       }, []);
   }, [statusItems]);
-
-  useEffect(() => {
-    if (!isFocused || !currentCompany?.id) {
-      return;
-    }
-
-    statusActions.getItems({ context: 'order' }).catch(() => {});
-  }, [
-    currentCompany?.id,
-    isFocused,
-    statusActions,
-  ]);
 
   useEffect(() => {
     navigation.setOptions?.({ title: historyPageTitle });

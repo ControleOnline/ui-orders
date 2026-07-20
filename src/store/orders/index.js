@@ -76,6 +76,7 @@ export default {
         align: "left",
         label: "status",
         list: "status/getItems",
+        listRequestParams: {context: "order"},
         emptyOptionLabel: "all",
         searchParam: "status",
         externalFilter: true,

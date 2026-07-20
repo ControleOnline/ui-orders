@@ -128,6 +128,7 @@ describe('OrderHistoryPage', () => {
         actions: {
           getItems: jest.fn(),
           getHistorySummaryApps: jest.fn(),
+          setColumns: jest.fn(),
           syncOrder: jest.fn(),
         },
         getters: {
@@ -139,16 +140,23 @@ describe('OrderHistoryPage', () => {
           columns: [
             {
               name: 'app',
-              label: 'app',
+              label: 'channel',
+              externalFilter: true,
+              emptyOptionLabel: 'All',
+              list: true,
             },
             {
               name: 'status',
               label: 'status',
+              externalFilter: true,
+              emptyOptionLabel: 'All',
               list: 'status/getItems',
             },
             {
               name: 'alterDate',
-              label: 'alterDate',
+              label: 'period',
+              externalFilter: true,
+              inputType: 'date-range',
               type: 'range-date',
             },
           ],
@@ -242,12 +250,8 @@ describe('OrderHistoryPage', () => {
       provider: '/people/1',
       report: 1,
     });
-    const channelFilterColumn = mockDefaultExternalFiltersProps?.columns.find(
-      column => column.name === 'app',
-    );
-
-    expect(channelFilterColumn?.externalFilter).toBe(true);
-    expect(channelFilterColumn?.list).toEqual(
+    expect(mockDefaultExternalFiltersProps?.columns).toBeUndefined();
+    expect(mockDefaultExternalFiltersProps?.getOptionsForColumn({name: 'app'})).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           key: 'iFood',
