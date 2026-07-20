@@ -36,6 +36,18 @@ const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
 
 const normalizeText = value => String(value || '').trim();
 
+const buildExternalColumnsSignature = columns =>
+  (Array.isArray(columns) ? columns : [])
+    .map(column => [
+      column?.key || column?.name || '',
+      column?.externalFilter === true ? '1' : '0',
+      column?.inputType || column?.type || '',
+      column?.label || '',
+      column?.list ? '1' : '0',
+      column?.emptyOptionLabel || '',
+    ].join(':'))
+    .join('|');
+
 const resolveOrderTypeFilter = value => {
   const normalizedValue = normalizeText(value).toLowerCase();
   return ORDER_TYPE_FILTER_KEYS.has(normalizedValue) ? normalizedValue : 'sale';
@@ -227,20 +239,13 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   const channelOptions = useMemo(
-    () => [
-      allChannelOption,
-      ...(Array.isArray(dynamicChannelOptions) ? dynamicChannelOptions : []),
-    ],
-    [allChannelOption, dynamicChannelOptions],
+    () => (Array.isArray(dynamicChannelOptions) ? dynamicChannelOptions : []),
+    [dynamicChannelOptions],
   );
 
   const statusOptions = useMemo(() => {
-    const allStatusOption = {
-      value: '',
-      label: normalizeText(global.t?.t('orders', 'label', 'all')) || 'All',
-    };
-    const seenKeys = new Set(['']);
-    const mappedStatuses = statusItems
+    const seenKeys = new Set();
+    return statusItems
       .filter(item => normalizeText(item?.context).toLowerCase() === 'order')
       .reduce((accumulator, status) => {
         const key = normalizeText(
@@ -261,8 +266,6 @@ export default function OrderHistoryPage({ navigation, route }) {
         });
         return accumulator;
       }, []);
-
-    return [allStatusOption, ...mappedStatuses];
   }, [statusItems]);
 
   useEffect(() => {
@@ -395,7 +398,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     return global.t?.t('orders', 'placeholder', 'search_default');
   }, [orderTypeFilter]);
 
-  const externalFilterColumns = useMemo(
+  const configuredOrderColumns = useMemo(
     () => (ordersGetters.columns || []).map(column => {
       const fieldName = column?.name || column?.key;
 
@@ -405,7 +408,7 @@ export default function OrderHistoryPage({ navigation, route }) {
           externalFilter: showAdvancedFilters && orderTypeFilter === 'sale',
           emptyOptionLabel: allChannelOption.label,
           label: 'channel',
-          list: channelOptions,
+          list: true,
         };
       }
 
@@ -414,7 +417,7 @@ export default function OrderHistoryPage({ navigation, route }) {
           ...column,
           externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter),
           emptyOptionLabel: allChannelOption.label,
-          list: statusOptions,
+          list: 'status/getItems',
         };
       }
 
@@ -434,13 +437,33 @@ export default function OrderHistoryPage({ navigation, route }) {
     }),
     [
       allChannelOption.label,
-      channelOptions,
       orderTypeFilter,
       ordersGetters.columns,
       showAdvancedFilters,
-      statusOptions,
     ],
   );
+  const orderColumnsReady = useMemo(
+    () =>
+      buildExternalColumnsSignature(ordersGetters.columns) ===
+      buildExternalColumnsSignature(configuredOrderColumns),
+    [configuredOrderColumns, ordersGetters.columns],
+  );
+  const getExternalFilterOptions = useCallback(
+    column => {
+      const fieldName = column?.name || column?.key;
+      if (fieldName === 'app') return channelOptions;
+      if (fieldName === 'status') return statusOptions;
+
+      return [];
+    },
+    [channelOptions, statusOptions],
+  );
+
+  useEffect(() => {
+    if (!orderColumnsReady) {
+      orderActions.setColumns(configuredOrderColumns);
+    }
+  }, [configuredOrderColumns, orderActions, orderColumnsReady]);
 
   const historyRequestParams = useMemo(
     () =>
@@ -610,7 +633,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     );
   }, [openOrder, purchaseSuppliersById]);
 
-  if (shouldResumeCounterFlow || !currentCompany?.id) {
+  if (shouldResumeCounterFlow || !currentCompany?.id || !orderColumnsReady) {
     return (
       <StateStore
         mode="display"
@@ -627,8 +650,8 @@ export default function OrderHistoryPage({ navigation, route }) {
       <View style={styles.content}>
         <DefaultExternalFilters
           accentColor={brandColors.primary}
-          columns={externalFilterColumns}
           filters={historyFilters}
+          getOptionsForColumn={getExternalFilterOptions}
           onChangeFilters={setHistoryFilters}
           storeName="orders"
         />

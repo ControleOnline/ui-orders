@@ -26,7 +26,7 @@ export default {
     reload: false,
     columns: [
       {
-        externalFilter: true,
+        externalFilter: false,
         //filter:false,
         isIdentity: true,
         sortable: true,
@@ -52,6 +52,8 @@ export default {
         name: "app",
         editable: true,
         label: "app",
+        externalFilter: true,
+        list: true,
         align: "left",
         format(value, _column, _row) {
           return value;
@@ -74,6 +76,7 @@ export default {
         align: "left",
         label: "status",
         list: "status/getItems",
+        emptyOptionLabel: "all",
         searchParam: "status",
         externalFilter: true,
         style: function (row) {
@@ -145,7 +148,7 @@ export default {
         show: false,
         align: "center",
         label: "orderDate",
-        externalFilter: true,
+        externalFilter: false,
         saveFormat: function (_value) {
           return undefined;
         },
@@ -158,8 +161,10 @@ export default {
         editable: false,
         sortable: true,
         type: "range-date",
+        externalFilter: true,
+        inputType: "date-range",
         name: "alterDate",
-        label: "alterDate",
+        label: "period",
         align: "left",
         saveFormat: function (_value) {
           return undefined;
