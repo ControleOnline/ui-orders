@@ -4,6 +4,13 @@ import mutations from "@controleonline/ui-default/src/store/default/mutations";
 import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
 import * as customActions from "./customActions";
 
+export const ORDER_CHANNEL_OPTIONS = [
+  {value: "POS", label: "POS"},
+  {value: "Food99", label: "Food99"},
+  {value: "iFood", label: "iFood"},
+  {value: "SHOP", label: "SHOP"},
+];
+
 export default {
   namespaced: true,
   state: {
@@ -53,7 +60,12 @@ export default {
         editable: true,
         label: "app",
         externalFilter: true,
-        list: true,
+        /*
+         * @agents
+         * Order channels are fixed application origins, not values inferred
+         * from the current page of orders or report summary.
+         */
+        list: ORDER_CHANNEL_OPTIONS,
         align: "left",
         format(value, _column, _row) {
           return value;
@@ -76,6 +88,12 @@ export default {
         align: "left",
         label: "status",
         list: "status/getItems",
+        /*
+         * @agents
+         * Order status filters must load only order-context statuses when the
+         * default list selector opens; do not prefetch or fetch all statuses in
+         * the screen.
+         */
         listRequestParams: {context: "order"},
         emptyOptionLabel: "all",
         searchParam: "status",

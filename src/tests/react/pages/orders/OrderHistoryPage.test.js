@@ -143,7 +143,12 @@ describe('OrderHistoryPage', () => {
               label: 'channel',
               externalFilter: true,
               emptyOptionLabel: 'All',
-              list: true,
+              list: [
+                {value: 'POS', label: 'POS'},
+                {value: 'Food99', label: 'Food99'},
+                {value: 'iFood', label: 'iFood'},
+                {value: 'SHOP', label: 'SHOP'},
+              ],
             },
             {
               name: 'status',
@@ -251,16 +256,7 @@ describe('OrderHistoryPage', () => {
       report: 1,
     });
     expect(mockDefaultExternalFiltersProps?.columns).toBeUndefined();
-    expect(mockDefaultExternalFiltersProps?.getOptionsForColumn({name: 'app'})).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          key: 'iFood',
-          label: 'iFood',
-          orders: 3,
-          units: 4,
-        }),
-      ]),
-    );
+    expect(mockDefaultExternalFiltersProps?.getOptionsForColumn({name: 'app'})).toEqual([]);
     expect(mockDefaultTableProps?.requestParams?.orderType).toEqual([
       'sale',
       'cart',

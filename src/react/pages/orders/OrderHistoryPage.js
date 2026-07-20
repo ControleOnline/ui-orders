@@ -230,19 +230,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     [defaultHistoryTitle, route?.params?.historyTitle],
   );
 
-  const dynamicChannelOptions = useMemo(
-    () => {
-      const summaryApps = ordersGetters.summary?.report?.apps;
-      return Array.isArray(summaryApps) ? summaryApps : [];
-    },
-    [ordersGetters.summary],
-  );
-
-  const channelOptions = useMemo(
-    () => (Array.isArray(dynamicChannelOptions) ? dynamicChannelOptions : []),
-    [dynamicChannelOptions],
-  );
-
   const statusOptions = useMemo(() => {
     const seenKeys = new Set();
     return statusItems
@@ -285,17 +272,9 @@ export default function OrderHistoryPage({ navigation, route }) {
         changed = true;
       }
 
-      if (
-        next.app &&
-        !channelOptions.some(option => option.value === next.app || option.key === next.app)
-      ) {
-        delete next.app;
-        changed = true;
-      }
-
       return changed ? next : current;
     });
-  }, [channelOptions, statusOptions]);
+  }, [statusOptions]);
 
   const isCashRegisterClosed = useMemo(
     () => isPosCashRegisterClosed(deviceConfig?.configs),
@@ -396,7 +375,6 @@ export default function OrderHistoryPage({ navigation, route }) {
           externalFilter: showAdvancedFilters && orderTypeFilter === 'sale',
           emptyOptionLabel: allChannelOption.label,
           label: 'channel',
-          list: true,
         };
       }
 
@@ -439,12 +417,11 @@ export default function OrderHistoryPage({ navigation, route }) {
   const getExternalFilterOptions = useCallback(
     column => {
       const fieldName = column?.name || column?.key;
-      if (fieldName === 'app') return channelOptions;
       if (fieldName === 'status') return statusOptions;
 
       return [];
     },
-    [channelOptions, statusOptions],
+    [statusOptions],
   );
 
   useEffect(() => {
