@@ -8,8 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import {app_type} from '@appType';
 import { useStore } from '@store';
-import CompactFilterSelector from '@controleonline/ui-default/src/react/components/filters/CompactFilterSelector';
-import DateShortcutFilter from '@controleonline/ui-default/src/react/components/filters/DateShortcutFilter';
+import DefaultExternalFilters from '@controleonline/ui-default/src/react/components/filters/DefaultExternalFilters';
 import DefaultTable from '@controleonline/ui-default/src/react/components/table/DefaultTable';
 import {
   canDeviceViewCompanyOrders,
@@ -100,14 +99,11 @@ const buildOrderHistoryPalette = themeColors => ({
 
 const buildHistoryRequestParams = ({
   canViewCompanyOrders,
-  channelFilter,
   currentCompanyId,
   currentDeviceId,
-  dateFilter,
+  filters,
   orderTypeFilter,
   showAdvancedFilters,
-  statusFilter,
-  customRange,
 }) => {
   if (!currentCompanyId) {
     return null;
@@ -128,12 +124,12 @@ const buildHistoryRequestParams = ({
     query['status.realStatus'] = 'open';
   }
 
-  if (showAdvancedFilters && channelFilter !== 'all') {
-    query.app = channelFilter;
+  if (showAdvancedFilters && filters?.app) {
+    query.app = filters.app;
   }
 
-  if (showAdvancedFilters && statusFilter !== 'all') {
-    query.status = statusFilter;
+  if (showAdvancedFilters && filters?.status) {
+    query.status = filters.status;
   }
 
   if (app_type === 'POS' && !canViewCompanyOrders && currentDeviceId) {
@@ -141,10 +137,7 @@ const buildHistoryRequestParams = ({
   }
 
   if (showAdvancedFilters) {
-    const dateRange = resolveDateRangeFilter({
-      shortcut: dateFilter,
-      customRange,
-    });
+    const dateRange = resolveDateRangeFilter(filters?.alterDate);
 
     if (dateRange?.after) {
       query['alterDate[after]'] = dateRange.after;
@@ -197,15 +190,17 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
   const allChannelOption = useMemo(
     () => ({
-      key: 'all',
+      value: '',
       label: normalizeText(global.t?.t('orders', 'label', 'all')) || 'All',
     }),
     [],
   );
-  const [channelFilter, setChannelFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('today');
-  const [customRange, setCustomRange] = useState({ from: '', to: '' });
+  const [historyFilters, setHistoryFilters] = useState({
+    alterDate: {
+      shortcut: 'today',
+      customRange: { from: '', to: '' },
+    },
+  });
   const [purchaseSuppliersById, setPurchaseSuppliersById] = useState({});
   const loadingPurchaseSuppliersRef = useRef(new Set());
 
@@ -241,10 +236,10 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   const statusOptions = useMemo(() => {
     const allStatusOption = {
-      key: 'all',
+      value: '',
       label: normalizeText(global.t?.t('orders', 'label', 'all')) || 'All',
     };
-    const seenKeys = new Set(['all']);
+    const seenKeys = new Set(['']);
     const mappedStatuses = statusItems
       .filter(item => normalizeText(item?.context).toLowerCase() === 'order')
       .reduce((accumulator, status) => {
@@ -258,7 +253,7 @@ export default function OrderHistoryPage({ navigation, route }) {
 
         seenKeys.add(key);
         accumulator.push({
-          key,
+          value: key,
           label:
             normalizeText(global.t?.t('orders', 'status', status?.status)) ||
             normalizeText(status?.status) ||
@@ -287,28 +282,29 @@ export default function OrderHistoryPage({ navigation, route }) {
   }, [historyPageTitle, navigation]);
 
   useEffect(() => {
-    if (
-      statusFilter !== 'all' &&
-      !statusOptions.some(option => option.key === statusFilter)
-    ) {
-      setStatusFilter('all');
-    }
-  }, [
-    statusFilter,
-    statusOptions,
-  ]);
+    setHistoryFilters(current => {
+      const next = { ...current };
+      let changed = false;
 
-  useEffect(() => {
-    if (
-      channelFilter !== 'all' &&
-      !channelOptions.some(option => option.key === channelFilter)
-    ) {
-      setChannelFilter('all');
-    }
-  }, [
-    channelFilter,
-    channelOptions,
-  ]);
+      if (
+        next.status &&
+        !statusOptions.some(option => option.value === next.status || option.key === next.status)
+      ) {
+        delete next.status;
+        changed = true;
+      }
+
+      if (
+        next.app &&
+        !channelOptions.some(option => option.value === next.app || option.key === next.app)
+      ) {
+        delete next.app;
+        changed = true;
+      }
+
+      return changed ? next : current;
+    });
+  }, [channelOptions, statusOptions]);
 
   const isCashRegisterClosed = useMemo(
     () => isPosCashRegisterClosed(deviceConfig?.configs),
@@ -399,64 +395,69 @@ export default function OrderHistoryPage({ navigation, route }) {
     return global.t?.t('orders', 'placeholder', 'search_default');
   }, [orderTypeFilter]);
 
-  const visibleFilterCount = useMemo(
-    () => [
-      orderTypeFilter === 'sale',
-      !SIMPLE_TAB_KEYS.has(orderTypeFilter),
-      true,
-    ].filter(Boolean).length,
-    [orderTypeFilter],
-  );
+  const externalFilterColumns = useMemo(
+    () => (ordersGetters.columns || []).map(column => {
+      const fieldName = column?.name || column?.key;
 
-  const filterSelectorSlotStyle = useMemo(() => {
-    if (visibleFilterCount >= 3) {
-      return [styles.filterSelectorSlot, styles.filterSelectorSlotThird];
-    }
+      if (fieldName === 'app') {
+        return {
+          ...column,
+          externalFilter: showAdvancedFilters && orderTypeFilter === 'sale',
+          emptyOptionLabel: allChannelOption.label,
+          label: 'channel',
+          list: channelOptions,
+        };
+      }
 
-    if (visibleFilterCount === 2) {
-      return [styles.filterSelectorSlot, styles.filterSelectorSlotHalf];
-    }
+      if (fieldName === 'status') {
+        return {
+          ...column,
+          externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter),
+          emptyOptionLabel: allChannelOption.label,
+          list: statusOptions,
+        };
+      }
 
-    return [styles.filterSelectorSlot, styles.filterSelectorSlotFull];
-  }, [visibleFilterCount]);
+      if (fieldName === 'alterDate') {
+        return {
+          ...column,
+          externalFilter: showAdvancedFilters,
+          inputType: 'date-range',
+          label: 'period',
+        };
+      }
 
-  const currentChannelLabel = useMemo(
-    () =>
-      channelOptions.find(option => option.key === channelFilter)?.label ||
-      channelOptions[0]?.label ||
-      'All',
-    [channelFilter, channelOptions],
-  );
-  const currentStatusLabel = useMemo(
-    () =>
-      statusOptions.find(option => option.key === statusFilter)?.label ||
-      statusOptions[0]?.label ||
-      'All',
-    [statusFilter, statusOptions],
+      return {
+        ...column,
+        externalFilter: false,
+      };
+    }),
+    [
+      allChannelOption.label,
+      channelOptions,
+      orderTypeFilter,
+      ordersGetters.columns,
+      showAdvancedFilters,
+      statusOptions,
+    ],
   );
 
   const historyRequestParams = useMemo(
     () =>
       buildHistoryRequestParams({
         canViewCompanyOrders,
-        channelFilter,
         currentCompanyId: currentCompany?.id,
         currentDeviceId: storagedDevice?.id,
-        dateFilter,
+        filters: historyFilters,
         orderTypeFilter,
         showAdvancedFilters,
-        statusFilter,
-        customRange,
       }),
     [
       canViewCompanyOrders,
-      channelFilter,
       currentCompany?.id,
-      customRange,
-      dateFilter,
+      historyFilters,
       orderTypeFilter,
       showAdvancedFilters,
-      statusFilter,
       storagedDevice?.id,
     ],
   );
@@ -624,81 +625,13 @@ export default function OrderHistoryPage({ navigation, route }) {
       edges={['bottom']}
     >
       <View style={styles.content}>
-        <View style={styles.filtersCard}>
-          <View style={styles.filtersHeaderRow}>
-            <Text style={styles.filtersTitle}>{global.t?.t('orders', 'title', 'filters')}</Text>
-          </View>
-
-          {showAdvancedFilters && (
-            <View style={styles.filterSelectorsRow}>
-              {orderTypeFilter === 'sale' && (
-                <View style={filterSelectorSlotStyle}>
-                  <CompactFilterSelector
-                    icon="radio"
-                    label={currentChannelLabel}
-                    labelCaption={global.t?.t('orders', 'label', 'channel') || 'Canal'}
-                    accentColor={brandColors.primary}
-                    active={channelFilter !== 'all'}
-                    dense
-                    title={global.t?.t('orders', 'label', 'channel')}
-                    options={channelOptions}
-                    selectedKey={channelFilter}
-                    onSelect={optionKey => {
-                      setChannelFilter(optionKey);
-                      return true;
-                    }}
-                  />
-                </View>
-              )}
-
-              {!SIMPLE_TAB_KEYS.has(orderTypeFilter) && (
-                <View style={filterSelectorSlotStyle}>
-                  <CompactFilterSelector
-                    icon="check-circle"
-                    label={currentStatusLabel}
-                    labelCaption={global.t?.t('orders', 'label', 'status') || 'Status'}
-                    accentColor={brandColors.primary}
-                    active={statusFilter !== 'all'}
-                    dense
-                    title={global.t?.t('orders', 'label', 'status')}
-                    options={statusOptions}
-                    selectedKey={statusFilter}
-                    onSelect={optionKey => {
-                      setStatusFilter(optionKey);
-                      return true;
-                    }}
-                  />
-                </View>
-              )}
-
-              <View style={filterSelectorSlotStyle}>
-                <DateShortcutFilter
-                  value={dateFilter}
-                  onChange={setDateFilter}
-                  customRange={customRange}
-                  onCustomRangeChange={setCustomRange}
-                  dense
-                  labelCaption={global.t?.t('orders', 'label', 'period') || 'Periodo'}
-                  colors={{
-                    accent: brandColors.primary,
-                    appBg: 'transparent',
-                    border: '#CBD5E1',
-                    borderSoft: '#E2E8F0',
-                    cardBg: '#FFFFFF',
-                    cardBgSoft: '#F8FAFC',
-                    danger: '#DC2626',
-                    isLight: true,
-                    panelBg: '#EFF6FF',
-                    pillTextDark: '#FFFFFF',
-                    textPrimary: '#0F172A',
-                    textSecondary: '#64748B',
-                  }}
-                  optionKeys={['all', 'today', 'yesterday', '7d', '30d', 'custom']}
-                />
-              </View>
-            </View>
-          )}
-        </View>
+        <DefaultExternalFilters
+          accentColor={brandColors.primary}
+          columns={externalFilterColumns}
+          filters={historyFilters}
+          onChangeFilters={setHistoryFilters}
+          storeName="orders"
+        />
 
         <View style={styles.tableWrap}>
           <DefaultTable

@@ -6,7 +6,7 @@ const {beforeEach, describe, expect, it} = global;
 
 let mockStores = {};
 let defaultTableProps = null;
-let compactFilterSelectorProps = [];
+let mockDefaultExternalFiltersProps = null;
 
 jest.mock('@store', () => ({
   useStore: jest.fn(name => mockStores[name] || {actions: {}, getters: {}}),
@@ -46,14 +46,10 @@ jest.mock('@controleonline/ui-default/src/react/components/table/DefaultTable', 
   return React.createElement('default-table');
 });
 
-jest.mock('@controleonline/ui-default/src/react/components/filters/CompactFilterSelector', () => props => {
-  compactFilterSelectorProps.push(props);
-  return React.createElement('compact-filter-selector');
+jest.mock('@controleonline/ui-default/src/react/components/filters/DefaultExternalFilters', () => props => {
+  mockDefaultExternalFiltersProps = props;
+  return React.createElement('default-external-filters');
 });
-
-jest.mock('@controleonline/ui-default/src/react/components/filters/DateShortcutFilter', () => () =>
-  React.createElement('date-shortcut-filter'),
-);
 
 jest.mock('@controleonline/ui-orders/src/react/components/OrderHeader', () => () =>
   React.createElement('order-header'),
@@ -78,7 +74,7 @@ const OrderHistoryPage =
 describe('OrderHistoryPage', () => {
   beforeEach(() => {
     defaultTableProps = null;
-    compactFilterSelectorProps = [];
+    mockDefaultExternalFiltersProps = null;
     global.t = {
       t: jest.fn((store, type, key) => {
         if (store === 'orders' && type === 'label' && key === 'loading') {
@@ -137,6 +133,22 @@ describe('OrderHistoryPage', () => {
           isLoadingList: false,
           reload: false,
           summary: {},
+          columns: [
+            {
+              name: 'app',
+              label: 'app',
+            },
+            {
+              name: 'status',
+              label: 'status',
+              list: 'status/getItems',
+            },
+            {
+              name: 'alterDate',
+              label: 'alterDate',
+              type: 'range-date',
+            },
+          ],
         },
       },
     };
@@ -227,11 +239,12 @@ describe('OrderHistoryPage', () => {
       provider: '/people/1',
       report: 1,
     });
-    const channelFilterProps = compactFilterSelectorProps.find(
-      props => props?.labelCaption === 'Canal' || props?.title === 'channel',
+    const channelFilterColumn = mockDefaultExternalFiltersProps?.columns.find(
+      column => column.name === 'app',
     );
 
-    expect(channelFilterProps?.options).toEqual(
+    expect(channelFilterColumn?.externalFilter).toBe(true);
+    expect(channelFilterColumn?.list).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           key: 'iFood',
