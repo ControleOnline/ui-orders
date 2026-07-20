@@ -173,12 +173,18 @@ const ProductTotem = ({
       const materializedOrder = await refreshOrderProducts(
         updatedOrder || order || {id: resolvedOrderId},
       );
+      const checkoutOrderId =
+        materializedOrder?.id ||
+        materializedOrder?.['@id'] ||
+        updatedOrder?.id ||
+        updatedOrder?.['@id'] ||
+        resolvedOrderId;
 
       if (!isSelected && singleItemMode === true) {
         navigation.navigate(
           'Checkout',
           buildCheckoutRouteParams(
-            materializedOrder || updatedOrder || resolvedOrderId,
+            checkoutOrderId,
             buildManagerPdvRouteParams({showBottomCart: false}),
           ),
         );

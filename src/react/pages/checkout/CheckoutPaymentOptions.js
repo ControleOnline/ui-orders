@@ -5,15 +5,18 @@ const resolvePaymentSelectionIdentity = payment =>
 
 export const buildPaymentSelectionOption = ({
   channel,
+  description = '',
+  label = '',
   payment,
   targetDeviceId = '',
   targetDeviceLabel = '',
 }) => ({
   channel,
+  description,
   key: [channel, targetDeviceId, resolvePaymentSelectionIdentity(payment)]
     .filter(Boolean)
     .join(':'),
-  label: getPaymentOptionLabel(payment),
+  label: String(label || getPaymentOptionLabel(payment)).trim() || 'Pagamento',
   payment,
   targetDeviceId,
   targetDeviceLabel,

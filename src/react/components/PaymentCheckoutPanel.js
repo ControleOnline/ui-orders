@@ -78,6 +78,7 @@ const PaymentCheckoutPanel = ({
   emptyTitle = 'Nenhuma opcao de pagamento disponivel',
   error = null,
   invoiceError = null,
+  forceShowActionButton = false,
   isLoadingPayments = false,
   onPay,
   onSelectPayment,
@@ -87,6 +88,7 @@ const PaymentCheckoutPanel = ({
   pendingAmount = 0,
   selectedPayment = {},
   selectedPaymentKey = '',
+  skipOrderMaterialization = false,
   topContent = null,
 }) => {
   const {styles} = css();
@@ -218,11 +220,13 @@ const PaymentCheckoutPanel = ({
         actionLabel={actionLabel || global.t?.t('orders', 'button', 'pay') || 'Pagar'}
         bottomOffset={-8}
         collapsePayableWhenPaid={false}
+        forceShowActionButton={forceShowActionButton}
         onActionPress={onPay}
         paymentPaidLabel="Pago"
         paymentPendingAmount={pendingAmount}
         paymentPendingLabel="Pendente"
         showPayableBadge={false}
+        skipOrderMaterialization={skipOrderMaterialization}
         variant="payment-status"
       />
     </View>

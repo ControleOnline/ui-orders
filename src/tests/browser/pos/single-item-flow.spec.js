@@ -61,6 +61,21 @@ const createCompany = (id, overrides = {}) => ({
   configs: overrides.configs || {},
 });
 
+const createPeopleSearchResult = (id, overrides = {}) => ({
+  '@id': `/people/${id}`,
+  id,
+  name: overrides.name || `Pessoa ${id}`,
+  alias: overrides.alias || '',
+  document: overrides.document || [
+    {
+      documentType: {
+        documentType: 'CPF',
+      },
+      document: overrides.cpf || '12345678901',
+    },
+  ],
+});
+
 const createProduct = (id, overrides = {}) => ({
   '@id': `/products/${id}`,
   id,
@@ -99,6 +114,31 @@ const createOpenOrder = ({id = 123, products = [], price = 0}) => ({
   price: Number(price || 0),
   payable: Number(price || 0),
   orderProducts: products.map(product => buildOrderProduct(product, 1)),
+});
+
+const createLoyaltySnapshotCard = ({
+  cardId = 600,
+  providerId = 3,
+  providerAlias = 'Centro',
+  requiredSales = 3,
+  stampIds = [],
+} = {}) => ({
+  provider: {
+    id: providerId,
+    name: providerAlias,
+    alias: providerAlias,
+  },
+  card: {
+    '@id': `/orders/${cardId}`,
+    id: cardId,
+    orderType: 'fidelity',
+  },
+  requiredSales,
+  stamps: stampIds.map(stampId => ({
+    '@id': `/orders/${stampId}`,
+    id: stampId,
+    orderType: 'sale',
+  })),
 });
 
 const createPosMenus = () => ({
@@ -255,6 +295,14 @@ const createPosApiMock = async (page, initialState = {}) => {
     quantity: 1,
     sku: 'SC-102',
   });
+  const productGift = initialState.productGift || createProduct(103, {
+    product: 'Brinde fidelidade',
+    description: 'Brinde do cartao fidelidade',
+    type: 'product',
+    price: 5.0,
+    quantity: 1,
+    sku: 'BG-103',
+  });
   const state = {
     company: initialState.company || createCompany(3, {
       name: 'Restaurante Centro',
@@ -328,7 +376,7 @@ const createPosApiMock = async (page, initialState = {}) => {
     },
     products: Array.isArray(initialState.products)
       ? initialState.products
-      : [productOne, productTwo],
+      : [productOne, productTwo, productGift],
     order: initialState.order || createOpenOrder({
       id: 123,
       products: [productOne],
@@ -368,8 +416,17 @@ const createPosApiMock = async (page, initialState = {}) => {
     },
     invoices: [],
     nextInvoiceId: 5001,
+    lastAddProductsPayload: null,
     lastReplaceProductsPayload: null,
     lastInvoicePayload: null,
+    peopleSearchResults: Array.isArray(initialState.peopleSearchResults)
+      ? initialState.peopleSearchResults
+      : [],
+    fidelitySnapshots:
+      initialState.fidelitySnapshots &&
+      typeof initialState.fidelitySnapshots === 'object'
+        ? initialState.fidelitySnapshots
+        : {},
   };
 
   state.deviceConfigs = Array.isArray(initialState.deviceConfigs)
@@ -407,7 +464,10 @@ const createPosApiMock = async (page, initialState = {}) => {
   const resolveProductsByIds = items =>
     (Array.isArray(items) ? items : [])
       .map(item => {
-        const productId = Number(item?.product || item?.productId || 0);
+        const productId = Number(
+          String(item?.product || item?.productId || '')
+            .replace(/\D+/g, ''),
+        );
         const product = state.products.find(current => Number(current.id) === productId);
 
         if (!product) {
@@ -415,8 +475,15 @@ const createPosApiMock = async (page, initialState = {}) => {
         }
 
         const quantity = Math.max(1, Number(item?.quantity || 1));
+        const isLoyaltyGift =
+          String(item?.comment || '').trim() === 'Brinde fidelidade';
 
-        return buildOrderProduct(product, quantity);
+        return {
+          ...buildOrderProduct(product, quantity),
+          comment: isLoyaltyGift ? 'Brinde fidelidade' : item?.comment || null,
+          price: isLoyaltyGift ? 0 : Number(product.price || 0),
+          total: isLoyaltyGift ? 0 : Number(product.price || 0) * quantity,
+        };
       })
       .filter(Boolean);
 
@@ -458,6 +525,10 @@ const createPosApiMock = async (page, initialState = {}) => {
 
     if (pathname === 'people/7') {
       return fulfillJson(route, state.user);
+    }
+
+    if (pathname === 'people' && method === 'GET') {
+      return fulfillJson(route, collection(state.peopleSearchResults));
     }
 
     if (pathname === 'menus-people') {
@@ -563,9 +634,63 @@ const createPosApiMock = async (page, initialState = {}) => {
       return fulfillJson(route, collection(state.orders));
     }
 
+    const fidelitySnapshotMatch = pathname.match(/^orders\/fidelityById\/(\d+)$/);
+    if (fidelitySnapshotMatch && method === 'GET') {
+      const clientId = fidelitySnapshotMatch[1];
+      const snapshot = state.fidelitySnapshots[clientId];
+      const cards = Array.isArray(snapshot?.member)
+        ? snapshot.member
+        : Array.isArray(snapshot)
+          ? snapshot
+          : [];
+
+      return fulfillJson(route, {
+        ...collection(cards),
+        summary:
+          snapshot && typeof snapshot.summary === 'object'
+            ? snapshot.summary
+            : {},
+      });
+    }
+
     const orderItemMatch = pathname.match(/^orders\/(\d+)$/);
     if (orderItemMatch && method === 'GET') {
       return fulfillJson(route, state.order);
+    }
+
+    const orderCloseMatch = pathname.match(/^orders\/(\d+)\/close$/);
+    if (orderCloseMatch && method === 'POST') {
+      const targetOrderId = Number(orderCloseMatch[1]);
+
+      if (targetOrderId === Number(state.order?.id)) {
+        state.order = {
+          ...state.order,
+          status: {
+            '@id': '/statuses/901',
+            id: 901,
+            status: 'closed',
+            realStatus: 'closed',
+          },
+        };
+        state.orders = [state.order];
+      }
+
+      return fulfillJson(route, {
+        action: 'close',
+        result: {
+          errno: 0,
+          errmsg: 'ok',
+        },
+        capabilities: {
+          can_cancel: false,
+          can_confirm: false,
+          can_delivered: false,
+          can_ready: false,
+          is_delivering: false,
+          is_terminal: true,
+          realStatus: 'closed',
+        },
+      });
     }
 
     if (pathname === 'orders' && method === 'POST') {
@@ -601,6 +726,52 @@ const createPosApiMock = async (page, initialState = {}) => {
         price: nextPrice,
         payable: nextPrice,
       };
+      state.orders = [state.order];
+
+      return fulfillJson(route, state.order);
+    }
+
+    const addProductsMatch = pathname.match(/^orders\/(\d+)\/add-products$/);
+    if (addProductsMatch && method === 'PUT') {
+      const body = postBody(request);
+      const addedProducts = resolveProductsByIds(body);
+      state.lastAddProductsPayload = body;
+      const nextOrderProducts = [...(state.order.orderProducts || [])];
+
+      addedProducts.forEach((addedProduct, index) => {
+        const incomingItem = Array.isArray(body) ? body[index] : body;
+        const incomingComment = String(incomingItem?.comment || '').trim();
+        const equivalentIndex = nextOrderProducts.findIndex(
+          item =>
+            Number(item?.product?.id) === Number(addedProduct?.product?.id) &&
+            String(item?.comment || '').trim() === incomingComment,
+        );
+
+        if (equivalentIndex >= 0) {
+          const equivalentItem = nextOrderProducts[equivalentIndex];
+          const nextQuantity =
+            Number(equivalentItem?.quantity || 0) +
+            Number(addedProduct?.quantity || 0);
+          nextOrderProducts[equivalentIndex] = {
+            ...equivalentItem,
+            quantity: nextQuantity,
+            total: Number(equivalentItem?.price || 0) * nextQuantity,
+          };
+          return;
+        }
+
+        nextOrderProducts.push(addedProduct);
+      });
+
+      state.order = {
+        ...state.order,
+        orderProducts: nextOrderProducts,
+      };
+      state.order.price = state.order.orderProducts.reduce(
+        (sum, item) => sum + Number(item?.total || 0),
+        0,
+      );
+      state.order.payable = state.order.price;
       state.orders = [state.order];
 
       return fulfillJson(route, state.order);
@@ -824,6 +995,7 @@ test.describe('single-item browser smoke', () => {
         'pos-cash-wallet': 101,
         'pos-cielo-wallet': 102,
         'shop-loyalty-coupons-enabled': '1',
+        'shop-loyalty-gift-product-id': '103',
       },
     });
     await bootstrapPosBrowser(page);
@@ -847,6 +1019,130 @@ test.describe('single-item browser smoke', () => {
     await expect(page.getByText('Identificar cliente', {exact: true})).toBeVisible();
     await expect(page.getByPlaceholder('Digite o CPF')).toBeVisible();
     await expect(page.getByText('Dinheiro', {exact: true})).toBeHidden();
+  });
+
+  test('locks the payment step to Cartao Fidelidade when the selected CPF already completed the card', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const loyaltyPerson = createPeopleSearchResult(20, {
+      name: 'Cliente Fidelidade',
+      cpf: '12345678901',
+    });
+    await createPosApiMock(page, {
+      company: createCompany(3, {
+        name: 'Restaurante Centro',
+        alias: 'Centro',
+        configs: {
+          'pos-cash-wallet': 101,
+          'pos-cielo-wallet': 102,
+          'shop-loyalty-coupons-enabled': '1',
+        },
+      }),
+      deviceConfig: {
+        id: 1,
+        device: {
+          id: 1,
+          device: 'web-7',
+        },
+        people: {
+          id: 3,
+        },
+        type: 'PDV',
+        configs: JSON.stringify({
+          'config-version': APP_VERSION,
+          'pos-operation-mode': 'single-item',
+          'check-order-type': 'stamp',
+          'pos-gateway': 'cielo',
+          'pos-type': 'simple',
+          'payment-type-ids': [1, 2],
+          'cash-wallet-closed-id': 0,
+          'pos-default-status': 901,
+          'pos-paid-status': 902,
+        }),
+      },
+      runtimeConfigs: {
+        'pos-cash-wallet': 101,
+        'pos-cielo-wallet': 102,
+        'shop-loyalty-coupons-enabled': '1',
+        'shop-loyalty-gift-product-id': '103',
+      },
+      peopleSearchResults: [loyaltyPerson],
+      fidelitySnapshots: {
+        '20': {
+          member: [
+            createLoyaltySnapshotCard({
+              cardId: 600,
+              providerAlias: 'Centro',
+              requiredSales: 3,
+              stampIds: [701, 702, 703],
+            }),
+          ],
+        },
+      },
+    });
+    await bootstrapPosBrowser(page);
+
+    await page.goto('/add-product-screen');
+    await page.getByText('Selecionar', {exact: true}).nth(1).click();
+
+    await expect(page.getByPlaceholder('Digite o CPF')).toBeVisible();
+    await page.getByPlaceholder('Digite o CPF').fill('12345');
+    await expect(page.getByText('Cliente Fidelidade', {exact: true})).toBeVisible();
+
+    const snapshotRequestPromise = page.waitForRequest(request =>
+      request.url().includes('/orders/fidelityById/20') &&
+      request.method() === 'GET',
+    );
+
+    await page.getByText('Cliente Fidelidade', {exact: true}).click();
+    await snapshotRequestPromise;
+
+    await expect(
+      page.getByText(
+        'Finalizar com Cartao Fidelidade',
+        {exact: true},
+      ),
+    ).toBeVisible();
+
+    await expect(
+      page.getByText('O cartao deste CPF completou a meta. Esta venda segue apenas com Cartao Fidelidade.', {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText('Cartao Fidelidade', {exact: true})).toBeVisible();
+    await expect(page.getByText('Dinheiro', {exact: true})).toHaveCount(0);
+    await expect(page.getByText('Crédito Cielo', {exact: true})).toHaveCount(0);
+
+    const invoiceRequestPromise = page.waitForRequest(request =>
+      request.url().endsWith('/invoices') &&
+      request.method() === 'POST',
+    );
+    const closeParentRequestPromise = page.waitForRequest(request =>
+      request.url().includes('/orders/600/close') &&
+      request.method() === 'POST',
+    );
+    const addProductsRequestPromise = page.waitForRequest(request =>
+      request.url().includes('/orders/123/add-products') &&
+      request.method() === 'PUT',
+    );
+
+    await page.getByText('Finalizar com Cartao Fidelidade', {exact: true}).click();
+
+    const addProductsRequest = await addProductsRequestPromise;
+    const invoiceRequest = await invoiceRequestPromise;
+    const closeParentRequest = await closeParentRequestPromise;
+    expect(addProductsRequest.postDataJSON()).toEqual([
+      {
+        product: '103',
+        quantity: 1,
+        comment: 'Brinde fidelidade',
+      },
+    ]);
+    expect(closeParentRequest.postDataJSON()).toEqual({});
+    expect(invoiceRequest.postDataJSON().price).toBe(8.9);
+
+    await expect(page).toHaveURL(/order-history-page/);
   });
 
   test('shows the runtime footer on the POS shell', async ({ page }) => {

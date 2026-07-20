@@ -223,3 +223,65 @@ export const resolveCheckoutLoyaltySelection = order => {
     raw: selectedPeople,
   };
 };
+
+export const extractLoyaltySnapshotCards = response => {
+  if (Array.isArray(response?.member)) {
+    return response.member.filter(Boolean);
+  }
+
+  if (Array.isArray(response?.['hydra:member'])) {
+    return response['hydra:member'].filter(Boolean);
+  }
+
+  if (Array.isArray(response)) {
+    return response.filter(Boolean);
+  }
+
+  return [];
+};
+
+export const filterLoyaltySnapshotCardsByProvider = (response, providerId = null) => {
+  const cards = extractLoyaltySnapshotCards(response);
+  const normalizedProviderId = resolvePeopleId(providerId);
+
+  if (!normalizedProviderId) {
+    return cards;
+  }
+
+  return cards.filter(
+    card =>
+      resolvePeopleId(card?.provider?.id || card?.provider?.['@id']) ===
+      normalizedProviderId,
+  );
+};
+
+export const resolveLoyaltyCardProgress = card => {
+  const requiredSales = Math.max(Number(card?.requiredSales || 0), 0);
+  const stamps = Array.isArray(card?.stamps) ? card.stamps : [];
+  const completedStampCount = Math.min(stamps.length, requiredSales);
+
+  return {
+    completedStampCount,
+    requiredSales,
+    stamps,
+  };
+};
+
+export const resolveLoyaltyStampCount = (response, providerId = null) =>
+  filterLoyaltySnapshotCardsByProvider(response, providerId).reduce(
+    (total, card) => total + resolveLoyaltyCardProgress(card).completedStampCount,
+    0,
+  );
+
+export const resolveRewardableLoyaltyCard = (response, providerId = null) => {
+  const cards = filterLoyaltySnapshotCardsByProvider(response, providerId);
+
+  return (
+    cards.find(card => {
+      const {completedStampCount, requiredSales} =
+        resolveLoyaltyCardProgress(card);
+
+      return requiredSales > 0 && completedStampCount >= requiredSales;
+    }) || null
+  );
+};

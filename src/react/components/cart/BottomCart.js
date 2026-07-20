@@ -26,6 +26,8 @@ const BottomCart = ({
   actionDisabled,
   onActionPress,
   collapsePayableWhenPaid = true,
+  forceShowActionButton = false,
+  skipOrderMaterialization = false,
   showActionButton = true,
   showPayableBadge = false,
   variant = 'default',
@@ -75,7 +77,7 @@ const BottomCart = ({
   const shouldShowActionButton =
     showActionButton &&
     !shouldShowPaidBreakdown &&
-    (!isPaymentStatusVariant || hasPendingPayment);
+    (forceShowActionButton || !isPaymentStatusVariant || hasPendingPayment);
   const shouldShowDetailsButton =
     (shouldShowPaidBreakdown || isPaymentStatusVariant) &&
     typeof onPaidDetailsPress === 'function' &&
@@ -153,7 +155,9 @@ const BottomCart = ({
   }, [materializeOrderWithProducts]);
 
   const isActionDisabled =
-    !!actionDisabled || isMaterializingOrder || (!order?.id && !hasPendingSelections);
+    !!actionDisabled ||
+    isMaterializingOrder ||
+    (!skipOrderMaterialization && !order?.id && !hasPendingSelections);
   const handleActionPress = useCallback(async () => {
     if (isActionDisabled) {
       return;
@@ -162,7 +166,7 @@ const BottomCart = ({
     setIsMaterializingOrder(true);
 
     try {
-      const resolvedOrder = isPdvMode
+      const resolvedOrder = isPdvMode && !skipOrderMaterialization
         ? await materializePendingSelections()
         : order;
 
@@ -185,6 +189,7 @@ const BottomCart = ({
   }, [
     handleDefaultAction,
     isActionDisabled,
+    skipOrderMaterialization,
     materializePendingSelections,
     onActionPress,
     showError,
@@ -240,7 +245,7 @@ const BottomCart = ({
             </TouchableOpacity>
           )}
         </View>
-      ) : isPaidStateBar ? (
+      ) : isPaidStateBar && !forceShowActionButton ? (
           <View
             style={[
               styles.paidToolbar,

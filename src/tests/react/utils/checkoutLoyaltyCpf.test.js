@@ -2,10 +2,13 @@ const {
   buildLoyaltyCpfSearchParams,
   buildLoyaltyCpfSearchResults,
   extractPeopleCpfDigits,
+  filterLoyaltySnapshotCardsByProvider,
   formatCpfDisplay,
   isLoyaltyCouponsEnabledForCheckout,
+  resolveLoyaltyStampCount,
   resolveCheckoutCompanyConfigs,
   resolveCheckoutLoyaltySelection,
+  resolveRewardableLoyaltyCard,
 } = require('../../../react/utils/checkoutLoyaltyCpf')
 
 describe('checkoutLoyaltyCpf helpers', () => {
@@ -137,5 +140,34 @@ describe('checkoutLoyaltyCpf helpers', () => {
         cpfDisplay: '529.982.247-25',
       }),
     )
+  })
+
+  it('filters loyalty cards and reward eligibility by the current provider', () => {
+    const snapshot = {
+      member: [
+        {
+          provider: {id: 3},
+          card: {id: 600},
+          requiredSales: 3,
+          stamps: [{id: 701}, {id: 702}, {id: 703}],
+        },
+        {
+          provider: {id: 4},
+          card: {id: 601},
+          requiredSales: 3,
+          stamps: [{id: 801}],
+        },
+      ],
+    }
+
+    expect(filterLoyaltySnapshotCardsByProvider(snapshot, 3)).toHaveLength(1)
+    expect(resolveLoyaltyStampCount(snapshot, 3)).toBe(3)
+    expect(resolveLoyaltyStampCount(snapshot, 4)).toBe(1)
+    expect(resolveRewardableLoyaltyCard(snapshot, 3)).toEqual(
+      expect.objectContaining({
+        card: expect.objectContaining({id: 600}),
+      }),
+    )
+    expect(resolveRewardableLoyaltyCard(snapshot, 4)).toBeNull()
   })
 })
