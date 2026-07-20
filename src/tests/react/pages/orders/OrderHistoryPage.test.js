@@ -1,11 +1,10 @@
 const React = require('react');
 const ReactDOMServer = require('react-dom/server');
-const {jest} = require('@jest/globals');
 
 const {beforeEach, describe, expect, it} = global;
 
 let mockStores = {};
-let defaultTableProps = null;
+let mockDefaultTableProps = null;
 let mockDefaultExternalFiltersProps = null;
 
 jest.mock('@store', () => ({
@@ -37,23 +36,27 @@ jest.mock('react-native-safe-area-context', () => ({
   },
 }));
 
-jest.mock('@controleonline/ui-common/src/react/components/StateStore', () => props =>
-  React.createElement('state-store', {mode: props.mode || ''}, props.loading || props.children),
-);
+jest.mock('@controleonline/ui-common/src/react/components/StateStore', () => props => {
+  const React = require('react');
+  return React.createElement('state-store', {mode: props.mode || ''}, props.loading || props.children);
+});
 
 jest.mock('@controleonline/ui-default/src/react/components/table/DefaultTable', () => props => {
-  defaultTableProps = props;
+  const React = require('react');
+  mockDefaultTableProps = props;
   return React.createElement('default-table');
 });
 
 jest.mock('@controleonline/ui-default/src/react/components/filters/DefaultExternalFilters', () => props => {
+  const React = require('react');
   mockDefaultExternalFiltersProps = props;
   return React.createElement('default-external-filters');
 });
 
-jest.mock('@controleonline/ui-orders/src/react/components/OrderHeader', () => () =>
-  React.createElement('order-header'),
-);
+jest.mock('@controleonline/ui-orders/src/react/components/OrderHeader', () => () => {
+  const React = require('react');
+  return React.createElement('order-header');
+});
 
 jest.mock('@controleonline/ui-orders/src/react/hooks/usePosCartSession', () => () => ({
   resolveCounterStartDestination: jest.fn(),
@@ -73,7 +76,7 @@ const OrderHistoryPage =
 
 describe('OrderHistoryPage', () => {
   beforeEach(() => {
-    defaultTableProps = null;
+    mockDefaultTableProps = null;
     mockDefaultExternalFiltersProps = null;
     global.t = {
       t: jest.fn((store, type, key) => {
@@ -196,7 +199,7 @@ describe('OrderHistoryPage', () => {
       }),
     );
 
-    expect(typeof defaultTableProps?.renderCard).toBe('function');
+    expect(typeof mockDefaultTableProps?.renderCard).toBe('function');
   });
 
   it('requests the report summary in the main history query for sale orders', () => {
@@ -235,7 +238,7 @@ describe('OrderHistoryPage', () => {
       }),
     );
 
-    expect(defaultTableProps?.requestParams).toMatchObject({
+    expect(mockDefaultTableProps?.requestParams).toMatchObject({
       provider: '/people/1',
       report: 1,
     });
@@ -254,7 +257,7 @@ describe('OrderHistoryPage', () => {
         }),
       ]),
     );
-    expect(defaultTableProps?.requestParams?.orderType).toEqual([
+    expect(mockDefaultTableProps?.requestParams?.orderType).toEqual([
       'sale',
       'cart',
       'online',
