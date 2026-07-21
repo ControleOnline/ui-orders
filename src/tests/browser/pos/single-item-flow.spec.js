@@ -658,9 +658,9 @@ const createPosApiMock = async (page, initialState = {}) => {
       return fulfillJson(route, state.order);
     }
 
-    const orderCloseMatch = pathname.match(/^orders\/(\d+)\/close$/);
-    if (orderCloseMatch && method === 'POST') {
-      const targetOrderId = Number(orderCloseMatch[1]);
+    const orderDeliveredMatch = pathname.match(/^orders\/(\d+)\/delivered$/);
+    if (orderDeliveredMatch && method === 'POST') {
+      const targetOrderId = Number(orderDeliveredMatch[1]);
 
       if (targetOrderId === Number(state.order?.id)) {
         state.order = {
@@ -676,7 +676,7 @@ const createPosApiMock = async (page, initialState = {}) => {
       }
 
       return fulfillJson(route, {
-        action: 'close',
+        action: 'delivered',
         result: {
           errno: 0,
           errmsg: 'ok',
@@ -1119,7 +1119,7 @@ test.describe('single-item browser smoke', () => {
       request.method() === 'POST',
     );
     const closeParentRequestPromise = page.waitForRequest(request =>
-      request.url().includes('/orders/600/close') &&
+      request.url().includes('/orders/600/delivered') &&
       request.method() === 'POST',
     );
     const addProductsRequestPromise = page.waitForRequest(request =>

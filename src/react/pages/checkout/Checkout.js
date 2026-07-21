@@ -990,7 +990,7 @@ const Checkout = () => {
 
     try {
       const response = await api.fetch(
-        `${ordersGetters.resourceEndpoint}/${loyaltyParentOrderId}/close`,
+        `${ordersGetters.resourceEndpoint}/${loyaltyParentOrderId}/delivered`,
         {
           method: 'POST',
           body: {},
