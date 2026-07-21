@@ -142,4 +142,43 @@ describe('ProductTotem', () => {
       }),
     )
   })
+
+  it('permite que o card inteiro use a mesma selecao unitaria', async () => {
+    const renderCard = jest.fn(({isSelected}) =>
+      React.createElement('SingleItemCard', {isSelected}),
+    )
+
+    let tree
+    await renderer.act(async () => {
+      tree = renderer.create(
+        React.createElement(ProductTotem, {
+          accessibilityLabel: 'Caminhonetas',
+          children: renderCard,
+          product: {id: 102, product: 'Caminhonetas'},
+          singleItemMode: true,
+        }),
+      )
+    })
+
+    const button = tree.root.findByType('TouchableOpacity')
+    expect(button.props.accessibilityLabel).toBe('Caminhonetas')
+    expect(button.props.accessibilityRole).toBe('radio')
+    expect(button.props.accessibilityState.checked).toBe(false)
+    expect(renderCard).toHaveBeenCalledWith({
+      isSavingSelection: false,
+      isSelected: false,
+    })
+
+    await renderer.act(async () => {
+      await button.props.onPress()
+    })
+
+    expect(mockReplaceProducts).toHaveBeenCalledWith('123', [
+      {product: '102', quantity: 1},
+    ])
+    expect(mockNavigate).toHaveBeenCalledWith(
+      'Checkout',
+      expect.objectContaining({id: '123'}),
+    )
+  })
 })

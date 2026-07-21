@@ -33,6 +33,9 @@ const ProductTotem = ({
   palette = {},
   singleItemMode = false,
   orderId = '',
+  children,
+  containerStyle,
+  accessibilityLabel,
 }) => {
   const navigation = useNavigation();
   const ordersStore = useStore('orders');
@@ -207,24 +210,34 @@ const ProductTotem = ({
 
   return (
     <TouchableOpacity
-      style={styles.container}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole={children ? 'radio' : 'button'}
+      accessibilityState={children ? {checked: isSelected, disabled: isSavingSelection} : undefined}
+      activeOpacity={children ? 0.88 : 0.7}
+      style={children ? containerStyle : [styles.container, containerStyle]}
       disabled={isSavingSelection || !productId || !resolvedOrderId}
       onPress={replaceCurrentProduct}>
-      <View style={styles.button}>
-        <Icon
-          name={isSelected ? 'check-circle' : 'radio-button-unchecked'}
-          size={24}
-          color={isSelected ? resolvedPalette.iconSuccess : resolvedPalette.iconDisabled}
-        />
-      </View>
+      {typeof children === 'function' ? (
+        children({isSavingSelection, isSelected})
+      ) : (
+        <>
+          <View style={styles.button}>
+            <Icon
+              name={isSelected ? 'check-circle' : 'radio-button-unchecked'}
+              size={24}
+              color={isSelected ? resolvedPalette.iconSuccess : resolvedPalette.iconDisabled}
+            />
+          </View>
 
-      <Text style={[styles.quantityText, {color: resolvedPalette.textMuted}]}>
-        {isSavingSelection
-          ? 'Salvando'
-          : isSelected
-            ? 'Selecionado'
-            : 'Selecionar'}
-      </Text>
+          <Text style={[styles.quantityText, {color: resolvedPalette.textMuted}]}>
+            {isSavingSelection
+              ? 'Salvando'
+              : isSelected
+                ? 'Selecionado'
+                : 'Selecionar'}
+          </Text>
+        </>
+      )}
     </TouchableOpacity>
   );
 };
