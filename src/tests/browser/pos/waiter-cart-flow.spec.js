@@ -828,6 +828,10 @@ const createPosApiMock = async (page, initialState = {}) => {
       return fulfillJson(route, state.order);
     }
 
+    if (pathname === 'product-showcases/catalog' && method === 'GET') {
+      return fulfillJson(route, collection(state.products));
+    }
+
     if (pathname === 'products' && method === 'GET') {
       return fulfillJson(route, collection(state.products));
     }
