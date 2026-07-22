@@ -2245,7 +2245,7 @@ const Checkout = () => {
                     loadingLoyaltySnapshot
                   }
                   actionIcon="arrow-right"
-                  actionLabel="Continuar para pagamento"
+                  actionLabel="Continuar"
                   bottomOffset={-8}
                   collapsePayableWhenPaid={false}
                   onActionPress={handleContinueAfterLoyaltyCpf}
