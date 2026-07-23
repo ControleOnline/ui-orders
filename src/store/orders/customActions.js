@@ -94,6 +94,7 @@ export const fetchHistoryPage = ({commit, getters}, {query = {}, append = false,
       commit(types.SET_ITEMS, nextItems);
       commit(types.SET_TOTALITEMS, resolveTotalItems(response, nextItems));
       commit(types.SET_SUMMARY, response?.summary || {});
+      commit(types.SET_DEBUG, response?.debug || {});
       commit(types.SET_LOADED_KEY, loadedKey || '');
       commit(types.SET_LOADED_AT, Date.now());
 
@@ -102,6 +103,7 @@ export const fetchHistoryPage = ({commit, getters}, {query = {}, append = false,
         mergedItems: nextItems,
         totalItems: resolveTotalItems(response, nextItems),
         summary: response?.summary || {},
+        debug: response?.debug || {},
       };
     })
     .catch(e => {

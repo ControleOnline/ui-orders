@@ -23,6 +23,7 @@ export default {
     error: "",
     totalItems: 0,
     summary: {},
+    debug: {},
     isLoadingList: false,
     loadedKey: '',
     loadedAt: 0,
