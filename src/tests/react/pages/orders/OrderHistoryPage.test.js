@@ -71,8 +71,10 @@ jest.mock('@appType', () => ({
   app_type_base: 'ADMIN',
 }));
 
-const OrderHistoryPage =
-  require('../../../../react/pages/orders/OrderHistoryPage').default;
+const OrderHistoryPageModule =
+  require('../../../../react/pages/orders/OrderHistoryPage');
+const OrderHistoryPage = OrderHistoryPageModule.default;
+const {buildHistoryRequestParams} = OrderHistoryPageModule;
 
 describe('OrderHistoryPage', () => {
   beforeEach(() => {
@@ -156,6 +158,13 @@ describe('OrderHistoryPage', () => {
               externalFilter: true,
               emptyOptionLabel: 'All',
               list: 'status/getItems',
+            },
+            {
+              name: 'orderDate',
+              label: 'orderDate',
+              externalFilter: true,
+              inputType: 'date-range',
+              type: 'range-date',
             },
             {
               name: 'alterDate',
@@ -263,5 +272,31 @@ describe('OrderHistoryPage', () => {
       'online',
       'manual',
     ]);
+  });
+
+  it('includes an orderDate range in the history query when the filter is filled', () => {
+    expect(
+      buildHistoryRequestParams({
+        canViewCompanyOrders: true,
+        currentCompanyId: 1,
+        currentDeviceId: null,
+        filters: {
+          orderDate: {
+            shortcut: 'custom',
+            customRange: {
+              from: '2026-07-01',
+              to: '2026-07-10',
+            },
+          },
+        },
+        orderTypeFilter: 'sale',
+        showAdvancedFilters: true,
+      }),
+    ).toMatchObject({
+      provider: '/people/1',
+      report: 1,
+      'orderDate[after]': '2026-07-01 00:00:00',
+      'orderDate[before]': '2026-07-10 23:59:59',
+    });
   });
 });

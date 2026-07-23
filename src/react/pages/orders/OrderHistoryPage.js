@@ -109,7 +109,7 @@ const buildOrderHistoryPalette = themeColors => ({
   textSecondary: themeColors.textSecondary,
 });
 
-const buildHistoryRequestParams = ({
+export const buildHistoryRequestParams = ({
   canViewCompanyOrders,
   currentCompanyId,
   currentDeviceId,
@@ -149,7 +149,16 @@ const buildHistoryRequestParams = ({
   }
 
   if (showAdvancedFilters) {
+    const orderDateRange = resolveDateRangeFilter(filters?.orderDate);
     const dateRange = resolveDateRangeFilter(filters?.alterDate);
+
+    if (orderDateRange?.after) {
+      query['orderDate[after]'] = orderDateRange.after;
+    }
+
+    if (orderDateRange?.before) {
+      query['orderDate[before]'] = orderDateRange.before;
+    }
 
     if (dateRange?.after) {
       query['alterDate[after]'] = dateRange.after;
@@ -384,6 +393,15 @@ export default function OrderHistoryPage({ navigation, route }) {
           externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter),
           emptyOptionLabel: allChannelOption.label,
           list: 'status/getItems',
+        };
+      }
+
+      if (fieldName === 'orderDate') {
+        return {
+          ...column,
+          externalFilter: showAdvancedFilters,
+          inputType: 'date-range',
+          show: true,
         };
       }
 
@@ -635,6 +653,7 @@ export default function OrderHistoryPage({ navigation, route }) {
             showRowActions={false}
             storeName="orders"
             summary={false}
+            visibleColumnsPreferenceKey="order-history-page"
           />
         </View>
       </View>
