@@ -1346,6 +1346,41 @@ test.describe('single-item browser smoke', () => {
     await expect(page.getByText('cart', { exact: true })).toBeVisible();
   });
 
+  test('bootstraps period translations after a direct authenticated reload', async ({page}) => {
+    bindBrowserDiagnostics(page);
+    await createPosApiMock(page);
+
+    await bootstrapPosBrowser(page);
+    await page.goto('/order-history-page');
+    await expect(page.getByText('#123', {exact: true})).toBeVisible();
+
+    await page.reload();
+    await expect(
+      page.getByText(/Historico de pedidos|Order History/i),
+    ).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => typeof globalThis.t?.t))
+      .toBe('function');
+
+    const periodLabels = await page.evaluate(() => [
+      globalThis.t?.t('orders', 'label', 'period_all'),
+      globalThis.t?.t('orders', 'label', 'period_today'),
+      globalThis.t?.t('users', 'date', 'yesterday'),
+      globalThis.t?.t('orders', 'label', 'period_7d'),
+      globalThis.t?.t('orders', 'label', 'period_30d'),
+      globalThis.t?.t('orders', 'label', 'period_custom'),
+    ]);
+
+    expect(periodLabels).toEqual([
+      'Period all',
+      'Period today',
+      'Yesterday',
+      'Period 7d',
+      'Period 30d',
+      'Period custom',
+    ]);
+  });
+
   test('keeps the order history toolbar on one line on narrow payment devices', async ({ page }) => {
     bindBrowserDiagnostics(page);
     await page.setViewportSize({width: 375, height: 667});
