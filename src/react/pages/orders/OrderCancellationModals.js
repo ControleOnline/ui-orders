@@ -18,6 +18,45 @@ import { createModalStyles } from './OrderHistoryPage.styles';
 
 const normalizeText = value => String(value || '').trim();
 
+const parseOrderInformations = order => {
+  const informations = order?.otherInformations || order?.other_informations;
+
+  if (!informations) {
+    return {};
+  }
+
+  if (typeof informations === 'string') {
+    try {
+      const parsed = JSON.parse(informations);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return typeof informations === 'object' ? informations : {};
+};
+
+const getOrderCancellationPayload = order => {
+  const informations = parseOrderInformations(order);
+  const action = informations?.order_action || informations?.orderAction;
+
+  return action?.payload && typeof action.payload === 'object'
+    ? action.payload
+    : {};
+};
+
+const getPersonLabel = person =>
+  normalizeText(
+    person?.alias ||
+      person?.name ||
+      person?.email ||
+      person?.username ||
+      person?.label ||
+      person?.id ||
+      normalizeEntityId(person),
+  );
+
 export const getCancelReasonId = reason =>
   normalizeText(
     reason?.reason_id ??
@@ -41,6 +80,32 @@ export const getCancelReasonLabel = reason =>
 
 const getOrderDisplayId = order =>
   normalizeText(order?.displayId || order?.id || normalizeEntityId(order));
+
+const getOrderCancellationReasonLabel = order => {
+  const payload = getOrderCancellationPayload(order);
+
+  return normalizeText(
+    order?.cancellationReason?.name ||
+      order?.cancellationReason?.label ||
+      order?.cancellationReason?.description ||
+      payload?.reason ||
+      payload?.reason_id ||
+      payload?.reasonId,
+  );
+};
+
+const getOrderCanceledByLabel = order => {
+  const payload = getOrderCancellationPayload(order);
+
+  return normalizeText(
+    getPersonLabel(order?.canceledBy) ||
+      getPersonLabel(order?.cancelledBy) ||
+      payload?.canceled_by ||
+      payload?.canceledBy ||
+      payload?.canceled_by_id ||
+      payload?.canceledById,
+  );
+};
 
 const ModalShell = ({ children, onClose, title, visible }) => {
   const themeStore = useStore('theme');
@@ -331,6 +396,74 @@ export const OrderCancelModal = ({
             {cancelling
               ? global.t?.t('orders', 'label', 'saving') || 'Salvando'
               : global.t?.t('orders', 'button', 'confirmCancel') || 'Confirmar cancelamento'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ModalShell>
+  );
+};
+
+export const OrderCancellationDetailsModal = ({
+  accentColor,
+  onClose,
+  order,
+  visible,
+}) => {
+  const themeStore = useStore('theme');
+  const styles = useMemo(
+    () => createModalStyles(themeStore?.getters?.colors || {}),
+    [themeStore?.getters?.colors],
+  );
+  const reasonLabel =
+    getOrderCancellationReasonLabel(order) ||
+    global.t?.t('orders', 'label', 'notInformed') ||
+    'Nao informado';
+  const canceledByLabel =
+    getOrderCanceledByLabel(order) ||
+    global.t?.t('orders', 'label', 'notInformed') ||
+    'Nao informado';
+
+  return (
+    <ModalShell
+      visible={visible}
+      onClose={onClose}
+      title={global.t?.t('orders', 'title', 'cancellationDetails') || 'Cancelamento do pedido'}
+    >
+      <View style={styles.cancelBody}>
+        <View style={styles.cancelInfo}>
+          <Text style={styles.cancelInfoLabel}>
+            {global.t?.t('orders', 'label', 'order') || 'Pedido'}
+          </Text>
+          <Text style={styles.cancelInfoValue}>#{getOrderDisplayId(order)}</Text>
+        </View>
+
+        <View style={styles.cancelInfo}>
+          <Text style={styles.cancelInfoLabel}>
+            {global.t?.t('orders', 'label', 'cancelledBy') || 'Cancelado por'}
+          </Text>
+          <Text style={styles.cancelInfoValue} numberOfLines={2}>
+            {canceledByLabel}
+          </Text>
+        </View>
+
+        <View style={styles.cancelInfo}>
+          <Text style={styles.cancelInfoLabel}>
+            {global.t?.t('orders', 'label', 'cancelReason') || 'Motivo'}
+          </Text>
+          <Text style={styles.cancelInfoValue} numberOfLines={3}>
+            {reasonLabel}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.modalActions}>
+        <TouchableOpacity
+          style={[styles.secondaryButton, accentColor ? { borderColor: accentColor } : null]}
+          activeOpacity={0.82}
+          onPress={onClose}
+        >
+          <Text style={styles.secondaryButtonText}>
+            {global.t?.t('orders', 'button', 'close') || 'Fechar'}
           </Text>
         </TouchableOpacity>
       </View>

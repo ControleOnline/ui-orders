@@ -303,6 +303,29 @@ describe('OrderHistoryPage', () => {
         hidden: false,
       }),
     ]);
+
+    expect(
+      ReactDOMServer.renderToStaticMarkup(
+        mockDefaultTableProps.rowActionsComponent({
+          row: {
+            id: 1,
+            status: {realStatus: 'open', status: 'Open'},
+          },
+        }),
+      ),
+    ).toContain('name="x-circle"');
+    expect(
+      ReactDOMServer.renderToStaticMarkup(
+        mockDefaultTableProps.rowActionsComponent({
+          row: {
+            id: 2,
+            cancellationReason: {name: 'Desistencia'},
+            canceledBy: {name: 'Operador'},
+            status: {realStatus: 'canceled', status: 'Canceled'},
+          },
+        }),
+      ),
+    ).toContain('name="eye"');
   });
 
   it('requests the report summary in the main history query for sale orders', () => {

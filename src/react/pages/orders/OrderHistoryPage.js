@@ -38,6 +38,7 @@ import StateStore from '@controleonline/ui-common/src/react/components/StateStor
 import {
   getCancelReasonLabel,
   OrderCancelModal,
+  OrderCancellationDetailsModal,
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
 import createStyles from './OrderHistoryPage.styles';
@@ -145,6 +146,14 @@ const isCancelableOrder = order => {
   const status = normalizeText(order?.status?.status || order?.status).toLowerCase();
 
   return !TERMINAL_ORDER_STATUSES.has(realStatus) && !TERMINAL_ORDER_STATUSES.has(status);
+};
+
+const isCanceledOrder = order => {
+  const realStatus = normalizeText(order?.status?.realStatus || order?.realStatus).toLowerCase();
+  const status = normalizeText(order?.status?.status || order?.status).toLowerCase();
+
+  return ['canceled', 'cancelled'].includes(realStatus) ||
+    ['canceled', 'cancelled', 'cancelado'].includes(status);
 };
 
 const getCurrentUserLabel = user =>
@@ -281,6 +290,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const [cancelReasons, setCancelReasons] = useState([]);
   const [selectedCancelReasonId, setSelectedCancelReasonId] = useState('');
   const [cancelReasonText, setCancelReasonText] = useState('');
+  const [cancelDetailsOrder, setCancelDetailsOrder] = useState(null);
   const [cancelReasonsLoading, setCancelReasonsLoading] = useState(false);
   const [cancellingOrder, setCancellingOrder] = useState(false);
   const [reasonManagerVisible, setReasonManagerVisible] = useState(false);
@@ -678,6 +688,38 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   const renderRowActions = useCallback(({ row }) => {
+    if (isCanceledOrder(row)) {
+      const infoColor =
+        themeColors?.primary ||
+        themeColors?.textInfo ||
+        themeColors?.info ||
+        brandColors.primary;
+
+      return (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={
+            global.t?.t('orders', 'button', 'viewCancellationDetails') ||
+            'Ver cancelamento'
+          }
+          style={[
+            styles.rowActionButton,
+            {
+              borderColor: infoColor,
+              backgroundColor: orderHistoryPalette.cardBackground,
+            },
+          ]}
+          activeOpacity={0.82}
+          onPress={event => {
+            event?.stopPropagation?.();
+            setCancelDetailsOrder(row);
+          }}
+        >
+          <Icon name="eye" size={16} color={infoColor} />
+        </TouchableOpacity>
+      );
+    }
+
     if (!isCancelableOrder(row)) {
       return null;
     }
@@ -919,6 +961,12 @@ export default function OrderHistoryPage({ navigation, route }) {
         reasons={cancelReasons}
         selectedReasonId={selectedCancelReasonId}
         visible={!!cancelModalOrder}
+      />
+      <OrderCancellationDetailsModal
+        accentColor={brandColors.primary}
+        onClose={() => setCancelDetailsOrder(null)}
+        order={cancelDetailsOrder}
+        visible={!!cancelDetailsOrder}
       />
       <OrderCancellationReasonsModal
         accentColor={brandColors.primary}
