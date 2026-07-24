@@ -16,6 +16,19 @@ const extractCollectionItems = response => {
 const resolveTotalItems = (response, items) =>
   Number(response?.totalItems || response?.['hydra:totalItems'] || items?.length || 0);
 
+const normalizeErrno = value => String(value ?? '0').trim();
+
+const extractActionResult = response => response?.result || response || {};
+
+const assertSuccessfulOrderAction = response => {
+  const result = extractActionResult(response);
+  if (normalizeErrno(result?.errno) !== '0') {
+    throw new Error(result?.errmsg || response?.error || 'Nao foi possivel executar a acao do pedido.');
+  }
+
+  return result;
+};
+
 const appendOrdersPage = (currentItems, pageItems) => {
   const nextItems = Array.isArray(currentItems) ? [...currentItems] : [];
 
@@ -140,6 +153,68 @@ export const getFidelitySnapshot = ({getters}, params = {}) => {
       },
     },
   );
+};
+
+export const getCancelReasons = ({getters}, params = {}) => {
+  const orderId = normalizeEntityId(params?.id || params?.orderId);
+  if (!orderId) {
+    return Promise.reject(new Error('Order not informed'));
+  }
+
+  return api.fetch(`${getters.resourceEndpoint}/${orderId}/cancel-reasons`)
+    .then(response => {
+      const result = assertSuccessfulOrderAction(response);
+      return Array.isArray(result?.data?.reasons)
+        ? result.data.reasons
+        : Array.isArray(result?.reasons)
+          ? result.reasons
+          : [];
+    });
+};
+
+export const cancelOrder = ({commit, getters}, params = {}) => {
+  const orderId = normalizeEntityId(params?.id || params?.orderId);
+  if (!orderId) {
+    return Promise.reject(new Error('Order not informed'));
+  }
+
+  const reasonId = params?.reasonId ?? params?.reason_id ?? null;
+  const reason = String(params?.reason || '').trim();
+  const reloadParams =
+    params?.reloadParams && typeof params.reloadParams === 'object' && !Array.isArray(params.reloadParams)
+      ? params.reloadParams
+      : null;
+
+  commit(types.SET_ISSAVING, true);
+  commit(types.SET_ERROR, null);
+
+  return api.fetch(`${getters.resourceEndpoint}/${orderId}/cancel`, {
+    method: 'POST',
+    body: {
+      ...(reasonId !== null && reasonId !== undefined && String(reasonId).trim() !== ''
+        ? {reason_id: reasonId}
+        : {}),
+      ...(reason ? {reason} : {}),
+    },
+  })
+    .then(response => {
+      commit(types.SET_ERROR, null);
+      assertSuccessfulOrderAction(response);
+
+      if (reloadParams) {
+        return fetchHistoryPage({commit, getters}, {query: reloadParams})
+          .then(() => response);
+      }
+
+      return response;
+    })
+    .catch(e => {
+      commit(types.SET_ERROR, e.message);
+      throw e;
+    })
+    .finally(() => {
+      commit(types.SET_ISSAVING, false);
+    });
 };
 
 export const syncOrder = ({commit, getters}, order) =>

@@ -19,15 +19,31 @@ jest.mock('react-native', () => {
   const React = require('react');
 
   return {
+    Modal: props => React.createElement('modal', null, props.visible ? props.children : null),
     SafeAreaView: props => React.createElement('safe-area-view', null, props.children),
+    ScrollView: props => React.createElement('scroll-view', null, props.children),
     StyleSheet: {
       create: styles => styles,
     },
     Text: props => React.createElement('text', null, props.children),
+    TextInput: props => React.createElement('text-input', null, props.value),
     TouchableOpacity: props => React.createElement('touchable-opacity', null, props.children),
+    TouchableWithoutFeedback: props => React.createElement('touchable-without-feedback', null, props.children),
     View: props => React.createElement('view', null, props.children),
   };
 });
+
+jest.mock('react-native-vector-icons/Feather', () => {
+  const React = require('react');
+  return props => React.createElement('icon', {name: props.name});
+});
+
+jest.mock('@controleonline/ui-common/src/react/components/MessageService', () => ({
+  useMessage: () => ({
+    showError: jest.fn(),
+    showSuccess: jest.fn(),
+  }),
+}));
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: props => {
@@ -151,6 +167,8 @@ describe('OrderHistoryPage', () => {
         actions: {
           getItems: jest.fn(),
           getHistorySummaryApps: jest.fn(),
+          getCancelReasons: jest.fn(),
+          cancelOrder: jest.fn(),
           setColumns: jest.fn(),
           syncOrder: jest.fn(),
         },
@@ -195,6 +213,15 @@ describe('OrderHistoryPage', () => {
               type: 'range-date',
             },
           ],
+        },
+      },
+      auth: {
+        getters: {
+          user: {
+            people: {
+              alias: 'Operador',
+            },
+          },
         },
       },
     };
@@ -243,6 +270,39 @@ describe('OrderHistoryPage', () => {
     );
 
     expect(typeof mockDefaultTableProps?.renderCard).toBe('function');
+  });
+
+  it('adds order cancellation actions and the reason registry shortcut to the table', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+      navigate: jest.fn(),
+    };
+
+    mockStores.people.getters.currentCompany = {
+      id: 1,
+      theme: {
+        colors: {},
+      },
+    };
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHistoryPage, {
+        navigation,
+        route: {
+          params: {},
+        },
+      }),
+    );
+
+    expect(mockDefaultTableProps?.showRowActions).toBe(true);
+    expect(typeof mockDefaultTableProps?.rowActionsComponent).toBe('function');
+    expect(mockDefaultTableProps?.toolbarActions).toEqual([
+      expect.objectContaining({
+        key: 'order-cancellation-reasons',
+        icon: 'tag',
+        hidden: false,
+      }),
+    ]);
   });
 
   it('requests the report summary in the main history query for sale orders', () => {

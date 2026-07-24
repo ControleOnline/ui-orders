@@ -6,8 +6,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Feather';
 import {app_type} from '@appType';
 import { useStore } from '@store';
+import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService';
 import DefaultExternalFilters from '@controleonline/ui-default/src/react/components/filters/DefaultExternalFilters';
 import DefaultTable from '@controleonline/ui-default/src/react/components/table/DefaultTable';
 import {
@@ -33,10 +35,16 @@ import { colors } from '@controleonline/../../src/styles/colors';
 import { resolveThemePalette } from '@controleonline/../../src/styles/branding';
 import { resolveHistoryOrderTypeQuery } from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
 import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
+import {
+  getCancelReasonLabel,
+  OrderCancelModal,
+  OrderCancellationReasonsModal,
+} from './OrderCancellationModals';
 import createStyles from './OrderHistoryPage.styles';
 
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
+const TERMINAL_ORDER_STATUSES = new Set(['closed', 'canceled', 'cancelled']);
 const ORDER_HISTORY_TABLE_PREFERENCE_KEY = 'order-history-page';
 const ORDER_HISTORY_FILTER_PREFERENCE_SCOPE = {
   routeKey: ORDER_HISTORY_TABLE_PREFERENCE_KEY,
@@ -123,6 +131,31 @@ const getPeopleLabel = entity =>
     entity?.document
   );
 
+const formatApiError = error =>
+  normalizeText(
+    error?.errmsg ||
+    error?.message ||
+    error?.error ||
+    error?.description ||
+    error?.['hydra:description'],
+  ) || 'Nao foi possivel concluir a operacao.';
+
+const isCancelableOrder = order => {
+  const realStatus = normalizeText(order?.status?.realStatus || order?.realStatus).toLowerCase();
+  const status = normalizeText(order?.status?.status || order?.status).toLowerCase();
+
+  return !TERMINAL_ORDER_STATUSES.has(realStatus) && !TERMINAL_ORDER_STATUSES.has(status);
+};
+
+const getCurrentUserLabel = user =>
+  normalizeText(
+    user?.people?.alias ||
+    user?.people?.name ||
+    user?.name ||
+    user?.email ||
+    user?.username,
+  );
+
 const buildOrderHistoryPalette = themeColors => ({
   cardBackground: themeColors.cardBackground,
   cardBorder: themeColors.cardBorder,
@@ -201,8 +234,10 @@ export default function OrderHistoryPage({ navigation, route }) {
   const peopleStore = useStore('people');
   const statusStore = useStore('status');
   const themeStore = useStore('theme');
+  const authStore = useStore('auth');
   const deviceConfigStore = useStore('device_config');
   const deviceStore = useStore('device');
+  const { showError, showSuccess } = useMessage() || {};
   const isFocused = useIsFocused();
 
   const { item: storagedDevice } = deviceStore.getters || {};
@@ -211,6 +246,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { getters: statusGetters } = statusStore;
   const { currentCompany, defaultCompany } = peopleGetters;
   const { colors: themeColors } = themeStore.getters || {};
+  const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
   const orderHistoryPalette = useMemo(
     () => buildOrderHistoryPalette(themeColors),
@@ -241,6 +277,13 @@ export default function OrderHistoryPage({ navigation, route }) {
     [],
   );
   const [historyFilters, setHistoryFilters] = useState(resolveInitialHistoryFilters);
+  const [cancelModalOrder, setCancelModalOrder] = useState(null);
+  const [cancelReasons, setCancelReasons] = useState([]);
+  const [selectedCancelReasonId, setSelectedCancelReasonId] = useState('');
+  const [cancelReasonText, setCancelReasonText] = useState('');
+  const [cancelReasonsLoading, setCancelReasonsLoading] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
+  const [reasonManagerVisible, setReasonManagerVisible] = useState(false);
   const applyHistoryFilters = useCallback(
     nextFilters => {
       const resolvedFilters =
@@ -521,6 +564,153 @@ export default function OrderHistoryPage({ navigation, route }) {
     [ordersGetters.items],
   );
 
+  const loadCancelReasons = useCallback(async order => {
+    const orderId = getEntityId(order);
+    if (!orderId || typeof orderActions.getCancelReasons !== 'function') {
+      setCancelReasons([]);
+      return [];
+    }
+
+    setCancelReasonsLoading(true);
+    try {
+      const reasons = await orderActions.getCancelReasons({id: orderId});
+      const applicableReasons = (Array.isArray(reasons) ? reasons : [])
+        .filter(reason => reason?.applicable !== false);
+      setCancelReasons(applicableReasons);
+      return applicableReasons;
+    } catch (error) {
+      setCancelReasons([]);
+      showError?.(formatApiError(error));
+      return [];
+    } finally {
+      setCancelReasonsLoading(false);
+    }
+  }, [orderActions, showError]);
+
+  const openCancelModal = useCallback(order => {
+    setCancelModalOrder(order);
+    setCancelReasons([]);
+    setSelectedCancelReasonId('');
+    setCancelReasonText('');
+    void loadCancelReasons(order);
+  }, [loadCancelReasons]);
+
+  const closeCancelModal = useCallback(() => {
+    if (cancellingOrder) return;
+    setCancelModalOrder(null);
+    setCancelReasons([]);
+    setSelectedCancelReasonId('');
+    setCancelReasonText('');
+  }, [cancellingOrder]);
+
+  const closeReasonManager = useCallback(() => {
+    setReasonManagerVisible(false);
+    if (cancelModalOrder) {
+      void loadCancelReasons(cancelModalOrder);
+    }
+  }, [cancelModalOrder, loadCancelReasons]);
+
+  const confirmCancelOrder = useCallback(async () => {
+    const orderId = getEntityId(cancelModalOrder);
+    if (!orderId || typeof orderActions.cancelOrder !== 'function') {
+      return;
+    }
+
+    const selectedReason = cancelReasons.find(reason =>
+      normalizeText(
+        reason?.reason_id ??
+        reason?.reasonId ??
+        reason?.cancelCodeId ??
+        reason?.cancelCode ??
+        reason?.code ??
+        reason?.id ??
+        reason?.value,
+      ) === selectedCancelReasonId,
+    );
+
+    setCancellingOrder(true);
+    try {
+      await orderActions.cancelOrder({
+        id: orderId,
+        reasonId: selectedCancelReasonId,
+        reason: cancelReasonText || getCancelReasonLabel(selectedReason),
+        reloadParams: historyRequestParams,
+      });
+      showSuccess?.(global.t?.t('orders', 'message', 'orderCanceled'));
+      setCancelModalOrder(null);
+      setCancelReasons([]);
+      setSelectedCancelReasonId('');
+      setCancelReasonText('');
+    } catch (error) {
+      showError?.(formatApiError(error));
+    } finally {
+      setCancellingOrder(false);
+    }
+  }, [
+    cancelModalOrder,
+    cancelReasonText,
+    cancelReasons,
+    historyRequestParams,
+    orderActions,
+    selectedCancelReasonId,
+    showError,
+    showSuccess,
+  ]);
+
+  const orderToolbarActions = useMemo(
+    () => [
+      {
+        key: 'order-cancellation-reasons',
+        icon: 'tag',
+        accessibilityLabel:
+          global.t?.t('orders', 'button', 'manageCancelReasons') ||
+          'Gerenciar motivos de cancelamento',
+        hidden: !currentCompany?.id,
+        onPress: () => setReasonManagerVisible(true),
+      },
+    ],
+    [currentCompany?.id],
+  );
+
+  const renderRowActions = useCallback(({ row }) => {
+    if (!isCancelableOrder(row)) {
+      return null;
+    }
+
+    const dangerColor =
+      themeColors?.danger ||
+      themeColors?.textDanger ||
+      themeColors?.error ||
+      brandColors.primary;
+
+    return (
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={global.t?.t('orders', 'button', 'cancelOrder')}
+        style={[
+          styles.rowActionButton,
+          {
+            borderColor: dangerColor,
+            backgroundColor: orderHistoryPalette.cardBackground,
+          },
+        ]}
+        activeOpacity={0.82}
+        onPress={event => {
+          event?.stopPropagation?.();
+          openCancelModal(row);
+        }}
+      >
+        <Icon name="x-circle" size={16} color={dangerColor} />
+      </TouchableOpacity>
+    );
+  }, [
+    brandColors.primary,
+    openCancelModal,
+    orderHistoryPalette.cardBackground,
+    styles.rowActionButton,
+    themeColors,
+  ]);
+
   useEffect(() => {
     const missingSupplierIds = [...new Set(
       orders
@@ -695,18 +885,42 @@ export default function OrderHistoryPage({ navigation, route }) {
             onAdd={goToAddProduct}
             onFilterChange={applyHistoryFilters}
             onRowPress={openOrder}
+            rowActionsComponent={renderRowActions}
             requestParams={historyRequestParams}
             renderCard={renderCard}
             searchProps={{
               placeholder: searchPlaceholder,
             }}
-            showRowActions={false}
+            showRowActions
             storeName="orders"
             summary={false}
+            toolbarActions={orderToolbarActions}
             visibleColumnsPreferenceKey={ORDER_HISTORY_TABLE_PREFERENCE_KEY}
           />
         </View>
       </View>
+      <OrderCancelModal
+        accentColor={themeColors?.danger || themeColors?.textDanger || brandColors.primary}
+        cancelReasonText={cancelReasonText}
+        cancelling={cancellingOrder}
+        currentUserLabel={currentUserLabel}
+        loadingReasons={cancelReasonsLoading}
+        onChangeReasonText={setCancelReasonText}
+        onClose={closeCancelModal}
+        onConfirm={confirmCancelOrder}
+        onManageReasons={() => setReasonManagerVisible(true)}
+        onSelectReason={setSelectedCancelReasonId}
+        order={cancelModalOrder}
+        reasons={cancelReasons}
+        selectedReasonId={selectedCancelReasonId}
+        visible={!!cancelModalOrder}
+      />
+      <OrderCancellationReasonsModal
+        accentColor={brandColors.primary}
+        currentCompanyId={currentCompany?.id}
+        onClose={closeReasonManager}
+        visible={reasonManagerVisible}
+      />
     </SafeAreaView>
   );
 }
