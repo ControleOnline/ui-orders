@@ -31,8 +31,6 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import { shouldResumeCounterOrderFlow } from '@controleonline/ui-orders/src/react/utils/counterOrderFlow';
-import { colors } from '@controleonline/../../src/styles/colors';
-import { resolveThemePalette } from '@controleonline/../../src/styles/branding';
 import { resolveHistoryOrderTypeQuery } from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
 import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import {
@@ -254,7 +252,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
   const { getters: statusGetters } = statusStore;
   const { currentCompany, defaultCompany } = peopleGetters;
-  const { colors: themeColors } = themeStore.getters || {};
+  const { colors: themeColors } = themeStore.getters;
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
   const orderHistoryPalette = useMemo(
@@ -262,11 +260,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     [themeColors],
   );
   const styles = useMemo(() => createStyles(orderHistoryPalette), [orderHistoryPalette]);
-
-  const brandColors = useMemo(
-    () => resolveThemePalette({ ...themeColors, ...(currentCompany?.theme?.colors || {}) }, colors),
-    [themeColors, currentCompany?.theme?.colors],
-  );
 
   const canViewCompanyOrders = useMemo(
     () => canDeviceViewCompanyOrders(deviceConfig?.configs),
@@ -677,23 +670,28 @@ export default function OrderHistoryPage({ navigation, route }) {
       {
         key: 'order-cancellation-reasons',
         icon: 'tag',
+        iconSize: 16,
         accessibilityLabel:
           global.t?.t('orders', 'button', 'manageCancelReasons') ||
           'Gerenciar motivos de cancelamento',
         hidden: !currentCompany?.id,
+        color: themeColors.buttonText,
+        style: {
+          minWidth: 30,
+          width: 30,
+          paddingHorizontal: 0,
+          backgroundColor: themeColors.buttonBackground,
+          borderColor: themeColors.buttonBackground,
+        },
         onPress: () => setReasonManagerVisible(true),
       },
     ],
-    [currentCompany?.id],
+    [currentCompany?.id, themeColors.buttonBackground, themeColors.buttonText],
   );
 
   const renderRowActions = useCallback(({ row }) => {
     if (isCanceledOrder(row)) {
-      const infoColor =
-        themeColors?.primary ||
-        themeColors?.textInfo ||
-        themeColors?.info ||
-        brandColors.primary;
+      const infoColor = themeColors.iconInfo;
 
       return (
         <TouchableOpacity
@@ -724,11 +722,7 @@ export default function OrderHistoryPage({ navigation, route }) {
       return null;
     }
 
-    const dangerColor =
-      themeColors?.danger ||
-      themeColors?.textDanger ||
-      themeColors?.error ||
-      brandColors.primary;
+    const dangerColor = themeColors.iconDanger;
 
     return (
       <TouchableOpacity
@@ -751,7 +745,6 @@ export default function OrderHistoryPage({ navigation, route }) {
       </TouchableOpacity>
     );
   }, [
-    brandColors.primary,
     openCancelModal,
     orderHistoryPalette.cardBackground,
     styles.rowActionButton,
@@ -917,7 +910,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     >
       <View style={styles.content}>
         <DefaultExternalFilters
-          accentColor={brandColors.primary}
+          accentColor={themeColors.primary}
           filters={historyFilters}
           getOptionsForColumn={getExternalFilterOptions}
           onChangeFilters={applyHistoryFilters}
@@ -926,12 +919,13 @@ export default function OrderHistoryPage({ navigation, route }) {
 
         <View style={styles.tableWrap}>
           <DefaultTable
-            accentColor={brandColors.primary}
+            accentColor={themeColors.primary}
             add={orderTypeFilter === 'loss' ? false : null}
             filters={historyFilters}
             onAdd={goToAddProduct}
             onFilterChange={applyHistoryFilters}
             onRowPress={openOrder}
+            pinRowActions={false}
             rowActionsComponent={renderRowActions}
             requestParams={historyRequestParams}
             renderCard={renderCard}
@@ -947,7 +941,7 @@ export default function OrderHistoryPage({ navigation, route }) {
         </View>
       </View>
       <OrderCancelModal
-        accentColor={themeColors?.danger || themeColors?.textDanger || brandColors.primary}
+        accentColor={themeColors.iconDanger}
         cancelReasonText={cancelReasonText}
         cancelling={cancellingOrder}
         currentUserLabel={currentUserLabel}
@@ -963,13 +957,13 @@ export default function OrderHistoryPage({ navigation, route }) {
         visible={!!cancelModalOrder}
       />
       <OrderCancellationDetailsModal
-        accentColor={brandColors.primary}
+        accentColor={themeColors.primary}
         onClose={() => setCancelDetailsOrder(null)}
         order={cancelDetailsOrder}
         visible={!!cancelDetailsOrder}
       />
       <OrderCancellationReasonsModal
-        accentColor={brandColors.primary}
+        accentColor={themeColors.primary}
         currentCompanyId={currentCompany?.id}
         onClose={closeReasonManager}
         visible={reasonManagerVisible}
