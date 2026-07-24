@@ -105,10 +105,10 @@ export const createModalStyles = themeColors => {
         borderWidth: 1,
         borderColor: border,
         overflow: 'hidden',
-        ...Platform.select({
+        ...(Platform?.select?.({
           web: { boxShadow: '0 20px 48px rgba(15, 23, 42, 0.18)' },
           default: {},
-        }),
+        }) || {}),
       },
       modalHeader: {
         flexDirection: 'row',
@@ -140,6 +140,27 @@ export const createModalStyles = themeColors => {
         flex: 1,
         minHeight: 260,
         padding: 10,
+      },
+      reasonManagerHeader: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingHorizontal: 10,
+        paddingTop: 10,
+      },
+      addReasonButton: {
+        minHeight: 36,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 7,
+        borderRadius: 8,
+        borderWidth: 1,
+        paddingHorizontal: 12,
+      },
+      addReasonButtonText: {
+        color: buttonText,
+        fontSize: 13,
+        fontWeight: '800',
       },
       inlineForm: {
         borderBottomWidth: 1,
@@ -267,6 +288,7 @@ export const createModalStyles = themeColors => {
       },
     }),
     tokens: {
+      buttonText,
       danger,
       iconMuted: muted,
       placeholder: muted,

@@ -123,6 +123,28 @@ export const OrderCancellationReasonsModal = ({
       onClose={onClose}
       title={global.t?.t('orders', 'title', 'orderCancellationReasons') || 'Motivos de cancelamento'}
     >
+      <View style={styles.reasonManagerHeader}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={
+            global.t?.t('orders', 'button', 'addCancelReason') ||
+            'Adicionar motivo'
+          }
+          style={[
+            styles.addReasonButton,
+            currentCompanyId ? { backgroundColor: accentColor, borderColor: accentColor } : styles.disabledButton,
+          ]}
+          activeOpacity={0.86}
+          disabled={!currentCompanyId}
+          onPress={() => setFormVisible(true)}
+        >
+          <Icon name="plus" size={15} color={styles.tokens.buttonText} />
+          <Text style={styles.addReasonButtonText}>
+            {global.t?.t('orders', 'button', 'addCancelReason') || 'Adicionar motivo'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {formVisible ? (
         <View style={styles.inlineForm}>
           <DefaultForm
@@ -217,28 +239,31 @@ export const OrderCancelModal = ({
       <View style={styles.cancelBody}>
         <View style={styles.cancelInfo}>
           <Text style={styles.cancelInfoLabel}>
-            {global.t?.t('orders', 'label', 'order')}
+            {global.t?.t('orders', 'label', 'order') || 'Pedido'}
           </Text>
           <Text style={styles.cancelInfoValue}>#{getOrderDisplayId(order)}</Text>
         </View>
 
         <View style={styles.cancelInfo}>
           <Text style={styles.cancelInfoLabel}>
-            {global.t?.t('orders', 'label', 'cancelledBy')}
+            {global.t?.t('orders', 'label', 'cancelledBy') || 'Cancelado por'}
           </Text>
           <Text style={styles.cancelInfoValue} numberOfLines={1}>
-            {currentUserLabel || global.t?.t('orders', 'label', 'currentUser')}
+            {currentUserLabel || global.t?.t('orders', 'label', 'currentUser') || 'Usuario atual'}
           </Text>
         </View>
 
         <View style={styles.cancelReasonsHeader}>
           <Text style={styles.cancelSectionTitle}>
-            {global.t?.t('orders', 'label', 'cancelReason')}
+            {global.t?.t('orders', 'label', 'cancelReason') || 'Motivo'}
           </Text>
           {onManageReasons ? (
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel={global.t?.t('orders', 'button', 'manageCancelReasons')}
+              accessibilityLabel={
+                global.t?.t('orders', 'button', 'manageCancelReasons') ||
+                'Gerenciar motivos'
+              }
               style={styles.manageReasonsButton}
               activeOpacity={0.82}
               onPress={onManageReasons}
@@ -251,7 +276,7 @@ export const OrderCancelModal = ({
         <ScrollView style={styles.reasonList} keyboardShouldPersistTaps="handled">
           {loadingReasons ? (
             <Text style={styles.emptyText}>
-              {global.t?.t('orders', 'label', 'loading')}
+              {global.t?.t('orders', 'label', 'loading') || 'Carregando'}
             </Text>
           ) : (Array.isArray(reasons) ? reasons : []).length > 0 ? (
             reasons.map(reason => {
@@ -269,7 +294,7 @@ export const OrderCancelModal = ({
             })
           ) : (
             <Text style={styles.emptyText}>
-              {global.t?.t('orders', 'message', 'noCancelReasonAvailable')}
+              {global.t?.t('orders', 'message', 'noCancelReasonAvailable') || 'Cadastre um motivo para continuar.'}
             </Text>
           )}
         </ScrollView>
@@ -279,7 +304,7 @@ export const OrderCancelModal = ({
             style={styles.reasonInput}
             multiline
             value={cancelReasonText}
-            placeholder={global.t?.t('orders', 'placeholder', 'cancelReasonDescription')}
+            placeholder={global.t?.t('orders', 'placeholder', 'cancelReasonDescription') || 'Descreva o motivo'}
             placeholderTextColor={styles.tokens.placeholder}
             onChangeText={onChangeReasonText}
           />
@@ -289,7 +314,7 @@ export const OrderCancelModal = ({
       <View style={styles.modalActions}>
         <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.82} onPress={onClose}>
           <Text style={styles.secondaryButtonText}>
-            {global.t?.t('orders', 'button', 'cancel')}
+            {global.t?.t('orders', 'button', 'cancel') || 'Cancelar'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -304,8 +329,8 @@ export const OrderCancelModal = ({
         >
           <Text style={styles.dangerButtonText}>
             {cancelling
-              ? global.t?.t('orders', 'label', 'saving')
-              : global.t?.t('orders', 'button', 'confirmCancel')}
+              ? global.t?.t('orders', 'label', 'saving') || 'Salvando'
+              : global.t?.t('orders', 'button', 'confirmCancel') || 'Confirmar cancelamento'}
           </Text>
         </TouchableOpacity>
       </View>

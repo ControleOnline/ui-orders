@@ -58,7 +58,7 @@ export default {
       {
         sortable: true,
         name: "app",
-        editable: true,
+        editable: false,
         label: "app",
         externalFilter: true,
         /*
@@ -86,6 +86,7 @@ export default {
         sortable: true,
         sortField: "status.status",
         name: "status",
+        editable: false,
         align: "left",
         label: "status",
         list: "status/getItems",
