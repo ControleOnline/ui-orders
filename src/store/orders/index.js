@@ -113,34 +113,6 @@ export default {
       },
       {
         sortable: true,
-        sortField: "cancellationReason.name",
-        name: "cancellationReason",
-        editable: false,
-        align: "left",
-        label: "cancellationReason",
-        externalFilter: false,
-        format: function (value) {
-          return value?.name || value?.label || value?.description || "";
-        },
-      },
-      {
-        sortable: true,
-        sortField: "canceledBy.name",
-        name: "canceledBy",
-        editable: false,
-        align: "left",
-        label: "canceledBy",
-        externalFilter: false,
-        format: function (value) {
-          if (!value) return "";
-
-          const name = value?.name || "";
-          const alias = value?.alias || "";
-          return [name, alias].filter(Boolean).join(" - ");
-        },
-      },
-      {
-        sortable: true,
         sortField: "client.name",
         name: "client",
         align: "left",
