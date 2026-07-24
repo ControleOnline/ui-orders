@@ -11,6 +11,10 @@ import { useStore } from '@store';
 import DefaultExternalFilters from '@controleonline/ui-default/src/react/components/filters/DefaultExternalFilters';
 import DefaultTable from '@controleonline/ui-default/src/react/components/table/DefaultTable';
 import {
+  persistTableFiltersPreference,
+  resolveStoredTableFiltersPreference,
+} from '@controleonline/ui-default/src/react/utils/tableVisibleColumnsPreferences';
+import {
   canDeviceViewCompanyOrders,
   isPosCashRegisterClosed,
   isPosCounterMode,
@@ -33,8 +37,28 @@ import createStyles from './OrderHistoryPage.styles';
 
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
 const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
+const ORDER_HISTORY_TABLE_PREFERENCE_KEY = 'order-history-page';
+const ORDER_HISTORY_FILTER_PREFERENCE_SCOPE = {
+  routeKey: ORDER_HISTORY_TABLE_PREFERENCE_KEY,
+  storeKey: 'orders',
+};
 
 const normalizeText = value => String(value || '').trim();
+
+const buildDefaultHistoryFilters = () => ({
+  alterDate: {
+    shortcut: 'today',
+    customRange: { from: '', to: '' },
+  },
+});
+
+const resolveInitialHistoryFilters = () => {
+  const storedFilters = resolveStoredTableFiltersPreference(
+    ORDER_HISTORY_FILTER_PREFERENCE_SCOPE,
+  );
+
+  return storedFilters !== null ? storedFilters : buildDefaultHistoryFilters();
+};
 
 const buildExternalColumnsSignature = columns =>
   (Array.isArray(columns) ? columns : [])
@@ -216,12 +240,26 @@ export default function OrderHistoryPage({ navigation, route }) {
     }),
     [],
   );
-  const [historyFilters, setHistoryFilters] = useState({
-    alterDate: {
-      shortcut: 'today',
-      customRange: { from: '', to: '' },
+  const [historyFilters, setHistoryFilters] = useState(resolveInitialHistoryFilters);
+  const applyHistoryFilters = useCallback(
+    nextFilters => {
+      const resolvedFilters =
+        nextFilters && typeof nextFilters === 'object' && !Array.isArray(nextFilters)
+          ? nextFilters
+          : {};
+
+      persistTableFiltersPreference(
+        ORDER_HISTORY_FILTER_PREFERENCE_SCOPE,
+        resolvedFilters,
+      );
+      setHistoryFilters(resolvedFilters);
+
+      if (typeof orderActions.setFilters === 'function') {
+        orderActions.setFilters(resolvedFilters);
+      }
     },
-  });
+    [orderActions],
+  );
   const [purchaseSuppliersById, setPurchaseSuppliersById] = useState({});
   const loadingPurchaseSuppliersRef = useRef(new Set());
 
@@ -281,9 +319,19 @@ export default function OrderHistoryPage({ navigation, route }) {
         changed = true;
       }
 
+      if (changed) {
+        persistTableFiltersPreference(
+          ORDER_HISTORY_FILTER_PREFERENCE_SCOPE,
+          next,
+        );
+        if (typeof orderActions.setFilters === 'function') {
+          orderActions.setFilters(next);
+        }
+      }
+
       return changed ? next : current;
     });
-  }, [statusOptions]);
+  }, [orderActions, statusOptions]);
 
   const isCashRegisterClosed = useMemo(
     () => isPosCashRegisterClosed(deviceConfig?.configs),
@@ -635,7 +683,7 @@ export default function OrderHistoryPage({ navigation, route }) {
           accentColor={brandColors.primary}
           filters={historyFilters}
           getOptionsForColumn={getExternalFilterOptions}
-          onChangeFilters={setHistoryFilters}
+          onChangeFilters={applyHistoryFilters}
           storeName="orders"
         />
 
@@ -643,7 +691,9 @@ export default function OrderHistoryPage({ navigation, route }) {
           <DefaultTable
             accentColor={brandColors.primary}
             add={orderTypeFilter === 'loss' ? false : null}
+            filters={historyFilters}
             onAdd={goToAddProduct}
+            onFilterChange={applyHistoryFilters}
             onRowPress={openOrder}
             requestParams={historyRequestParams}
             renderCard={renderCard}
@@ -653,7 +703,7 @@ export default function OrderHistoryPage({ navigation, route }) {
             showRowActions={false}
             storeName="orders"
             summary={false}
-            visibleColumnsPreferenceKey="order-history-page"
+            visibleColumnsPreferenceKey={ORDER_HISTORY_TABLE_PREFERENCE_KEY}
           />
         </View>
       </View>

@@ -75,11 +75,32 @@ const OrderHistoryPageModule =
   require('../../../../react/pages/orders/OrderHistoryPage');
 const OrderHistoryPage = OrderHistoryPageModule.default;
 const {buildHistoryRequestParams} = OrderHistoryPageModule;
+const {
+  DEFAULT_TABLE_PREFERENCES_STORAGE_KEY,
+} = require('@controleonline/ui-default/src/react/utils/tableVisibleColumnsPreferences');
+
+const createLocalStorageMock = () => {
+  let storage = {};
+
+  return {
+    clear: () => {
+      storage = {};
+    },
+    getItem: key => (key in storage ? storage[key] : null),
+    removeItem: key => {
+      delete storage[key];
+    },
+    setItem: (key, value) => {
+      storage[key] = String(value);
+    },
+  };
+};
 
 describe('OrderHistoryPage', () => {
   beforeEach(() => {
     mockDefaultTableProps = null;
     mockDefaultExternalFiltersProps = null;
+    global.localStorage = createLocalStorageMock();
     global.t = {
       t: jest.fn((store, type, key) => {
         if (store === 'orders' && type === 'label' && key === 'loading') {
@@ -272,6 +293,83 @@ describe('OrderHistoryPage', () => {
       'online',
       'manual',
     ]);
+  });
+
+  it('uses today as the default period when no saved table filter exists', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+      navigate: jest.fn(),
+    };
+
+    mockStores.people.getters.currentCompany = {
+      id: 1,
+      theme: {
+        colors: {},
+      },
+    };
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHistoryPage, {
+        navigation,
+        route: {
+          params: {
+            orderTypeFilter: 'sale',
+          },
+        },
+      }),
+    );
+
+    expect(mockDefaultExternalFiltersProps?.filters).toMatchObject({
+      alterDate: {
+        shortcut: 'today',
+      },
+    });
+    expect(mockDefaultTableProps?.requestParams).toEqual(
+      expect.objectContaining({
+        'alterDate[after]': expect.any(String),
+        'alterDate[before]': expect.any(String),
+      }),
+    );
+  });
+
+  it('hydrates an empty saved period filter instead of resetting it to today', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+      navigate: jest.fn(),
+    };
+
+    global.localStorage.setItem(
+      DEFAULT_TABLE_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        orders: {
+          'order-history-page': {
+            filters: {},
+          },
+        },
+      }),
+    );
+    mockStores.people.getters.currentCompany = {
+      id: 1,
+      theme: {
+        colors: {},
+      },
+    };
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHistoryPage, {
+        navigation,
+        route: {
+          params: {
+            orderTypeFilter: 'sale',
+          },
+        },
+      }),
+    );
+
+    expect(mockDefaultExternalFiltersProps?.filters).toEqual({});
+    expect(mockDefaultTableProps?.filters).toEqual({});
+    expect(mockDefaultTableProps?.requestParams).not.toHaveProperty('alterDate[after]');
+    expect(mockDefaultTableProps?.requestParams).not.toHaveProperty('alterDate[before]');
   });
 
   it('includes an orderDate range in the history query when the filter is filled', () => {
