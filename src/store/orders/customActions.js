@@ -157,11 +157,14 @@ export const getFidelitySnapshot = ({getters}, params = {}) => {
 
 export const getCancelReasons = ({getters}, params = {}) => {
   const orderId = normalizeEntityId(params?.id || params?.orderId);
+  const companyId = normalizeEntityId(params?.companyId || params?.company);
   if (!orderId) {
     return Promise.reject(new Error('Order not informed'));
   }
 
-  return api.fetch(`${getters.resourceEndpoint}/${orderId}/cancel-reasons`)
+  return api.fetch(`${getters.resourceEndpoint}/${orderId}/cancel-reasons`, {
+    params: companyId ? {company: companyId} : {},
+  })
     .then(response => {
       const result = assertSuccessfulOrderAction(response);
       return Array.isArray(result?.data?.reasons)
@@ -180,6 +183,7 @@ export const cancelOrder = ({commit, getters}, params = {}) => {
 
   const reasonId = params?.reasonId ?? params?.reason_id ?? null;
   const reason = String(params?.reason || '').trim();
+  const companyId = normalizeEntityId(params?.companyId || params?.company);
   const reloadParams =
     params?.reloadParams && typeof params.reloadParams === 'object' && !Array.isArray(params.reloadParams)
       ? params.reloadParams
@@ -195,6 +199,7 @@ export const cancelOrder = ({commit, getters}, params = {}) => {
         ? {reason_id: reasonId}
         : {}),
       ...(reason ? {reason} : {}),
+      ...(companyId ? {company: companyId} : {}),
     },
   })
     .then(response => {

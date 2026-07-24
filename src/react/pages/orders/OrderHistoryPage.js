@@ -573,7 +573,10 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     setCancelReasonsLoading(true);
     try {
-      const reasons = await orderActions.getCancelReasons({id: orderId});
+      const reasons = await orderActions.getCancelReasons({
+        id: orderId,
+        companyId: currentCompany?.id,
+      });
       const applicableReasons = (Array.isArray(reasons) ? reasons : [])
         .filter(reason => reason?.applicable !== false);
       setCancelReasons(applicableReasons);
@@ -585,7 +588,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     } finally {
       setCancelReasonsLoading(false);
     }
-  }, [orderActions, showError]);
+  }, [currentCompany?.id, orderActions, showError]);
 
   const openCancelModal = useCallback(order => {
     setCancelModalOrder(order);
@@ -632,6 +635,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     try {
       await orderActions.cancelOrder({
         id: orderId,
+        companyId: currentCompany?.id,
         reasonId: selectedCancelReasonId,
         reason: cancelReasonText || getCancelReasonLabel(selectedReason),
         reloadParams: historyRequestParams,
@@ -650,6 +654,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     cancelModalOrder,
     cancelReasonText,
     cancelReasons,
+    currentCompany?.id,
     historyRequestParams,
     orderActions,
     selectedCancelReasonId,

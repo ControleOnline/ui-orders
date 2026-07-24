@@ -88,10 +88,15 @@ describe('orders customActions', () => {
       },
       {
         id: 72829,
+        companyId: 8,
       },
     );
 
-    expect(mockFetch).toHaveBeenCalledWith('orders/72829/cancel-reasons');
+    expect(mockFetch).toHaveBeenCalledWith('orders/72829/cancel-reasons', {
+      params: {
+        company: '8',
+      },
+    });
     expect(result).toEqual([
       {
         id: 10,
@@ -124,6 +129,7 @@ describe('orders customActions', () => {
       },
       {
         id: 72829,
+        companyId: 8,
         reasonId: 10,
         reason: 'Cliente desistiu',
         reloadParams: {
@@ -136,6 +142,7 @@ describe('orders customActions', () => {
     expect(mockFetch).toHaveBeenNthCalledWith(1, 'orders/72829/cancel', {
       method: 'POST',
       body: {
+        company: '8',
         reason_id: 10,
         reason: 'Cliente desistiu',
       },
