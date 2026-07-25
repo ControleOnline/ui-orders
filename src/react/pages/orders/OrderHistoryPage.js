@@ -174,6 +174,7 @@ const buildOrderHistoryPalette = themeColors => ({
 });
 
 export const buildHistoryRequestParams = ({
+  appType = app_type,
   canViewCompanyOrders,
   currentCompanyId,
   currentDeviceId,
@@ -208,7 +209,7 @@ export const buildHistoryRequestParams = ({
     query.status = filters.status;
   }
 
-  if (app_type === 'POS' && !canViewCompanyOrders && currentDeviceId) {
+  if (appType === 'POS' && !canViewCompanyOrders && currentDeviceId) {
     query['device.device'] = currentDeviceId;
   }
 
@@ -261,12 +262,15 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
   const styles = useMemo(() => createStyles(orderHistoryPalette), [orderHistoryPalette]);
 
+  const isPosApp = app_type === 'POS';
   const canViewCompanyOrders = useMemo(
     () => canDeviceViewCompanyOrders(deviceConfig?.configs),
     [deviceConfig?.configs],
   );
-
-  const showAdvancedFilters = app_type !== 'POS' || canViewCompanyOrders;
+  const shouldRestrictToDeviceOrders = isPosApp && !canViewCompanyOrders;
+  const showAdvancedFilters = !isPosApp || canViewCompanyOrders;
+  const showHistoryToolbar = !shouldRestrictToDeviceOrders;
+  const showOrderHistoryRowActions = !isPosApp;
   const statusItems = useMemo(
     () => (Array.isArray(statusGetters.items) ? statusGetters.items : []),
     [statusGetters.items],
@@ -545,6 +549,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const historyRequestParams = useMemo(
     () =>
       buildHistoryRequestParams({
+        appType: app_type,
         canViewCompanyOrders,
         currentCompanyId: currentCompany?.id,
         currentDeviceId: storagedDevice?.id,
@@ -932,7 +937,8 @@ export default function OrderHistoryPage({ navigation, route }) {
             searchProps={{
               placeholder: searchPlaceholder,
             }}
-            showRowActions
+            showRowActions={showOrderHistoryRowActions}
+            showToolbar={showHistoryToolbar}
             storeName="orders"
             summary={false}
             toolbarActions={orderToolbarActions}

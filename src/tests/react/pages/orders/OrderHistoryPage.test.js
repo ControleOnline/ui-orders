@@ -6,6 +6,7 @@ const {beforeEach, describe, expect, it} = global;
 let mockStores = {};
 let mockDefaultTableProps = null;
 let mockDefaultExternalFiltersProps = null;
+let mockAppType = 'MANAGER';
 
 jest.mock('@store', () => ({
   useStore: jest.fn(name => mockStores[name] || {actions: {}, getters: {}}),
@@ -83,7 +84,9 @@ jest.mock('@controleonline/ui-orders/src/react/utils/counterOrderFlow', () => ({
 }));
 
 jest.mock('@appType', () => ({
-  app_type: 'MANAGER',
+  get app_type() {
+    return mockAppType;
+  },
   app_type_base: 'ADMIN',
 }));
 
@@ -116,6 +119,7 @@ describe('OrderHistoryPage', () => {
   beforeEach(() => {
     mockDefaultTableProps = null;
     mockDefaultExternalFiltersProps = null;
+    mockAppType = 'MANAGER';
     global.localStorage = createLocalStorageMock();
     global.t = {
       t: jest.fn((store, type, key) => {
@@ -328,6 +332,80 @@ describe('OrderHistoryPage', () => {
     ).toContain('name="eye"');
   });
 
+  it('configures POS device-only history without toolbar, row actions, or company orders', () => {
+    mockAppType = 'POS';
+    const navigation = {
+      setOptions: jest.fn(),
+      navigate: jest.fn(),
+    };
+
+    mockStores.people.getters.currentCompany = {
+      id: 1,
+      theme: {
+        colors: {},
+      },
+    };
+    mockStores.device_config.getters.item = {
+      configs: {
+        'pos-order-visibility': 'device',
+      },
+    };
+    mockStores.device.getters.item = {
+      id: 'a74273dc8b44000e',
+    };
+    mockStores.orders.getters.columns = [
+      {
+        name: 'app',
+        label: 'channel',
+        externalFilter: false,
+        emptyOptionLabel: 'All',
+      },
+      {
+        name: 'status',
+        label: 'status',
+        externalFilter: false,
+        emptyOptionLabel: 'All',
+        list: 'status/getItems',
+      },
+      {
+        name: 'orderDate',
+        label: 'orderDate',
+        externalFilter: false,
+        inputType: 'date-range',
+        show: true,
+        type: 'range-date',
+      },
+      {
+        name: 'alterDate',
+        label: 'period',
+        externalFilter: false,
+        inputType: 'date-range',
+        type: 'range-date',
+      },
+    ];
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHistoryPage, {
+        navigation,
+        route: {
+          params: {
+            orderTypeFilter: 'sale',
+          },
+        },
+      }),
+    );
+
+    expect(mockDefaultTableProps?.showToolbar).toBe(false);
+    expect(mockDefaultTableProps?.showRowActions).toBe(false);
+    expect(mockDefaultTableProps?.requestParams).toMatchObject({
+      provider: '/people/1',
+      'device.device': 'a74273dc8b44000e',
+      'status.realStatus': 'open',
+    });
+    expect(mockDefaultTableProps?.requestParams).not.toHaveProperty('report');
+    expect(mockDefaultExternalFiltersProps?.columns).toBeUndefined();
+  });
+
   it('requests the report summary in the main history query for sale orders', () => {
     const navigation = {
       setOptions: jest.fn(),
@@ -458,6 +536,7 @@ describe('OrderHistoryPage', () => {
   it('includes an orderDate range in the history query when the filter is filled', () => {
     expect(
       buildHistoryRequestParams({
+        appType: 'MANAGER',
         canViewCompanyOrders: true,
         currentCompanyId: 1,
         currentDeviceId: null,
