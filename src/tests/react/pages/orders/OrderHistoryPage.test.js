@@ -8,6 +8,13 @@ let mockDefaultTableProps = null;
 let mockDefaultExternalFiltersProps = null;
 let mockAppType = 'MANAGER';
 
+global.localStorage = global.localStorage || {
+  clear: jest.fn(),
+  getItem: jest.fn(() => null),
+  removeItem: jest.fn(),
+  setItem: jest.fn(),
+};
+
 jest.mock('@store', () => ({
   useStore: jest.fn(name => mockStores[name] || {actions: {}, getters: {}}),
 }));
@@ -94,6 +101,10 @@ const OrderHistoryPageModule =
   require('../../../../react/pages/orders/OrderHistoryPage');
 const OrderHistoryPage = OrderHistoryPageModule.default;
 const {buildHistoryRequestParams} = OrderHistoryPageModule;
+const ordersStoreConfig = require('../../../../store/orders').default;
+const {
+  formatStoreColumnValue,
+} = require('@controleonline/ui-common/src/react/utils/storeColumns');
 const {
   DEFAULT_TABLE_PREFERENCES_STORAGE_KEY,
 } = require('@controleonline/ui-default/src/react/utils/tableVisibleColumnsPreferences');
@@ -330,6 +341,104 @@ describe('OrderHistoryPage', () => {
         }),
       ),
     ).toContain('name="eye"');
+  });
+
+  it('formats table status values with normalized status translations', () => {
+    global.t.t = jest.fn((store, type, key) => {
+      if (store === 'orders' && type === 'status' && key === 'open') {
+        return 'Aberto';
+      }
+
+      if (store === 'orders' && type === 'status' && key === 'canceled') {
+        return 'Cancelado';
+      }
+
+      return '';
+    });
+
+    const columns = ordersStoreConfig.state.columns;
+
+    expect(
+      formatStoreColumnValue({
+        columns,
+        fieldName: 'status',
+        row: {
+          status: {realStatus: 'open', status: 'Open'},
+        },
+        storeName: 'orders',
+        value: {realStatus: 'open', status: 'Open'},
+      }),
+    ).toBe('Aberto');
+
+    expect(
+      formatStoreColumnValue({
+        columns,
+        fieldName: 'status',
+        row: {
+          status: {realStatus: 'canceled', status: 'Canceled'},
+        },
+        storeName: 'orders',
+        value: {realStatus: 'canceled', status: 'Canceled'},
+      }),
+    ).toBe('Cancelado');
+    expect(global.t.t).not.toHaveBeenCalledWith('orders', 'span', 'Aberto');
+  });
+
+  it('normalizes status filter labels before translating them', () => {
+    const navigation = {
+      setOptions: jest.fn(),
+      navigate: jest.fn(),
+    };
+
+    global.t.t = jest.fn((store, type, key) => {
+      if (store === 'orders' && type === 'status' && key === 'open') {
+        return 'Aberto';
+      }
+
+      if (store === 'orders' && type === 'status' && key === 'canceled') {
+        return 'Cancelado';
+      }
+
+      return '';
+    });
+    mockStores.people.getters.currentCompany = {
+      id: 1,
+      theme: {
+        colors: {},
+      },
+    };
+    mockStores.status.getters.items = [
+      {
+        '@id': '/statuses/1',
+        context: 'order',
+        status: 'Open',
+      },
+      {
+        '@id': '/statuses/2',
+        context: 'order',
+        status: 'Canceled',
+      },
+    ];
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHistoryPage, {
+        navigation,
+        route: {
+          params: {},
+        },
+      }),
+    );
+
+    expect(mockDefaultExternalFiltersProps?.getOptionsForColumn({name: 'status'})).toEqual([
+      {
+        label: 'Aberto',
+        value: '/statuses/1',
+      },
+      {
+        label: 'Cancelado',
+        value: '/statuses/2',
+      },
+    ]);
   });
 
   it('configures POS device-only history without toolbar, row actions, or company orders', () => {

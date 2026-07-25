@@ -341,10 +341,11 @@ export default function OrderHistoryPage({ navigation, route }) {
         }
 
         seenKeys.add(key);
+        const statusKey = normalizeText(status?.status).toLowerCase();
         accumulator.push({
           value: key,
           label:
-            normalizeText(global.t?.t('orders', 'status', status?.status)) ||
+            normalizeText(global.t?.t('orders', 'status', statusKey)) ||
             normalizeText(status?.status) ||
             key,
         });

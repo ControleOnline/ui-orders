@@ -11,6 +11,32 @@ export const ORDER_CHANNEL_OPTIONS = [
   {value: "SHOP", label: "SHOP"},
 ];
 
+const normalizeText = value => String(value || "").trim();
+const normalizeStatusKey = value => normalizeText(value).toLowerCase();
+
+const formatOrderStatusLabel = value => {
+  const statusKey = normalizeStatusKey(value?.status || value?.realStatus || value);
+  return statusKey ? global.t?.t("orders", "status", statusKey) : "";
+};
+
+const formatOrderStatusOption = value => {
+  if (!value) return value;
+
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return {
+      value,
+      label: formatOrderStatusLabel(value),
+    };
+  }
+
+  const statusId = value?.["@id"]?.split("/").pop() || value?.id || value?.value;
+  return {
+    ...value,
+    value: statusId,
+    label: formatOrderStatusLabel(value),
+  };
+};
+
 export default {
   namespaced: true,
   state: {
@@ -100,11 +126,15 @@ export default {
         emptyOptionLabel: "all",
         searchParam: "status",
         externalFilter: true,
+        translate: false,
         style: function (row) {
           return { color: row?.status?.color };
         },
         format: function (value) {
-          return value?.status;
+          return formatOrderStatusLabel(value);
+        },
+        formatList: function (value) {
+          return formatOrderStatusOption(value);
         },
 
         saveFormat: function (value) {
