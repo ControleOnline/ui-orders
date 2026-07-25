@@ -1381,18 +1381,27 @@ test.describe('single-item browser smoke', () => {
     ]);
   });
 
-  test('keeps the order history toolbar on one line on narrow payment devices', async ({ page }) => {
+  test('hides the order history toolbar and requests only open device orders on POS device scope', async ({ page }) => {
     bindBrowserDiagnostics(page);
     await page.setViewportSize({width: 375, height: 667});
     await createPosApiMock(page);
 
     await bootstrapPosBrowser(page);
+
+    const ordersRequestPromise = page.waitForRequest(request => {
+      const url = new URL(request.url());
+
+      return request.method() === 'GET' &&
+        url.pathname.endsWith('/orders') &&
+        url.searchParams.get('device.device') === 'web-7' &&
+        url.searchParams.get('status.realStatus') === 'open';
+    });
+
     await page.goto('/order-history-page');
+    await ordersRequestPromise;
 
     const searchButton = page.getByRole('button', {name: /search|buscar/i});
-    await expect(searchButton).toBeVisible();
-    await searchButton.click();
-    await expect(page.getByPlaceholder(/search|buscar/i)).toBeVisible();
+    await expect(searchButton).toBeHidden();
   });
 });
 
