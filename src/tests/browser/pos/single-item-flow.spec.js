@@ -1402,6 +1402,7 @@ test.describe('single-item browser smoke', () => {
 
     const searchButton = page.getByRole('button', {name: /search|buscar/i});
     await expect(searchButton).toBeHidden();
+    await expect(page.getByRole('button', {name: /add|adicionar/i})).toBeVisible();
   });
 });
 
