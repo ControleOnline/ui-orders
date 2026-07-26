@@ -343,11 +343,11 @@ export default function OrderHistoryPage({ navigation, route }) {
         seenKeys.add(key);
         const statusKey = normalizeText(status?.status).toLowerCase();
         accumulator.push({
+          ...status,
           value: key,
-          label:
-            normalizeText(global.t?.t('orders', 'status', statusKey)) ||
-            normalizeText(status?.status) ||
-            key,
+          label: global.t?.t('orders', 'status', statusKey),
+          ...(normalizeText(status?.color) ? { color: status.color } : {}),
+          ...(normalizeText(status?.icon) ? { icon: status.icon } : {}),
         });
         return accumulator;
       }, []);

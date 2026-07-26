@@ -430,14 +430,20 @@ describe('OrderHistoryPage', () => {
     );
 
     expect(mockDefaultExternalFiltersProps?.getOptionsForColumn({name: 'status'})).toEqual([
-      {
+      expect.objectContaining({
+        '@id': '/statuses/1',
+        context: 'order',
         label: 'Aberto',
+        status: 'Open',
         value: '/statuses/1',
-      },
-      {
+      }),
+      expect.objectContaining({
+        '@id': '/statuses/2',
+        context: 'order',
         label: 'Cancelado',
+        status: 'Canceled',
         value: '/statuses/2',
-      },
+      }),
     ]);
   });
 

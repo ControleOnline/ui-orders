@@ -38,7 +38,11 @@ export const ORDER_CHANNEL_OPTIONS = [
 ].map(formatOrderChannelOption);
 
 const formatOrderStatusLabel = value => {
-  const statusKey = normalizeStatusKey(value?.status || value?.realStatus || value);
+  const statusKey = normalizeStatusKey(
+    value && typeof value === "object" && !Array.isArray(value)
+      ? value.status
+      : value,
+  );
   return statusKey ? global.t?.t("orders", "status", statusKey) : "";
 };
 
@@ -53,10 +57,15 @@ const formatOrderStatusOption = value => {
   }
 
   const statusId = value?.["@id"]?.split("/").pop() || value?.id || value?.value;
+  const color = normalizeText(value?.color);
+  const icon = normalizeText(value?.icon);
+
   return {
     ...value,
     value: statusId,
     label: formatOrderStatusLabel(value),
+    ...(color ? { color } : {}),
+    ...(icon ? { icon } : {}),
   };
 };
 
@@ -139,6 +148,7 @@ export default {
         editable: false,
         align: "left",
         label: "status",
+        minWidth: 180,
         list: "status/getItems",
         /*
          * @agents
@@ -155,7 +165,7 @@ export default {
           return { color: row?.status?.color };
         },
         format: function (value) {
-          return formatOrderStatusLabel(value);
+          return formatOrderStatusOption(value);
         },
         formatList: function (value) {
           return formatOrderStatusOption(value);
