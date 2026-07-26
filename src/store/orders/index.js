@@ -2,17 +2,40 @@
 import * as getters from "@controleonline/ui-default/src/store/default/getters";
 import mutations from "@controleonline/ui-default/src/store/default/mutations";
 import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
+import { getOrderChannelLogo } from "@assets/ppc/channels";
 import * as customActions from "./customActions";
+
+const normalizeText = value => String(value || "").trim();
+const normalizeStatusKey = value => normalizeText(value).toLowerCase();
+
+const formatOrderChannelOption = value => {
+  if (!value) return value;
+
+  const isObject = typeof value === "object" && !Array.isArray(value);
+  const label = normalizeText(
+    isObject
+      ? value.label || value.app || value.value
+      : value,
+  );
+  const optionValue = isObject
+    ? value.value || value.app || label
+    : value;
+  const logo = getOrderChannelLogo({ app: label || optionValue });
+
+  return {
+    ...(isObject ? value : {}),
+    value: optionValue,
+    label: label || optionValue,
+    ...(logo ? { logo } : {}),
+  };
+};
 
 export const ORDER_CHANNEL_OPTIONS = [
   {value: "POS", label: "POS"},
   {value: "Food99", label: "Food99"},
   {value: "iFood", label: "iFood"},
   {value: "SHOP", label: "SHOP"},
-];
-
-const normalizeText = value => String(value || "").trim();
-const normalizeStatusKey = value => normalizeText(value).toLowerCase();
+].map(formatOrderChannelOption);
 
 const formatOrderStatusLabel = value => {
   const statusKey = normalizeStatusKey(value?.status || value?.realStatus || value);
@@ -97,6 +120,7 @@ export default {
         format(value, _column, _row) {
           return value;
         },
+        formatList: formatOrderChannelOption,
       },
       {
         sortable: true,
