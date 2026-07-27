@@ -83,6 +83,9 @@ export const createModalStyles = themeColors => {
   const textPrimary = pickColor(themeColors.textPrimary, themeColors['text-primary'], '#0F172A');
   const textSecondary = pickColor(themeColors.textSecondary, themeColors['text-secondary'], '#64748B');
   const buttonText = pickColor(themeColors.buttonText, '#FFFFFF');
+  const buttonBackground = pickColor(themeColors.buttonBackground, '#0F172A');
+  const buttonIcon = pickColor(themeColors.buttonIcon, buttonText);
+  const iconWarning = pickColor(themeColors.iconWarning, themeColors.warning, buttonIcon);
   const danger = pickColor(themeColors.danger, themeColors.textDanger, '#DC2626');
   const muted = pickColor(themeColors.textMuted, textSecondary);
 
@@ -128,13 +131,14 @@ export const createModalStyles = themeColors => {
         fontWeight: '800',
       },
       modalIconButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: border,
+        borderColor: iconWarning,
+        backgroundColor: background,
       },
       tableArea: {
         flex: 1,
@@ -155,6 +159,8 @@ export const createModalStyles = themeColors => {
         gap: 7,
         borderRadius: 8,
         borderWidth: 1,
+        borderColor: buttonBackground,
+        backgroundColor: buttonBackground,
         paddingHorizontal: 12,
       },
       addReasonButtonText: {
@@ -203,11 +209,12 @@ export const createModalStyles = themeColors => {
         fontWeight: '800',
       },
       manageReasonsButton: {
-        width: 32,
-        height: 32,
+        width: 34,
+        height: 34,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: border,
+        borderColor: buttonBackground,
+        backgroundColor: buttonBackground,
         alignItems: 'center',
         justifyContent: 'center',
       },
@@ -275,6 +282,9 @@ export const createModalStyles = themeColors => {
         minHeight: 38,
         paddingHorizontal: 14,
         borderRadius: 8,
+        borderWidth: 1,
+        borderColor: buttonBackground,
+        backgroundColor: buttonBackground,
         alignItems: 'center',
         justifyContent: 'center',
       },
@@ -288,8 +298,10 @@ export const createModalStyles = themeColors => {
       },
     }),
     tokens: {
+      buttonIcon,
       buttonText,
       danger,
+      iconWarning,
       iconMuted: muted,
       placeholder: muted,
     },

@@ -697,8 +697,6 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   const renderRowActions = useCallback(({ row }) => {
     if (isCanceledOrder(row)) {
-      const infoColor = themeColors.iconInfo;
-
       return (
         <TouchableOpacity
           accessibilityRole="button"
@@ -709,8 +707,8 @@ export default function OrderHistoryPage({ navigation, route }) {
           style={[
             styles.rowActionButton,
             {
-              borderColor: infoColor,
-              backgroundColor: orderHistoryPalette.cardBackground,
+              borderColor: themeColors.buttonBackground,
+              backgroundColor: themeColors.buttonBackground,
             },
           ]}
           activeOpacity={0.82}
@@ -719,7 +717,7 @@ export default function OrderHistoryPage({ navigation, route }) {
             setCancelDetailsOrder(row);
           }}
         >
-          <Icon name="eye" size={16} color={infoColor} />
+          <Icon name="eye" size={16} color={themeColors.buttonIcon} />
         </TouchableOpacity>
       );
     }
@@ -728,8 +726,6 @@ export default function OrderHistoryPage({ navigation, route }) {
       return null;
     }
 
-    const dangerColor = themeColors.iconDanger;
-
     return (
       <TouchableOpacity
         accessibilityRole="button"
@@ -737,8 +733,8 @@ export default function OrderHistoryPage({ navigation, route }) {
         style={[
           styles.rowActionButton,
           {
-            borderColor: dangerColor,
-            backgroundColor: orderHistoryPalette.cardBackground,
+            borderColor: themeColors.buttonBackground,
+            backgroundColor: themeColors.buttonBackground,
           },
         ]}
         activeOpacity={0.82}
@@ -747,12 +743,11 @@ export default function OrderHistoryPage({ navigation, route }) {
           openCancelModal(row);
         }}
       >
-        <Icon name="x-circle" size={16} color={dangerColor} />
+        <Icon name="trash-2" size={16} color={themeColors.buttonIcon} />
       </TouchableOpacity>
     );
   }, [
     openCancelModal,
-    orderHistoryPalette.cardBackground,
     styles.rowActionButton,
     themeColors,
   ]);

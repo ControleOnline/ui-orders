@@ -135,7 +135,7 @@ const ModalShell = ({ children, onClose, title, visible }) => {
                   activeOpacity={0.82}
                   onPress={onClose}
                 >
-                  <Icon name="x" size={18} color={styles.tokens.iconMuted} />
+                  <Icon name="x" size={22} color={styles.tokens.iconWarning} />
                 </TouchableOpacity>
               </View>
               {children}
@@ -197,13 +197,13 @@ export const OrderCancellationReasonsModal = ({
           }
           style={[
             styles.addReasonButton,
-            currentCompanyId ? { backgroundColor: accentColor, borderColor: accentColor } : styles.disabledButton,
+            currentCompanyId ? null : styles.disabledButton,
           ]}
           activeOpacity={0.86}
           disabled={!currentCompanyId}
           onPress={() => setFormVisible(true)}
         >
-          <Icon name="plus" size={15} color={styles.tokens.buttonText} />
+          <Icon name="plus" size={16} color={styles.tokens.buttonIcon} />
           <Text style={styles.addReasonButtonText}>
             {global.t?.t('orders', 'button', 'addCancelReason') || 'Adicionar motivo'}
           </Text>
@@ -333,7 +333,7 @@ export const OrderCancelModal = ({
               activeOpacity={0.82}
               onPress={onManageReasons}
             >
-              <Icon name="tag" size={14} color={accentColor} />
+              <Icon name="tag" size={16} color={styles.tokens.buttonIcon} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -385,7 +385,6 @@ export const OrderCancelModal = ({
         <TouchableOpacity
           style={[
             styles.dangerButton,
-            { backgroundColor: accentColor },
             canConfirm ? null : styles.disabledButton,
           ]}
           activeOpacity={0.86}
