@@ -39,10 +39,10 @@ import {
   resolvePurchaseOrderLineUnitPrice,
   resolvePurchaseSupplierLabel,
 } from '@controleonline/ui-orders/src/react/utils/menuCostsPurchases';
-import {MAIN_TABS} from '@controleonline/ui-manager/src/react/pages/MenuCostsPage/tabs';
+import {MAIN_TABS} from '@controleonline/ui-products/src/react/pages/MenuCostsPage/tabs';
 import {
   resolveMenuCostsTabRoute,
-} from '@controleonline/ui-manager/src/react/pages/MenuCostsPage/navigation';
+} from '@controleonline/ui-products/src/react/pages/MenuCostsPage/navigation';
 import {resolveFileImageUrl, resolveFileDownloadUrl} from '@controleonline/ui-common/src/react/utils/fileUrl';
 import {
   extractCollectionItems,
