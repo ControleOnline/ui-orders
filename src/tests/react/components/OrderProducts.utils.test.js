@@ -100,7 +100,7 @@ describe('OrderProducts.utils', () => {
         total: 64,
         product: {
           id: 301,
-          product: 'Alpha Gyros (Fraldinha)',
+          product: 'Alpha Produto Exemplo (Fraldinha)',
         },
         orderProductComponents: [
           {
@@ -111,7 +111,7 @@ describe('OrderProducts.utils', () => {
               id: 910,
               productGroup: 'Escolha seu queijo',
               showInDisplay: false,
-              parentProduct: { id: 301, product: 'Alpha Gyros (Fraldinha)' },
+              parentProduct: { id: 301, product: 'Alpha Produto Exemplo (Fraldinha)' },
             },
           },
           {
@@ -122,7 +122,7 @@ describe('OrderProducts.utils', () => {
               id: 911,
               productGroup: 'Adicionais',
               showInDisplay: true,
-              parentProduct: { id: 301, product: 'Alpha Gyros (Fraldinha)' },
+              parentProduct: { id: 301, product: 'Alpha Produto Exemplo (Fraldinha)' },
             },
           },
         ],
@@ -150,7 +150,7 @@ describe('OrderProducts.utils', () => {
         total: 73,
         product: {
           id: 101,
-          product: 'Combo Alpha Gyros',
+          product: 'Combo Alpha Produto Exemplo',
         },
         orderProductComponents: [
           {
@@ -166,7 +166,7 @@ describe('OrderProducts.utils', () => {
               {
                 id: 20,
                 updateTime: '2026-04-22T12:00:00Z',
-                queue: { queue: 'Gyros Fritadeira' },
+                queue: { queue: 'Produto Exemplo Fritadeira' },
                 status: {
                   status: 'Pronto',
                   realStatus: 'out',
@@ -177,7 +177,7 @@ describe('OrderProducts.utils', () => {
             productGroup: {
               id: 900,
               productGroup: 'Escolha sua batata',
-              parentProduct: { id: 101, product: 'Combo Alpha Gyros' },
+              parentProduct: { id: 101, product: 'Combo Alpha Produto Exemplo' },
             },
           },
         ],
@@ -197,7 +197,7 @@ describe('OrderProducts.utils', () => {
           {
             id: 21,
             updateTime: '2026-04-22T12:05:00Z',
-            queue: { queue: 'Gyros Fritadeira' },
+            queue: { queue: 'Produto Exemplo Fritadeira' },
             status: {
               status: 'Pronto',
               realStatus: 'out',
@@ -208,17 +208,17 @@ describe('OrderProducts.utils', () => {
         productGroup: {
           id: 900,
           productGroup: 'Escolha sua batata',
-          parentProduct: { id: 101, product: 'Combo Alpha Gyros' },
+          parentProduct: { id: 101, product: 'Combo Alpha Produto Exemplo' },
         },
       },
     ])
 
     expect(cards.map(card => card.name)).toEqual([
-      'Combo Alpha Gyros',
+      'Combo Alpha Produto Exemplo',
       'Batata Frita Média',
     ])
     expect(cards[0].groups).toHaveLength(0)
-    expect(cards[1].queuePresentation.label).toBe('Gyros Fritadeira / Pronto')
+    expect(cards[1].queuePresentation.label).toBe('Produto Exemplo Fritadeira / Pronto')
   })
 
   it('does not create fake parent cards from reused catalog product groups', () => {
@@ -229,7 +229,7 @@ describe('OrderProducts.utils', () => {
         total: 73,
         product: {
           id: 1343,
-          product: 'Combo Alpha Gyros',
+          product: 'Combo Alpha Produto Exemplo',
         },
       },
       {
@@ -245,7 +245,7 @@ describe('OrderProducts.utils', () => {
           productGroup: 'Escolha sua batata',
           parentProduct: {
             id: 1326,
-            product: 'Combo Gyros (Batata + Bebida)',
+            product: 'Combo Produto Exemplo (Batata + Bebida)',
           },
         },
       },
@@ -262,7 +262,7 @@ describe('OrderProducts.utils', () => {
           productGroup: 'Molhos extra à parte',
           parentProduct: {
             id: 1104,
-            product: 'Alpha Gyros (Fraldinha)',
+            product: 'Alpha Produto Exemplo (Fraldinha)',
           },
         },
       },
@@ -279,20 +279,20 @@ describe('OrderProducts.utils', () => {
           productGroup: 'Escolha o tempero da sua Batata',
           parentProduct: {
             id: 1326,
-            product: 'Combo Gyros (Batata + Bebida)',
+            product: 'Combo Produto Exemplo (Batata + Bebida)',
           },
         },
       },
     ])
 
     expect(cards.map(card => card.name)).toEqual([
-      'Combo Alpha Gyros',
+      'Combo Alpha Produto Exemplo',
       'Batata Frita Média',
       'Maionese Verde - pote 60ml',
       'Sal',
     ])
-    expect(cards.some(card => card.name === 'Alpha Gyros (Fraldinha)')).toBe(false)
-    expect(cards.some(card => card.name === 'Combo Gyros (Batata + Bebida)')).toBe(false)
+    expect(cards.some(card => card.name === 'Alpha Produto Exemplo (Fraldinha)')).toBe(false)
+    expect(cards.some(card => card.name === 'Combo Produto Exemplo (Batata + Bebida)')).toBe(false)
   })
 
   it('renders embedded orderProductComponents from the root item without collapsing them', () => {
@@ -303,7 +303,7 @@ describe('OrderProducts.utils', () => {
         total: 65.9,
         product: {
           id: 501,
-          product: 'Combo Gyros',
+          product: 'Combo Produto Exemplo',
           description: 'Batata + Bebida',
         },
         orderProductComponents: [
@@ -345,7 +345,7 @@ describe('OrderProducts.utils', () => {
         id: 70,
         quantity: 1,
         total: 73,
-        product: { id: 1101, product: 'Combo Alpha Gyros' },
+        product: { id: 1101, product: 'Combo Alpha Produto Exemplo' },
         orderProductComponents: [
           {
             id: 71,
@@ -355,7 +355,7 @@ describe('OrderProducts.utils', () => {
             productGroup: {
               id: 1400,
               productGroup: 'Escolha sua Batata',
-              parentProduct: { id: 1101, product: 'Combo Alpha Gyros' },
+              parentProduct: { id: 1101, product: 'Combo Alpha Produto Exemplo' },
             },
             orderProductComponents: [
               {
@@ -405,7 +405,7 @@ describe('OrderProducts.utils', () => {
         productGroup: {
           id: 1400,
           productGroup: 'Escolha sua Batata',
-          parentProduct: { id: 1101, product: 'Combo Alpha Gyros' },
+          parentProduct: { id: 1101, product: 'Combo Alpha Produto Exemplo' },
         },
         orderProductComponents: [
           {
@@ -490,7 +490,7 @@ describe('OrderProducts.utils', () => {
       },
     ])
 
-    expect(cards.map(card => card.name)).toEqual(['Combo Alpha Gyros'])
+    expect(cards.map(card => card.name)).toEqual(['Combo Alpha Produto Exemplo'])
     expect(cards[0].groups).toHaveLength(1)
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
       'Batata Frita Media',
@@ -556,7 +556,7 @@ describe('OrderProducts.utils', () => {
         id: 40,
         quantity: 1,
         total: 63,
-        product: { id: 901, product: 'Combo Beta Gyros' },
+        product: { id: 901, product: 'Combo Beta Produto Exemplo' },
       },
       {
         id: 41,
@@ -583,7 +583,7 @@ describe('OrderProducts.utils', () => {
     ])
 
     expect(cards).toHaveLength(1)
-    expect(cards[0].name).toBe('Combo Beta Gyros')
+    expect(cards[0].name).toBe('Combo Beta Produto Exemplo')
     expect(cards[0].groups.map(group => group.label)).toEqual(['Escolha sua Batata'])
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
       'Batata Frita Media',
@@ -602,7 +602,7 @@ describe('OrderProducts.utils', () => {
         id: 60,
         quantity: 1,
         total: 69.99,
-        product: { id: 1001, product: 'Combo Gamma Gyros' },
+        product: { id: 1001, product: 'Combo Gamma Produto Exemplo' },
         orderProductComponents: [
           {
             id: 61,
@@ -689,7 +689,7 @@ describe('OrderProducts.utils', () => {
         id: 50,
         quantity: 1,
         total: 63,
-        product: { id: 951, product: 'Combo Beta Gyros' },
+        product: { id: 951, product: 'Combo Beta Produto Exemplo' },
       },
       {
         id: 51,
@@ -723,7 +723,7 @@ describe('OrderProducts.utils', () => {
     ])
 
     expect(cards).toHaveLength(1)
-    expect(cards[0].name).toBe('Combo Beta Gyros')
+    expect(cards[0].name).toBe('Combo Beta Produto Exemplo')
     expect(cards[0].groups.map(group => group.label)).toEqual(['Escolha sua Batata'])
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
       'Batata Frita Media',
@@ -745,7 +745,7 @@ describe('OrderProducts.utils', () => {
         product: {
           id: 801,
           type: 'custom',
-          product: 'Combo Gyros',
+          product: 'Combo Produto Exemplo',
         },
         orderProductComponents: [
           '/order_products/31',
@@ -755,12 +755,12 @@ describe('OrderProducts.utils', () => {
       {
         id: 31,
         quantity: 1,
-        product: { id: 802, product: 'Alpha Gyros' },
+        product: { id: 802, product: 'Alpha Produto Exemplo' },
         orderProduct: '/order_products/30',
         parentProduct: '/products/801',
         productGroup: {
           id: 1100,
-          productGroup: 'Escolha seu Gyros',
+          productGroup: 'Escolha seu Produto Exemplo',
         },
       },
       {
@@ -779,10 +779,10 @@ describe('OrderProducts.utils', () => {
     expect(cards).toHaveLength(1)
     expect(cards[0].groups).toHaveLength(2)
     expect(cards[0].groups.map(group => group.label)).toEqual([
-      'Escolha seu Gyros',
+      'Escolha seu Produto Exemplo',
       'Escolha sua Bebida',
     ])
-    expect(cards[0].groups[0].items[0].name).toBe('Alpha Gyros')
+    expect(cards[0].groups[0].items[0].name).toBe('Alpha Produto Exemplo')
     expect(cards[0].groups[1].items[0].name).toBe('Coca-Cola lata 350 ml')
   })
 

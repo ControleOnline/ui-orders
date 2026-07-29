@@ -28,7 +28,7 @@ describe('orderProductsFetchPolicy', () => {
         {
           id: 1,
           quantity: 1,
-          product: { id: 101, type: 'custom', product: 'Combo Gyros' },
+          product: { id: 101, type: 'custom', product: 'Combo Produto Exemplo' },
         },
       ]),
     ).toBe(true)
@@ -53,7 +53,7 @@ describe('orderProductsFetchPolicy', () => {
       {
         id: 1,
         quantity: 1,
-        product: { id: 101, type: 'custom', product: 'Combo Gyros' },
+        product: { id: 101, type: 'custom', product: 'Combo Produto Exemplo' },
       },
       {
         id: 2,

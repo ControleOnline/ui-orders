@@ -143,7 +143,7 @@ describe('OrderItemsTab fallback fetch gate', () => {
           {
             id: 1,
             quantity: 1,
-            product: { id: 101, type: 'custom', product: 'Combo Gyros' },
+            product: { id: 101, type: 'custom', product: 'Combo Produto Exemplo' },
           },
         ],
       }),

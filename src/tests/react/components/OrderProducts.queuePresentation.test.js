@@ -58,17 +58,17 @@ jest.mock('../../../react/components/OrderProducts.utils', () => ({
       groups: [],
       itemColor: '#334155',
       key: 'card-1',
-      name: 'Combo Alpha Gyros',
+      name: 'Combo Alpha Produto Exemplo',
       description: 'Pao Frances (Com Parmesao)',
       observation: 'Sem cebola',
       quantity: 1,
       queuePresentation: {
         color: '#2563EB',
-        label: 'Gyros Churrasco / Pronto para Retirar',
+        label: 'Produto Exemplo Churrasco / Pronto para Retirar',
       },
       rootItem: {
         product: {
-          product: 'Combo Alpha Gyros',
+          product: 'Combo Alpha Produto Exemplo',
         },
       },
       totalPrice: 0,
@@ -107,14 +107,14 @@ describe('OrderProducts queue presentation', () => {
   it('shows queue presentation by default', () => {
     const html = renderTree()
     expect(html).toContain(
-      'Gyros Churrasco / Pronto para Retirar',
+      'Produto Exemplo Churrasco / Pronto para Retirar',
     )
   })
 
   it('hides queue presentation when requested by the products display', () => {
     const html = renderTree({showQueuePresentation: false})
     expect(html).not.toContain(
-      'Gyros Churrasco / Pronto para Retirar',
+      'Produto Exemplo Churrasco / Pronto para Retirar',
     )
   })
 
