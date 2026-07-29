@@ -1,5 +1,6 @@
 const {
   appendSyntheticOrderInvoice,
+  resolvePaidAmountForOrder,
   resolveOperationalDisplayAmount,
   resolveOperationalDisplayLabelKey,
   resolveNextOperationalPayable,
@@ -105,5 +106,41 @@ describe('checkoutInvoices', () => {
         receivedAmount: 38,
       }),
     ).toBe('paid')
+  })
+
+  it('ignores a paid invoice relation left by the previous order', () => {
+    const paid = resolvePaidAmountForOrder({
+      order: {id: 72842, '@id': '/orders/72842'},
+      orderInvoices: [
+        {
+          order: '/orders/72840',
+          realPrice: 21.9,
+          invoice: {id: 33301, price: 21.9},
+        },
+      ],
+    })
+
+    expect(paid).toBe(0)
+    expect(paid - 106.88).toBe(-106.88)
+  })
+
+  it('sums only the current order realPrice, not the full shared invoice price', () => {
+    const paid = resolvePaidAmountForOrder({
+      order: {id: 72842, '@id': '/orders/72842'},
+      orderInvoices: [
+        {
+          order: {id: 72840, '@id': '/orders/72840'},
+          realPrice: 21.9,
+          invoice: {id: 33301, price: 21.9},
+        },
+        {
+          order: {id: 72842, '@id': '/orders/72842'},
+          realPrice: 5,
+          invoice: {id: 33302, price: 123.77},
+        },
+      ],
+    })
+
+    expect(paid).toBe(5)
   })
 })
