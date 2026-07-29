@@ -23,6 +23,33 @@ export const discoveryCart = ({commit}, params = {}) => {
       commit(types.SET_ISLOADING, false);
     });
 };
+
+export const discoveryAnonymousCart = ({commit}, params = {}) => {
+  commit(types.SET_ISLOADING, true);
+
+  const provider = params.provider || params.company || null;
+  const externalCode = params.externalCode || null;
+
+  return api
+    .fetch('anonymous-cart', {
+      params: {
+        provider,
+        ...(externalCode ? {externalCode} : {}),
+      },
+    })
+    .then(data => {
+      const cart = {...(data || {}), anonymous: true};
+      commit(types.SET_ITEM, cart);
+      return cart;
+    })
+    .catch(e => {
+      commit(types.SET_ERROR, e.message);
+      throw e;
+    })
+    .finally(() => {
+      commit(types.SET_ISLOADING, false);
+    });
+};
 export const setCustomProducts = ({ commit }, customProducts = []) => {
   commit('SET_CUSTOM_PRODUCTS', customProducts);
 };
