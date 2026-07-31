@@ -131,17 +131,18 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   }, [isTotemMode, navigation, route?.params?.showBottomToolBar]);
 
   const effectiveRoute = useMemo(() => {
-    if (!isSingleItemMode) {
-      return route;
-    }
-
     return {
       ...route,
       params: {
         ...(route?.params || {}),
-        categoryId: ALL_PRODUCTS_SENTINEL_ID,
-        context: 'products',
-        singleItemMode: true,
+        hideCatalogToolbar: true,
+        ...(isSingleItemMode
+          ? {
+              categoryId: ALL_PRODUCTS_SENTINEL_ID,
+              context: 'products',
+              singleItemMode: true,
+            }
+          : {}),
       },
     };
   }, [isSingleItemMode, route]);
