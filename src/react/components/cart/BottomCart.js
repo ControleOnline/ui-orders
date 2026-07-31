@@ -62,6 +62,18 @@ const BottomCart = ({
   const totalCardBg = themeColors['cart-bottom-total-bg'] || '#F8FBFF';
   const labelColor = themeColors['cart-bottom-label'] || '#64748B';
   const textColor = themeColors['cart-bottom-text'] || '#0F172A';
+  const buttonBackground = themeColors.buttonBackground || primaryColor;
+  const buttonBorderColor = themeColors.buttonBorder || buttonBackground;
+  const buttonTextColor = themeColors.buttonText || '#FFFFFF';
+  const buttonDisabledBackground =
+    themeColors.buttonDisabledBackground || buttonBackground;
+  const buttonDisabledTextColor =
+    themeColors.buttonDisabledText || buttonTextColor;
+  const buttonDisabledOpacity = Number.isFinite(
+    Number(themeColors.buttonDisabledOpacity),
+  )
+    ? Number(themeColors.buttonDisabledOpacity)
+    : 0.55;
   const successColor = themeColors.success;
   // const warningColor = '#D97706';
   const warningColor = themeColors.warning;
@@ -107,6 +119,12 @@ const BottomCart = ({
         totalCardBg,
         labelColor,
         textColor,
+        buttonBackground,
+        buttonBorderColor,
+        buttonTextColor,
+        buttonDisabledBackground,
+        buttonDisabledTextColor,
+        buttonDisabledOpacity,
         successColor,
         warningColor,
         compact: isCompact,
@@ -119,6 +137,12 @@ const BottomCart = ({
       totalCardBg,
       labelColor,
       textColor,
+      buttonBackground,
+      buttonBorderColor,
+      buttonTextColor,
+      buttonDisabledBackground,
+      buttonDisabledTextColor,
+      buttonDisabledOpacity,
       successColor,
       warningColor,
       isCompact,
@@ -240,8 +264,26 @@ const BottomCart = ({
                 styles.paidDetailsButton,
                 isActionDisabled && styles.checkoutButtonDisabled,
               ]}>
-              <Icon color="#fff" name={actionIcon} size={isCompact ? 15 : 16} />
-              <Text style={styles.paidDetailsButtonText}>{actionLabel}</Text>
+              <Icon
+                color={
+                  isActionDisabled
+                    ? buttonDisabledTextColor
+                    : buttonTextColor
+                }
+                name={actionIcon}
+                size={isCompact ? 15 : 16}
+              />
+              <Text
+                style={[
+                  styles.paidDetailsButtonText,
+                  {
+                    color: isActionDisabled
+                      ? buttonDisabledTextColor
+                      : buttonTextColor,
+                  },
+                ]}>
+                {actionLabel}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -323,8 +365,26 @@ const BottomCart = ({
                 styles.checkoutButton,
                 isActionDisabled && styles.checkoutButtonDisabled,
               ]}>
-              <Icon color="#fff" name={actionIcon} size={isCompact ? 15 : 16} />
-              <Text style={styles.checkoutButtonText}>{actionLabel}</Text>
+              <Icon
+                color={
+                  isActionDisabled
+                    ? buttonDisabledTextColor
+                    : buttonTextColor
+                }
+                name={actionIcon}
+                size={isCompact ? 15 : 16}
+              />
+              <Text
+                style={[
+                  styles.checkoutButtonText,
+                  {
+                    color: isActionDisabled
+                      ? buttonDisabledTextColor
+                      : buttonTextColor,
+                  },
+                ]}>
+                {actionLabel}
+              </Text>
             </TouchableOpacity>
           )}
           {!isPaidStateBar && shouldShowDetailsButton && !shouldShowActionButton && (

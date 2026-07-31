@@ -76,7 +76,6 @@ export const buildLoyaltyCpfSearchResults = (items, query) => {
       const cpf = extractPeopleCpfDigits(people);
       const peopleId = resolvePeopleId(people);
       const name = String(people?.name || '').trim();
-      const alias = String(people?.alias || '').trim();
       const hasDocumentPayload =
         people && Object.prototype.hasOwnProperty.call(people, 'document');
 
@@ -85,7 +84,7 @@ export const buildLoyaltyCpfSearchResults = (items, query) => {
         cpfDisplay: formatCpfDisplay(cpf),
         hasDocumentPayload,
         id: peopleId,
-        label: [name, alias].filter(Boolean).join(' ').trim() || `Pessoa ${peopleId || ''}`.trim(),
+        label: name || `Pessoa ${peopleId || ''}`.trim(),
         raw: people,
       };
     })
@@ -215,11 +214,7 @@ export const resolveCheckoutLoyaltySelection = order => {
     cpf,
     cpfDisplay: formatCpfDisplay(cpf),
     label:
-      [selectedPeople?.name, selectedPeople?.alias]
-        .map(value => String(value || '').trim())
-        .filter(Boolean)
-        .join(' ')
-        .trim() || `Pessoa ${peopleId}`,
+      String(selectedPeople?.name || '').trim() || `Pessoa ${peopleId}`,
     raw: selectedPeople,
   };
 };
