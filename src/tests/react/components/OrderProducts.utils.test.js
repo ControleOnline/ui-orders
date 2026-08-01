@@ -3,6 +3,8 @@ const {
   buildOrderProductCards,
   canReopenOrderProductCustomization,
   isOrderProductProductionCompleted,
+  isOperationalOrderProductCardChecked,
+  isOrderProductChecked,
   formatOrderProductQuantityPrefix,
   resolveOrderProductQueuePresentation,
 } = require('../../../react/components/OrderProducts.utils')
@@ -312,6 +314,37 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups.map(group => group.label)).toEqual(['', 'Adicionais'])
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual(['Queijo Mucarela'])
     expect(cards[0].groups[1].items.map(item => item.name)).toEqual(['Bacon'])
+  })
+
+  it('carries compact semantic and unit-quantity settings with each incorporated group', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 50,
+        quantity: 1,
+        product: {id: 500, product: 'Combo'},
+        orderProductComponents: [
+          {
+            id: 51,
+            quantity: 1,
+            product: {id: 501, product: 'Bacon'},
+            productGroup: {
+              id: 950,
+              productGroup: 'Adicionais',
+              showInDisplay: false,
+              customizationType: 'addition',
+              showUnitQuantity: true,
+              parentProduct: {id: 500},
+            },
+          },
+        ],
+      },
+    ])
+
+    expect(cards[0].groups[0]).toMatchObject({
+      label: '',
+      customizationType: 'addition',
+      showUnitQuantity: true,
+    })
   })
 
   it('only shows quantity prefixes above one unit', () => {
@@ -1103,6 +1136,29 @@ describe('OrderProducts.utils', () => {
     expect(presentation.label).toBe('Expedicao / Pronto')
     expect(presentation.statusLabel).toBe('Pronto')
     expect(presentation.color).toBe('#16A34A')
+  })
+
+  it('recognizes conference completion independently from the production queue', () => {
+    const checkedItem = {
+      status: {status: 'Conferido', realStatus: 'conferido'},
+      orderProductQueues: [],
+    }
+
+    expect(isOrderProductChecked(checkedItem)).toBe(true)
+    expect(isOrderProductChecked({status: {realStatus: 'pending'}})).toBe(false)
+    expect(isOperationalOrderProductCardChecked({rootItem: checkedItem})).toBe(true)
+  })
+
+  it('only checks a consolidated operational card when every source item was checked', () => {
+    const checked = {status: {realStatus: 'checked'}}
+    const pending = {status: {realStatus: 'pending'}}
+
+    expect(isOperationalOrderProductCardChecked({
+      sourceCards: [{rootItem: checked}, {rootItem: pending}],
+    })).toBe(false)
+    expect(isOperationalOrderProductCardChecked({
+      sourceCards: [{rootItem: checked}, {rootItem: checked}],
+    })).toBe(true)
   })
 
   it('allows reopening customization before the final production stage', () => {

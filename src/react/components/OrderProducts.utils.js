@@ -2,6 +2,7 @@ import { resolveOrderProductTotal } from '@controleonline/ui-orders/src/utils/or
 
 const DEFAULT_ITEM_COLOR = '#334155'
 const DEFAULT_GROUP_KEY = 'default-group'
+const CHECKED_ORDER_PRODUCT_STATUSES = new Set(['checked', 'conferido'])
 
 export const normalizeOrderProductText = value => String(value || '').trim()
 
@@ -13,6 +14,30 @@ export const normalizeOrderProductQuantity = value => {
 export const formatOrderProductQuantityPrefix = value => {
   const quantity = normalizeOrderProductQuantity(value)
   return quantity > 1 ? `${quantity}x ` : ''
+}
+
+export const isOrderProductChecked = orderProduct => {
+  const status = orderProduct?.status || {}
+  const values = [
+    status?.realStatus,
+    status?.real_status,
+    status?.status,
+  ]
+
+  return values.some(value =>
+    CHECKED_ORDER_PRODUCT_STATUSES.has(normalizeOrderProductText(value).toLowerCase()),
+  )
+}
+
+export const isOperationalOrderProductCardChecked = card => {
+  const sourceItems = (Array.isArray(card?.sourceCards) ? card.sourceCards : [])
+    .map(sourceCard => sourceCard?.rootItem)
+    .filter(Boolean)
+  const orderProducts = sourceItems.length > 0
+    ? sourceItems
+    : [card?.rootItem].filter(Boolean)
+
+  return orderProducts.length > 0 && orderProducts.every(isOrderProductChecked)
 }
 
 export const toOrderProductEntityId = value => {
@@ -262,6 +287,12 @@ export const getOrderProductGroupPresentation = node => {
     label: !hasGroup || node?.productGroup?.showInDisplay !== false
       ? displayName
       : '',
+    customizationType: ['addition', 'removal'].includes(node?.productGroup?.customizationType)
+      ? node.productGroup.customizationType
+      : 'neutral',
+    showUnitQuantity: typeof node?.productGroup?.showUnitQuantity === 'boolean'
+      ? node.productGroup.showUnitQuantity
+      : null,
   }
 }
 
@@ -526,11 +557,14 @@ export const buildOrderProductCards = (orderProducts, {
     return groupEntryKeysByCardKey.get(targetKey)
   }
 
-  const ensureTargetGroup = (target, groupKey, groupLabel, order) => {
+  const ensureTargetGroup = (target, groupKey, groupLabel, order, item = null) => {
+    const presentation = getOrderProductGroupPresentation(item)
     if (!target.groups.has(groupKey)) {
       target.groups.set(groupKey, {
         id: groupKey,
         label: groupLabel,
+        customizationType: presentation.customizationType,
+        showUnitQuantity: presentation.showUnitQuantity,
         order,
         items: [],
       })
@@ -587,7 +621,7 @@ export const buildOrderProductCards = (orderProducts, {
       groups: new Map(),
     }
 
-    ensureTargetGroup(target, resolvedGroupKey, resolvedGroupLabel, order).items.push(entry)
+    ensureTargetGroup(target, resolvedGroupKey, resolvedGroupLabel, order, item).items.push(entry)
 
     if (itemEntityId) {
       componentCardByOrderProductId.set(itemEntityId, card)
@@ -899,9 +933,13 @@ export const buildOrderProductCards = (orderProducts, {
 
     if (shouldTreatAsGroupedItem(item) && !shouldShowInParentQueue(item)) {
       const parentCardKey = resolveIndependentParentCardKey(item)
+      const originGroupPresentation = getOrderProductGroupPresentation(item)
       card.parentCardKey = parentCardKey
       card.originGroup = parentCardKey
-        ? getOrderProductGroupPresentation(item)
+        ? {
+            key: originGroupPresentation.key,
+            label: originGroupPresentation.label,
+          }
         : null
     }
 

@@ -17,6 +17,13 @@ jest.mock('react-native', () => {
   }
 })
 
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react')
+  return {
+    MaterialCommunityIcons: props => React.createElement('i', props),
+  }
+}, {virtual: true})
+
 jest.mock('@controleonline/../../src/styles/branding', () => ({
   withOpacity: color => color,
 }))
@@ -200,7 +207,9 @@ describe('OrderProducts queue presentation', () => {
       showRootStatusMarker: false,
     })
 
-    expect(html).toContain('>1x</text>')
+    expect(html).toContain('<text></text>')
+    expect(html).toContain('>2x </text>')
+    expect(html).not.toContain('>1x</text>')
     expect(html).not.toContain('*')
   })
 })

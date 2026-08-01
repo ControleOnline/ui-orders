@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { Image, Text, View } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { withOpacity } from '@controleonline/../../src/styles/branding'
 import { resolveFileImageUrl } from '@controleonline/ui-common/src/react/utils/fileUrl'
@@ -8,12 +9,44 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import sharedStyles from './OrderProducts.styles'
 import {
   buildOrderProductCards,
-  formatOrderProductQuantityPrefix,
   getOrderProductFiles,
+  isOperationalOrderProductCardChecked,
+  isOrderProductChecked,
   normalizeOrderProductQuantity,
 } from './OrderProducts.utils'
 
 const REMOVAL_COLOR = '#c10015'
+const ADDITION_COLOR = '#059669'
+const NEUTRAL_COLOR = '#64748B'
+
+const semanticIconByType = {
+  addition: 'plus',
+  removal: 'minus',
+}
+
+const QueueIdentifier = ({ presentation, mode, styles }) => {
+  const queue = presentation?.queue?.queue || null
+  if (!queue || mode === 'none') return null
+
+  if (mode === 'icon') {
+    if (!queue?.icon) return null
+    return (
+      <MaterialCommunityIcons
+        name={queue.icon}
+        size={15}
+        color={presentation.color || NEUTRAL_COLOR}
+        style={styles?.queueIdentifierIcon}
+      />
+    )
+  }
+
+  const label = mode === 'short_label'
+    ? String(queue?.shortLabel || '').trim()
+    : String(queue?.queue || queue?.name || '').trim()
+
+  if (!label) return null
+  return <Text style={[sharedStyles.queueIdentifierText, styles?.queueIdentifierText]}>{label}</Text>
+}
 
 const resolveCardImageUrl = card => {
   const productFiles = getOrderProductFiles(card?.rootItem)
@@ -111,6 +144,11 @@ const OrderProducts = ({
   resolveItemColor = null,
   compact = false,
   hierarchyGuideColor = null,
+  queueIdentificationMode = 'none',
+  statusIndicatorMode = null,
+  showUnitQuantity = false,
+  showGroupNames = true,
+  showConferenceCheck = false,
 }) => {
   const hierarchyGuidesEnabled = Boolean(showHierarchyGuides)
   const compactEnabled = Boolean(compact)
@@ -254,16 +292,18 @@ const OrderProducts = ({
     return (
       <View
         style={[
-          groupWrapperStyle,
           nestedStyle,
         ]}
       >
         {groups.map(group => (
           <View
             key={`${card.key}-${depth}-${group.id}`}
-            style={groupWrapperStyle}
+            style={[
+              groupWrapperStyle,
+              compactEnabled && depth === 0 && sharedStyles.compactRootGroupWrap,
+            ]}
           >
-            {!!group.label && (
+            {showGroupNames && !!group.label && (
               <View style={[
                 styles.groupTitlePill,
                 compactEnabled && sharedStyles.compactGroupTitlePill,
@@ -274,6 +314,9 @@ const OrderProducts = ({
 
             {group.items.map(groupItem => {
               const childColor = groupItem.isZero ? REMOVAL_COLOR : groupItem.itemColor
+              const semanticIcon = semanticIconByType[group.customizationType]
+              const isGroupItemChecked = showConferenceCheck &&
+                isOrderProductChecked(groupItem.orderProduct)
               const childActions = renderEntryActions({
                 renderActions,
                 entryType: 'group',
@@ -299,29 +342,52 @@ const OrderProducts = ({
                         sharedStyles.groupItemTitleRow,
                         styles.groupItemTitleRow,
                       ]}>
+                        {semanticIcon ? (
+                          <MaterialCommunityIcons
+                            name={semanticIcon}
+                            size={13}
+                            color={group.customizationType === 'removal'
+                              ? REMOVAL_COLOR
+                              : ADDITION_COLOR}
+                            style={sharedStyles.semanticMarker}
+                          />
+                        ) : (
+                          <View style={sharedStyles.semanticMarker} />
+                        )}
                         <Text style={[
                           sharedStyles.groupItemTitleText,
                           styles.groupItemText,
                         ]}>
-                          {showGroupStatusMarker ? (
+                          {showGroupStatusMarker && !statusIndicatorMode ? (
                             <Text style={[styles.statusMarker, { color: childColor }]}>* </Text>
+                          ) : null}
+                          {isGroupItemChecked ? (
+                            <Text style={[
+                              sharedStyles.conferenceCheck,
+                              styles.conferenceCheck,
+                              { color: groupItem.orderProduct?.status?.color || ADDITION_COLOR },
+                            ]}>✓ </Text>
                           ) : null}
                           {groupItem.isZero ? (
                             <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
                           ) : null}
-                          {!groupItem.isZero && !!formatOrderProductQuantityPrefix(groupItem.quantity) ? (
+                          {!groupItem.isZero && (
+                            normalizeOrderProductQuantity(groupItem.quantity) > 1 ||
+                            (group.showUnitQuantity ?? showUnitQuantity)
+                          ) ? (
                             <Text style={styles.qtyText}>
-                              {formatOrderProductQuantityPrefix(groupItem.quantity)}
+                              {`${normalizeOrderProductQuantity(groupItem.quantity)}x `}
                             </Text>
                           ) : null}
                           {groupItem.name}
                         </Text>
 
                         {showQueuePresentation ? (
-                          <QueueBadge
-                            presentation={groupItem.queuePresentation}
-                            styles={styles}
-                          />
+                          compactEnabled ? (
+                            <QueueIdentifier presentation={groupItem.queuePresentation} mode={queueIdentificationMode} styles={styles} />
+                          ) : (
+                            <QueueBadge presentation={groupItem.queuePresentation} styles={styles} />
+                          )
                         ) : null}
                       </View>
 
@@ -384,6 +450,14 @@ const OrderProducts = ({
             String(childCard?.parentCardKey || '') === String(card?.key || ''),
         )
         const itemColor = isRootZero ? REMOVAL_COLOR : (card.itemColor || order?.status?.color)
+        const hasOperationalQueue = Boolean(card.queuePresentation)
+        const rootQuantity = normalizeOrderProductQuantity(card.quantity)
+        const shouldShowRootQuantity =
+          showRootQuantityPrefix &&
+          !isRootZero &&
+          (rootQuantity > 1 || showUnitQuantity)
+        const isRootChecked = showConferenceCheck &&
+          isOperationalOrderProductCardChecked(card)
         const cardImageUrl = showImages ? resolveCardImageUrl(card) : ''
         const hasRootMeta =
           (showDescriptions && !!card.description) ||
@@ -426,7 +500,7 @@ const OrderProducts = ({
               ],
             ]}
           >
-            {!!originGroupLabel && (
+            {showGroupNames && !!originGroupLabel && (
               <View style={[
                 sharedStyles.independentChildGroup,
                 styles.independentChildGroup,
@@ -446,19 +520,28 @@ const OrderProducts = ({
                   hasIndependentChildren &&
                   sharedStyles.compactParentWithChildrenRow,
                 compactEnabled && depth > 0 && sharedStyles.compactOperationalChildRow,
-                hierarchyGuidesEnabled
+                statusIndicatorMode === 'line' && hasOperationalQueue
                   ? {
                       borderLeftWidth: 3,
                       borderLeftColor: itemColor,
                     }
-                  : {
-                      borderLeftWidth: 0,
-                      paddingLeft: 0,
-                    },
+                  : statusIndicatorMode === 'line'
+                  ? {
+                      // Keep the line column in the layout without presenting a
+                      // status for products that do not belong to a queue.
+                      borderLeftWidth: 3,
+                      borderLeftColor: 'transparent',
+                    }
+                  : null,
               ]}
             >
               <View style={[sharedStyles.itemMainRow, styles.itemMainRow]}>
                 <View style={[sharedStyles.itemLead, styles.itemLead]}>
+                  {statusIndicatorMode === 'bullet' && hasOperationalQueue ? (
+                    <View style={[sharedStyles.statusBullet, { backgroundColor: itemColor }]} />
+                  ) : statusIndicatorMode === 'bullet' ? (
+                    <View style={sharedStyles.statusBulletSpacer} />
+                  ) : null}
                   {showImages ? (
                     <View style={[sharedStyles.itemThumbWrap, styles.itemThumbWrap]}>
                       {cardImageUrl ? (
@@ -487,40 +570,48 @@ const OrderProducts = ({
                     </View>
                   ) : null}
 
-                  {compactEnabled && showRootQuantityPrefix ? (
-                    <Text style={[
-                      sharedStyles.compactQuantityColumn,
-                      styles.qtyText,
-                    ]}>
-                      {isRootZero
-                        ? ''
-                        : `${normalizeOrderProductQuantity(card.quantity)}x`}
-                    </Text>
-                  ) : null}
-
                   <View style={[sharedStyles.itemContent, styles.itemContent]}>
                     <View style={[
                       sharedStyles.itemTitleRow,
                       styles.itemTitleRow,
                     ]}>
+                      {compactEnabled && showRootQuantityPrefix ? (
+                        <Text style={[
+                          styles.qtyText,
+                          sharedStyles.compactQuantityColumn,
+                        ]}>
+                          {shouldShowRootQuantity ? `${rootQuantity}x ` : ''}
+                        </Text>
+                      ) : null}
                       <Text
                         style={[sharedStyles.itemTitleText, styles.text]}
                         numberOfLines={2}
                       >
-                        {showRootStatusMarker ? (
+                        {showRootStatusMarker && !statusIndicatorMode ? (
                           <Text style={[styles.statusMarker, { color: itemColor }]}>* </Text>
+                        ) : null}
+                        {isRootChecked ? (
+                          <Text style={[
+                            sharedStyles.conferenceCheck,
+                            styles.conferenceCheck,
+                            { color: rootItem?.status?.color || ADDITION_COLOR },
+                          ]}>✓ </Text>
                         ) : null}
                         {isRootZero ? (
                           <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
                         ) : null}
-                        {!compactEnabled && showRootQuantityPrefix && !isRootZero ? (
-                          <Text style={styles.qtyText}>{normalizeOrderProductQuantity(card.quantity)}x </Text>
+                        {!compactEnabled && shouldShowRootQuantity ? (
+                          <Text style={styles.qtyText}>{rootQuantity}x </Text>
                         ) : null}
                         {card.name || `Item #${index + 1}`}
                       </Text>
 
                       {showQueuePresentation ? (
-                        <QueueBadge presentation={card.queuePresentation} styles={styles} />
+                        compactEnabled ? (
+                          <QueueIdentifier presentation={card.queuePresentation} mode={queueIdentificationMode} styles={styles} />
+                        ) : (
+                          <QueueBadge presentation={card.queuePresentation} styles={styles} />
+                        )
                       ) : null}
                     </View>
 

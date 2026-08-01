@@ -14,6 +14,31 @@ const sharedStyles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 10,
   },
+  statusBullet: {
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+    marginTop: 4,
+    flexShrink: 0,
+  },
+  statusBulletSpacer: {
+    width: 9,
+    flexShrink: 0,
+  },
+  semanticMarker: {
+    width: 14,
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  conferenceCheck: {
+    fontWeight: '900',
+  },
+  queueIdentifierText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    marginLeft: 4,
+  },
   itemThumbWrap: {
     width: 56,
     height: 56,
@@ -145,6 +170,9 @@ const sharedStyles = StyleSheet.create({
   },
   compactGroupWrap: {
     marginTop: 3,
+  },
+  compactRootGroupWrap: {
+    paddingLeft: 26,
   },
   compactGroupTitlePill: {
     borderWidth: 0,
