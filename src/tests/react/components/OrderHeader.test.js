@@ -77,6 +77,9 @@ jest.mock('../../../react/components/OrderHeader.styles', () =>
     container: {id: 'container'},
     containerStackedRightSection: {id: 'containerStackedRightSection'},
     identityWrap: {id: 'identityWrap'},
+    identityRow: {id: 'identityRow'},
+    itemCountBadge: {id: 'itemCountBadge'},
+    itemCountText: {id: 'itemCountText'},
     leftSection: {id: 'leftSection'},
     leftSectionStackedRightSection: {id: 'leftSectionStackedRightSection'},
     leadingLabel: {id: 'leadingLabel'},
@@ -222,6 +225,30 @@ describe('OrderHeader', () => {
     )
 
     expect(global.__orderCardHeaderProps.dateText).toBe('')
+  })
+
+  it('shows a static item count beside the order identity when provided', () => {
+    global.__orderCardHeaderProps = null
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderHeader, {
+        itemCount: 9,
+        order: {
+          status: {
+            realStatus: 'open',
+            status: 'Open',
+          },
+        },
+      }),
+    )
+
+    expect(global.__orderCardHeaderProps.identityRowStyle).toEqual({
+      id: 'identityRow',
+    })
+    expect(
+      global.__orderCardHeaderProps.identityTrailingContent.props.children.props
+        .children,
+    ).toBe('9 itens')
   })
 
   it('hides price by default outside KDS', () => {

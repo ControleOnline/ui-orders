@@ -29,14 +29,20 @@ jest.mock('../../../react/components/OrderProducts.styles', () => ({
   groupItemMetaWrap: {},
   groupItemPriceText: {},
   groupItemText: {},
+  groupItemTitleRow: {},
+  groupItemTitleText: {},
   groupTitle: {},
   groupTitlePill: {},
   groupWrap: {},
+  independentChildGroup: {},
+  independentChildrenWrap: {},
   itemActions: {},
   itemContent: {},
   itemLead: {},
   itemMainRow: {},
   itemRow: {},
+  itemTitleRow: {},
+  itemTitleText: {},
   itemThumbImage: {},
   itemThumbPlaceholder: {},
   itemThumbPlaceholderText: {},
@@ -67,8 +73,36 @@ jest.mock('../../../react/components/OrderProducts.utils', () => ({
         label: 'Produto Exemplo Churrasco / Pronto para Retirar',
       },
       rootItem: {
+        quantity: 1,
         product: {
           product: 'Combo Alpha Produto Exemplo',
+        },
+      },
+      totalPrice: 0,
+      unitPrice: 0,
+    },
+    {
+      groups: [],
+      itemColor: '#F59E0B',
+      key: 'card-2',
+      name: 'Mini Churros',
+      description: '',
+      observation: '',
+      originGroup: {
+        key: 'dessert',
+        label: 'Sobremesa',
+      },
+      parentCardKey: 'card-1',
+      quantity: 2,
+      queuePresentation: {
+        color: '#F59E0B',
+        label: 'Fritadeira / Preparando',
+      },
+      rootItem: {
+        id: 2,
+        quantity: 2,
+        product: {
+          product: 'Mini Churros',
         },
       },
       totalPrice: 0,
@@ -118,10 +152,55 @@ describe('OrderProducts queue presentation', () => {
     )
   })
 
+  it('renders prebuilt product cards when the presentation supplies them', () => {
+    const html = renderTree({
+      productCards: [
+        {
+          groups: [],
+          itemColor: '#334155',
+          key: 'operational-card',
+          name: '4x consolidated visually',
+          quantity: 4,
+          rootItem: {id: 99, quantity: 4},
+          totalPrice: 0,
+          unitPrice: 0,
+        },
+      ],
+    })
+
+    expect(html).toContain('4x consolidated visually')
+    expect(html).not.toContain('Combo Alpha Produto Exemplo')
+  })
+
   it('hides descriptions independently from operational observations', () => {
     const html = renderTree({showDetails: true, showDescriptions: false})
 
     expect(html).not.toContain('Pao Frances (Com Parmesao)')
     expect(html).toContain('Obs: Sem cebola')
+  })
+
+  it('renders an operational child under its origin group without hiding its own queue', () => {
+    const html = renderTree({showHierarchyGuides: true})
+
+    expect(html).toContain('Sobremesa')
+    expect(html).toContain('Mini Churros')
+    expect(html).toContain('Fritadeira / Preparando')
+    expect(html.indexOf('Combo Alpha Produto Exemplo')).toBeLessThan(
+      html.indexOf('Sobremesa'),
+    )
+    expect(html.indexOf('Sobremesa')).toBeLessThan(html.indexOf('Mini Churros'))
+  })
+
+  it('uses a separate quantity column without status asterisks in compact displays', () => {
+    const html = renderTree({
+      compact: true,
+      showGroupStatusMarker: false,
+      showHierarchyGuides: true,
+      showRootQuantityPrefix: true,
+      showRootStatusMarker: false,
+    })
+
+    expect(html).toContain('>1x</text>')
+    expect(html).not.toContain('*')
   })
 })

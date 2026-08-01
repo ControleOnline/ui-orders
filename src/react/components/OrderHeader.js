@@ -216,6 +216,8 @@ const OrderHeader = ({
   customerActionLabel = '',
   customerActionDisabled = false,
   metaText = '',
+  orderIdStyle = null,
+  itemCount = null,
 }) => {
   const themeStore = useStore('theme')
   const themeColors = themeStore?.getters?.colors || {}
@@ -304,6 +306,9 @@ const OrderHeader = ({
   const priceStyle = useMemo(() => resolvePriceStyle(orderType, styles), [orderType, styles])
   const waitingColor = waitingConfig?.color
   const shouldStackRightSectionBelow = isKds && stackRightSectionBelow
+  const normalizedItemCount = Number(itemCount)
+  const showItemCount =
+    Number.isFinite(normalizedItemCount) && normalizedItemCount > 0
 
   return (
     <OrderCardHeader
@@ -322,8 +327,20 @@ const OrderHeader = ({
         </View>
       }
       identityContainerStyle={styles.identityWrap}
+      identityRowStyle={styles.identityRow}
+      identityTrailingContent={
+        showItemCount ? (
+          <View style={styles.itemCountBadge}>
+            <Text style={styles.itemCountText}>
+              {`${normalizedItemCount} ${
+                normalizedItemCount === 1 ? 'item' : 'itens'
+              }`}
+            </Text>
+          </View>
+        ) : null
+      }
       titleWrapStyle={styles.titleWrap}
-      primaryTextStyle={styles.orderId}
+      primaryTextStyle={[styles.orderId, orderIdStyle]}
       secondaryTextStyle={styles.orderIdSecondary}
       dateRowStyle={styles.metaRow}
       dateTextStyle={styles.orderDate}

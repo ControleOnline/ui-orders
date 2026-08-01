@@ -95,6 +95,7 @@ const renderEntryActions = ({
 const OrderProducts = ({
   order = null,
   orderProducts = null,
+  productCards: providedProductCards = null,
   styles = {},
   showDetails = false,
   showPricing = showDetails,
@@ -108,28 +109,41 @@ const OrderProducts = ({
   showRootStatusMarker = true,
   showGroupStatusMarker = true,
   resolveItemColor = null,
+  compact = false,
+  hierarchyGuideColor = null,
 }) => {
   const hierarchyGuidesEnabled = Boolean(showHierarchyGuides)
+  const compactEnabled = Boolean(compact)
   const resolvedOrderProducts = Array.isArray(orderProducts)
     ? orderProducts
     : (Array.isArray(order?.orderProducts) ? order.orderProducts : [])
-  const groupWrapperStyle = hierarchyGuidesEnabled
-    ? styles.groupWrap
-    : [
-        styles.groupWrap,
-        {
-          marginLeft: 0,
-          paddingLeft: 0,
-          borderLeftWidth: 0,
-        },
-      ]
+  const groupWrapperStyle = [
+    hierarchyGuidesEnabled
+      ? styles.groupWrap
+      : [
+          styles.groupWrap,
+          {
+            marginLeft: 0,
+            paddingLeft: 0,
+            borderLeftWidth: 0,
+          },
+        ],
+    compactEnabled && sharedStyles.compactGroupWrap,
+  ]
 
   const productCards = useMemo(
-    () => buildOrderProductCards(resolvedOrderProducts, {
-      fallbackColor: order?.status?.color,
+    () => Array.isArray(providedProductCards)
+      ? providedProductCards
+      : buildOrderProductCards(resolvedOrderProducts, {
+          fallbackColor: order?.status?.color,
+          resolveItemColor,
+        }),
+    [
+      order?.status?.color,
+      providedProductCards,
       resolveItemColor,
-    }),
-    [order?.status?.color, resolveItemColor, resolvedOrderProducts],
+      resolvedOrderProducts,
+    ],
   )
 
   const visibleCards = useMemo(
@@ -142,6 +156,78 @@ const OrderProducts = ({
     ),
     [maxCards, productCards],
   )
+
+  const visibleCardEntries = useMemo(() => {
+    if (!hierarchyGuidesEnabled) {
+      return visibleCards.map(card => ({
+        card,
+        depth: 0,
+        originGroupLabel: '',
+        parentColor: '',
+      }))
+    }
+
+    const nodesByKey = new Map(
+      visibleCards.map(card => [
+        String(card.key),
+        {
+          card,
+          children: [],
+        },
+      ]),
+    )
+    const rootNodes = []
+
+    nodesByKey.forEach(node => {
+      const parentNode = node.card.parentCardKey
+        ? nodesByKey.get(String(node.card.parentCardKey))
+        : null
+
+      if (parentNode && parentNode !== node) {
+        parentNode.children.push(node)
+        return
+      }
+
+      rootNodes.push(node)
+    })
+
+    const entries = []
+    const appendNode = (
+      node,
+      depth = 0,
+      parentColor = '',
+      originGroupLabel = '',
+    ) => {
+      entries.push({
+        card: node.card,
+        depth,
+        originGroupLabel,
+        parentColor,
+      })
+
+      const renderedGroupKeys = new Set()
+      node.children.forEach(childNode => {
+        const groupKey = String(
+          childNode.card?.originGroup?.key || childNode.card?.key || '',
+        )
+        const shouldRenderGroupLabel = !renderedGroupKeys.has(groupKey)
+        renderedGroupKeys.add(groupKey)
+
+        appendNode(
+          childNode,
+          depth + 1,
+          node.card.itemColor,
+          shouldRenderGroupLabel
+            ? childNode.card?.originGroup?.label || ''
+            : '',
+        )
+      })
+    }
+
+    rootNodes.forEach(node => appendNode(node))
+
+    return entries
+  }, [hierarchyGuidesEnabled, visibleCards])
 
   const renderGroups = (groups, card, depth = 0) => {
     if (!Array.isArray(groups) || groups.length === 0) {
@@ -178,7 +264,10 @@ const OrderProducts = ({
             style={groupWrapperStyle}
           >
             {!!group.label && (
-              <View style={styles.groupTitlePill}>
+              <View style={[
+                styles.groupTitlePill,
+                compactEnabled && sharedStyles.compactGroupTitlePill,
+              ]}>
                 <Text style={styles.groupTitle}>{group.label}</Text>
               </View>
             )}
@@ -192,46 +281,69 @@ const OrderProducts = ({
                 group,
                 entry: groupItem,
               })
+              const hasGroupItemMeta =
+                (showDescriptions && !!groupItem.description) ||
+                (showDetails && !!groupItem.observation)
 
               return (
-                <View key={groupItem.id} style={styles.groupItem}>
+                <View
+                  key={groupItem.id}
+                  style={[
+                    styles.groupItem,
+                    compactEnabled && sharedStyles.compactGroupItem,
+                  ]}
+                >
                   <View style={[sharedStyles.groupItemMainRow, styles.groupItemMainRow]}>
                     <View style={[sharedStyles.groupItemContent, styles.groupItemContent]}>
-                      <Text style={styles.groupItemText}>
-                        {showGroupStatusMarker ? (
-                          <Text style={[styles.statusMarker, { color: childColor }]}>* </Text>
-                        ) : null}
-                        {groupItem.isZero ? (
-                          <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
-                        ) : null}
-                        {!groupItem.isZero && !!formatOrderProductQuantityPrefix(groupItem.quantity) ? (
-                          <Text style={styles.qtyText}>
-                            {formatOrderProductQuantityPrefix(groupItem.quantity)}
-                          </Text>
-                        ) : null}
-                        {groupItem.name}
-                      </Text>
+                      <View style={[
+                        sharedStyles.groupItemTitleRow,
+                        styles.groupItemTitleRow,
+                      ]}>
+                        <Text style={[
+                          sharedStyles.groupItemTitleText,
+                          styles.groupItemText,
+                        ]}>
+                          {showGroupStatusMarker ? (
+                            <Text style={[styles.statusMarker, { color: childColor }]}>* </Text>
+                          ) : null}
+                          {groupItem.isZero ? (
+                            <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
+                          ) : null}
+                          {!groupItem.isZero && !!formatOrderProductQuantityPrefix(groupItem.quantity) ? (
+                            <Text style={styles.qtyText}>
+                              {formatOrderProductQuantityPrefix(groupItem.quantity)}
+                            </Text>
+                          ) : null}
+                          {groupItem.name}
+                        </Text>
 
-                      <View style={[sharedStyles.groupItemMetaWrap, styles.groupItemMetaWrap]}>
                         {showQueuePresentation ? (
                           <QueueBadge
                             presentation={groupItem.queuePresentation}
                             styles={styles}
                           />
                         ) : null}
-
-                        {showDescriptions && !!groupItem.description && (
-                          <Text style={styles.groupItemMetaText}>
-                            {groupItem.description}
-                          </Text>
-                        )}
-
-                        {showDetails && !!groupItem.observation && (
-                          <Text style={styles.groupItemMetaText}>
-                            Obs: {groupItem.observation}
-                          </Text>
-                        )}
                       </View>
+
+                      {hasGroupItemMeta ? (
+                        <View style={[
+                          sharedStyles.groupItemMetaWrap,
+                          styles.groupItemMetaWrap,
+                          compactEnabled && sharedStyles.compactMetaWrap,
+                        ]}>
+                          {showDescriptions && !!groupItem.description && (
+                            <Text style={styles.groupItemMetaText}>
+                              {groupItem.description}
+                            </Text>
+                          )}
+
+                          {showDetails && !!groupItem.observation && (
+                            <Text style={styles.groupItemMetaText}>
+                              Obs: {groupItem.observation}
+                            </Text>
+                          )}
+                        </View>
+                      ) : null}
 
                       {renderGroups(groupItem.groups, card, depth + 1)}
                     </View>
@@ -257,12 +369,26 @@ const OrderProducts = ({
 
   return (
     <>
-      {visibleCards.map((card, index) => {
+      {visibleCardEntries.map(({
+        card,
+        depth,
+        originGroupLabel,
+        parentColor,
+      }, index) => {
         const rootItem = card.rootItem || {}
         const hasRootItem = Object.keys(rootItem).length > 0
         const isRootZero = hasRootItem && Number(rootItem?.quantity || 0) === 0
+        const startsNewRootFamily = compactEnabled && depth === 0 && index > 0
+        const hasIndependentChildren = visibleCards.some(
+          childCard =>
+            String(childCard?.parentCardKey || '') === String(card?.key || ''),
+        )
         const itemColor = isRootZero ? REMOVAL_COLOR : (card.itemColor || order?.status?.color)
         const cardImageUrl = showImages ? resolveCardImageUrl(card) : ''
+        const hasRootMeta =
+          (showDescriptions && !!card.description) ||
+          (showDetails && !!card.observation) ||
+          (showPricing && card.unitPrice > 0)
         const rootActions = renderEntryActions({
           renderActions,
           entryType: 'root',
@@ -282,10 +408,44 @@ const OrderProducts = ({
         })
 
         return (
-          <View key={card.key || `card-${index}`}>
+          <View
+            key={card.key || `card-${index}`}
+            style={[
+              startsNewRootFamily && sharedStyles.compactRootFamilySeparator,
+              startsNewRootFamily && styles.rootFamilySeparator,
+              depth > 0 && [
+                sharedStyles.independentChildrenWrap,
+                styles.independentChildrenWrap,
+                compactEnabled && sharedStyles.compactIndependentChildrenWrap,
+                {
+                  marginLeft: depth * (compactEnabled ? 12 : 18),
+                  borderLeftColor: compactEnabled && hierarchyGuideColor
+                    ? withOpacity(hierarchyGuideColor, 0.8)
+                    : withOpacity(parentColor || itemColor, 0.28),
+                },
+              ],
+            ]}
+          >
+            {!!originGroupLabel && (
+              <View style={[
+                sharedStyles.independentChildGroup,
+                styles.independentChildGroup,
+                compactEnabled && sharedStyles.compactIndependentChildGroup,
+                styles.groupTitlePill,
+                compactEnabled && sharedStyles.compactGroupTitlePill,
+              ]}>
+                <Text style={styles.groupTitle}>{originGroupLabel}</Text>
+              </View>
+            )}
             <View
               style={[
                 styles.itemRow,
+                compactEnabled && sharedStyles.compactItemRow,
+                compactEnabled &&
+                  depth === 0 &&
+                  hasIndependentChildren &&
+                  sharedStyles.compactParentWithChildrenRow,
+                compactEnabled && depth > 0 && sharedStyles.compactOperationalChildRow,
                 hierarchyGuidesEnabled
                   ? {
                       borderLeftWidth: 3,
@@ -327,48 +487,73 @@ const OrderProducts = ({
                     </View>
                   ) : null}
 
-                  <View style={[sharedStyles.itemContent, styles.itemContent]}>
-                    <Text style={styles.text} numberOfLines={2}>
-                      {showRootStatusMarker ? (
-                        <Text style={[styles.statusMarker, { color: itemColor }]}>* </Text>
-                      ) : null}
-                      {isRootZero ? (
-                        <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
-                      ) : null}
-                      {showRootQuantityPrefix && !isRootZero ? (
-                        <Text style={styles.qtyText}>{normalizeOrderProductQuantity(card.quantity)}x </Text>
-                      ) : null}
-                      {card.name || `Item #${index + 1}`}
+                  {compactEnabled && showRootQuantityPrefix ? (
+                    <Text style={[
+                      sharedStyles.compactQuantityColumn,
+                      styles.qtyText,
+                    ]}>
+                      {isRootZero
+                        ? ''
+                        : `${normalizeOrderProductQuantity(card.quantity)}x`}
                     </Text>
+                  ) : null}
 
-                    <View style={[sharedStyles.metaWrap, styles.metaWrap]}>
+                  <View style={[sharedStyles.itemContent, styles.itemContent]}>
+                    <View style={[
+                      sharedStyles.itemTitleRow,
+                      styles.itemTitleRow,
+                    ]}>
+                      <Text
+                        style={[sharedStyles.itemTitleText, styles.text]}
+                        numberOfLines={2}
+                      >
+                        {showRootStatusMarker ? (
+                          <Text style={[styles.statusMarker, { color: itemColor }]}>* </Text>
+                        ) : null}
+                        {isRootZero ? (
+                          <Text style={{ color: REMOVAL_COLOR, fontWeight: 'bold' }}>REMOVER </Text>
+                        ) : null}
+                        {!compactEnabled && showRootQuantityPrefix && !isRootZero ? (
+                          <Text style={styles.qtyText}>{normalizeOrderProductQuantity(card.quantity)}x </Text>
+                        ) : null}
+                        {card.name || `Item #${index + 1}`}
+                      </Text>
+
                       {showQueuePresentation ? (
                         <QueueBadge presentation={card.queuePresentation} styles={styles} />
                       ) : null}
-
-                      {showDescriptions && !!card.description && (
-                        <Text style={styles.subText} numberOfLines={2}>
-                          {card.description}
-                        </Text>
-                      )}
-
-                      {showDetails && !!card.observation && (
-                        <Text style={styles.subText} numberOfLines={2}>
-                          Obs: {card.observation}
-                        </Text>
-                      )}
-
-                      {showPricing && card.unitPrice > 0 && (
-                        <View style={[sharedStyles.priceRow, styles.priceRow]}>
-                          <Text style={styles.subText}>
-                            {Formatter.formatMoney(card.unitPrice)} / un
-                          </Text>
-                          <Text style={styles.subText}>
-                            {Formatter.formatMoney(card.totalPrice || 0)}
-                          </Text>
-                        </View>
-                      )}
                     </View>
+
+                    {hasRootMeta ? (
+                      <View style={[
+                        sharedStyles.metaWrap,
+                        styles.metaWrap,
+                        compactEnabled && sharedStyles.compactMetaWrap,
+                      ]}>
+                        {showDescriptions && !!card.description && (
+                          <Text style={styles.subText} numberOfLines={2}>
+                            {card.description}
+                          </Text>
+                        )}
+
+                        {showDetails && !!card.observation && (
+                          <Text style={styles.subText} numberOfLines={2}>
+                            Obs: {card.observation}
+                          </Text>
+                        )}
+
+                        {showPricing && card.unitPrice > 0 && (
+                          <View style={[sharedStyles.priceRow, styles.priceRow]}>
+                            <Text style={styles.subText}>
+                              {Formatter.formatMoney(card.unitPrice)} / un
+                            </Text>
+                            <Text style={styles.subText}>
+                              {Formatter.formatMoney(card.totalPrice || 0)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    ) : null}
                   </View>
                 </View>
 

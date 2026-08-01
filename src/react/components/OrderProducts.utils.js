@@ -391,6 +391,7 @@ const createCard = ({
     rootItem,
     rootKey: rootItem ? toOrderProductEntityId(rootItem?.id || rootItem?.['@id']) : '',
     rootProductKey: rootItem ? getCatalogProductKey(rootItem) : '',
+    trackingCategory: rootItem?.product?.trackingCategory || null,
     name: normalizeOrderProductText(name),
     description: normalizeOrderProductText(description),
     observation: '',
@@ -399,6 +400,8 @@ const createCard = ({
     totalPrice: 0,
     itemColor: resolveEntryColor(rootItem, fallbackColor, resolveItemColor),
     queuePresentation: resolveOrderProductQueuePresentation(rootItem),
+    parentCardKey: '',
+    originGroup: null,
     groups: new Map(),
   }
 
@@ -429,6 +432,7 @@ export const buildOrderProductCards = (orderProducts, {
   const componentEntryByOrderProductId = new Map()
   const componentEntriesByProductKey = new Map()
   const itemsByEntityId = new Map()
+  const componentParentEntityIdByChildId = new Map()
   const catalogProductKeysInOrder = new Set()
   let embeddedComponentOrderSequence = 0
 
@@ -444,6 +448,58 @@ export const buildOrderProductCards = (orderProducts, {
     }
   })
 
+  const collectComponentParentLinks = (parentItem, ancestorIds = new Set()) => {
+    const parentEntityId = toOrderProductEntityId(
+      parentItem?.id || parentItem?.['@id'],
+    )
+
+    if (!parentEntityId || ancestorIds.has(parentEntityId)) {
+      return
+    }
+
+    const nextAncestorIds = new Set(ancestorIds)
+    nextAncestorIds.add(parentEntityId)
+
+    getOrderProductComponents(parentItem).forEach(rawComponent => {
+      const componentEntityId = toOrderProductEntityId(
+        rawComponent?.id || rawComponent?.['@id'] || rawComponent,
+      )
+
+      if (!componentEntityId || componentEntityId === parentEntityId) {
+        return
+      }
+
+      if (!componentParentEntityIdByChildId.has(componentEntityId)) {
+        componentParentEntityIdByChildId.set(componentEntityId, parentEntityId)
+      }
+
+      const componentItem =
+        itemsByEntityId.get(componentEntityId) ||
+        (rawComponent && typeof rawComponent === 'object' ? rawComponent : null)
+
+      if (componentItem) {
+        collectComponentParentLinks(componentItem, nextAncestorIds)
+      }
+    })
+  }
+
+  items.forEach(item => collectComponentParentLinks(item))
+
+  const getParentOrderProductEntityId = item => {
+    const explicitParentEntityId = toOrderProductEntityId(
+      item?.orderProduct || item?.order_product,
+    )
+
+    if (explicitParentEntityId) {
+      return explicitParentEntityId
+    }
+
+    const itemEntityId = toOrderProductEntityId(item?.id || item?.['@id'])
+    return itemEntityId
+      ? componentParentEntityIdByChildId.get(itemEntityId) || ''
+      : ''
+  }
+
   const hasCatalogParentInCurrentOrder = item => {
     const parentCatalogProductKeys = getParentCatalogProductKeys(item)
     return parentCatalogProductKeys.some(parentCatalogProductKey =>
@@ -452,6 +508,7 @@ export const buildOrderProductCards = (orderProducts, {
   }
 
   const shouldTreatAsGroupedItem = item =>
+    !!getParentOrderProductEntityId(item) ||
     hasExplicitParentReference(item) ||
     hasCatalogParentInCurrentOrder(item)
 
@@ -553,8 +610,35 @@ export const buildOrderProductCards = (orderProducts, {
     return entry
   }
 
-  const getParentOrderProductEntityId = item =>
-    toOrderProductEntityId(item?.orderProduct || item?.order_product)
+  const resolveIndependentParentCardKey = item => {
+    const visitedParentIds = new Set()
+    let currentItem = item
+
+    while (currentItem) {
+      const parentOrderProductId = getParentOrderProductEntityId(currentItem)
+      if (!parentOrderProductId || visitedParentIds.has(parentOrderProductId)) {
+        return ''
+      }
+
+      visitedParentIds.add(parentOrderProductId)
+
+      const parentItem = itemsByEntityId.get(parentOrderProductId)
+      if (!parentItem) {
+        return ''
+      }
+
+      if (
+        !getParentOrderProductEntityId(parentItem) ||
+        !shouldShowInParentQueue(parentItem)
+      ) {
+        return parentOrderProductId
+      }
+
+      currentItem = parentItem
+    }
+
+    return ''
+  }
 
   const resolveComponentEntryByProductKey = (productKey, index) => {
     const matches = productKey ? (componentEntriesByProductKey.get(productKey) || []) : []
@@ -803,6 +887,7 @@ export const buildOrderProductCards = (orderProducts, {
     card.rootItem = item
     card.rootKey = card.rootKey || toOrderProductEntityId(item?.id || item?.['@id'])
     card.rootProductKey = card.rootProductKey || getCatalogProductKey(item)
+    card.trackingCategory = card.trackingCategory || item?.product?.trackingCategory || null
     card.name = getNodeName(item) || card.name || `Item #${index + 1}`
     card.description = getNodeDescription(item) || card.description
     card.observation = getNodeObservation(item) || card.observation
@@ -811,6 +896,14 @@ export const buildOrderProductCards = (orderProducts, {
     card.totalPrice = toMoney(item?.total ?? resolveOrderProductTotal(item))
     card.itemColor = resolveEntryColor(item, fallbackColor, resolveItemColor)
     card.queuePresentation = resolveOrderProductQueuePresentation(item)
+
+    if (shouldTreatAsGroupedItem(item) && !shouldShowInParentQueue(item)) {
+      const parentCardKey = resolveIndependentParentCardKey(item)
+      card.parentCardKey = parentCardKey
+      card.originGroup = parentCardKey
+        ? getOrderProductGroupPresentation(item)
+        : null
+    }
 
     appendEmbeddedGroupedItems({
       card,
@@ -956,6 +1049,120 @@ export const buildOrderProductCards = (orderProducts, {
     .filter(card => !card.hidden)
     .filter(card => card.rootItem || card.groups.length > 0)
 }
+
+const getQueueSignature = queuePresentation => {
+  const queueItem = queuePresentation?.queue || null
+
+  return {
+    queue: toOrderProductEntityId(queueItem?.queue) ||
+      normalizeOrderProductText(queuePresentation?.queueLabel),
+    status: toOrderProductEntityId(queueItem?.status) ||
+      normalizeOrderProductText(queuePresentation?.statusLabel),
+  }
+}
+
+function getOperationalGroupsSignature(groups) {
+  return (Array.isArray(groups) ? groups : [])
+    .map(group => ({
+      group: normalizeOrderProductText(group?.id || group?.label),
+      label: normalizeOrderProductText(group?.label),
+      items: (Array.isArray(group?.items) ? group.items : [])
+        .map(getOperationalGroupItemSignature)
+        .sort((left, right) =>
+          JSON.stringify(left).localeCompare(JSON.stringify(right)),
+        ),
+    }))
+    .sort((left, right) =>
+      JSON.stringify(left).localeCompare(JSON.stringify(right)),
+    )
+}
+
+function getOperationalGroupItemSignature(item) {
+  return {
+    product: getCatalogProductKey(item?.orderProduct) ||
+      `name:${normalizeOrderProductText(item?.name)}`,
+    quantity: Number(item?.quantity || 0),
+    isZero: Boolean(item?.isZero),
+    observation: normalizeOrderProductText(item?.observation),
+    queue: getQueueSignature(item?.queuePresentation),
+    groups: getOperationalGroupsSignature(item?.groups),
+  }
+}
+
+const getOperationalCardSignature = card => {
+  const productKey = normalizeOrderProductText(card?.rootProductKey)
+
+  if (!productKey) {
+    return `card:${normalizeOrderProductText(card?.key)}`
+  }
+
+  return JSON.stringify({
+    product: productKey,
+    observation: normalizeOrderProductText(card?.observation),
+    queue: getQueueSignature(card?.queuePresentation),
+    groups: getOperationalGroupsSignature(card?.groups),
+  })
+}
+
+export const consolidateOperationalOrderProductCards = cards => {
+  const consolidatedCards = []
+  const cardsBySignature = new Map()
+
+  ;(Array.isArray(cards) ? cards : []).forEach(card => {
+    const operationalCard = {
+      ...card,
+      parentCardKey: '',
+      originGroup: null,
+      sourceCards: [card],
+    }
+    const signature = getOperationalCardSignature(operationalCard)
+    const existingCard = cardsBySignature.get(signature)
+
+    if (!existingCard) {
+      cardsBySignature.set(signature, operationalCard)
+      consolidatedCards.push(operationalCard)
+      return
+    }
+
+    const quantity =
+      normalizeOrderProductQuantity(existingCard.quantity) +
+      normalizeOrderProductQuantity(operationalCard.quantity)
+
+    existingCard.quantity = quantity
+    existingCard.totalPrice =
+      Number(existingCard.totalPrice || 0) +
+      Number(operationalCard.totalPrice || 0)
+    existingCard.rootItem = {
+      ...(existingCard.rootItem || {}),
+      quantity,
+    }
+    existingCard.sourceCards.push(card)
+  })
+
+  return consolidatedCards.sort((left, right) => {
+    const leftRawRank = left?.trackingCategory?.rank
+    const rightRawRank = right?.trackingCategory?.rank
+    const leftRank = Number(leftRawRank)
+    const rightRank = Number(rightRawRank)
+    const normalizedLeftRank = leftRawRank !== null && leftRawRank !== undefined && Number.isFinite(leftRank) && leftRank >= 0
+      ? leftRank
+      : Number.POSITIVE_INFINITY
+    const normalizedRightRank = rightRawRank !== null && rightRawRank !== undefined && Number.isFinite(rightRank) && rightRank >= 0
+      ? rightRank
+      : Number.POSITIVE_INFINITY
+
+    if (normalizedLeftRank !== normalizedRightRank) {
+      return normalizedLeftRank - normalizedRightRank
+    }
+
+    return Number(left?.order || 0) - Number(right?.order || 0)
+  })
+}
+
+export const buildOperationalOrderProductCards = (orderProducts, options = {}) =>
+  consolidateOperationalOrderProductCards(
+    buildOrderProductCards(orderProducts, options),
+  )
 
 const estimateTextUnits = (value, charsPerLine = 28) => {
   const normalized = normalizeOrderProductText(value)
