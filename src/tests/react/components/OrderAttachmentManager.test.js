@@ -119,10 +119,13 @@ jest.mock('@controleonline/ui-common/src/react/components/MessageService', () =>
 
 jest.mock('@controleonline/ui-common/src/react/utils/fileUrl', () => ({
   resolveFileDownloadUrl: () => 'https://example.test/files/11/download',
+  resolveDefaultFileSource: () => ({uri: 'https://example.test/files/11'}),
   resolveFileImageUrl: () => '',
 }))
 
-jest.mock('@controleonline/ui-products/src/react/services/fileUpload', () => ({
+jest.mock('@controleonline/ui-default/src/react/components/upload/fileUpload', () => ({
+  extractFileId: file => file?.id || String(file || '').match(/(\d+)$/)?.[1] || null,
+  selectFile: jest.fn(),
   toFileIri: file => file?.['@id'] || `/files/${file?.id || 0}`,
   uploadFileToApi: jest.fn(),
 }))
@@ -141,6 +144,7 @@ describe('OrderAttachmentManager', () => {
     )
 
     expect(markup).toContain('Anexos do pedido #9')
-    expect(markup).toContain('NF-e.pdf')
+    expect(markup).toContain('Gerenciar anexos')
+    expect(markup).toContain('Remover')
   })
 })
