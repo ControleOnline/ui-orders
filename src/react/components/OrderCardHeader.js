@@ -13,6 +13,8 @@ const OrderCardHeader = ({
   containerStyle = null,
   leftSectionStyle = null,
   identityContainerStyle = null,
+  identityRowStyle = null,
+  identityTrailingContent = null,
   titleWrapStyle = null,
   primaryTextStyle = null,
   secondaryTextStyle = null,
@@ -32,13 +34,26 @@ const OrderCardHeader = ({
       <View style={leftSectionStyle}>
         {leftContent}
         <View style={titleWrapStyle}>
-          <OrderIdentityLabel
-            order={order}
-            containerStyle={identityContainerStyle}
-            primaryTextStyle={primaryTextStyle}
-            secondaryTextStyle={secondaryTextStyle}
-            showSecondary={showSecondaryIdentity}
-          />
+          {identityTrailingContent ? (
+            <View style={identityRowStyle}>
+              <OrderIdentityLabel
+                order={order}
+                containerStyle={identityContainerStyle}
+                primaryTextStyle={primaryTextStyle}
+                secondaryTextStyle={secondaryTextStyle}
+                showSecondary={showSecondaryIdentity}
+              />
+              {identityTrailingContent}
+            </View>
+          ) : (
+            <OrderIdentityLabel
+              order={order}
+              containerStyle={identityContainerStyle}
+              primaryTextStyle={primaryTextStyle}
+              secondaryTextStyle={secondaryTextStyle}
+              showSecondary={showSecondaryIdentity}
+            />
+          )}
           {hasDateRow && (
             <View style={dateRowStyle}>
               {!!dateText && (

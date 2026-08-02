@@ -1,7 +1,10 @@
 const {
+  buildOperationalOrderProductCards,
   buildOrderProductCards,
   canReopenOrderProductCustomization,
   isOrderProductProductionCompleted,
+  isOperationalOrderProductCardChecked,
+  isOrderProductChecked,
   formatOrderProductQuantityPrefix,
   resolveOrderProductQueuePresentation,
 } = require('../../../react/components/OrderProducts.utils')
@@ -9,6 +12,183 @@ const {
 const { describe, expect, it } = global
 
 describe('OrderProducts.utils', () => {
+  it('orders operational roots by the tracking category and leaves uncategorized products last', () => {
+    const cards = buildOperationalOrderProductCards([
+      {
+        id: 1,
+        quantity: 1,
+        product: {
+          id: 101,
+          product: 'Bebida',
+          trackingCategory: {id: 30, rank: 3},
+        },
+      },
+      {
+        id: 2,
+        quantity: 1,
+        product: {id: 102, product: 'Sem categoria'},
+      },
+      {
+        id: 3,
+        quantity: 1,
+        product: {
+          id: 103,
+          product: 'Primeiro molho',
+          trackingCategory: {id: 20, rank: 2},
+        },
+      },
+      {
+        id: 4,
+        quantity: 1,
+        product: {
+          id: 104,
+          product: 'Segundo molho',
+          trackingCategory: {id: 20, rank: 2},
+        },
+      },
+    ])
+
+    expect(cards.map(card => card.name)).toEqual([
+      'Primeiro molho',
+      'Segundo molho',
+      'Bebida',
+      'Sem categoria',
+    ])
+  })
+
+  it('treats tracking category rank zero as the first configured category', () => {
+    const cards = buildOperationalOrderProductCards([
+      {
+        id: 1,
+        quantity: 1,
+        product: {
+          id: 101,
+          product: 'Lanche',
+          trackingCategory: {id: 20, rank: 1},
+        },
+      },
+      {
+        id: 2,
+        quantity: 1,
+        product: {
+          id: 102,
+          product: 'Combo',
+          trackingCategory: {id: 10, rank: 0},
+        },
+      },
+    ])
+
+    expect(cards.map(card => card.name)).toEqual(['Combo', 'Lanche'])
+  })
+
+  it('leaves categories without a configured rank after configured categories', () => {
+    const cards = buildOperationalOrderProductCards([
+      {
+        id: 1,
+        quantity: 1,
+        product: {
+          id: 101,
+          product: 'Sem ordem',
+          trackingCategory: {id: 20, rank: null},
+        },
+      },
+      {
+        id: 2,
+        quantity: 1,
+        product: {
+          id: 102,
+          product: 'Combo',
+          trackingCategory: {id: 10, rank: 0},
+        },
+      },
+    ])
+
+    expect(cards.map(card => card.name)).toEqual(['Combo', 'Sem ordem'])
+  })
+
+  it('builds a production view with independent items as roots and consolidates identical units', () => {
+    const orderProducts = [
+      {
+        id: 1,
+        quantity: 1,
+        product: {id: 100, product: 'Combo Alpha'},
+        orderProductComponents: [{id: 2}, {id: 3}, {id: 4}, {id: 5}],
+      },
+      ...[2, 3, 4, 5].map(id => ({
+        id,
+        quantity: 1,
+        product: {id: 200, product: 'Maionese Verde - pote 60ml'},
+        orderProduct: '/order_products/1',
+        showInParentQueue: false,
+        productGroup: {
+          id: 900,
+          productGroup: 'Molhos extra à parte',
+        },
+        orderProductQueues: [
+          {
+            id: 1000 + id,
+            queue: {id: 10, queue: 'Separação'},
+            status: {id: 20, status: 'Fila', color: '#FACC15'},
+          },
+        ],
+      })),
+    ]
+
+    const cards = buildOperationalOrderProductCards(orderProducts)
+
+    expect(cards).toHaveLength(2)
+    expect(cards[1]).toMatchObject({
+      name: 'Maionese Verde - pote 60ml',
+      quantity: 4,
+      parentCardKey: '',
+      originGroup: null,
+    })
+    expect(cards[1].sourceCards).toHaveLength(4)
+  })
+
+  it('keeps equal products separated when their incorporated composition differs', () => {
+    const queue = {
+      queue: {id: 10, queue: 'Fritadeira'},
+      status: {id: 20, status: 'Fila', color: '#FACC15'},
+    }
+    const makePotato = (id, seasoningId, seasoningName) => ({
+      id,
+      quantity: 1,
+      product: {id: 300, product: 'Batata Frita Média'},
+      orderProductQueues: [{id: id + 1000, ...queue}],
+      orderProductComponents: [
+        {
+          id: id + 100,
+          quantity: 1,
+          product: {id: seasoningId, product: seasoningName},
+          showInParentQueue: true,
+          productGroup: {
+            id: 901,
+            productGroup: 'Escolha o tempero da sua batata',
+          },
+        },
+        {
+          id: id + 200,
+          quantity: 1,
+          product: {id: 500, product: 'Molho degustação'},
+          showInParentQueue: true,
+          productGroup: {id: 902, productGroup: 'Molho brinde'},
+        },
+      ],
+    })
+
+    const cards = buildOperationalOrderProductCards([
+      makePotato(10, 401, 'Lemon Pepper'),
+      makePotato(20, 401, 'Lemon Pepper'),
+      makePotato(30, 402, 'Sal'),
+    ])
+
+    expect(cards).toHaveLength(2)
+    expect(cards.map(card => card.quantity)).toEqual([2, 1])
+    expect(cards[0].groups[0].items[0].name).toBe('Lemon Pepper')
+    expect(cards[1].groups[0].items[0].name).toBe('Sal')
+  })
+
   it('groups child components under the same parent card', () => {
     const cards = buildOrderProductCards([
       {
@@ -100,7 +280,7 @@ describe('OrderProducts.utils', () => {
         total: 64,
         product: {
           id: 301,
-          product: 'Alpha Gyros (Fraldinha)',
+          product: 'Alpha Produto Exemplo (Fraldinha)',
         },
         orderProductComponents: [
           {
@@ -111,7 +291,7 @@ describe('OrderProducts.utils', () => {
               id: 910,
               productGroup: 'Escolha seu queijo',
               showInDisplay: false,
-              parentProduct: { id: 301, product: 'Alpha Gyros (Fraldinha)' },
+              parentProduct: { id: 301, product: 'Alpha Produto Exemplo (Fraldinha)' },
             },
           },
           {
@@ -122,7 +302,7 @@ describe('OrderProducts.utils', () => {
               id: 911,
               productGroup: 'Adicionais',
               showInDisplay: true,
-              parentProduct: { id: 301, product: 'Alpha Gyros (Fraldinha)' },
+              parentProduct: { id: 301, product: 'Alpha Produto Exemplo (Fraldinha)' },
             },
           },
         ],
@@ -136,13 +316,44 @@ describe('OrderProducts.utils', () => {
     expect(cards[0].groups[1].items.map(item => item.name)).toEqual(['Bacon'])
   })
 
+  it('carries compact semantic and unit-quantity settings with each incorporated group', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 50,
+        quantity: 1,
+        product: {id: 500, product: 'Combo'},
+        orderProductComponents: [
+          {
+            id: 51,
+            quantity: 1,
+            product: {id: 501, product: 'Bacon'},
+            productGroup: {
+              id: 950,
+              productGroup: 'Adicionais',
+              showInDisplay: false,
+              customizationType: 'addition',
+              showUnitQuantity: true,
+              parentProduct: {id: 500},
+            },
+          },
+        ],
+      },
+    ])
+
+    expect(cards[0].groups[0]).toMatchObject({
+      label: '',
+      customizationType: 'addition',
+      showUnitQuantity: true,
+    })
+  })
+
   it('only shows quantity prefixes above one unit', () => {
     expect(formatOrderProductQuantityPrefix(1)).toBe('')
     expect(formatOrderProductQuantityPrefix(2)).toBe('2x ')
     expect(formatOrderProductQuantityPrefix(3)).toBe('3x ')
   })
 
-  it('keeps hidden children out of the parent card while preserving them as standalone items', () => {
+  it('keeps nested hidden children under the visual parent without a direct parent field', () => {
     const cards = buildOrderProductCards([
       {
         id: 1,
@@ -150,7 +361,7 @@ describe('OrderProducts.utils', () => {
         total: 73,
         product: {
           id: 101,
-          product: 'Combo Alpha Gyros',
+          product: 'Combo Alpha Produto Exemplo',
         },
         orderProductComponents: [
           {
@@ -166,7 +377,7 @@ describe('OrderProducts.utils', () => {
               {
                 id: 20,
                 updateTime: '2026-04-22T12:00:00Z',
-                queue: { queue: 'Gyros Fritadeira' },
+                queue: { queue: 'Produto Exemplo Fritadeira' },
                 status: {
                   status: 'Pronto',
                   realStatus: 'out',
@@ -177,7 +388,7 @@ describe('OrderProducts.utils', () => {
             productGroup: {
               id: 900,
               productGroup: 'Escolha sua batata',
-              parentProduct: { id: 101, product: 'Combo Alpha Gyros' },
+              parentProduct: { id: 101, product: 'Combo Alpha Produto Exemplo' },
             },
           },
         ],
@@ -191,13 +402,12 @@ describe('OrderProducts.utils', () => {
           product: 'Batata Frita Média',
         },
         showInParentQueue: false,
-        orderProduct: '/order_products/1',
         parentProduct: '/products/101',
         orderProductQueues: [
           {
             id: 21,
             updateTime: '2026-04-22T12:05:00Z',
-            queue: { queue: 'Gyros Fritadeira' },
+            queue: { queue: 'Produto Exemplo Fritadeira' },
             status: {
               status: 'Pronto',
               realStatus: 'out',
@@ -208,17 +418,132 @@ describe('OrderProducts.utils', () => {
         productGroup: {
           id: 900,
           productGroup: 'Escolha sua batata',
-          parentProduct: { id: 101, product: 'Combo Alpha Gyros' },
+          parentProduct: { id: 101, product: 'Combo Alpha Produto Exemplo' },
         },
       },
     ])
 
     expect(cards.map(card => card.name)).toEqual([
-      'Combo Alpha Gyros',
+      'Combo Alpha Produto Exemplo',
       'Batata Frita Média',
     ])
     expect(cards[0].groups).toHaveLength(0)
-    expect(cards[1].queuePresentation.label).toBe('Gyros Fritadeira / Pronto')
+    expect(cards[1].queuePresentation.label).toBe('Produto Exemplo Fritadeira / Pronto')
+    expect(cards[1].parentCardKey).toBe('1')
+    expect(cards[1].originGroup).toEqual({
+      key: '900',
+      label: 'Escolha sua batata',
+    })
+  })
+
+  it('keeps reused nested groups attached to the correct order product instance', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 100,
+        quantity: 1,
+        total: 73,
+        product: { id: 500, product: 'Combo Alpha' },
+        orderProductComponents: [{ id: 101 }],
+      },
+      {
+        id: 101,
+        quantity: 1,
+        total: 0,
+        product: { id: 700, product: 'Água sem gás' },
+        showInParentQueue: false,
+        productGroup: {
+          id: 900,
+          productGroup: 'Escolha sua bebida',
+          parentProduct: { id: 500, product: 'Combo Alpha' },
+        },
+      },
+      {
+        id: 200,
+        quantity: 1,
+        total: 73,
+        product: { id: 500, product: 'Combo Alpha' },
+        orderProductComponents: [{ id: 201 }],
+      },
+      {
+        id: 201,
+        quantity: 1,
+        total: 0,
+        product: { id: 700, product: 'Água sem gás' },
+        showInParentQueue: false,
+        productGroup: {
+          id: 900,
+          productGroup: 'Escolha sua bebida',
+          parentProduct: { id: 500, product: 'Combo Alpha' },
+        },
+      },
+    ])
+
+    expect(cards.map(card => card.key)).toEqual(['100', '101', '200', '201'])
+    expect(cards[1]).toMatchObject({
+      parentCardKey: '100',
+      originGroup: {
+        key: '900',
+        label: 'Escolha sua bebida',
+      },
+    })
+    expect(cards[3]).toMatchObject({
+      parentCardKey: '200',
+      originGroup: {
+        key: '900',
+        label: 'Escolha sua bebida',
+      },
+    })
+  })
+
+  it('keeps the real parent link when the standalone child group title is hidden', () => {
+    const cards = buildOrderProductCards([
+      {
+        id: 10,
+        quantity: 1,
+        total: 73,
+        product: {
+          id: 101,
+          product: 'Combo Alpha Produto Exemplo',
+        },
+      },
+      {
+        id: 11,
+        quantity: 1,
+        total: 0,
+        product: {
+          id: 201,
+          product: 'Água sem gás',
+        },
+        showInParentQueue: false,
+        orderProduct: '/order_products/10',
+        productGroup: {
+          id: 901,
+          productGroup: 'Escolha sua bebida',
+          showInDisplay: false,
+        },
+      },
+      {
+        id: 12,
+        quantity: 1,
+        total: 6,
+        product: {
+          id: 201,
+          product: 'Água sem gás',
+        },
+      },
+    ])
+
+    expect(cards).toHaveLength(3)
+    expect(cards[1]).toMatchObject({
+      name: 'Água sem gás',
+      parentCardKey: '10',
+      originGroup: {
+        key: '901',
+        label: '',
+      },
+    })
+    expect(cards[2].parentCardKey).toBe('')
+    expect(cards[2].originGroup).toBeNull()
   })
 
   it('does not create fake parent cards from reused catalog product groups', () => {
@@ -229,7 +554,7 @@ describe('OrderProducts.utils', () => {
         total: 73,
         product: {
           id: 1343,
-          product: 'Combo Alpha Gyros',
+          product: 'Combo Alpha Produto Exemplo',
         },
       },
       {
@@ -245,7 +570,7 @@ describe('OrderProducts.utils', () => {
           productGroup: 'Escolha sua batata',
           parentProduct: {
             id: 1326,
-            product: 'Combo Gyros (Batata + Bebida)',
+            product: 'Combo Produto Exemplo (Batata + Bebida)',
           },
         },
       },
@@ -262,7 +587,7 @@ describe('OrderProducts.utils', () => {
           productGroup: 'Molhos extra à parte',
           parentProduct: {
             id: 1104,
-            product: 'Alpha Gyros (Fraldinha)',
+            product: 'Alpha Produto Exemplo (Fraldinha)',
           },
         },
       },
@@ -279,20 +604,22 @@ describe('OrderProducts.utils', () => {
           productGroup: 'Escolha o tempero da sua Batata',
           parentProduct: {
             id: 1326,
-            product: 'Combo Gyros (Batata + Bebida)',
+            product: 'Combo Produto Exemplo (Batata + Bebida)',
           },
         },
       },
     ])
 
     expect(cards.map(card => card.name)).toEqual([
-      'Combo Alpha Gyros',
+      'Combo Alpha Produto Exemplo',
       'Batata Frita Média',
       'Maionese Verde - pote 60ml',
       'Sal',
     ])
-    expect(cards.some(card => card.name === 'Alpha Gyros (Fraldinha)')).toBe(false)
-    expect(cards.some(card => card.name === 'Combo Gyros (Batata + Bebida)')).toBe(false)
+    expect(cards.some(card => card.name === 'Alpha Produto Exemplo (Fraldinha)')).toBe(false)
+    expect(cards.some(card => card.name === 'Combo Produto Exemplo (Batata + Bebida)')).toBe(false)
+    expect(cards.every(card => card.parentCardKey === '')).toBe(true)
+    expect(cards.every(card => card.originGroup === null)).toBe(true)
   })
 
   it('renders embedded orderProductComponents from the root item without collapsing them', () => {
@@ -303,7 +630,7 @@ describe('OrderProducts.utils', () => {
         total: 65.9,
         product: {
           id: 501,
-          product: 'Combo Gyros',
+          product: 'Combo Produto Exemplo',
           description: 'Batata + Bebida',
         },
         orderProductComponents: [
@@ -345,7 +672,7 @@ describe('OrderProducts.utils', () => {
         id: 70,
         quantity: 1,
         total: 73,
-        product: { id: 1101, product: 'Combo Alpha Gyros' },
+        product: { id: 1101, product: 'Combo Alpha Produto Exemplo' },
         orderProductComponents: [
           {
             id: 71,
@@ -355,7 +682,7 @@ describe('OrderProducts.utils', () => {
             productGroup: {
               id: 1400,
               productGroup: 'Escolha sua Batata',
-              parentProduct: { id: 1101, product: 'Combo Alpha Gyros' },
+              parentProduct: { id: 1101, product: 'Combo Alpha Produto Exemplo' },
             },
             orderProductComponents: [
               {
@@ -405,7 +732,7 @@ describe('OrderProducts.utils', () => {
         productGroup: {
           id: 1400,
           productGroup: 'Escolha sua Batata',
-          parentProduct: { id: 1101, product: 'Combo Alpha Gyros' },
+          parentProduct: { id: 1101, product: 'Combo Alpha Produto Exemplo' },
         },
         orderProductComponents: [
           {
@@ -490,7 +817,7 @@ describe('OrderProducts.utils', () => {
       },
     ])
 
-    expect(cards.map(card => card.name)).toEqual(['Combo Alpha Gyros'])
+    expect(cards.map(card => card.name)).toEqual(['Combo Alpha Produto Exemplo'])
     expect(cards[0].groups).toHaveLength(1)
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
       'Batata Frita Media',
@@ -556,7 +883,7 @@ describe('OrderProducts.utils', () => {
         id: 40,
         quantity: 1,
         total: 63,
-        product: { id: 901, product: 'Combo Beta Gyros' },
+        product: { id: 901, product: 'Combo Beta Produto Exemplo' },
       },
       {
         id: 41,
@@ -583,7 +910,7 @@ describe('OrderProducts.utils', () => {
     ])
 
     expect(cards).toHaveLength(1)
-    expect(cards[0].name).toBe('Combo Beta Gyros')
+    expect(cards[0].name).toBe('Combo Beta Produto Exemplo')
     expect(cards[0].groups.map(group => group.label)).toEqual(['Escolha sua Batata'])
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
       'Batata Frita Media',
@@ -602,7 +929,7 @@ describe('OrderProducts.utils', () => {
         id: 60,
         quantity: 1,
         total: 69.99,
-        product: { id: 1001, product: 'Combo Gamma Gyros' },
+        product: { id: 1001, product: 'Combo Gamma Produto Exemplo' },
         orderProductComponents: [
           {
             id: 61,
@@ -689,7 +1016,7 @@ describe('OrderProducts.utils', () => {
         id: 50,
         quantity: 1,
         total: 63,
-        product: { id: 951, product: 'Combo Beta Gyros' },
+        product: { id: 951, product: 'Combo Beta Produto Exemplo' },
       },
       {
         id: 51,
@@ -723,7 +1050,7 @@ describe('OrderProducts.utils', () => {
     ])
 
     expect(cards).toHaveLength(1)
-    expect(cards[0].name).toBe('Combo Beta Gyros')
+    expect(cards[0].name).toBe('Combo Beta Produto Exemplo')
     expect(cards[0].groups.map(group => group.label)).toEqual(['Escolha sua Batata'])
     expect(cards[0].groups[0].items.map(item => item.name)).toEqual([
       'Batata Frita Media',
@@ -745,7 +1072,7 @@ describe('OrderProducts.utils', () => {
         product: {
           id: 801,
           type: 'custom',
-          product: 'Combo Gyros',
+          product: 'Combo Produto Exemplo',
         },
         orderProductComponents: [
           '/order_products/31',
@@ -755,12 +1082,12 @@ describe('OrderProducts.utils', () => {
       {
         id: 31,
         quantity: 1,
-        product: { id: 802, product: 'Alpha Gyros' },
+        product: { id: 802, product: 'Alpha Produto Exemplo' },
         orderProduct: '/order_products/30',
         parentProduct: '/products/801',
         productGroup: {
           id: 1100,
-          productGroup: 'Escolha seu Gyros',
+          productGroup: 'Escolha seu Produto Exemplo',
         },
       },
       {
@@ -779,10 +1106,10 @@ describe('OrderProducts.utils', () => {
     expect(cards).toHaveLength(1)
     expect(cards[0].groups).toHaveLength(2)
     expect(cards[0].groups.map(group => group.label)).toEqual([
-      'Escolha seu Gyros',
+      'Escolha seu Produto Exemplo',
       'Escolha sua Bebida',
     ])
-    expect(cards[0].groups[0].items[0].name).toBe('Alpha Gyros')
+    expect(cards[0].groups[0].items[0].name).toBe('Alpha Produto Exemplo')
     expect(cards[0].groups[1].items[0].name).toBe('Coca-Cola lata 350 ml')
   })
 
@@ -809,6 +1136,29 @@ describe('OrderProducts.utils', () => {
     expect(presentation.label).toBe('Expedicao / Pronto')
     expect(presentation.statusLabel).toBe('Pronto')
     expect(presentation.color).toBe('#16A34A')
+  })
+
+  it('recognizes conference completion independently from the production queue', () => {
+    const checkedItem = {
+      status: {status: 'Conferido', realStatus: 'conferido'},
+      orderProductQueues: [],
+    }
+
+    expect(isOrderProductChecked(checkedItem)).toBe(true)
+    expect(isOrderProductChecked({status: {realStatus: 'pending'}})).toBe(false)
+    expect(isOperationalOrderProductCardChecked({rootItem: checkedItem})).toBe(true)
+  })
+
+  it('only checks a consolidated operational card when every source item was checked', () => {
+    const checked = {status: {realStatus: 'checked'}}
+    const pending = {status: {realStatus: 'pending'}}
+
+    expect(isOperationalOrderProductCardChecked({
+      sourceCards: [{rootItem: checked}, {rootItem: pending}],
+    })).toBe(false)
+    expect(isOperationalOrderProductCardChecked({
+      sourceCards: [{rootItem: checked}, {rootItem: checked}],
+    })).toBe(true)
   })
 
   it('allows reopening customization before the final production stage', () => {

@@ -6,6 +6,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import eventBus from '@controleonline/ui-common/src/react/components/EventBus';
 import {buildFood99OrderSummary} from '../services/marketplaceOrderSummary';
+import {resolvePaidAmountForOrder} from '../utils/checkoutInvoices';
 import createStyles from './PayableToolbar.styles';
 import { inlineStyle_125_12 } from './PayableToolbar.styles';
 
@@ -19,9 +20,9 @@ const PayableToolbar = ({
   const ordersActions = ordersStore.actions;
   const themeStore = useStore('theme');
   const colors = themeStore?.getters?.colors || {};
-  const invoiceStore = useStore('invoice');
-  const invoiceGetters = invoiceStore.getters;
-  const {isLoading, items: invoices} = invoiceGetters;
+  const orderInvoicesStore = useStore('order_invoices');
+  const orderInvoicesGetters = orderInvoicesStore.getters;
+  const {isLoading, items: orderInvoices} = orderInvoicesGetters;
   const {items: orders, item: order, payable} = ordersGetters;
   const {width} = useWindowDimensions();
   const safeOrders = useMemo(
@@ -73,17 +74,8 @@ const PayableToolbar = ({
       return;
     }
 
-    if (invoices && invoices.length > 0) {
-      const localPaid = invoices.reduce(
-        (sum, invoice) => sum + parseFloat(invoice.price),
-        0,
-      );
-      setPaid(localPaid);
-      return;
-    }
-
-    setPaid(0);
-  }, [food99Summary, invoices]);
+    setPaid(resolvePaidAmountForOrder({order, orderInvoices}));
+  }, [food99Summary, order, orderInvoices]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {

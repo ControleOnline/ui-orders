@@ -319,12 +319,22 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   loyaltySelectedPill: {
+    flex: 1,
     borderRadius: 12,
     backgroundColor: '#ECFEFF',
     borderWidth: 1,
     borderColor: '#A5F3FC',
     padding: 12,
     gap: 4,
+  },
+  loyaltySelectedPlaceholder: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    justifyContent: 'center',
   },
   loyaltySelectedTitle: {
     fontSize: 12,

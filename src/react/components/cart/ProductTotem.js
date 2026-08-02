@@ -1,6 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
 import {useStore} from '@store';
 import {
@@ -20,6 +19,20 @@ const styles = {
   },
   button: {
     padding: 8,
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 };
 
@@ -69,9 +82,10 @@ const ProductTotem = ({
   );
   const resolvedPalette = useMemo(
     () => ({
-      iconDisabled: palette.iconDisabled,
-      iconSuccess: palette.iconSuccess,
-      textMuted: palette.textMuted,
+      radioBorder: palette.radioBorder,
+      radioSelectedBorder: palette.radioSelectedBorder,
+      radioSelectedDot: palette.radioSelectedDot,
+      radioText: palette.radioText,
     }),
     [palette],
   );
@@ -222,14 +236,27 @@ const ProductTotem = ({
       ) : (
         <>
           <View style={styles.button}>
-            <Icon
-              name={isSelected ? 'check-circle' : 'radio-button-unchecked'}
-              size={24}
-              color={isSelected ? resolvedPalette.iconSuccess : resolvedPalette.iconDisabled}
-            />
+            <View
+              style={[
+                styles.radioOuter,
+                {
+                  borderColor: isSelected
+                    ? resolvedPalette.radioSelectedBorder
+                    : resolvedPalette.radioBorder,
+                },
+              ]}>
+              {isSelected ? (
+                <View
+                  style={[
+                    styles.radioDot,
+                    {backgroundColor: resolvedPalette.radioSelectedDot},
+                  ]}
+                />
+              ) : null}
+            </View>
           </View>
 
-          <Text style={[styles.quantityText, {color: resolvedPalette.textMuted}]}>
+          <Text style={[styles.quantityText, {color: resolvedPalette.radioText}]}>
             {isSavingSelection
               ? 'Salvando'
               : isSelected

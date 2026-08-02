@@ -5,11 +5,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import css from '@controleonline/ui-orders/src/react/css/orders';
 import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
+import {useStore} from '@store';
 
 import panelStyles from './PaymentCheckoutPanel.styles';
 
@@ -92,6 +92,8 @@ const PaymentCheckoutPanel = ({
   topContent = null,
 }) => {
   const {styles} = css();
+  const themeStore = useStore('theme');
+  const themeColors = themeStore?.getters?.colors || {};
   const {showError} = useMessage() || {};
   const lastToastMessageRef = useRef('');
   const hasError = !!invoiceError || !!error;
@@ -103,7 +105,10 @@ const PaymentCheckoutPanel = ({
   const hasSectionedPayments = normalizedSections.length > 0;
   const hasFlatPayments = Array.isArray(payments) && payments.length > 0;
   const hasPayments = hasSectionedPayments || hasFlatPayments;
-  const primaryColor = '#1B5587';
+  const radioBorderColor = themeColors.radioBorder;
+  const radioSelectedBorderColor = themeColors.radioSelectedBorder;
+  const radioSelectedDotColor = themeColors.radioSelectedDot;
+  const radioTextColor = themeColors.radioText;
 
   useEffect(() => {
     if (!hasError || !feedbackState.isPixOptInError || !feedbackMessage) {
@@ -121,11 +126,30 @@ const PaymentCheckoutPanel = ({
 
   const renderSelectionIcon = selected => (
     <View style={panelStyles.selectionIconWrap}>
-      <Icon
-        color={selected ? primaryColor : '#334155'}
-        name={selected ? 'radio-button-checked' : 'radio-button-unchecked'}
-        size={22}
-      />
+      <View
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          borderWidth: 2,
+          borderColor: selected
+            ? radioSelectedBorderColor
+            : radioBorderColor,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'transparent',
+        }}>
+        {selected ? (
+          <View
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: radioSelectedDotColor,
+            }}
+          />
+        ) : null}
+      </View>
     </View>
   );
 
@@ -147,13 +171,30 @@ const PaymentCheckoutPanel = ({
         onPress={() => onSelectPayment(option)}
         style={[
           panelStyles.paymentOption,
-          selected && panelStyles.paymentOptionSelected,
+          {
+            backgroundColor: themeColors.cardBackground,
+            borderColor: themeColors.cardBorder,
+          },
         ]}>
         {renderSelectionIcon(selected)}
         <View style={panelStyles.paymentTextWrap}>
-          <Text style={panelStyles.paymentTitle}>{option?.label}</Text>
+          <Text
+            style={[
+              panelStyles.paymentTitle,
+              {color: radioTextColor},
+            ]}>
+            {option?.label}
+          </Text>
           {option?.description ? (
-            <Text style={panelStyles.paymentSubtitle}>{option.description}</Text>
+            <Text
+              style={[
+                panelStyles.paymentSubtitle,
+                {
+                  color: radioTextColor,
+                },
+              ]}>
+              {option.description}
+            </Text>
           ) : null}
         </View>
       </TouchableOpacity>
@@ -168,21 +209,57 @@ const PaymentCheckoutPanel = ({
         {topContent}
 
         {isLoadingPayments && !hasError && !hasPayments ? (
-          <View style={panelStyles.feedbackCard}>
-            <Text style={panelStyles.feedbackText}>Carregando pagamentos...</Text>
+          <View
+            style={[
+              panelStyles.feedbackCard,
+              {
+                backgroundColor: themeColors.cardBackground,
+                borderColor: themeColors.cardBorder,
+              },
+            ]}>
+            <Text
+              style={[
+                panelStyles.feedbackText,
+                {color: themeColors.textSecondary || themeColors.cardDisabledText},
+              ]}>
+              Carregando pagamentos...
+            </Text>
           </View>
         ) : hasError || !hasPayments ? (
-          <View style={panelStyles.feedbackCard}>
-            <Text style={panelStyles.feedbackTitle}>
+          <View
+            style={[
+              panelStyles.feedbackCard,
+              {
+                backgroundColor: themeColors.cardBackground,
+                borderColor: themeColors.cardBorder,
+              },
+            ]}>
+            <Text style={[panelStyles.feedbackTitle, {color: themeColors.cardText}]}> 
               {hasError ? 'Falha ao montar o pagamento' : emptyTitle}
             </Text>
-            <Text style={panelStyles.feedbackText}>{feedbackMessage}</Text>
+            <Text
+              style={[
+                panelStyles.feedbackText,
+                {color: themeColors.textSecondary || themeColors.cardDisabledText},
+              ]}>
+              {feedbackMessage}
+            </Text>
           </View>
         ) : hasSectionedPayments ? (
           normalizedSections.map(section => (
-            <View key={section.key} style={panelStyles.sectionCard}>
+            <View
+              key={section.key}
+              style={[
+                panelStyles.sectionCard,
+                {
+                  backgroundColor: themeColors.cardBackground,
+                  borderColor: themeColors.cardBorder,
+                },
+              ]}>
               <View style={panelStyles.sectionHeader}>
-                <Text style={panelStyles.sectionTitle}>{section.title}</Text>
+                <Text style={[panelStyles.sectionTitle, {color: themeColors.cardText}]}> 
+                  {section.title}
+                </Text>
                 {section.actionLabel ? (
                   <TouchableOpacity
                     onPress={section.onPressAction}
@@ -199,7 +276,14 @@ const PaymentCheckoutPanel = ({
             </View>
           ))
         ) : (
-          <View style={panelStyles.sectionCard}>
+          <View
+            style={[
+              panelStyles.sectionCard,
+              {
+                backgroundColor: themeColors.cardBackground,
+                borderColor: themeColors.cardBorder,
+              },
+            ]}>
             <View style={panelStyles.sectionOptions}>
               {payments.map(payment =>
                 renderPaymentOption({

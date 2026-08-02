@@ -11,6 +11,31 @@ export const normalizeCheckoutEntityId = value => {
   return matches ? matches[matches.length - 1] : ''
 }
 
+export const resolvePaidAmountForOrder = ({
+  order = null,
+  orderInvoices = [],
+} = {}) => {
+  const orderId = normalizeCheckoutEntityId(order)
+
+  if (!orderId || !Array.isArray(orderInvoices)) {
+    return 0
+  }
+
+  const paid = orderInvoices.reduce((sum, orderInvoice) => {
+    if (normalizeCheckoutEntityId(orderInvoice?.order) !== orderId) {
+      return sum
+    }
+
+    const realPrice = Number(
+      orderInvoice?.realPrice ?? orderInvoice?.real_price ?? 0,
+    )
+
+    return Number.isFinite(realPrice) ? sum + realPrice : sum
+  }, 0)
+
+  return roundMoney(paid)
+}
+
 export const resolveNextOperationalPayable = ({
   paidAmount = 0,
   payable = 0,

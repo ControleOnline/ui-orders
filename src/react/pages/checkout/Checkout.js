@@ -246,8 +246,11 @@ const Checkout = () => {
 
   const peopleStore = useStore('people');
   const peopleGetters = peopleStore.getters;
+  const themeStore = useStore('theme');
+  const themeGetters = themeStore.getters;
 
   const {currentCompany, defaultCompany} = peopleGetters;
+  const themeColors = themeGetters?.colors || {};
   const routeOrderId = useMemo(
     () => getOrderRouteId(route.params?.id || route.params?.order),
     [route.params?.id, route.params?.order],
@@ -1993,6 +1996,18 @@ const Checkout = () => {
 
   const shouldRenderLoyaltyCpfStep =
     requiresLoyaltyCpfStep && !loyaltyCpfStepCompleted;
+  const loyaltyPreviewPerson =
+    selectedLoyaltyPerson?.id
+      ? selectedLoyaltyPerson
+      : loyaltyCpfResults[0] || null;
+  const loyaltyPreviewFullName = String(
+    loyaltyPreviewPerson?.raw?.name || loyaltyPreviewPerson?.label || '',
+  ).trim();
+  const loyaltyPreviewCpf =
+    loyaltyPreviewPerson?.cpfDisplay || loyaltyPreviewPerson?.cpf || '';
+  const isLoyaltyPreviewSelected =
+    String(loyaltyPreviewPerson?.id || '') ===
+    String(selectedLoyaltyPerson?.id || '');
 
   const paymentTopContent =
     requiresLoyaltyCpfStep && loyaltyCpfStepCompleted ? (
@@ -2018,8 +2033,33 @@ const Checkout = () => {
                 setLoyaltyCpfStepSkipped(false);
                 setLoyaltyCpfResults([]);
               }}
-              style={styles.loyaltySecondaryAction}>
-              <Text style={styles.loyaltySecondaryActionText}>Alterar</Text>
+              style={[
+                styles.loyaltySecondaryAction,
+                {
+                  borderColor: submittingPayment
+                    ? themeColors.buttonDisabledBackground
+                    : themeColors.buttonBorder,
+                  backgroundColor: submittingPayment
+                    ? themeColors.buttonDisabledBackground
+                    : themeColors.buttonBackground,
+                  opacity: submittingPayment
+                    ? Number.isFinite(Number(themeColors.buttonDisabledOpacity))
+                      ? Number(themeColors.buttonDisabledOpacity)
+                      : 0.6
+                    : 1,
+                },
+              ]}>
+              <Text
+                style={[
+                  styles.loyaltySecondaryActionText,
+                  {
+                    color: submittingPayment
+                      ? themeColors.buttonDisabledText
+                      : themeColors.buttonText,
+                  },
+                ]}>
+                Alterar
+              </Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.loyaltySummaryText}>
@@ -2132,10 +2172,9 @@ const Checkout = () => {
                   keyboardShouldPersistTaps="handled"
                   contentContainerStyle={styles.loyaltyStepScrollContent}>
                   <View style={styles.loyaltyCard}>
-                    <Text style={styles.loyaltyTitle}>Identificar cliente</Text>
+                    <Text style={styles.loyaltyTitle}>Identifique o cliente</Text>
                     <Text style={styles.loyaltySubtitle}>
-                      Informe o CPF antes do pagamento quando a fidelidade estiver habilitada.
-                      Se preferir, você pode pular esta etapa e seguir direto para o pagamento.
+                      Informe o CPF para registar um "carimbo".
                     </Text>
                     <TextInput
                       autoCapitalize="none"
@@ -2147,20 +2186,22 @@ const Checkout = () => {
                       style={styles.loyaltyInput}
                       value={loyaltyCpfInput}
                     />
-                    <Text style={styles.loyaltyHint}>
-                      A busca começa após 5 dígitos e uma pausa curta de digitação.
-                    </Text>
 
-                    {selectedLoyaltyPerson?.id ? (
-                      <View style={styles.loyaltySelectedPill}>
-                        <Text style={styles.loyaltySelectedTitle}>Selecionado</Text>
+                    {loyaltyPreviewPerson?.id ? (
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => handleSelectLoyaltyPerson(loyaltyPreviewPerson)}
+                        style={[
+                          styles.loyaltySelectedPill,
+                          !isLoyaltyPreviewSelected && styles.loyaltyResultItemActive,
+                        ]}>
+                        <Text style={styles.loyaltySelectedTitle}>
+                          CPF encontrado: {loyaltyPreviewCpf}
+                        </Text>
                         <Text style={styles.loyaltySelectedValue}>
-                          {selectedLoyaltyPerson.label}
+                          {loyaltyPreviewFullName}
                         </Text>
-                        <Text style={styles.loyaltyResultSubtitle}>
-                          {selectedLoyaltyPerson.cpfDisplay || selectedLoyaltyPerson.cpf || ''}
-                        </Text>
-                      </View>
+                      </TouchableOpacity>
                     ) : null}
 
                     {selectedLoyaltyPerson?.id && loadingLoyaltySnapshot ? (
@@ -2206,27 +2247,6 @@ const Checkout = () => {
                         Nenhum CPF encontrado com os dígitos informados.
                       </Text>
                     ) : null}
-
-                    {loyaltyCpfResults.map(person => {
-                      const isActive =
-                        String(person?.id || '') === String(selectedLoyaltyPerson?.id || '');
-
-                      return (
-                        <TouchableOpacity
-                          key={String(person.id)}
-                          activeOpacity={0.85}
-                          onPress={() => handleSelectLoyaltyPerson(person)}
-                          style={[
-                            styles.loyaltyResultItem,
-                            isActive && styles.loyaltyResultItemActive,
-                          ]}>
-                          <Text style={styles.loyaltyResultTitle}>{person.label}</Text>
-                          <Text style={styles.loyaltyResultSubtitle}>
-                            {person.cpfDisplay || person.cpf || ''}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
 
                     <TouchableOpacity
                       activeOpacity={0.85}

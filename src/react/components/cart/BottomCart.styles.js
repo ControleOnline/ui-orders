@@ -7,6 +7,12 @@ const createStyles = ({
   totalCardBg,
   labelColor,
   textColor,
+  buttonBackground,
+  buttonBorderColor,
+  buttonTextColor,
+  buttonDisabledBackground,
+  buttonDisabledTextColor,
+  buttonDisabledOpacity = 0.55,
   successColor = '#16A34A',
   warningColor = '#D97706',
   compact = false,
@@ -53,9 +59,9 @@ const createStyles = ({
       minHeight: compact ? 44 : 48,
       minWidth: ultraCompact ? 128 : compact ? 142 : 168,
       borderRadius: compact ? 10 : 12,
-      backgroundColor: primaryColor,
+      backgroundColor: buttonBackground || primaryColor,
       borderWidth: 1,
-      borderColor: primaryColor,
+      borderColor: buttonBorderColor || buttonBackground || primaryColor,
       justifyContent: 'center',
       alignItems: 'center',
       flexDirection: 'row',
@@ -63,10 +69,19 @@ const createStyles = ({
       paddingHorizontal: compact ? 12 : 14,
     },
     checkoutButtonDisabled: {
-      opacity: 0.55,
+      backgroundColor:
+        buttonDisabledBackground ||
+        buttonBackground ||
+        primaryColor,
+      borderColor:
+        buttonDisabledBackground ||
+        buttonBorderColor ||
+        buttonBackground ||
+        primaryColor,
+      opacity: buttonDisabledOpacity,
     },
     checkoutButtonText: {
-      color: '#FFFFFF',
+      color: buttonTextColor || '#FFFFFF',
       fontSize: ultraCompact ? 11 : compact ? 12 : 13,
       fontWeight: '800',
       textTransform: 'uppercase',
@@ -186,7 +201,7 @@ const createStyles = ({
       paddingHorizontal: compact ? 6 : 7,
     },
     paidDetailsButtonText: {
-      color: '#FFFFFF',
+      color: buttonTextColor || buttonDisabledTextColor || '#FFFFFF',
       fontSize: ultraCompact ? 11 : compact ? 12 : 13,
       fontWeight: '900',
       textTransform: 'uppercase',

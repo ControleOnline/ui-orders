@@ -79,6 +79,25 @@ const createStyles = (palette, isKds) =>
     identityWrap: {
       minWidth: 0,
     },
+    identityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    itemCountBadge: {
+      borderWidth: 1,
+      borderColor: palette.chipSelectedBorder,
+      backgroundColor: palette.chipSelectedBackground,
+      borderRadius: 999,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+    },
+    itemCountText: {
+      color: palette.chipSelectedText,
+      fontSize: isKds ? 12 : 11,
+      fontWeight: '800',
+    },
     metaRow: {
       flexDirection: 'row',
       alignItems: 'center',
