@@ -448,6 +448,12 @@ const createPosApiMock = async (page, initialState = {}) => {
     },
     invoices: [],
     nextInvoiceId: 5001,
+    orderCreatePayloads: [],
+    orderItemIncludesProducts:
+      initialState.orderItemIncludesProducts !== false,
+    orderProductRequests: [],
+    orderProductsDelayMs: Number(initialState.orderProductsDelayMs || 0),
+    orderStatusDelayMs: Number(initialState.orderStatusDelayMs || 0),
     lastAddProductsPayload: null,
     lastReplaceProductsPayload: null,
     lastInvoicePayload: null,
@@ -687,7 +693,12 @@ const createPosApiMock = async (page, initialState = {}) => {
 
     const orderItemMatch = pathname.match(/^orders\/(\d+)$/);
     if (orderItemMatch && method === 'GET') {
-      return fulfillJson(route, state.order);
+      if (state.orderItemIncludesProducts) {
+        return fulfillJson(route, state.order);
+      }
+
+      const {orderProducts: _orderProducts, ...orderWithoutProducts} = state.order;
+      return fulfillJson(route, orderWithoutProducts);
     }
 
     const orderDeliveredMatch = pathname.match(/^orders\/(\d+)\/delivered$/);
@@ -728,6 +739,8 @@ const createPosApiMock = async (page, initialState = {}) => {
     if (pathname === 'orders' && method === 'POST') {
       const body = postBody(request);
 
+      state.orderCreatePayloads.push(body);
+
       state.order = {
         ...state.order,
         ...body,
@@ -761,6 +774,16 @@ const createPosApiMock = async (page, initialState = {}) => {
       state.orders = [state.order];
 
       return fulfillJson(route, state.order);
+    }
+
+    if (pathname === 'order_products' && method === 'GET') {
+      state.orderProductRequests.push(
+        Object.fromEntries(url.searchParams.entries()),
+      );
+      if (state.orderProductsDelayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, state.orderProductsDelayMs));
+      }
+      return fulfillJson(route, collection(state.order.orderProducts || []));
     }
 
     const addProductsMatch = pathname.match(/^orders\/(\d+)\/add-products$/);
@@ -844,6 +867,9 @@ const createPosApiMock = async (page, initialState = {}) => {
       }
 
       if (context === 'order') {
+        if (state.orderStatusDelayMs > 0) {
+          await new Promise(resolve => setTimeout(resolve, state.orderStatusDelayMs));
+        }
         return fulfillJson(route, collection([state.openStatus]));
       }
 
@@ -1036,7 +1062,9 @@ test.describe('single-item browser smoke', () => {
     });
     await bootstrapPosBrowser(page);
 
-    await page.goto('/add-product-screen');
+    await page.goto(
+      '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
+    );
 
     await expect(page.getByText('Suco', {exact: true})).toBeVisible();
     await expect(page.getByPlaceholder('Linked Order Code')).toBeHidden();
@@ -1119,7 +1147,9 @@ test.describe('single-item browser smoke', () => {
     });
     await bootstrapPosBrowser(page);
 
-    await page.goto('/add-product-screen');
+    await page.goto(
+      '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
+    );
     await page.getByRole('radio', {name: 'Suco'}).click();
 
     await expect(page.getByPlaceholder('Digite o CPF')).toBeVisible();
@@ -1231,7 +1261,9 @@ test.describe('single-item browser smoke', () => {
 
     await bootstrapPosBrowser(page);
 
-    await page.goto('/add-product-screen');
+    await page.goto(
+      '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
+    );
 
     await expect(page).toHaveURL(/add-product-screen/);
     await expect(page.getByText('Coxinha', { exact: true })).toBeVisible();
@@ -1252,6 +1284,199 @@ test.describe('single-item browser smoke', () => {
     await expect(page.getByText('Dinheiro', { exact: true })).toBeVisible();
     await expect(page.getByText('Crédito Cielo', { exact: true }).first()).toBeVisible();
     expect(state.lastReplaceProductsPayload).toEqual([{ product: '101', quantity: 1 }]);
+  });
+
+  test('does not create a draft before the operator starts an order', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const state = await createPosApiMock(page);
+
+    await bootstrapPosBrowser(page);
+    await page.goto('/add-product-screen?singleItemMode=true');
+
+    await expect(page.getByText('Coxinha', {exact: true})).toBeVisible();
+    await page.waitForTimeout(150);
+    expect(state.orderCreatePayloads).toHaveLength(0);
+  });
+
+  test('creates exactly one draft from the explicit new-order intent', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const state = await createPosApiMock(page);
+
+    await bootstrapPosBrowser(page);
+    await page.goto('/order-history-page');
+    await page.getByRole('button', {name: /add|adicionar/i}).click();
+
+    await expect(page.getByText('Coxinha', {exact: true})).toBeVisible();
+    await expect.poll(() => state.orderCreatePayloads.length).toBe(1);
+    await page.waitForTimeout(150);
+    expect(state.orderCreatePayloads).toHaveLength(1);
+  });
+
+  test('cancels a pending new-order creation after leaving the catalog', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const state = await createPosApiMock(page, {orderStatusDelayMs: 1500});
+
+    await bootstrapPosBrowser(page);
+    await page.goto('/order-history-page');
+    const statusRequest = page.waitForRequest(request => {
+      const url = new URL(request.url());
+      return (
+        request.method() === 'GET' &&
+        url.pathname.endsWith('/statuses') &&
+        url.searchParams.get('context') === 'order'
+      );
+    });
+    await page.getByRole('button', {name: /add|adicionar/i}).click();
+    await statusRequest;
+    await page.goBack({waitUntil: 'commit'});
+    await expect(page).toHaveURL(/order-history-page/);
+    await page.waitForTimeout(1700);
+
+    expect(state.orderCreatePayloads).toHaveLength(0);
+  });
+
+  test('keeps the draft order unchanged when the cash dialog is cancelled', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const state = await createPosApiMock(page);
+
+    await bootstrapPosBrowser(page);
+    await page.goto('/checkout?id=123');
+
+    await expect(page.getByText('#123', {exact: true}).last()).toBeVisible();
+    await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
+    await page.getByText('Receber em dinheiro', {exact: true}).click();
+
+    await expect(page.getByText('Pagamento em dinheiro', {exact: true})).toBeVisible();
+    await expect(page.getByText('Total a cobrar: R$ 12,50', {exact: true})).toBeVisible();
+    await page.getByText(/^(Cancel|Cancelar)$/).click();
+
+    await expect(page).toHaveURL(/checkout/);
+    await expect(page.getByText('#123', {exact: true}).last()).toBeVisible();
+    await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
+    expect(state.invoices).toHaveLength(0);
+    expect(state.lastInvoicePayload).toBeNull();
+    expect(state.order).toMatchObject({
+      id: 123,
+      orderType: 'cart',
+      price: 12.5,
+      status: {
+        status: 'open',
+        realStatus: 'open',
+      },
+    });
+  });
+
+  test('returns from the checkout title to the same single-item draft', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const product = createProduct(101, {
+      product: 'Coxinha',
+      description: 'Produto unico do modo single-item',
+      price: 12.5,
+    });
+    const existingProduct = createProduct(102, {
+      product: 'Suco',
+      description: 'Item inicial da mesma order',
+      price: 8.9,
+    });
+    const state = await createPosApiMock(page, {
+      productOne: product,
+      productTwo: existingProduct,
+      order: createOpenOrder({id: 123, products: [existingProduct], price: 8.9}),
+    });
+
+    await bootstrapPosBrowser(page);
+    await page.goto(
+      '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
+    );
+    await page.getByRole('radio', {name: 'Coxinha'}).click();
+
+    await expect(page).toHaveURL(/checkout/);
+    await expect(page.getByText('#123', {exact: true}).last()).toBeVisible();
+    await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
+    state.orderItemIncludesProducts = false;
+
+    const checkoutBack = page.getByLabel('Voltar ao catalogo');
+    await expect(checkoutBack).toHaveCount(1);
+    await checkoutBack.click();
+
+    await expect(page).toHaveURL(/pdv-page/);
+    await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeChecked();
+    await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
+    await expect(page.getByText('Conferir pedido', {exact: true}).last()).toBeVisible();
+
+    const returnUrl = new URL(page.url());
+    expect(returnUrl.searchParams.get('id')).toBe('123');
+    expect(returnUrl.searchParams.get('resumeExistingOrder')).toBe('true');
+    expect(state.orderCreatePayloads).toHaveLength(0);
+    expect(state.order).toMatchObject({id: 123, price: 12.5});
+
+    await page.getByText('Conferir pedido', {exact: true}).last().click();
+    await expect(page).toHaveURL(/checkout/);
+    await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
+  });
+
+  test('hydrates order products when the checkout back action resumes the draft', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const product = createProduct(101, {
+      product: 'Coxinha',
+      description: 'Produto unico do modo single-item',
+      price: 12.5,
+    });
+    const existingProduct = createProduct(102, {
+      product: 'Suco',
+      description: 'Item inicial da mesma order',
+      price: 8.9,
+    });
+    const state = await createPosApiMock(page, {
+      productOne: product,
+      productTwo: existingProduct,
+      order: createOpenOrder({id: 123, products: [existingProduct], price: 8.9}),
+      orderProductsDelayMs: 250,
+    });
+
+    await bootstrapPosBrowser(page);
+    await page.goto(
+      '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
+    );
+    await page.getByRole('radio', {name: 'Coxinha'}).click();
+    await expect(page).toHaveURL(/checkout/);
+    state.orderItemIncludesProducts = false;
+
+    const checkoutBack = page.getByLabel('Voltar ao catalogo');
+    await expect(checkoutBack).toHaveCount(1);
+    await checkoutBack.click();
+
+    await expect(page).toHaveURL(/pdv-page/);
+    await expect(page).toHaveURL(/resumeExistingOrder=true/);
+    await expect(page.getByText('Carregando pedido...', {exact: true})).toBeVisible();
+    const visibleZeroTotals = await page.getByText(/R\$\s*0,00/).evaluateAll(nodes =>
+      nodes.filter(node => {
+        const style = window.getComputedStyle(node);
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          node.getClientRects().length > 0
+        );
+      }).length,
+    );
+    expect(visibleZeroTotals).toBe(0);
+    await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeChecked();
+    await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
+    await expect(page.getByText('Conferir pedido', {exact: true}).last()).toBeVisible();
+    expect(state.orderProductRequests).toContainEqual({'order.id': '123'});
+    expect(state.orderCreatePayloads).toHaveLength(0);
   });
 
   test('shows cash and Cielo payment options and returns to the history list after payment', async ({
