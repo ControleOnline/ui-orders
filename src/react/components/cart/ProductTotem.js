@@ -56,6 +56,7 @@ const ProductTotem = ({
   const ordersActions = ordersStore.actions;
   const orderProductsStore = useStore('order_products');
   const orderProductsActions = orderProductsStore.actions;
+  const {items: storedOrderProducts = []} = orderProductsStore.getters;
   const {item: order} = ordersGetters;
   const [isSavingSelection, setIsSavingSelection] = useState(false);
 
@@ -64,8 +65,13 @@ const ProductTotem = ({
     [product],
   );
   const currentOrderProducts = useMemo(
-    () => getTopLevelOrderProducts(order?.orderProducts),
-    [order?.orderProducts],
+    () =>
+      getTopLevelOrderProducts(
+        Array.isArray(order?.orderProducts) && order.orderProducts.length > 0
+          ? order.orderProducts
+          : storedOrderProducts,
+      ),
+    [order?.orderProducts, storedOrderProducts],
   );
   const resolvedOrderId = useMemo(
     () => normalizeEntityId(orderId) || normalizeEntityId(order),
@@ -224,6 +230,8 @@ const ProductTotem = ({
 
   return (
     <TouchableOpacity
+      aria-checked={children ? isSelected : undefined}
+      aria-disabled={children ? isSavingSelection : undefined}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole={children ? 'radio' : 'button'}
       accessibilityState={children ? {checked: isSelected, disabled: isSavingSelection} : undefined}

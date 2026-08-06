@@ -17,6 +17,7 @@ import {app_type} from '@appType';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import {
+  buildAddProductsRouteParams,
   buildManagerPdvRouteParams,
   buildOrderDetailsRouteParams,
   getOrderRouteId,
@@ -95,7 +96,7 @@ import {
 
 import {useStore} from '@store';
 import styles from './Checkout.styles';
-import {inlineStyle_491_14, inlineStyle_534_10} from './Checkout.styles';
+import {inlineStyle_491_14} from './Checkout.styles';
 
 const PAYMENT_CHANNEL_LOCAL = 'local';
 const PAYMENT_CHANNEL_REMOTE = 'remote';
@@ -358,8 +359,10 @@ const Checkout = () => {
     [device?.configs],
   );
   const isSingleItemMode = useMemo(
-    () => isPosSingleItemMode(device?.configs),
-    [device?.configs],
+    () =>
+      route?.params?.singleItemMode === true ||
+      isPosSingleItemMode(device?.configs),
+    [device?.configs, route?.params?.singleItemMode],
   );
   const isAutoPrintEnabled = useMemo(
     () => isPosAutoPrintEnabled(device?.configs),
@@ -372,6 +375,45 @@ const Checkout = () => {
       defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
       companyConfigs: currentCompany?.configs,
     });
+  const checkoutOrderId = routeOrderId || getOrderRouteId(order);
+  const returnToSingleItemCatalog = useCallback(() => {
+    if (!checkoutOrderId) {
+      navigation.goBack?.();
+      return;
+    }
+
+    const catalogRoute = buildAddProductsRouteParams(
+      checkoutOrderId,
+      buildManagerPdvRouteParams({singleItemMode: true}),
+    );
+
+    if (typeof navigation.popTo === 'function') {
+      navigation.popTo('PdvPage', catalogRoute);
+    } else if (typeof navigation.replace === 'function') {
+      navigation.replace('PdvPage', catalogRoute);
+    } else {
+      navigation.navigate('PdvPage', catalogRoute);
+    }
+  }, [checkoutOrderId, navigation]);
+
+  useEffect(() => {
+    if (!isSingleItemMode) {
+      return undefined;
+    }
+
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          accessibilityLabel="Voltar ao catalogo"
+          onPress={returnToSingleItemCatalog}
+          style={{paddingHorizontal: 12, paddingVertical: 8}}>
+          <Icon name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+
+    return () => navigation.setOptions({headerLeft: undefined});
+  }, [isSingleItemMode, navigation, returnToSingleItemCatalog]);
   const canUseLocalOperationalPayment = useMemo(
     () =>
       !isManagerApp &&
@@ -1655,14 +1697,6 @@ const Checkout = () => {
     ],
   );
 
-  const handleEdit = orderItem => {
-    ordersActions.syncOrder?.(orderItem);
-    navigation.navigate(
-      'OrderDetails',
-      buildOrderDetailsNavigationParams(orderItem),
-    );
-  };
-
   const ensureLoyaltyRewardOrderReady = useCallback(
     async currentOrder => {
       const targetOrder = currentOrder || checkoutPaymentOrder || order;
@@ -2139,11 +2173,6 @@ const Checkout = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => handleEdit(order)}
-          style={inlineStyle_534_10}>
-          <Icon name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
         <OrderIdentityLabel
           order={order}
           containerStyle={styles.headerTitleWrap}
