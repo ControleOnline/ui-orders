@@ -35,6 +35,7 @@ import {
   OrderCancellationDetailsModal,
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
+import OrderCreateInvoiceModal from './OrderCreateInvoiceModal';
 import createStyles from './OrderHistoryPage.styles';
 
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
@@ -268,6 +269,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
   const [historyFilters, setHistoryFilters] = useState(buildDefaultHistoryFilters);
   const [cancelModalOrder, setCancelModalOrder] = useState(null);
+  const [createInvoiceOrder, setCreateInvoiceOrder] = useState(null);
   const [cancelReasons, setCancelReasons] = useState([]);
   const [selectedCancelReasonId, setSelectedCancelReasonId] = useState('');
   const [cancelReasonText, setCancelReasonText] = useState('');
@@ -698,29 +700,59 @@ export default function OrderHistoryPage({ navigation, route }) {
       );
     }
 
-    if (!isCancelableOrder(row)) {
+    const canCancel = isCancelableOrder(row);
+    const orderPrice = Number(row?.price ?? 0);
+    const canCreateInvoice = !isCanceledOrder(row) && orderPrice > 0.009;
+
+    if (!canCancel && !canCreateInvoice) {
       return null;
     }
 
     return (
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={global.t?.t('orders', 'button', 'cancelOrder')}
-        style={[
-          styles.rowActionButton,
-          {
-            borderColor: themeColors.buttonBackground,
-            backgroundColor: themeColors.buttonBackground,
-          },
-        ]}
-        activeOpacity={0.82}
-        onPress={event => {
-          event?.stopPropagation?.();
-          openCancelModal(row);
-        }}
-      >
-        <Icon name="trash-2" size={16} color={themeColors.buttonIcon} />
-      </TouchableOpacity>
+      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+        {canCreateInvoice ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={
+              global.t?.t('orders', 'button', 'createInvoice') || 'Criar fatura'
+            }
+            style={[
+              styles.rowActionButton,
+              {
+                borderColor: themeColors.buttonBackground,
+                backgroundColor: themeColors.buttonBackground,
+              },
+            ]}
+            activeOpacity={0.82}
+            onPress={event => {
+              event?.stopPropagation?.();
+              setCreateInvoiceOrder(row);
+            }}
+          >
+            <Icon name="file-text" size={16} color={themeColors.buttonIcon} />
+          </TouchableOpacity>
+        ) : null}
+        {canCancel ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={global.t?.t('orders', 'button', 'cancelOrder')}
+            style={[
+              styles.rowActionButton,
+              {
+                borderColor: themeColors.buttonBackground,
+                backgroundColor: themeColors.buttonBackground,
+              },
+            ]}
+            activeOpacity={0.82}
+            onPress={event => {
+              event?.stopPropagation?.();
+              openCancelModal(row);
+            }}
+          >
+            <Icon name="trash-2" size={16} color={themeColors.buttonIcon} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     );
   }, [
     openCancelModal,
@@ -817,6 +849,21 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     navigation.navigate('PdvPage', { startNewOrder: true });
   }, [navigation, isCashRegisterClosed, orderTypeFilter]);
+
+
+  const openCreateInvoiceAddProducts = useCallback(order => {
+    setCreateInvoiceOrder(null);
+    orderActions.syncOrder?.(order);
+    navigation.navigate(
+      'AddProductScreen',
+      buildAddProductsRouteParams(
+        order,
+        buildManagerPdvRouteParams({
+          singleItemMode: isPosSingleItemMode(deviceConfig?.configs),
+        }),
+      ),
+    );
+  }, [deviceConfig?.configs, navigation, orderActions]);
 
   const openOrder = useCallback(order => {
     orderActions.syncOrder?.(order);
@@ -918,6 +965,18 @@ export default function OrderHistoryPage({ navigation, route }) {
           />
         </View>
       </View>
+
+      <OrderCreateInvoiceModal
+        order={createInvoiceOrder}
+        visible={!!createInvoiceOrder}
+        onClose={() => setCreateInvoiceOrder(null)}
+        onAddProducts={openCreateInvoiceAddProducts}
+        onSuccess={() => {
+          if (typeof orderActions.getItems === 'function') {
+            orderActions.getItems?.(historyRequestParams);
+          }
+        }}
+      />
       <OrderCancelModal
         accentColor={themeColors.iconDanger}
         cancelReasonText={cancelReasonText}
