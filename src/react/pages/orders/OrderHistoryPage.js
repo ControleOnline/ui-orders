@@ -35,6 +35,10 @@ import {
   OrderCancellationDetailsModal,
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
+import {
+  clearCreateInvoiceOnlyMode,
+  setCreateInvoiceOnlyMode,
+} from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
 
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
@@ -231,6 +235,14 @@ export default function OrderHistoryPage({ navigation, route }) {
   const deviceStore = useStore('device');
   const { showError, showSuccess } = useMessage() || {};
   const isFocused = useIsFocused();
+
+  useEffect(() => {
+    // Se o usuário voltou ao histórico sem concluir, encerra o modo fatura-only.
+    if (isFocused) {
+      clearCreateInvoiceOnlyMode();
+    }
+  }, [isFocused]);
+
 
   const { item: storagedDevice } = deviceStore.getters || {};
   const { item: deviceConfig } = deviceConfigStore.getters || {};
@@ -671,6 +683,22 @@ export default function OrderHistoryPage({ navigation, route }) {
     [currentCompany?.id, themeColors.buttonBackground, themeColors.buttonText],
   );
 
+  const openCreateInvoiceFlow = useCallback(order => {
+    // Reuse POS product selection + Checkout; flag skips Cielo and only saves invoice.
+    setCreateInvoiceOnlyMode(true);
+    orderActions.syncOrder?.(order);
+    navigation.navigate(
+      'AddProductScreen',
+      buildAddProductsRouteParams(
+        order,
+        buildManagerPdvRouteParams({
+          createInvoiceOnly: true,
+          singleItemMode: isPosSingleItemMode(deviceConfig?.configs),
+        }),
+      ),
+    );
+  }, [deviceConfig?.configs, navigation, orderActions]);
+
   const renderRowActions = useCallback(({ row }) => {
     if (isCanceledOrder(row)) {
       return (
@@ -698,32 +726,63 @@ export default function OrderHistoryPage({ navigation, route }) {
       );
     }
 
-    if (!isCancelableOrder(row)) {
+    const canCancel = isCancelableOrder(row);
+    // Qualquer pedido não cancelado: permite abrir modal para adicionar produtos e pagamento
+    const canCreateInvoice = !isCanceledOrder(row);
+
+    if (!canCancel && !canCreateInvoice) {
       return null;
     }
 
     return (
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={global.t?.t('orders', 'button', 'cancelOrder')}
-        style={[
-          styles.rowActionButton,
-          {
-            borderColor: themeColors.buttonBackground,
-            backgroundColor: themeColors.buttonBackground,
-          },
-        ]}
-        activeOpacity={0.82}
-        onPress={event => {
-          event?.stopPropagation?.();
-          openCancelModal(row);
-        }}
-      >
-        <Icon name="trash-2" size={16} color={themeColors.buttonIcon} />
-      </TouchableOpacity>
+      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+        {canCreateInvoice ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={
+              global.t?.t('orders', 'button', 'createInvoice') || 'Criar fatura'
+            }
+            style={[
+              styles.rowActionButton,
+              {
+                borderColor: themeColors.buttonBackground,
+                backgroundColor: themeColors.buttonBackground,
+              },
+            ]}
+            activeOpacity={0.82}
+            onPress={event => {
+              event?.stopPropagation?.();
+              openCreateInvoiceFlow(row);
+            }}
+          >
+            <Icon name="file-text" size={16} color={themeColors.buttonIcon} />
+          </TouchableOpacity>
+        ) : null}
+        {canCancel ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={global.t?.t('orders', 'button', 'cancelOrder')}
+            style={[
+              styles.rowActionButton,
+              {
+                borderColor: themeColors.buttonBackground,
+                backgroundColor: themeColors.buttonBackground,
+              },
+            ]}
+            activeOpacity={0.82}
+            onPress={event => {
+              event?.stopPropagation?.();
+              openCancelModal(row);
+            }}
+          >
+            <Icon name="trash-2" size={16} color={themeColors.buttonIcon} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     );
   }, [
     openCancelModal,
+    openCreateInvoiceFlow,
     styles.rowActionButton,
     themeColors,
   ]);
@@ -817,6 +876,7 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     navigation.navigate('PdvPage', { startNewOrder: true });
   }, [navigation, isCashRegisterClosed, orderTypeFilter]);
+
 
   const openOrder = useCallback(order => {
     orderActions.syncOrder?.(order);
