@@ -7,7 +7,7 @@ import {
   resolvePendingAddProductId,
 } from '@controleonline/ui-orders/src/react/utils/addProductSession';
 import {
-  buildAddProductsRouteParams,
+  buildCheckoutRouteParams,
   buildManagerPdvRouteParams,
   buildOrderDetailsRouteParams,
   isPdvRouteContext,
@@ -194,18 +194,15 @@ export default function usePosOrderMaterialization({
       }
 
       if (isSingleItemOperationMode) {
-        // No single-item a tela de detalhes nao entra no stack; o usuario
-        // precisa cair direto no add product para trocar o pai do pedido.
-        const replaceRoute = buildAddProductsRouteParams(
+        const checkoutRoute = buildCheckoutRouteParams(
           orderItem,
-          buildManagerPdvRouteParams({singleItemMode: true}),
+          buildManagerPdvRouteParams({
+            showBottomCart: false,
+            singleItemMode: true,
+          }),
         );
 
-        if (typeof navigation.replace === 'function') {
-          navigation.replace('AddProductScreen', replaceRoute);
-        } else {
-          navigation.navigate('AddProductScreen', replaceRoute);
-        }
+        navigation.navigate('Checkout', checkoutRoute);
 
         return orderItem;
       }

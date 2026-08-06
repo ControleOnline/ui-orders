@@ -19,31 +19,32 @@ import {
   resolveLinkedOrderLabel,
 } from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 
-const normalizeStatusKey = value => String(value || '').trim().toLowerCase()
-const DRAFT_SALE_ORDER_TYPE = 'cart'
-const LINKED_SALE_ORDER_TYPE = 'sale'
-const LINKED_ORDER_CODE_REQUIRED_ERROR = 'LINKED_ORDER_CODE_REQUIRED'
-const RECENT_LINKED_ORDER_INPUT_TTL_MS = 20 * 1000
-
-const buildStatusIriFromId = value => {
-  const normalizedId = String(value || '').replace(/\D/g, '')
-  return normalizedId ? `/statuses/${normalizedId}` : null
-}
-
-const normalizeId = value => {
-  const normalizedId = String(value || '').replace(/\D/g, '')
-  return normalizedId || null
-}
-
-const extractCollectionItems = response => {
-  if (Array.isArray(response)) return response
-  if (Array.isArray(response?.member)) return response.member
-  if (Array.isArray(response?.['hydra:member'])) return response['hydra:member']
-  return []
-}
+import {
+  normalizeStatusKey,
+  buildStatusIriFromId,
+  normalizeId,
+  extractCollectionItems,
+  DRAFT_SALE_ORDER_TYPE,
+  LINKED_SALE_ORDER_TYPE,
+  LINKED_ORDER_CODE_REQUIRED_ERROR,
+  POS_ORDER_CREATION_CANCELLED_ERROR,
+  RECENT_LINKED_ORDER_INPUT_TTL_MS,
+  buildCancelledOrderCreationError,
+} from '@controleonline/ui-orders/src/react/utils/posCartHelpers'
 
 let posOpenOrderStatusIriCache = null
 const pendingEnsureActiveOrderRequests = new Map()
+
+const hasActiveEnsureConsumer = entry =>
+  Array.from(entry?.consumers || []).some(
+    consumer => !consumer.signal || consumer.signal.aborted !== true,
+  )
+
+const assertActiveEnsureConsumer = entry => {
+  if (!hasActiveEnsureConsumer(entry)) {
+    throw buildCancelledOrderCreationError()
+  }
+}
 
 export const isOpenPosCartOrder = (
   order,
@@ -117,6 +118,9 @@ export const getOrderPeopleValue = order =>
 export const isLinkedOrderCodeRequiredError = error =>
   error?.code === LINKED_ORDER_CODE_REQUIRED_ERROR
 
+export const isPosOrderCreationCancelledError = error =>
+  error?.code === POS_ORDER_CREATION_CANCELLED_ERROR
+
 export default function usePosCartSession({
   companyId = null,
   deviceId = null,
@@ -126,9 +130,11 @@ export default function usePosCartSession({
   companyConfigs = null,
 } = {}) {
   const ordersStore = useStore('orders')
+  const orderProductsStore = useStore('order_products')
   const cartStore = useStore('cart')
   const deviceConfigStore = useStore('device_config')
   const ordersActions = ordersStore.actions
+  const orderProductsActions = orderProductsStore.actions
   const cartActions = cartStore.actions
   const {item: storedOrder} = ordersStore.getters
   const {item: runtimeDeviceConfig} = deviceConfigStore.getters
@@ -570,13 +576,49 @@ export default function usePosCartSession({
     }
 
     try {
-      const refreshedOrder = await ordersActions.get(targetId)
-      return syncActiveOrderState(await normalizeDraftOrderType(refreshedOrder))
+      const [orderResult, productsResult] = await Promise.allSettled([
+        api.fetch(`orders/${targetId}`),
+        api.fetch('order_products', {
+          params: {'order.id': Number(targetId)},
+        }),
+      ])
+
+      if (orderResult.status !== 'fulfilled') {
+        return syncActiveOrderState(null)
+      }
+
+      const normalizedOrder = await normalizeDraftOrderType(orderResult.value)
+      const hydratedProducts =
+        productsResult.status === 'fulfilled'
+          ? extractCollectionItems(productsResult.value)
+          : null
+      const hydratedOrder =
+        Array.isArray(hydratedProducts)
+          ? {...normalizedOrder, orderProducts: hydratedProducts}
+          : normalizedOrder
+
+      const syncedOrder = syncActiveOrderState(hydratedOrder)
+
+      if (
+        Array.isArray(hydratedProducts) &&
+        typeof ordersActions.syncOrderProducts === 'function'
+      ) {
+        orderProductsActions.setItems?.(hydratedProducts)
+        return (
+          ordersActions.syncOrderProducts({
+            orderId: Number(targetId),
+            orderProducts: hydratedProducts,
+          }) || syncedOrder
+        )
+      }
+
+      return syncedOrder
     } catch {
       return syncActiveOrderState(null)
     }
   }, [
     normalizeDraftOrderType,
+    orderProductsActions,
     ordersActions,
     syncActiveOrderState,
   ])
@@ -643,20 +685,32 @@ export default function usePosCartSession({
   ) => {
     const forceNew = options?.forceNew === true
     const providedLinkedOrderInput = options?.linkedOrderInput
+    const requestSignal = options?.signal || null
+    const requestKey = `${storageKey}:${forceNew ? 'new' : 'resume'}`
+    const consumer = {signal: requestSignal}
 
-    if (forceNew) {
-      syncActiveOrderState(null)
-    } else if (activeOrder) {
+    if (!forceNew && activeOrder) {
       return syncActiveOrderState(await materializeOpenPosOrder(activeOrder))
     }
 
-    if (!forceNew && storageKey && pendingEnsureActiveOrderRequests.has(storageKey)) {
-      return pendingEnsureActiveOrderRequests.get(storageKey)
+    const pendingEntry = pendingEnsureActiveOrderRequests.get(requestKey)
+
+    if (pendingEntry) {
+      pendingEntry.consumers.add(consumer)
+      return pendingEntry.promise
+    }
+
+    const requestEntry = {
+      consumers: new Set([consumer]),
+      promise: null,
     }
 
     const ensureRequest = (async () => {
+      assertActiveEnsureConsumer(requestEntry)
+
       if (!forceNew) {
         const storedDraftOrder = await loadStoredDraftOrder()
+        assertActiveEnsureConsumer(requestEntry)
         if (storedDraftOrder) {
           return storedDraftOrder
         }
@@ -667,6 +721,7 @@ export default function usePosCartSession({
       }
 
       const orderOpenStatusIri = await resolvePosOpenOrderStatusIri(defaultStatusId)
+      assertActiveEnsureConsumer(requestEntry)
 
       if (!orderOpenStatusIri) {
         throw new Error('Nao foi possivel resolver o status open/open do pedido no PDV.')
@@ -687,6 +742,7 @@ export default function usePosCartSession({
           ) ||
           getRecentLinkedOrderInput() ||
           (await requestLinkedOrderCode())
+        assertActiveEnsureConsumer(requestEntry)
         const externalCode = String(linkedOrderInput?.externalCode || '').trim()
         const linkedOrderInputType = String(
           linkedOrderInput?.inputType || checkInputType,
@@ -710,6 +766,7 @@ export default function usePosCartSession({
             peopleIri,
             statusIri: orderOpenStatusIri,
           }))
+        assertActiveEnsureConsumer(requestEntry)
 
         lastLinkedOrderInputRef.current = {
           createdAt: Date.now(),
@@ -742,11 +799,16 @@ export default function usePosCartSession({
         }
 
         const existingLinkedOrder = await findOpenLinkedSessionOrder(settlementOrderId)
+        assertActiveEnsureConsumer(requestEntry)
 
         if (existingLinkedOrder) {
           return syncActiveOrderState(
             await materializeOpenPosOrder(existingLinkedOrder),
           )
+        }
+
+        if (forceNew) {
+          syncActiveOrderState(null)
         }
 
         const createdLinkedOrder = await ordersActions.save(
@@ -780,6 +842,12 @@ export default function usePosCartSession({
         )
       }
 
+      assertActiveEnsureConsumer(requestEntry)
+
+      if (forceNew) {
+        syncActiveOrderState(null)
+      }
+
       const createdOrder = await ordersActions.save(
         buildOrderPayload(orderOpenStatusIri, peopleIri, null, DRAFT_SALE_ORDER_TYPE),
       )
@@ -789,15 +857,14 @@ export default function usePosCartSession({
       )
     })()
 
-    if (storageKey) {
-      pendingEnsureActiveOrderRequests.set(storageKey, ensureRequest)
-    }
+    requestEntry.promise = ensureRequest
+    pendingEnsureActiveOrderRequests.set(requestKey, requestEntry)
 
     try {
       return await ensureRequest
     } finally {
-      if (storageKey) {
-        pendingEnsureActiveOrderRequests.delete(storageKey)
+      if (pendingEnsureActiveOrderRequests.get(requestKey) === requestEntry) {
+        pendingEnsureActiveOrderRequests.delete(requestKey)
       }
     }
   }, [
