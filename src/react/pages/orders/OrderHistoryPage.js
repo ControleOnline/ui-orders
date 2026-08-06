@@ -35,7 +35,10 @@ import {
   OrderCancellationDetailsModal,
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
-import OrderCreateInvoiceModal from './OrderCreateInvoiceModal';
+import {
+  clearCreateInvoiceOnlyMode,
+  setCreateInvoiceOnlyMode,
+} from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
 
 const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
@@ -233,6 +236,14 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { showError, showSuccess } = useMessage() || {};
   const isFocused = useIsFocused();
 
+  useEffect(() => {
+    // Se o usuário voltou ao histórico sem concluir, encerra o modo fatura-only.
+    if (isFocused) {
+      clearCreateInvoiceOnlyMode();
+    }
+  }, [isFocused]);
+
+
   const { item: storagedDevice } = deviceStore.getters || {};
   const { item: deviceConfig } = deviceConfigStore.getters || {};
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
@@ -269,7 +280,6 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
   const [historyFilters, setHistoryFilters] = useState(buildDefaultHistoryFilters);
   const [cancelModalOrder, setCancelModalOrder] = useState(null);
-  const [createInvoiceOrder, setCreateInvoiceOrder] = useState(null);
   const [cancelReasons, setCancelReasons] = useState([]);
   const [selectedCancelReasonId, setSelectedCancelReasonId] = useState('');
   const [cancelReasonText, setCancelReasonText] = useState('');
@@ -673,6 +683,22 @@ export default function OrderHistoryPage({ navigation, route }) {
     [currentCompany?.id, themeColors.buttonBackground, themeColors.buttonText],
   );
 
+  const openCreateInvoiceFlow = useCallback(order => {
+    // Reuse POS product selection + Checkout; flag skips Cielo and only saves invoice.
+    setCreateInvoiceOnlyMode(true);
+    orderActions.syncOrder?.(order);
+    navigation.navigate(
+      'AddProductScreen',
+      buildAddProductsRouteParams(
+        order,
+        buildManagerPdvRouteParams({
+          createInvoiceOnly: true,
+          singleItemMode: isPosSingleItemMode(deviceConfig?.configs),
+        }),
+      ),
+    );
+  }, [deviceConfig?.configs, navigation, orderActions]);
+
   const renderRowActions = useCallback(({ row }) => {
     if (isCanceledOrder(row)) {
       return (
@@ -726,7 +752,7 @@ export default function OrderHistoryPage({ navigation, route }) {
             activeOpacity={0.82}
             onPress={event => {
               event?.stopPropagation?.();
-              setCreateInvoiceOrder(row);
+              openCreateInvoiceFlow(row);
             }}
           >
             <Icon name="file-text" size={16} color={themeColors.buttonIcon} />
@@ -756,6 +782,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     );
   }, [
     openCancelModal,
+    openCreateInvoiceFlow,
     styles.rowActionButton,
     themeColors,
   ]);
@@ -850,20 +877,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     navigation.navigate('PdvPage', { startNewOrder: true });
   }, [navigation, isCashRegisterClosed, orderTypeFilter]);
 
-
-  const openCreateInvoiceAddProducts = useCallback(order => {
-    setCreateInvoiceOrder(null);
-    orderActions.syncOrder?.(order);
-    navigation.navigate(
-      'AddProductScreen',
-      buildAddProductsRouteParams(
-        order,
-        buildManagerPdvRouteParams({
-          singleItemMode: isPosSingleItemMode(deviceConfig?.configs),
-        }),
-      ),
-    );
-  }, [deviceConfig?.configs, navigation, orderActions]);
 
   const openOrder = useCallback(order => {
     orderActions.syncOrder?.(order);
@@ -965,18 +978,6 @@ export default function OrderHistoryPage({ navigation, route }) {
           />
         </View>
       </View>
-
-      <OrderCreateInvoiceModal
-        order={createInvoiceOrder}
-        visible={!!createInvoiceOrder}
-        onClose={() => setCreateInvoiceOrder(null)}
-        onAddProducts={openCreateInvoiceAddProducts}
-        onSuccess={() => {
-          if (typeof orderActions.getItems === 'function') {
-            orderActions.getItems?.(historyRequestParams);
-          }
-        }}
-      />
       <OrderCancelModal
         accentColor={themeColors.iconDanger}
         cancelReasonText={cancelReasonText}

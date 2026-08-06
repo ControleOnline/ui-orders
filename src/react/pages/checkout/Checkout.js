@@ -79,6 +79,10 @@ import {
   parseMoneyInputValue,
   resolveCashPaymentDetails,
 } from '@controleonline/ui-common/src/react/utils/cashPayment';
+import {
+  clearCreateInvoiceOnlyMode,
+  isCreateInvoiceOnlyMode,
+} from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import {SHOP_LOYALTY_GIFT_PRODUCT_ID_CONFIG_KEY} from '@controleonline/ui-common/src/react/utils/shopConfig';
 import {
   normalizeGatewayPaymentError,
@@ -1408,6 +1412,10 @@ const Checkout = () => {
           return null;
         }
 
+        if (isCreateInvoiceOnlyMode()) {
+          clearCreateInvoiceOnlyMode();
+        }
+
         const paidAmount = Number(createdInvoice.price || 0);
         const nextPayable = resolveNextPayableAfterPayment(paidAmount, targetOrder);
         const syncedOrder = await syncLoyaltySelectionToOrder(targetOrder);
@@ -1521,6 +1529,12 @@ const Checkout = () => {
 
       setSubmittingPayment(true);
       try {
+        // From Order History "Criar fatura": reuse Checkout UI but never call Cielo/gateway.
+        if (isCreateInvoiceOnlyMode()) {
+          await createPaidInvoice(payment, total, currentOrder);
+          clearCreateInvoiceOnlyMode();
+          return;
+        }
         if (
           await createInvoiceForGatewayFreePayment({
             payment,
@@ -1597,6 +1611,25 @@ const Checkout = () => {
         invoiceActions.setError(
           global.t?.t('orders', 'message', 'selectPaymentMethod'),
         );
+        return;
+      }
+
+      // Create-invoice-only: never send remote/Cielo payment; persist invoice locally.
+      if (isCreateInvoiceOnlyMode()) {
+        setSubmittingPayment(true);
+        try {
+          await createPaidInvoice(payment, total, order);
+          clearCreateInvoiceOnlyMode();
+        } catch (error) {
+          invoiceActions.setError(
+            normalizeGatewayPaymentError(
+              error,
+              'Nao foi possivel registrar a fatura.',
+            ),
+          );
+        } finally {
+          setSubmittingPayment(false);
+        }
         return;
       }
 
