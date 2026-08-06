@@ -701,8 +701,8 @@ export default function OrderHistoryPage({ navigation, route }) {
     }
 
     const canCancel = isCancelableOrder(row);
-    const orderPrice = Number(row?.price ?? 0);
-    const canCreateInvoice = !isCanceledOrder(row) && orderPrice > 0.009;
+    // Qualquer pedido não cancelado: permite abrir modal para adicionar produtos e pagamento
+    const canCreateInvoice = !isCanceledOrder(row);
 
     if (!canCancel && !canCreateInvoice) {
       return null;
