@@ -81,40 +81,36 @@ export const mergeOrderProductIntoList = (orderProducts, orderProduct) => {
 
 export const removeOrderProductFromList = (orderProducts, targetOrderProduct) => {
   const targetId = normalizeEntityId(targetOrderProduct)
-  const targetIri =
-    typeof targetOrderProduct === 'object' && targetOrderProduct?.['@id']
-      ? targetOrderProduct['@id']
-      : (targetId ? `/order_products/${targetId}` : '')
 
   if (!targetId) {
     return Array.isArray(orderProducts) ? [...orderProducts] : []
   }
 
-  return (Array.isArray(orderProducts) ? orderProducts : []).filter(orderProduct => {
-    const orderProductId = normalizeEntityId(orderProduct)
-    if (orderProductId === targetId) {
-      return false
-    }
+  const items = Array.isArray(orderProducts) ? orderProducts : []
+  const removedIds = new Set([targetId])
+  let foundDescendant = true
 
-    const parentOrderProductId = normalizeEntityId(
-      orderProduct?.orderProduct || orderProduct?.order_product,
-    )
+  while (foundDescendant) {
+    foundDescendant = false
+    items.forEach(orderProduct => {
+      const orderProductId = normalizeEntityId(orderProduct)
+      const parentOrderProductId = normalizeEntityId(
+        orderProduct?.orderProduct || orderProduct?.order_product,
+      )
 
-    if (parentOrderProductId && parentOrderProductId === targetId) {
-      return false
-    }
+      if (
+        orderProductId &&
+        parentOrderProductId &&
+        removedIds.has(parentOrderProductId) &&
+        !removedIds.has(orderProductId)
+      ) {
+        removedIds.add(orderProductId)
+        foundDescendant = true
+      }
+    })
+  }
 
-    const parentOrderProductIri =
-      orderProduct?.orderProduct?.['@id'] ||
-      orderProduct?.order_product?.['@id'] ||
-      normalizeRawValue(orderProduct?.orderProduct || orderProduct?.order_product)
-
-    if (targetIri && parentOrderProductIri && parentOrderProductIri === targetIri) {
-      return false
-    }
-
-    return true
-  })
+  return items.filter(orderProduct => !removedIds.has(normalizeEntityId(orderProduct)))
 }
 
 export const mergeOrderWithOrderProducts = (order, orderProducts) => ({

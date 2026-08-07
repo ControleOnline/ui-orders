@@ -2,6 +2,7 @@ const {
   buildOperationalOrderProductCards,
   buildOrderProductCards,
   canReopenOrderProductCustomization,
+  isOptionalOrderProductComponent,
   isOrderProductProductionCompleted,
   isOperationalOrderProductCardChecked,
   isOrderProductChecked,
@@ -12,6 +13,51 @@ const {
 const { describe, expect, it } = global
 
 describe('OrderProducts.utils', () => {
+  it('only allows direct component removal for optional groups', () => {
+    expect(isOptionalOrderProductComponent({
+      productGroup: {required: false, minimum: 0},
+    })).toBe(true)
+    expect(isOptionalOrderProductComponent({
+      productGroup: {required: true, minimum: 1},
+    })).toBe(false)
+    expect(isOptionalOrderProductComponent({productGroup: null})).toBe(false)
+  })
+
+  it('keeps a required free child independent when the catalog flag says so', () => {
+    const sauce = {
+      id: 2,
+      quantity: 1,
+      price: 0,
+      total: 0,
+      product: {id: 1935, product: 'Molho degustação'},
+      orderProduct: '/order_products/1',
+      parentProduct: '/products/1108',
+      showInParentQueue: false,
+      productGroup: {
+        id: 320,
+        productGroup: 'Molho Brinde',
+        required: true,
+        minimum: 1,
+        maximum: 1,
+        priceCalculation: 'free',
+      },
+    }
+    const root = {
+      id: 1,
+      quantity: 1,
+      product: {id: 1108, product: 'Batata Frita Média'},
+      orderProductComponents: [sauce],
+    }
+
+    const cards = buildOrderProductCards([root, sauce])
+    const rootCard = cards.find(card => card.name === 'Batata Frita Média')
+    const sauceCard = cards.find(card => card.name === 'Molho degustação')
+
+    expect(cards).toHaveLength(2)
+    expect(sauceCard.parentCardKey).toBe(rootCard.key)
+    expect(sauceCard.originGroup.label).toBe('Molho Brinde')
+  })
+
   it('orders operational roots by the tracking category and leaves uncategorized products last', () => {
     const cards = buildOperationalOrderProductCards([
       {

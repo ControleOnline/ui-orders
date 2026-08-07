@@ -2434,14 +2434,15 @@ const OrderDetails = ({ route, navigation }) => {
       return null
     }
 
-    // Grouped children must be edited through the parent customization flow so
-    // the group constraints remain consistent.
+    const isChildEntry = entryType === 'group' || !!card?.parentCardKey
     if (entryType === 'group') {
       return null
     }
 
-    const rootOrderProduct = card?.rootItem || orderProduct
-    if (isOrderProductProductionCompleted(rootOrderProduct)) {
+    const editableOrderProduct = isChildEntry
+      ? orderProduct
+      : card?.rootItem || orderProduct
+    if (isOrderProductProductionCompleted(editableOrderProduct)) {
       return null
     }
 
@@ -2452,11 +2453,13 @@ const OrderDetails = ({ route, navigation }) => {
     const quantity = Number(orderProduct?.quantity || 0)
     const isOpLoading = orderProductId ? isOrderProductCommitting(orderProductId) : false
     const isConfirming = orderProductId && confirmRemoveItemId === orderProductId
-    const canEditCustomization =
-      entryType === 'root' &&
-      canReopenOrderProductCustomization(rootOrderProduct)
-
-    if (!canEditCustomization && !orderProductId) {
+    const canEditCustomization = canReopenOrderProductCustomization(
+      editableOrderProduct,
+    )
+    if (
+      !canEditCustomization &&
+      (!orderProductId || isChildEntry)
+    ) {
       return null
     }
 
@@ -2464,7 +2467,8 @@ const OrderDetails = ({ route, navigation }) => {
       <View style={localStyles.orderProductActionStack}>
         {canEditCustomization && (
           <TouchableOpacity
-            onPress={() => handleEditCustomizableOrderProduct(rootOrderProduct)}
+            accessibilityLabel={`Personalizar ${editableOrderProduct?.product?.product || 'item'}`}
+            onPress={() => handleEditCustomizableOrderProduct(editableOrderProduct)}
             style={localStyles.orderProductCustomizeButton}
             disabled={isOpLoading}
           >
@@ -2472,7 +2476,7 @@ const OrderDetails = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
 
-        {orderProductId ? (
+        {!isChildEntry && orderProductId ? (
           isConfirming ? (
             <View style={localStyles.editConfirmRow}>
               <Text style={localStyles.editConfirmText}>Remover?</Text>
