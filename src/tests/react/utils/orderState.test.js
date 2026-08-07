@@ -50,4 +50,21 @@ describe('orderState', () => {
       mergeOrderWithOrderProducts(currentOrder, remainingOrderProducts).price,
     ).toBe(13)
   })
+
+  it('removes every descendant of an optional component optimistically', () => {
+    const fries = {
+      id: 105041,
+      orderProduct: '/order_products/105039',
+      product: {id: 3, product: 'Batata'},
+    }
+    const sauce = {
+      id: 105042,
+      orderProduct: '/order_products/105041',
+      product: {id: 4, product: 'Molho'},
+    }
+
+    expect(
+      removeOrderProductFromList([pizza, fries, sauce, coca], fries),
+    ).toEqual([pizza, coca])
+  })
 })
