@@ -297,6 +297,22 @@ const refreshSettlementTree = useCallback(
   },
   [companyIri, invoiceActions, orderLabel, ordersActions, selectPrimaryOrder, showError],
 )
+
+const handleRefresh = useCallback(async () => {
+  const rootOrderId = normalizeEntityId(primaryOrder) || routeRootOrderId
+  if (!rootOrderId) {
+    return
+  }
+  await refreshSettlementTree(rootOrderId)
+}, [primaryOrder, refreshSettlementTree, routeRootOrderId])
+
+useEffect(() => {
+  if (!routeRootOrderId || !companyIri || !canUseSettlementScreen) {
+    return
+  }
+  void refreshSettlementTree(routeRootOrderId)
+}, [canUseSettlementScreen, companyIri, refreshSettlementTree, routeRootOrderId])
+
 const findSettlementOrderByCode = useCallback(
   async externalCode => {
     if (!companyIri || !linkedOrderType || !externalCode) {
@@ -479,5 +495,14 @@ const mergeSettlementOrderIntoPrimary = useCallback(
     showSuccess,
     defaultCompany,
     navigation,
+    canUseSettlementScreen,
+    companyIri,
+    routeRootOrderId,
+    requestLinkedOrderInput,
+    currentCompany,
+    treeOrders,
+    selectPrimaryOrder,
+    setTreeOrders,
+    setTreeInvoices,
   }
 }
