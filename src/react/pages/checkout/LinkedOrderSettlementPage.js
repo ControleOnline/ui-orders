@@ -41,7 +41,43 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     handleOpenCheckout,
     handleCloseSettlement,
     primaryContext,
+    canUseSettlementScreen,
+    currentCompany,
   } = useLinkedOrderSettlement({navigation, route})
+
+  if (!currentCompany?.id) {
+    return (
+      <SafeAreaView
+        style={[styles.container, {backgroundColor: palette.background}]}
+        edges={['bottom']}>
+        <View style={styles.centerState}>
+          <Icon name="building" size={34} color="#94A3B8" />
+          <Text style={styles.centerStateTitle}>Select a company</Text>
+          <Text style={styles.centerStateText}>
+            The settlement workflow depends on the active company to find open
+            tabs, tables and invoices.
+          </Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  if (!canUseSettlementScreen) {
+    return (
+      <SafeAreaView
+        style={[styles.container, {backgroundColor: palette.background}]}
+        edges={['bottom']}>
+        <View style={styles.centerState}>
+          <Icon name="slash" size={34} color="#94A3B8" />
+          <Text style={styles.centerStateTitle}>Settlement disabled</Text>
+          <Text style={styles.centerStateText}>
+            This PDV does not use linked tabs or tables, so the settlement screen
+            is hidden here.
+          </Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
   <SafeAreaView
