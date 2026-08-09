@@ -37,6 +37,7 @@ import {
   buildPaymentSections,
   buildPaymentSelectionOption,
 } from '@controleonline/ui-orders/src/react/pages/checkout/CheckoutPaymentOptions';
+import useCheckoutNavigation from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutNavigation';
 import {
   appendSyntheticOrderInvoice,
   resolveNextOperationalPayable,
@@ -444,42 +445,15 @@ const Checkout = () => {
       }),
     [cashPaymentContext, cashReceivedValue, remainingAmount],
   );
-  const buildOrderDetailsNavigationParams = useCallback(
-    orderItem =>
-      buildOrderDetailsRouteParams(
-        orderItem,
-        isPdvInteractionMode
-          ? buildManagerPdvRouteParams({showBottomCart: false})
-          : {},
-      ),
-    [isPdvInteractionMode],
-  );
-  const resetToSelfServiceCatalog = useCallback(() => {
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'AddProductScreen'}],
-    });
-  }, [navigation]);
-  const resetToCounterDestination = useCallback(() => {
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'OrderHistoryPage',
-          params: {resumeCounterFlow: true},
-        },
-      ],
-    });
-  }, [
+  const {
+    buildOrderDetailsNavigationParams,
+    resetToSelfServiceCatalog,
+    resetToCounterDestination,
+    resetToOrderHistory,
+  } = useCheckoutNavigation({
     navigation,
-  ]);
-
-  const resetToOrderHistory = useCallback(() => {
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'OrderHistoryPage'}],
-    });
-  }, [navigation]);
+    isPdvInteractionMode,
+  });
 
   useEffect(() => {
     if (!routeOrderId || typeof route.params?.order !== 'object') {
