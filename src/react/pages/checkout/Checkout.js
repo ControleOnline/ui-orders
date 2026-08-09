@@ -83,6 +83,10 @@ import {
   clearCreateInvoiceOnlyMode,
   isCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
+import {
+  tryCreateInvoiceOnlyPayment,
+  clearCreateInvoiceFlagIfActive,
+} from '@controleonline/ui-orders/src/react/utils/createInvoiceCheckout';
 import {SHOP_LOYALTY_GIFT_PRODUCT_ID_CONFIG_KEY} from '@controleonline/ui-common/src/react/utils/shopConfig';
 import {
   normalizeGatewayPaymentError,
@@ -1316,9 +1320,7 @@ const Checkout = () => {
           return null;
         }
 
-        if (isCreateInvoiceOnlyMode()) {
-          clearCreateInvoiceOnlyMode();
-        }
+        clearCreateInvoiceFlagIfActive();
 
         const paidAmount = Number(createdInvoice.price || 0);
         const nextPayable = resolveNextPayableAfterPayment(paidAmount, targetOrder);
