@@ -959,6 +959,8 @@ const createStyles = (scale, palette, windowHeight = 800, windowWidth = 420) => 
       justifyContent: 'center',
     },
     orderProductActionStack: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'flex-end',
       gap: isCompactMobile ? 4 : 6,
     },

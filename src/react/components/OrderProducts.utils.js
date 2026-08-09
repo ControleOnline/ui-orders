@@ -233,6 +233,20 @@ const getNodeDescription = node => {
     : description
 }
 
+export const isOptionalOrderProductComponent = orderProduct => {
+  const productGroup = orderProduct?.productGroup
+  if (!productGroup) return false
+
+  const minimum = Number(productGroup?.minimum || 0)
+  const requiredValue = productGroup?.required
+  const required =
+    requiredValue === true ||
+    Number(requiredValue) === 1 ||
+    String(requiredValue || '').trim().toLowerCase() === 'true'
+
+  return !required && (!Number.isFinite(minimum) || minimum <= 0)
+}
+
 const getNodeObservation = node =>
   normalizeOrderProductText(
     node?.comments ||
