@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {ActivityIndicator, Text, View} from 'react-native';
 import {useStore} from '@store';
-import {useFocusEffect, useRoute} from '@react-navigation/native';
+import {useFocusEffect, useIsFocused, useRoute} from '@react-navigation/native';
 
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
 import ProductsPage from '@controleonline/ui-products/src/react/pages/Products';
@@ -15,10 +16,12 @@ import {
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
 import usePosCartSession, {
   isLinkedOrderCodeRequiredError,
+  isPosOrderCreationCancelledError,
 } from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 
 const CheckoutContent = ({navigation, route: routeProp}) => {
   const currentRoute = useRoute();
+  const isScreenFocused = useIsFocused();
   const route = routeProp || currentRoute;
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
@@ -43,10 +46,17 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     runtimeDeviceConfig?.configs,
   );
   const isLoadingStoredOrderRef = useRef(false);
+  const activeOrderIdRef = useRef(null);
+  const activePreparationControllerRef = useRef(null);
+  const hasPreparedCurrentFocusRef = useRef(false);
   const startNewOrderHandledRef = useRef(false);
   const linkedSessionBootstrappedRef = useRef(false);
   const linkedOrderEntryResolverRef = useRef(null);
   const [linkedOrderEntryState, setLinkedOrderEntryState] = useState(null);
+  const [isPreparingOrder, setIsPreparingOrder] = useState(
+    route?.params?.startNewOrder === true ||
+      route?.params?.resumeExistingOrder === true,
+  );
   const requestLinkedOrderInput = useCallback(
     request =>
       new Promise(resolve => {
@@ -80,6 +90,35 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     setLinkedOrderEntryState(null);
     resolve?.(result);
   }, []);
+
+  useEffect(() => {
+    activeOrderIdRef.current = activeOrderId;
+  }, [activeOrderId]);
+
+  useEffect(
+    () =>
+      navigation.addListener?.('blur', () => {
+        hasPreparedCurrentFocusRef.current = false;
+        activePreparationControllerRef.current?.abort();
+      }),
+    [navigation],
+  );
+
+  useEffect(() => {
+    if (isScreenFocused) {
+      return;
+    }
+
+    hasPreparedCurrentFocusRef.current = false;
+    activePreparationControllerRef.current?.abort();
+  }, [isScreenFocused]);
+
+  useEffect(
+    () => () => {
+      activePreparationControllerRef.current?.abort();
+    },
+    [],
+  );
 
   const handleCancelLinkedOrderEntry = useCallback(() => {
     resolveLinkedOrderEntry(null);
@@ -151,7 +190,11 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
   useFocusEffect(
     useCallback(() => {
-      if (!currentCompany?.id || isLoadingStoredOrderRef.current) {
+      if (
+        !currentCompany?.id ||
+        isLoadingStoredOrderRef.current ||
+        hasPreparedCurrentFocusRef.current
+      ) {
         return undefined;
       }
 
@@ -161,6 +204,11 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       }
 
       isLoadingStoredOrderRef.current = true;
+      hasPreparedCurrentFocusRef.current = true;
+      const controller =
+        typeof AbortController === 'function' ? new AbortController() : null;
+      activePreparationControllerRef.current = controller;
+      setIsPreparingOrder(true);
 
       void (async () => {
         try {
@@ -170,43 +218,45 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
             }
 
             startNewOrderHandledRef.current = true;
-            navigation.setParams({startNewOrder: false});
-
             if (usesLinkedCheckOrders) {
-              const ensuredOrder = await ensureActiveOrder(undefined, {forceNew: true});
+              const ensuredOrder = await ensureActiveOrder(undefined, {
+                forceNew: true,
+                signal: controller?.signal,
+              });
               linkedSessionBootstrappedRef.current = !!(
                 ensuredOrder?.id ||
                 ensuredOrder?.['@id']
               );
             } else {
-              const ensuredOrder = await ensureActiveOrder(undefined, {forceNew: true});
+              const ensuredOrder = await ensureActiveOrder(undefined, {
+                forceNew: true,
+                signal: controller?.signal,
+              });
               linkedSessionBootstrappedRef.current = !!(
                 ensuredOrder?.id ||
                 ensuredOrder?.['@id']
               );
+            }
+
+            if (controller?.signal?.aborted !== true) {
+              navigation.setParams({startNewOrder: false});
             }
             return;
           }
 
           if (route?.params?.resumeExistingOrder === true && resumeOrderId) {
-            await refreshActiveOrder(resumeOrderId);
+            const resumedOrder = await refreshActiveOrder(resumeOrderId);
+            if (resumedOrder) {
+              ordersActions.syncOrder?.(resumedOrder);
+            }
             return;
           }
 
-          if (!activeOrderId) {
+          if (!activeOrderIdRef.current) {
             const storedDraftOrder = await loadStoredDraftOrder();
 
             if (storedDraftOrder) {
               linkedSessionBootstrappedRef.current = true;
-              return;
-            }
-
-            if (isSingleItemMode) {
-              const ensuredOrder = await ensureActiveOrder(undefined, {forceNew: true});
-              linkedSessionBootstrappedRef.current = !!(
-                ensuredOrder?.id ||
-                ensuredOrder?.['@id']
-              );
               return;
             }
 
@@ -223,7 +273,10 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
             }
           }
         } catch (error) {
-          if (!isLinkedOrderCodeRequiredError(error)) {
+          if (
+            !isLinkedOrderCodeRequiredError(error) &&
+            !isPosOrderCreationCancelledError(error)
+          ) {
             showError?.(
               error?.message ||
                 'Nao foi possivel preparar o pedido para iniciar a venda.',
@@ -231,17 +284,23 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
           }
         } finally {
           isLoadingStoredOrderRef.current = false;
+          if (activePreparationControllerRef.current === controller) {
+            activePreparationControllerRef.current = null;
+          }
+          if (controller?.signal?.aborted !== true) {
+            setIsPreparingOrder(false);
+          }
         }
       })();
 
       return undefined;
     }, [
       currentCompany?.id,
-      activeOrderId,
       ensureActiveOrder,
       isCashRegisterClosed,
       loadStoredDraftOrder,
       navigation,
+      ordersActions,
       refreshActiveOrder,
       resumeOrderId,
       route?.params?.resumeExistingOrder,
@@ -252,6 +311,20 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       usesLinkedCheckOrders,
     ]),
   );
+
+  if (isPreparingOrder) {
+    return (
+      <View
+        style={{
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
+        }}>
+        <ActivityIndicator size="large" />
+        <Text style={{marginTop: 12}}>Carregando pedido...</Text>
+      </View>
+    );
+  }
 
   return (
     <>
