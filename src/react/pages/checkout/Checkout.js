@@ -40,8 +40,10 @@ import {
 } from '@controleonline/ui-orders/src/react/pages/checkout/CheckoutPaymentOptions';
 import {
   appendSyntheticOrderInvoice,
+  resolvePaidAmountForOrder,
   resolveNextOperationalPayable,
 } from '@controleonline/ui-orders/src/react/utils/checkoutInvoices';
+import {fetchAllHydraCollectionPages} from '@controleonline/ui-orders/src/react/utils/orderProductsHydration';
 import {
   buildLoyaltyCpfSearchParams,
   buildLoyaltyCpfSearchResults,
@@ -239,6 +241,7 @@ const Checkout = () => {
 
   const orderProductsStore = useStore('order_products');
   const orderProductsGetters = orderProductsStore.getters;
+  const orderProductsActions = orderProductsStore.actions;
 
   const configsStore = useStore('configs');
   const configsGetters = configsStore.getters;
@@ -298,6 +301,7 @@ const Checkout = () => {
   const [remotePaymentOptions, setRemotePaymentOptions] = useState([]);
   const [selectedPaymentOption, setSelectedPaymentOption] = useState(null);
   const [materializedCheckoutOrder, setMaterializedCheckoutOrder] = useState(null);
+  const [checkoutHydrationLoading, setCheckoutHydrationLoading] = useState(false);
   const [selectedRemoteDeviceId, setSelectedRemoteDeviceId] = useState('');
   const [pendingRemotePaymentRequest, setPendingRemotePaymentRequest] =
     useState(null);
@@ -465,16 +469,39 @@ const Checkout = () => {
     !invoiceIsloading &&
     !orderProductsIsloading &&
     !invoiceIsSaving &&
-    !orderProductsIsSaving;
+    !orderProductsIsSaving &&
+    !checkoutHydrationLoading;
 
-  const remainingAmount = useMemo(() => {
-    const payableValue = Math.abs(Number(payable || 0));
-    if (payableValue > 0) {
-      return payableValue;
+  const scopedOrderProducts = useMemo(() => {
+    const currentOrderId = resolvePeopleId(checkoutOrderId || order?.id || order?.['@id']);
+    if (!currentOrderId) {
+      return Array.isArray(orderProducts) ? orderProducts : [];
     }
 
-    return Number(order?.price || 0);
-  }, [order?.price, payable]);
+    return (Array.isArray(orderProducts) ? orderProducts : []).filter(orderProduct => {
+      const orderProductOrderId = resolvePeopleId(orderProduct?.order);
+      return orderProductOrderId === currentOrderId;
+    });
+  }, [checkoutOrderId, order?.['@id'], order?.id, orderProducts]);
+
+  const scopedPaidAmount = useMemo(
+    () =>
+      resolvePaidAmountForOrder({
+        order,
+        orderInvoices: storedOrderInvoices,
+      }),
+    [order, storedOrderInvoices],
+  );
+
+  const remainingAmount = useMemo(() => {
+    const persistedOrderTotal = Math.max(Number(order?.price || 0), 0);
+    if (persistedOrderTotal > 0.009) {
+      return Math.max(persistedOrderTotal - scopedPaidAmount, 0);
+    }
+
+    const payableValue = Math.abs(Number(payable || 0));
+    return payableValue > 0 ? payableValue : 0;
+  }, [order?.price, payable, scopedPaidAmount]);
   const resolveOrderRemainingAmount = useCallback(
     currentOrder => {
       const currentPayable = Math.abs(Number(currentOrder?.payable || 0));
@@ -505,7 +532,7 @@ const Checkout = () => {
         return currentOrderProductsTotal;
       }
 
-      const orderProductsTotal = (Array.isArray(orderProducts) ? orderProducts : [])
+      const orderProductsTotal = scopedOrderProducts
         .reduce(
           (sum, item) =>
             sum +
@@ -522,7 +549,7 @@ const Checkout = () => {
 
       return remainingAmount;
     },
-    [orderProducts, remainingAmount],
+    [remainingAmount, scopedOrderProducts],
   );
   const checkoutPaymentOrder = materializedCheckoutOrder || order;
   const effectiveRemainingAmount = useMemo(
@@ -642,6 +669,86 @@ const Checkout = () => {
 
     navigation.setParams({showBottomToolBar: false});
   }, [navigation, route.params?.showBottomToolBar]);
+
+  useEffect(() => {
+    if (!checkoutOrderId) {
+      return undefined;
+    }
+
+    let isActive = true;
+    setCheckoutHydrationLoading(true);
+    setMaterializedCheckoutOrder(null);
+    invoiceActions.setItems([]);
+    orderInvoicesActions.setItems([]);
+    orderProductsActions.setItems([]);
+    orderProductsActions.setTotalItems?.(0);
+    ordersActions.setPayable(0);
+
+    Promise.allSettled([
+      typeof ordersActions.get === 'function' ? ordersActions.get(checkoutOrderId) : null,
+      fetchAllHydraCollectionPages(page =>
+        api.fetch('order_products', {
+          params: {
+            'order.id': Number(checkoutOrderId),
+            itemsPerPage: 50,
+            page,
+          },
+        }),
+      ),
+      fetchAllHydraCollectionPages(page =>
+        api.fetch('order_invoices', {
+          params: {
+            'order.id': Number(checkoutOrderId),
+            itemsPerPage: 50,
+            page,
+          },
+        }),
+      ),
+    ])
+      .then(([orderResult, orderProductsResult, orderInvoicesResult]) => {
+        if (!isActive) {
+          return;
+        }
+
+        const hydratedOrder =
+          orderResult.status === 'fulfilled' && orderResult.value ? orderResult.value : null;
+        const hydratedOrderProducts =
+          orderProductsResult.status === 'fulfilled' && orderProductsResult.value?.complete
+            ? orderProductsResult.value.items
+            : [];
+        const hydratedOrderInvoices =
+          orderInvoicesResult.status === 'fulfilled' && orderInvoicesResult.value?.complete
+            ? orderInvoicesResult.value.items
+            : [];
+
+        if (hydratedOrder) {
+          ordersActions.syncOrder?.(hydratedOrder);
+          setMaterializedCheckoutOrder(hydratedOrder);
+        }
+
+        orderProductsActions.setItems(hydratedOrderProducts);
+        orderProductsActions.setTotalItems?.(
+          Number(orderProductsResult.value?.totalItems || hydratedOrderProducts.length || 0),
+        );
+        orderInvoicesActions.setItems(hydratedOrderInvoices);
+      })
+      .finally(() => {
+        if (isActive) {
+          setCheckoutHydrationLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    checkoutOrderId,
+    fetchAllHydraCollectionPages,
+    invoiceActions,
+    orderInvoicesActions,
+    orderProductsActions,
+    ordersActions,
+  ]);
 
   const loyaltyRewardBasePayment = useMemo(() => {
     const options = [...localPaymentOptions, ...remotePaymentOptions];
@@ -1127,6 +1234,8 @@ const Checkout = () => {
     ordersActions.setItem(null);
     invoiceActions.setItems([]);
     orderInvoicesActions.setItems([]);
+    orderProductsActions.setItems([]);
+    orderProductsActions.setTotalItems?.(0);
     ordersActions.setPayable(0);
 
     if (isAutoPrintEnabled) {
@@ -1137,6 +1246,7 @@ const Checkout = () => {
     invoiceActions,
     isAutoPrintEnabled,
     orderInvoicesActions,
+    orderProductsActions,
     ordersActions,
     printActions,
   ]);
@@ -1591,7 +1701,7 @@ const Checkout = () => {
           gateway: localGateway,
           installments,
           order,
-          orderProducts,
+          orderProducts: scopedOrderProducts,
           payment,
           total,
         });
@@ -1614,7 +1724,7 @@ const Checkout = () => {
       localGateway,
       order,
       order?.['@id'],
-      orderProducts,
+      scopedOrderProducts,
     ],
   );
 
@@ -1743,8 +1853,8 @@ const Checkout = () => {
 
       const targetOrderProducts = Array.isArray(targetOrder?.orderProducts)
         ? targetOrder.orderProducts
-        : Array.isArray(orderProducts)
-          ? orderProducts
+        : Array.isArray(scopedOrderProducts)
+          ? scopedOrderProducts
           : [];
       const hasLoyaltyGiftProduct = targetOrderProducts.some(
         item =>
@@ -1794,7 +1904,7 @@ const Checkout = () => {
       invoiceActions,
       loyaltyGiftProductId,
       order,
-      orderProducts,
+      scopedOrderProducts,
       ordersActions,
     ],
   );
