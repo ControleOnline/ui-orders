@@ -38,6 +38,7 @@ import {
   normalizeText,
   resolveAddressDisplayParts,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay'
+import AddressForm from '@controleonline/ui-common/src/react/components/address/AddressForm'
 import {
   formatInvoiceTypeLabel,
   getInvoicePaymentTypeLabel,
@@ -3601,86 +3602,19 @@ const OrderDetails = ({ route, navigation }) => {
                 </TouchableOpacity>
 
                 {addressModalMode === 'create' && (
-                  <>
-                    <TextInput
-                      value={addressForm.nickname}
-                      onChangeText={value => handleAddressFormFieldChange('nickname', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Referencia ou apelido"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <View style={localStyles.assignmentFormRow}>
-                      <TextInput
-                        value={addressForm.cep}
-                        onChangeText={value => handleAddressFormFieldChange('cep', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="CEP"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        keyboardType="number-pad"
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                      <TextInput
-                        value={addressForm.number}
-                        onChangeText={value => handleAddressFormFieldChange('number', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="Numero"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        keyboardType="number-pad"
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                    </View>
-                    <TextInput
-                      value={addressForm.street}
-                      onChangeText={value => handleAddressFormFieldChange('street', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Rua"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <TextInput
-                      value={addressForm.complement}
-                      onChangeText={value => handleAddressFormFieldChange('complement', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Complemento"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <TextInput
-                      value={addressForm.district}
-                      onChangeText={value => handleAddressFormFieldChange('district', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Bairro"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <TextInput
-                      value={addressForm.city}
-                      onChangeText={value => handleAddressFormFieldChange('city', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Cidade"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <View style={localStyles.assignmentFormRow}>
-                      <TextInput
-                        value={addressForm.state}
-                        onChangeText={value => handleAddressFormFieldChange('state', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="Estado"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                      <TextInput
-                        value={addressForm.country}
-                        onChangeText={value => handleAddressFormFieldChange('country', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="Pais"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                    </View>
-                  </>
+                  <AddressForm
+                    mode="create"
+                    hideActions
+                    row={addressForm}
+                    onFormChange={next =>
+                      setAddressForm(previousForm => ({
+                        ...previousForm,
+                        ...next,
+                        state: next.uf || next.state || previousForm.state,
+                        country: next.countryCode || next.country || previousForm.country,
+                      }))
+                    }
+                  />
                 )}
               </ScrollView>
 
