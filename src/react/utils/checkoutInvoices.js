@@ -79,6 +79,42 @@ export const resolveOperationalDisplayLabelKey = ({
   return resolvedPendingAmount > 0.009 ? 'pending' : 'paid'
 }
 
+/**
+ * Resolves the remaining balance shown in the Checkout screen, scoped to the
+ * order that belongs to the current route.
+ *
+ * @param {object} params
+ * @param {boolean} params.isOrderScopedToRoute - True when the stored order ID
+ *   matches the route order ID.  When false the store still holds data from a
+ *   previous order and must not be used as the balance for this one.
+ * @param {number|string|null} params.orderPrice - The persisted Order.price.
+ * @param {number} params.payable - The global store payable (paid − price),
+ *   which tracks the remaining balance after partial payments.
+ * @returns {number} Rounded remaining amount in money units (≥ 0).
+ */
+export const resolveCheckoutRemainingAmount = ({
+  isOrderScopedToRoute = false,
+  orderPrice = 0,
+  payable = 0,
+} = {}) => {
+  // Guard: only trust global payable when the stored order belongs to this
+  // route.  A non-zero payable from a previous checkout session must not
+  // be shown as the balance for the new order.
+  if (!isOrderScopedToRoute) {
+    return 0
+  }
+
+  // payable = paid − price, so Math.abs(payable) is the outstanding balance.
+  // Use it when non-zero because it reflects partial payments already recorded.
+  const payableValue = Math.abs(Number(payable || 0))
+  if (payableValue > 0.009) {
+    return roundMoney(payableValue)
+  }
+
+  // No payments yet: the persisted Order.price is the authoritative total.
+  return roundMoney(Math.max(Number(orderPrice || 0), 0))
+}
+
 export const appendSyntheticOrderInvoice = (
   items,
   {invoice = null, orderIri = '', realPrice = null} = {},

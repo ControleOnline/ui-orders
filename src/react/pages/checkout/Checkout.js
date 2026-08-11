@@ -40,6 +40,7 @@ import {
 } from '@controleonline/ui-orders/src/react/pages/checkout/CheckoutPaymentOptions';
 import {
   appendSyntheticOrderInvoice,
+  resolveCheckoutRemainingAmount,
   resolveNextOperationalPayable,
 } from '@controleonline/ui-orders/src/react/utils/checkoutInvoices';
 import {
@@ -467,14 +468,25 @@ const Checkout = () => {
     !invoiceIsSaving &&
     !orderProductsIsSaving;
 
-  const remainingAmount = useMemo(() => {
-    const payableValue = Math.abs(Number(payable || 0));
-    if (payableValue > 0) {
-      return payableValue;
-    }
+  // Guard: the store order must match the current route before its financial
+  // data (payable, price) can be trusted.  Until then, those values could
+  // belong to a previous order still held in the global store.
+  const isOrderScopedToRoute = useMemo(
+    () =>
+      !routeOrderId ||
+      String(getOrderRouteId(order) || '') === String(routeOrderId),
+    [order, routeOrderId],
+  );
 
-    return Number(order?.price || 0);
-  }, [order?.price, payable]);
+  const remainingAmount = useMemo(
+    () =>
+      resolveCheckoutRemainingAmount({
+        isOrderScopedToRoute,
+        orderPrice: order?.price,
+        payable,
+      }),
+    [isOrderScopedToRoute, order?.price, payable],
+  );
   const resolveOrderRemainingAmount = useCallback(
     currentOrder => {
       const currentPayable = Math.abs(Number(currentOrder?.payable || 0));
@@ -1150,6 +1162,11 @@ const Checkout = () => {
         return;
       }
 
+      // Entering Checkout for a different order: clear the stale global
+      // payable that PayableToolbar may have set for the previous one, so
+      // the balance shown before the fetch completes is always 0 rather
+      // than an amount from an unrelated order (fixes #72884 / ui-orders#6).
+      ordersActions.setPayable(0);
       ordersActions.get(routeOrderId);
     }, [invoiceActions, order?.id, ordersActions, routeOrderId]),
   );
