@@ -44,19 +44,35 @@ describe('orderProductsHydration', () => {
     ])
   })
 
-  it('allows retry by succeeding in a new attempt after a fetch failure', async () => {
+  it('rejects on fetch failure and resolves on a new independent call', async () => {
     await expect(
       fetchAllHydraCollectionPages(() => Promise.reject(new Error('network error'))),
     ).rejects.toThrow('network error')
 
     const result = await fetchAllHydraCollectionPages(() =>
       Promise.resolve({
-        'hydra:member': [{id: 1}],
-        'hydra:totalItems': 1,
+        member: [{id: 1}],
+        totalItems: 1,
       }),
     )
 
-    expect(extractHydraCollectionItems({'hydra:member': result.items})).toHaveLength(1)
+    expect(result.totalItems).toBe(1)
+    expect(result.items).toHaveLength(1)
+    expect(extractHydraCollectionItems({member: result.items})).toHaveLength(1)
+    expect(result.complete).toBe(true)
+  })
+
+  it('parses hydra-prefixed collection keys', async () => {
+    const result = await fetchAllHydraCollectionPages(() =>
+      Promise.resolve({
+        'hydra:member': [{id: 11}, {id: 12}],
+        'hydra:totalItems': 2,
+      }),
+    )
+
+    expect(result.totalItems).toBe(2)
+    expect(result.items).toHaveLength(2)
+    expect(extractHydraCollectionItems({'hydra:member': result.items})).toHaveLength(2)
     expect(result.complete).toBe(true)
   })
 })

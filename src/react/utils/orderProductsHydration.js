@@ -1,15 +1,27 @@
-const extractDigits = value => String(value || '').match(/\d+/g) || []
-
+/**
+ * Normalizes entity references that can arrive as plain ids, IRIs, or nested
+ * relation objects and always returns the last numeric token as the identity.
+ */
 export const normalizeHydrationEntityId = value => {
-  if (!value) return ''
+  let currentValue = value
+  const visitedNodes = new Set()
 
-  if (typeof value === 'object') {
-    return normalizeHydrationEntityId(
-      value.id || value['@id'] || value.orderProduct || value.order,
-    )
+  while (currentValue && typeof currentValue === 'object') {
+    if (visitedNodes.has(currentValue)) {
+      return ''
+    }
+    visitedNodes.add(currentValue)
+
+    const preferredIdentity = currentValue['@id'] || currentValue.id
+    if (preferredIdentity) {
+      currentValue = preferredIdentity
+      break
+    }
+
+    currentValue = currentValue.orderProduct || currentValue.order || ''
   }
 
-  const digits = extractDigits(value)
+  const digits = String(currentValue || '').match(/\d+/g) || []
   return digits.length ? digits[digits.length - 1] : ''
 }
 

@@ -110,6 +110,7 @@ const IS_WEB_PLATFORM = Platform.OS === 'web';
 const LOYALTY_REWARD_PAYMENT_CODE = 'VOUCHER_CORTESIA';
 const LOYALTY_REWARD_PAYMENT_LABEL = 'Cartao Fidelidade';
 const LOYALTY_GIFT_ORDER_PRODUCT_COMMENT = 'Brinde fidelidade';
+const MONEY_EPSILON = 0.009;
 
 const normalizeStatusKey = value => String(value || '').trim().toLowerCase();
 
@@ -495,7 +496,7 @@ const Checkout = () => {
 
   const remainingAmount = useMemo(() => {
     const persistedOrderTotal = Math.max(Number(order?.price || 0), 0);
-    if (persistedOrderTotal > 0.009) {
+    if (persistedOrderTotal > 0) {
       return Math.max(persistedOrderTotal - scopedPaidAmount, 0);
     }
 
@@ -685,7 +686,9 @@ const Checkout = () => {
     ordersActions.setPayable(0);
 
     Promise.allSettled([
-      typeof ordersActions.get === 'function' ? ordersActions.get(checkoutOrderId) : null,
+      typeof ordersActions.get === 'function'
+        ? ordersActions.get(checkoutOrderId)
+        : Promise.resolve(null),
       fetchAllHydraCollectionPages(page =>
         api.fetch('order_products', {
           params: {
@@ -727,9 +730,7 @@ const Checkout = () => {
         }
 
         orderProductsActions.setItems(hydratedOrderProducts);
-        orderProductsActions.setTotalItems?.(
-          Number(orderProductsResult.value?.totalItems || hydratedOrderProducts.length || 0),
-        );
+        orderProductsActions.setTotalItems?.(hydratedOrderProducts.length);
         orderInvoicesActions.setItems(hydratedOrderInvoices);
       })
       .finally(() => {
@@ -742,8 +743,8 @@ const Checkout = () => {
       isActive = false;
     };
   }, [
+    api,
     checkoutOrderId,
-    fetchAllHydraCollectionPages,
     invoiceActions,
     orderInvoicesActions,
     orderProductsActions,
@@ -1183,7 +1184,7 @@ const Checkout = () => {
       const currentOrderId = resolvePeopleId(currentOrder?.id || currentOrder?.['@id']);
       const currentOrderAmount = resolveOrderRemainingAmount(currentOrder);
 
-      if (currentOrderId && currentOrderAmount > 0.009) {
+      if (currentOrderId && currentOrderAmount > MONEY_EPSILON) {
         return currentOrder;
       }
 
@@ -1192,7 +1193,7 @@ const Checkout = () => {
           const activeOrder = await ensureActiveOrder();
           const activeOrderAmount = resolveOrderRemainingAmount(activeOrder);
 
-          if (activeOrder && activeOrderAmount > 0.009) {
+          if (activeOrder && activeOrderAmount > MONEY_EPSILON) {
             setMaterializedCheckoutOrder(activeOrder);
             ordersActions.syncOrder?.(activeOrder);
             return activeOrder;
@@ -1736,7 +1737,7 @@ const Checkout = () => {
       totalAmount: effectiveRemainingAmount,
     });
 
-    if (resolvedCashPaymentDetails.receivedAmount <= 0.009) {
+    if (resolvedCashPaymentDetails.receivedAmount <= MONEY_EPSILON) {
       invoiceActions.setError('Informe o valor recebido para continuar.');
       return;
     }
@@ -2296,7 +2297,7 @@ const Checkout = () => {
         )}`,
         `Troco: ${Formatter.formatMoney(cashPaymentDetails.changeAmount)}`,
         cashPaymentContext === PAYMENT_CHANNEL_LOCAL &&
-        cashPaymentDetails.missingAmount > 0.009
+        cashPaymentDetails.missingAmount > MONEY_EPSILON
           ? `Restara pendente: ${Formatter.formatMoney(
               cashPaymentDetails.missingAmount,
             )}`
