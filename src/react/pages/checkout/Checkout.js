@@ -471,10 +471,16 @@ const Checkout = () => {
   // Guard: the store order must match the current route before its financial
   // data (payable, price) can be trusted.  Until then, those values could
   // belong to a previous order still held in the global store.
+  // When there is no routeOrderId the screen was opened without a specific
+  // order target; consider the store scoped only when an order is actually
+  // present (no order → nothing to scope, show 0).
   const isOrderScopedToRoute = useMemo(
-    () =>
-      !routeOrderId ||
-      String(getOrderRouteId(order) || '') === String(routeOrderId),
+    () => {
+      if (!routeOrderId) {
+        return !!order;
+      }
+      return String(getOrderRouteId(order) || '') === String(routeOrderId);
+    },
     [order, routeOrderId],
   );
 
