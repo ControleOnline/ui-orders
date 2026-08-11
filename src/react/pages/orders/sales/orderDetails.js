@@ -69,10 +69,10 @@ import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
 
 import {
-  calculateOrderProductsSubtotal,
   mergeOrderProductIntoList,
   mergeOrderWithOrderProducts,
   removeOrderProductFromList,
+  resolveOrderDisplayTotal,
   withOrderProductQuantity,
 } from '@controleonline/ui-orders/src/utils/orderState'
 import { extractVisibleOrderExtraEntries } from '@controleonline/ui-orders/src/react/utils/orderExtraData'
@@ -1648,37 +1648,19 @@ const OrderDetails = ({ route, navigation }) => {
 
     return Object.values(sectionsMap)
   }, [localInvoiceCards])
-  const hasAuthoritativeEmptyOrderProducts = useMemo(() => {
-    const itemOrderProductsPayload = resolveEmbeddedOrderProducts(item)
-    if (itemOrderProductsPayload.hasOwnOrderProducts) {
-      return !hasOrderProducts(itemOrderProductsPayload.orderProducts)
-    }
-
-    const orderParamOrderProductsPayload = resolveEmbeddedOrderProducts(orderParam)
-    return (
-      orderParamOrderProductsPayload.hasOwnOrderProducts &&
-      !hasOrderProducts(orderParamOrderProductsPayload.orderProducts)
-    )
-  }, [item, item?.orderProducts, orderParam, orderParam?.orderProducts])
-  const localOrderTotal = useMemo(() => {
-    if (
-      hasOrderProducts(resolvedDisplayOrderProductsWithProductDetails) ||
-      hasAuthoritativeEmptyOrderProducts
-    ) {
-      return calculateOrderProductsSubtotal(resolvedDisplayOrderProductsWithProductDetails)
-    }
-
-    const fallbackTotal = Number(
-      resolvedDisplayOrder?.price ?? item?.price ?? orderParam?.price ?? 0,
-    )
-    return Number.isFinite(fallbackTotal) ? fallbackTotal : 0
-  }, [
-    hasAuthoritativeEmptyOrderProducts,
-    item?.price,
-    orderParam?.price,
-    resolvedDisplayOrder?.price,
-    resolvedDisplayOrderProductsWithProductDetails,
-  ])
+  const localOrderTotal = useMemo(
+    () =>
+      resolveOrderDisplayTotal({
+        order: resolvedDisplayOrder || item || orderParam,
+        orderProducts: resolvedDisplayOrderProductsWithProductDetails,
+      }),
+    [
+      item,
+      orderParam,
+      resolvedDisplayOrder,
+      resolvedDisplayOrderProductsWithProductDetails,
+    ],
+  )
   const localPendingAmount = Math.max(localOrderTotal - localPaidAmount, 0)
   const localDisplayAmount = useMemo(
     () => resolveOperationalDisplayAmount({

@@ -119,6 +119,11 @@ export const mergeOrderWithOrderProducts = (order, orderProducts) => ({
   price: resolveNextOrderPrice(order, orderProducts),
 })
 
+export const hydrateOrderWithOrderProducts = (order, orderProducts) => ({
+  ...(order || {}),
+  orderProducts: Array.isArray(orderProducts) ? orderProducts : [],
+})
+
 const hasLinkedParentOrderProduct = orderProduct =>
   !!normalizeEntityId(orderProduct?.orderProduct || orderProduct?.order_product)
 
@@ -172,6 +177,25 @@ export const calculateOrderProductsSubtotal = orderProducts =>
       .filter(isTopLevelOrderProduct)
       .reduce((sum, orderProduct) => sum + resolveOrderProductTotal(orderProduct), 0),
   )
+
+export const resolveOrderDisplayTotal = ({order, orderProducts} = {}) => {
+  const hasAuthoritativePrice = Object.prototype.hasOwnProperty.call(
+    order || {},
+    'price',
+  )
+  const authoritativePrice = Number(order?.price)
+
+  if (
+    hasAuthoritativePrice &&
+    order?.price !== null &&
+    order?.price !== '' &&
+    Number.isFinite(authoritativePrice)
+  ) {
+    return roundMoney(authoritativePrice)
+  }
+
+  return calculateOrderProductsSubtotal(orderProducts)
+}
 
 const resolveNextOrderPrice = (order, nextOrderProducts) => {
   const nextSubtotal = calculateOrderProductsSubtotal(nextOrderProducts)

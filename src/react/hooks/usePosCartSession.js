@@ -10,6 +10,8 @@ import {
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {useStore} from '@store'
 import {resolveCounterDestinationFromOrders} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow'
+import {fetchCompleteOrderProducts} from '@controleonline/ui-orders/src/utils/orderProductsCollection'
+import {hasCompleteEmbeddedOrderProductsTree} from '@controleonline/ui-orders/src/react/utils/orderProductsFetchPolicy'
 import {
   buildLinkedOrderMetadata,
   getLinkedOrderContext,
@@ -593,22 +595,31 @@ export default function usePosCartSession({
     }
 
     try {
-      const [orderResult, productsResult] = await Promise.allSettled([
-        api.fetch(`orders/${targetId}`),
-        api.fetch('order_products', {
-          params: {'order.id': Number(targetId)},
-        }),
-      ])
+      const orderResult = await api.fetch(`orders/${targetId}`)
+      const normalizedOrder = await normalizeDraftOrderType(orderResult)
+      const embeddedOrderProducts = extractCollectionItems(
+        normalizedOrder?.orderProducts,
+      )
+      let hydratedProducts = hasCompleteEmbeddedOrderProductsTree(normalizedOrder)
+        ? embeddedOrderProducts
+        : null
 
-      if (orderResult.status !== 'fulfilled') {
-        return syncActiveOrderState(null)
+      if (!Array.isArray(hydratedProducts)) {
+        try {
+          hydratedProducts = await fetchCompleteOrderProducts({
+            fetchPage: pageParams =>
+              api.fetch('order_products', {
+                params: {
+                  'order.id': Number(targetId),
+                  ...pageParams,
+                },
+              }),
+          })
+        } catch {
+          hydratedProducts = null
+        }
       }
 
-      const normalizedOrder = await normalizeDraftOrderType(orderResult.value)
-      const hydratedProducts =
-        productsResult.status === 'fulfilled'
-          ? extractCollectionItems(productsResult.value)
-          : null
       const hydratedOrder =
         Array.isArray(hydratedProducts)
           ? {...normalizedOrder, orderProducts: hydratedProducts}

@@ -14,6 +14,7 @@ const {
   cancelOrder,
   getCancelReasons,
   getHistorySummaryApps,
+  syncOrderProducts,
 } = require('../../../../store/orders/customActions');
 
 describe('orders customActions', () => {
@@ -155,5 +156,61 @@ describe('orders customActions', () => {
     });
     expect(commit).toHaveBeenCalledWith('SET_ISSAVING', true);
     expect(commit).toHaveBeenCalledWith('SET_ISSAVING', false);
+  });
+
+  it('preserves the authoritative order price while enriching a shallow product collection', () => {
+    const shallowOrderProducts = [
+      {
+        id: 107229,
+        product: {id: 1343, product: 'Produto customizado'},
+        quantity: 2,
+        price: 116.86,
+        total: 233.72,
+      },
+      {
+        id: 107230,
+        product: {id: 1109, product: 'Componente'},
+        quantity: 2,
+        price: 49.85,
+        total: 99.7,
+      },
+    ];
+    const detailedOrderProducts = [
+      shallowOrderProducts[0],
+      {
+        ...shallowOrderProducts[1],
+        order: {id: 72883},
+        orderProduct: '/order_products/107229',
+        parentProduct: '/products/1343',
+        productGroup: '/product_groups/102',
+      },
+    ];
+    const currentOrder = {
+      id: 72883,
+      price: 233.72,
+      orderProducts: shallowOrderProducts,
+    };
+    const commit = jest.fn();
+
+    const result = syncOrderProducts(
+      {
+        commit,
+        getters: {
+          item: currentOrder,
+          items: [currentOrder],
+        },
+      },
+      {
+        orderId: 72883,
+        orderProducts: detailedOrderProducts,
+      },
+    );
+
+    expect(result.price).toBe(233.72);
+    expect(result.orderProducts).toEqual(detailedOrderProducts);
+    expect(commit).toHaveBeenCalledWith(
+      'SET_ITEM',
+      expect.objectContaining({price: 233.72}),
+    );
   });
 });

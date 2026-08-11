@@ -44,6 +44,10 @@ export const hasDetailedOrderProductMetadata = orderProducts =>
   hasGroupingMetadata(orderProducts) ||
   hasEmbeddedOrderProductComponents(orderProducts)
 
+export const hasCompleteEmbeddedOrderProductsTree = order =>
+  order?.orderProductsTreeComplete === true ||
+  order?.order_products_tree_complete === true
+
 export const needsDetailedOrderProductsFetch = orderProducts => {
   if (!hasOrderProducts(orderProducts)) {
     return true

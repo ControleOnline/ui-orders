@@ -1,4 +1,5 @@
 const {
+  hasCompleteEmbeddedOrderProductsTree,
   hasDetailedOrderProductMetadata,
   needsDetailedOrderProductsFetch,
 } = require('../../../react/utils/orderProductsFetchPolicy')
@@ -69,5 +70,15 @@ describe('orderProductsFetchPolicy', () => {
 
     expect(hasDetailedOrderProductMetadata(orderProducts)).toBe(true)
     expect(needsDetailedOrderProductsFetch(orderProducts)).toBe(false)
+  })
+
+  it('recognizes the explicit complete-tree contract on an order detail', () => {
+    expect(
+      hasCompleteEmbeddedOrderProductsTree({
+        id: 72884,
+        orderProductsTreeComplete: true,
+      }),
+    ).toBe(true)
+    expect(hasCompleteEmbeddedOrderProductsTree({id: 72884})).toBe(false)
   })
 })

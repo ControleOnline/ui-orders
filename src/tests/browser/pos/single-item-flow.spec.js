@@ -373,7 +373,7 @@ const createPosApiMock = async (page, initialState = {}) => {
       type: 'PDV',
       configs: JSON.stringify({
         'config-version': APP_VERSION,
-        'pos-operation-mode': 'single-item',
+        'pos-operation-mode': initialState.operationMode || 'single-item',
         'pos-gateway': 'cielo',
         'pos-type': 'simple',
         'payment-type-ids': [1, 2],
@@ -409,6 +409,12 @@ const createPosApiMock = async (page, initialState = {}) => {
     products: Array.isArray(initialState.products)
       ? initialState.products
       : [productOne, productTwo, productGift],
+    productGroups: Array.isArray(initialState.productGroups)
+      ? initialState.productGroups
+      : [],
+    productGroupProducts: Array.isArray(initialState.productGroupProducts)
+      ? initialState.productGroupProducts
+      : [],
     order: initialState.order || createOpenOrder({
       id: 123,
       products: [productOne],
@@ -452,9 +458,13 @@ const createPosApiMock = async (page, initialState = {}) => {
     orderItemIncludesProducts:
       initialState.orderItemIncludesProducts !== false,
     orderProductRequests: [],
+    orderProductItemRequests: [],
+    orderProductItemStatus: Number(initialState.orderProductItemStatus || 200),
     orderProductsDelayMs: Number(initialState.orderProductsDelayMs || 0),
     orderStatusDelayMs: Number(initialState.orderStatusDelayMs || 0),
     lastAddProductsPayload: null,
+    lastOrderProductMutationId: null,
+    lastOrderProductMutationPayload: null,
     lastReplaceProductsPayload: null,
     lastInvoicePayload: null,
     peopleSearchResults: Array.isArray(initialState.peopleSearchResults)
@@ -786,6 +796,44 @@ const createPosApiMock = async (page, initialState = {}) => {
       return fulfillJson(route, collection(state.order.orderProducts || []));
     }
 
+    const orderProductItemMatch = pathname.match(/^order_products\/(\d+)$/);
+    if (orderProductItemMatch && method === 'GET') {
+      const orderProductId = Number(orderProductItemMatch[1]);
+      state.orderProductItemRequests.push(orderProductId);
+      if (state.orderProductItemStatus >= 400) {
+        return fulfillJson(
+          route,
+          {detail: 'Unable to load the complete order product tree.'},
+          state.orderProductItemStatus,
+        );
+      }
+
+      const orderProduct = (state.order.orderProducts || []).find(
+        item => Number(item?.id) === orderProductId,
+      );
+      return fulfillJson(route, orderProduct || {}, orderProduct ? 200 : 404);
+    }
+
+    if (orderProductItemMatch && method === 'PUT') {
+      const orderProductId = Number(orderProductItemMatch[1]);
+      const body = postBody(request);
+      state.lastOrderProductMutationId = orderProductId;
+      state.lastOrderProductMutationPayload = body;
+      const currentOrderProduct = (state.order.orderProducts || []).find(
+        item => Number(item?.id) === orderProductId,
+      );
+      const updatedOrderProduct = {
+        ...(currentOrderProduct || {}),
+        ...body,
+        id: orderProductId,
+        '@id': `/order_products/${orderProductId}`,
+      };
+      state.order.orderProducts = (state.order.orderProducts || []).map(item =>
+        Number(item?.id) === orderProductId ? updatedOrderProduct : item,
+      );
+      return fulfillJson(route, updatedOrderProduct);
+    }
+
     const addProductsMatch = pathname.match(/^orders\/(\d+)\/add-products$/);
     if (addProductsMatch && method === 'PUT') {
       const body = postBody(request);
@@ -834,6 +882,40 @@ const createPosApiMock = async (page, initialState = {}) => {
 
     if (pathname === 'product-showcases/catalog' && method === 'GET') {
       return fulfillJson(route, collection(state.products));
+    }
+
+    if (pathname === 'product_groups' && method === 'GET') {
+      const requestedProductId = Number(
+        String(url.searchParams.get('product') || '').replace(/\D+/g, ''),
+      );
+      const productGroups = requestedProductId
+        ? state.productGroups.filter(group =>
+            Number(String(group?.product?.id || group?.product || '').replace(/\D+/g, '')) ===
+            requestedProductId,
+          )
+        : state.productGroups;
+      return fulfillJson(route, collection(productGroups));
+    }
+
+    if (pathname === 'product_group_products' && method === 'GET') {
+      const requestedGroupId = Number(
+        String(url.searchParams.get('productGroup') || '').replace(/\D+/g, ''),
+      );
+      const groupProducts = requestedGroupId
+        ? state.productGroupProducts.filter(item =>
+            Number(
+              String(item?.productGroup?.id || item?.productGroup || '').replace(/\D+/g, ''),
+            ) === requestedGroupId,
+          )
+        : state.productGroupProducts;
+      return fulfillJson(route, collection(groupProducts));
+    }
+
+    const productItemMatch = pathname.match(/^products\/(\d+)$/);
+    if (productItemMatch && method === 'GET') {
+      const productId = Number(productItemMatch[1]);
+      const product = state.products.find(item => Number(item?.id) === productId);
+      return fulfillJson(route, product || {}, product ? 200 : 404);
     }
 
     if (pathname === 'products' && method === 'GET') {
@@ -1475,8 +1557,187 @@ test.describe('single-item browser smoke', () => {
     await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeChecked();
     await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
     await expect(page.getByText('Conferir pedido', {exact: true}).last()).toBeVisible();
-    expect(state.orderProductRequests).toContainEqual({'order.id': '123'});
+    expect(state.orderProductRequests).toContainEqual({
+      'order.id': '123',
+      itemsPerPage: '50',
+      page: '1',
+    });
     expect(state.orderCreatePayloads).toHaveLength(0);
+  });
+
+  test('uses a complete embedded tree without requesting the detailed collection again', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const product = createProduct(101, {
+      product: 'Coxinha',
+      description: 'Produto unico do modo single-item',
+      price: 12.5,
+    });
+    const existingProduct = createProduct(102, {
+      product: 'Suco',
+      description: 'Item atual da mesma order',
+      price: 8.9,
+    });
+    const state = await createPosApiMock(page, {
+      productOne: product,
+      productTwo: existingProduct,
+      order: {
+        ...createOpenOrder({id: 123, products: [existingProduct], price: 8.9}),
+        orderProductsTreeComplete: true,
+      },
+    });
+
+    await bootstrapPosBrowser(page);
+    await page.goto(
+      '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
+    );
+    await page.getByRole('radio', {name: 'Coxinha'}).click();
+    await expect(page).toHaveURL(/checkout/);
+    await expect(page.getByText('#123', {exact: true}).last()).toBeVisible();
+    await page.waitForTimeout(100);
+
+    state.orderProductRequests.length = 0;
+    state.orderProductsDelayMs = 300000;
+    await page.getByLabel('Voltar ao catalogo').click();
+
+    await expect(page).toHaveURL(/pdv-page/);
+    await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeChecked();
+    expect(state.orderProductRequests).toHaveLength(0);
+    expect(state.order).toMatchObject({
+      id: 123,
+      price: 12.5,
+      orderProductsTreeComplete: true,
+      orderProducts: [
+        expect.objectContaining({
+          product: expect.objectContaining({id: 101}),
+          total: 12.5,
+        }),
+      ],
+    });
+  });
+
+  test('loads an existing customized item before allowing its modification', async ({page}) => {
+    bindBrowserDiagnostics(page);
+    const customProduct = createProduct(1109, {
+      product: 'Mini Churros personalizado',
+      type: 'custom',
+      price: 14.9,
+    });
+    const componentProduct = createProduct(1110, {
+      product: 'Calda de chocolate',
+      type: 'component',
+      price: 2,
+    });
+    const productGroup = {
+      '@id': '/product_groups/50',
+      id: 50,
+      product: '/products/1109',
+      productGroup: 'Escolha a calda',
+      required: true,
+      minimum: 1,
+      maximum: 1,
+      priceCalculation: 'sum',
+    };
+    const productGroupProduct = {
+      '@id': '/product_group_products/500',
+      id: 500,
+      product: '/products/1109',
+      productGroup: '/product_groups/50',
+      productChild: componentProduct,
+      productType: 'component',
+      quantity: 1,
+      price: 2,
+      active: true,
+    };
+    const order = createOpenOrder({
+      id: 123,
+      products: [customProduct],
+      price: 16.9,
+    });
+    order.orderProducts[0].order = {'@id': '/orders/123', id: 123};
+    order.orderProducts[0].price = 16.9;
+    order.orderProducts[0].total = 16.9;
+    order.orderProducts[0].orderProductComponents = [{
+      '@id': '/order_products/11091',
+      id: 11091,
+      product: componentProduct,
+      productGroup,
+      quantity: 1,
+      price: 2,
+      total: 2,
+      orderProductComponents: [],
+    }];
+    const state = await createPosApiMock(page, {
+      products: [customProduct, componentProduct],
+      productGroups: [productGroup],
+      productGroupProducts: [productGroupProduct],
+      order,
+      operationMode: 'counter',
+    });
+
+    await bootstrapPosBrowser(page);
+    await page.goto(
+      '/customize-screen?productId=1109&orderProductId=11090&returnDepth=1&interactionMode=pdv&singleItemMode=false',
+    );
+
+    await expect(page.getByText('Mini Churros personalizado', {exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: /MODIFICAR Mini Churros personalizado/})).toBeEnabled();
+    await expect(page.getByText('1 selecao feita', {exact: true})).toBeVisible();
+    await expect(page.getByText(/R\$\s*16,90/).first()).toBeVisible();
+    expect(state.orderProductItemRequests).toContain(11090);
+
+    await page
+      .getByLabel('Aumentar quantidade de Mini Churros personalizado')
+      .click();
+    await page.getByRole('button', {name: /MODIFICAR Mini Churros personalizado/}).click();
+
+    await expect.poll(() => state.lastOrderProductMutationPayload).not.toBeNull();
+    expect(state.lastOrderProductMutationId).toBe(11090);
+    expect(state.lastOrderProductMutationPayload).toMatchObject({
+      product: '/products/1109',
+      quantity: 2,
+      sub_products: [{
+        product: '1110',
+        productGroup: '50',
+        quantity: 2,
+        sub_products: [],
+      }],
+      order: '/orders/123',
+    });
+  });
+
+  test('blocks modification when the existing customization tree fails to load', async ({page}) => {
+    bindBrowserDiagnostics(page);
+    const customProduct = createProduct(1109, {
+      product: 'Mini Churros personalizado',
+      type: 'custom',
+      price: 14.9,
+    });
+    const order = createOpenOrder({
+      id: 123,
+      products: [customProduct],
+      price: 14.9,
+    });
+    order.orderProducts[0].order = {'@id': '/orders/123', id: 123};
+    const state = await createPosApiMock(page, {
+      products: [customProduct],
+      order,
+      orderProductItemStatus: 500,
+      operationMode: 'counter',
+    });
+
+    await bootstrapPosBrowser(page);
+    await page.goto(
+      '/customize-screen?productId=1109&orderProductId=11090&returnDepth=1&interactionMode=pdv&singleItemMode=false',
+    );
+
+    await expect(page.getByRole('alert')).toContainText(
+      'Nao foi possivel carregar as escolhas existentes',
+    );
+    await expect(page.getByRole('button', {name: /INDISPONIVEL Mini Churros personalizado/})).toBeDisabled();
+    expect(state.orderProductItemRequests).toContain(11090);
+    expect(state.lastOrderProductMutationPayload).toBeNull();
   });
 
   test('shows cash and Cielo payment options and returns to the history list after payment', async ({

@@ -7,6 +7,7 @@ import {
   buildManagerPdvRouteParams,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import {normalizeEntityId} from '@controleonline/ui-orders/src/utils/orderState';
+import {fetchCompleteOrderProductsFromStore} from '@controleonline/ui-orders/src/utils/orderProductsCollection';
 
 const styles = {
   container: {
@@ -56,7 +57,8 @@ const ProductTotem = ({
   const ordersActions = ordersStore.actions;
   const orderProductsStore = useStore('order_products');
   const orderProductsActions = orderProductsStore.actions;
-  const {items: storedOrderProducts = []} = orderProductsStore.getters;
+  const orderProductsGetters = orderProductsStore.getters;
+  const {items: storedOrderProducts = []} = orderProductsGetters;
   const {item: order} = ordersGetters;
   const [isSavingSelection, setIsSavingSelection] = useState(false);
 
@@ -152,8 +154,10 @@ const ProductTotem = ({
       }
 
       try {
-        const orderProducts = await orderProductsActions.getItems({
-          'order.id': Number(resolvedOrderId),
+        const orderProducts = await fetchCompleteOrderProductsFromStore({
+          actions: orderProductsActions,
+          getters: orderProductsGetters,
+          params: {'order.id': Number(resolvedOrderId)},
         });
 
         if (typeof ordersActions.syncOrderProducts === 'function') {
@@ -170,7 +174,7 @@ const ProductTotem = ({
 
       return fallbackOrder;
     },
-    [orderProductsActions, ordersActions, resolvedOrderId],
+    [orderProductsActions, orderProductsGetters, ordersActions, resolvedOrderId],
   );
 
   const replaceCurrentProduct = useCallback(async () => {

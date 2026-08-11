@@ -14,6 +14,7 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import {getLinkedOrderContext} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext';
 import {isPosSingleItemMode} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
+import {fetchCompleteOrderProductsFromStore} from '@controleonline/ui-orders/src/utils/orderProductsCollection';
 
 const normalizeOrderId = order =>
   String(order?.id || order?.['@id'] || '')
@@ -53,6 +54,7 @@ export default function usePosOrderMaterialization({
   const {item: order} = ordersStore.getters;
   const orderProductsStore = useStore('order_products');
   const orderProductsActions = orderProductsStore.actions;
+  const orderProductsGetters = orderProductsStore.getters;
 
   const peopleStore = useStore('people');
   const {currentCompany, defaultCompany} = peopleStore.getters;
@@ -83,8 +85,10 @@ export default function usePosOrderMaterialization({
       }
 
       try {
-        const refreshedOrderProducts = await orderProductsActions.getItems({
-          'order.id': Number(orderId),
+        const refreshedOrderProducts = await fetchCompleteOrderProductsFromStore({
+          actions: orderProductsActions,
+          getters: orderProductsGetters,
+          params: {'order.id': Number(orderId)},
         });
 
         if (typeof ordersActions.syncOrderProducts === 'function') {
@@ -101,7 +105,7 @@ export default function usePosOrderMaterialization({
         return fallbackOrder;
       }
     },
-    [orderProductsActions, ordersActions],
+    [orderProductsActions, orderProductsGetters, ordersActions],
   );
 
   const materializeOrderWithProducts = useCallback(

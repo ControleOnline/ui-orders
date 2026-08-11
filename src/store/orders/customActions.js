@@ -1,8 +1,8 @@
 import {api} from '@controleonline/ui-common/src/api';
 import * as types from '@controleonline/ui-default/src/store/default/mutation_types';
 import {
+  hydrateOrderWithOrderProducts,
   mergeOrderIntoList,
-  mergeOrderWithOrderProducts,
   normalizeEntityId,
 } from '@controleonline/ui-orders/src/utils/orderState';
 
@@ -234,14 +234,14 @@ export const syncOrderProducts = ({commit, getters}, {orderId, orderProducts = [
 
   let nextCurrentItem = getters.item;
   if (normalizeEntityId(getters.item) === targetOrderId) {
-    nextCurrentItem = mergeOrderWithOrderProducts(getters.item, orderProducts);
+    nextCurrentItem = hydrateOrderWithOrderProducts(getters.item, orderProducts);
     commit(types.SET_ITEM, nextCurrentItem);
   }
 
   if (Array.isArray(getters.items)) {
     const nextItems = getters.items.map(order =>
       normalizeEntityId(order) === targetOrderId
-        ? mergeOrderWithOrderProducts(order, orderProducts)
+        ? hydrateOrderWithOrderProducts(order, orderProducts)
         : order,
     );
     commit(types.SET_ITEMS, nextItems);

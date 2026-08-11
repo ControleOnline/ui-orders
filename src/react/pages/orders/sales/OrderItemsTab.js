@@ -11,10 +11,11 @@ import {useStore} from '@store'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
+import useCompleteOrderProductsFallback from '@controleonline/ui-orders/src/react/hooks/useCompleteOrderProductsFallback'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import {resolveProductCoverUrl} from '@controleonline/ui-products/src/react/domain/productMedia'
 import {
-  hasDetailedOrderProductMetadata,
+  hasCompleteEmbeddedOrderProductsTree,
   hasOrderProducts,
   needsDetailedOrderProductsFetch,
 } from '@controleonline/ui-orders/src/react/utils/orderProductsFetchPolicy'
@@ -85,48 +86,6 @@ const getOrderProductCollectionSignature = orderProducts =>
     )
     .join('|')
 
-const requestedFallbackOrderKeys = new Set()
-
-export const getOrderProductsFallbackFetchKey = routeOrderId =>
-  String(Number(routeOrderId || 0) || '')
-
-export const shouldRequestOrderProductsFallback = ({
-  routeOrderId,
-  skipFallbackReason,
-  lastRequestedRouteOrderId,
-  alreadyRequested = false,
-}) => {
-  if (skipFallbackReason || alreadyRequested) {
-    return false
-  }
-
-  const fallbackFetchOrderId = getOrderProductsFallbackFetchKey(routeOrderId)
-
-  return (
-    !!fallbackFetchOrderId &&
-    fallbackFetchOrderId !== String(lastRequestedRouteOrderId || '')
-  )
-}
-
-export const shouldRequestOrderDetails = ({
-  routeOrderId,
-  resolvedOrderId,
-  orderProducts,
-}) => {
-  if (!routeOrderId) {
-    return false
-  }
-
-  if (!resolvedOrderId) {
-    return true
-  }
-
-  return (
-    hasOrderProducts(orderProducts) &&
-    needsDetailedOrderProductsFetch(orderProducts)
-  )
-}
-
 export const getOrderSyncSignature = order => {
   const orderProducts = getEmbeddedOrderProducts(order)
 
@@ -165,23 +124,16 @@ const OrderItemsTab = ({
   const {styles: cssStyles} = css()
   const {ppcColors, styles: localStyles} = useOrderDetailsVisuals()
   const detailsVariant = variant === 'details'
-  const ordersStore = useStore('orders')
   const orderProductsStore = useStore('order_products')
-  const {actions: ordersActions} = ordersStore
   const {actions: orderProductsActions, getters: orderProductsGetters} =
     orderProductsStore
   const [resolvedOrder, setResolvedOrder] = useState(order)
-  const [isLoadingOrderDetails, setIsLoadingOrderDetails] = useState(false)
   const resolvedOrderSignatureRef = useRef(getOrderSyncSignature(order))
   const providedOrderProducts = useMemo(
     () => (Array.isArray(orderProducts) ? orderProducts : []),
     [orderProducts],
   )
-  const storeOrderProducts = Array.isArray(orderProductsGetters?.items)
-    ? orderProductsGetters.items
-    : []
   const normalizedRouteOrderId = Number(routeOrderId || 0)
-  const fallbackRequestKey = getOrderProductsFallbackFetchKey(normalizedRouteOrderId)
   const resolvedOrderProductsFromOrder = useMemo(
     () => resolveEmbeddedOrderProducts(resolvedOrder),
     [resolvedOrder],
@@ -200,92 +152,29 @@ const OrderItemsTab = ({
   )
   const primaryHasOwnOrderProducts =
     hasProvidedOrderProducts || resolvedOrderProductsFromOrder.hasOwnOrderProducts
-  const isFallbackFetchLoading = Boolean(orderProductsGetters?.isLoading)
-  const hasFallbackFetchError = !!orderProductsGetters?.error
-  const fallbackFetchOrderIdRef = useRef('')
-  const ordersActionsRef = useRef(ordersActions)
-  const orderProductsActionsRef = useRef(orderProductsActions)
-
-  const fallbackOrderProducts = useMemo(
-    () =>
-      storeOrderProducts.filter(orderProduct => {
-        const orderProductOrderId = getEntityId(orderProduct?.order)
-
-        if (!normalizedRouteOrderId || !orderProductOrderId) {
-          return true
-        }
-
-        return orderProductOrderId === normalizedRouteOrderId
-      }),
-    [normalizedRouteOrderId, storeOrderProducts],
+  const primaryTreeIsComplete = hasCompleteEmbeddedOrderProductsTree(
+    resolvedOrder || order,
   )
-
-  const requiresDetailedFallback = needsDetailedOrderProductsFetch(
-    primaryOrderProducts,
-  )
-  const fallbackHasDetailedPayload =
-    hasDetailedOrderProductMetadata(fallbackOrderProducts)
-  const fallbackAlreadyRequested =
-    !!fallbackRequestKey && requestedFallbackOrderKeys.has(fallbackRequestKey)
-  const shouldUseFallbackOrderProducts =
+  const requiresDetailedFallback =
+    !!normalizedRouteOrderId &&
+    !primaryTreeIsComplete &&
     (!primaryHasOwnOrderProducts || hasOrderProducts(primaryOrderProducts)) &&
-    requiresDetailedFallback &&
-    fallbackOrderProducts.length > 0 &&
-    fallbackHasDetailedPayload
-
-  const resolvedOrderProducts = useMemo(
-    () =>
-      shouldUseFallbackOrderProducts
-        ? fallbackOrderProducts
-        : hasOrderProducts(primaryOrderProducts)
-          ? primaryOrderProducts
-          : primaryHasOwnOrderProducts
-            ? []
-            : fallbackOrderProducts,
-    [
-      fallbackOrderProducts,
-      primaryHasOwnOrderProducts,
-      primaryOrderProducts,
-      shouldUseFallbackOrderProducts,
-    ],
-  )
+    needsDetailedOrderProductsFetch(primaryOrderProducts)
+  const completeFallback = useCompleteOrderProductsFallback({
+    actions: orderProductsActions,
+    enabled: requiresDetailedFallback,
+    getters: orderProductsGetters,
+    orderId: normalizedRouteOrderId,
+  })
+  const fallbackResolutionActive =
+    requiresDetailedFallback || completeFallback.status !== 'idle'
+  const resolvedOrderProducts =
+    completeFallback.status === 'ready'
+      ? completeFallback.items
+      : fallbackResolutionActive
+        ? []
+        : primaryOrderProducts
   const orderSyncSignature = useMemo(() => getOrderSyncSignature(order), [order])
-
-  let skipFallbackReason = ''
-
-  if (!routeOrderId) {
-    skipFallbackReason = 'missing-route-order-id'
-  } else if (primaryHasOwnOrderProducts && !hasOrderProducts(primaryOrderProducts)) {
-    skipFallbackReason = 'embedded-order-products-empty'
-  } else if (!requiresDetailedFallback) {
-    skipFallbackReason = 'embedded-order-products-sufficient'
-  } else if (isFallbackFetchLoading) {
-    skipFallbackReason = 'fallback-order-products-loading'
-  } else if (hasFallbackFetchError) {
-    skipFallbackReason = 'fallback-order-products-error'
-  } else if (fallbackAlreadyRequested) {
-    skipFallbackReason = 'fallback-order-products-already-requested'
-  } else if (fallbackOrderProducts.length > 0 && fallbackHasDetailedPayload) {
-    skipFallbackReason = 'fallback-order-products-already-loaded'
-  }
-
-  useEffect(() => {
-    ordersActionsRef.current = ordersActions
-  }, [ordersActions])
-
-  useEffect(() => {
-    orderProductsActionsRef.current = orderProductsActions
-  }, [orderProductsActions])
-
-  useEffect(() => {
-    if (!fallbackRequestKey) {
-      return;
-    }
-
-    if (!requiresDetailedFallback || fallbackHasDetailedPayload) {
-      requestedFallbackOrderKeys.delete(fallbackRequestKey);
-    }
-  }, [fallbackHasDetailedPayload, fallbackRequestKey, requiresDetailedFallback]);
 
   useEffect(() => {
     if (!orderSyncSignature) {
@@ -299,63 +188,6 @@ const OrderItemsTab = ({
     resolvedOrderSignatureRef.current = orderSyncSignature
     setResolvedOrder(order)
   }, [order, orderSyncSignature])
-
-  useEffect(() => {
-    // The order-details screen already hydrates the parent order once.
-    // Keep this tab read-only there so it does not re-fetch the same order.
-    setIsLoadingOrderDetails(false)
-  }, [normalizedRouteOrderId])
-
-  useEffect(() => {
-    if (requiresDetailedFallback) {
-      return
-    }
-
-    fallbackFetchOrderIdRef.current = ''
-  }, [normalizedRouteOrderId, requiresDetailedFallback])
-
-  useEffect(() => {
-    // Use /order_products only when the embedded order payload is missing or
-    // lacks the grouping metadata required to rebuild customization hierarchy.
-    if (
-      !shouldRequestOrderProductsFallback({
-        routeOrderId: normalizedRouteOrderId,
-        skipFallbackReason,
-        lastRequestedRouteOrderId: fallbackFetchOrderIdRef.current,
-        alreadyRequested: fallbackAlreadyRequested,
-      })
-    ) {
-      return
-    }
-
-    const fallbackFetchOrderId = fallbackRequestKey
-
-    // Some backends can keep returning the same incomplete payload on rerender;
-    // remember the first attempt so the screen does not keep re-fetching.
-    fallbackFetchOrderIdRef.current = fallbackFetchOrderId
-    if (fallbackFetchOrderId) {
-      requestedFallbackOrderKeys.add(fallbackFetchOrderId);
-    }
-
-    orderProductsActionsRef.current
-      .getItems({
-        'order.id': normalizedRouteOrderId,
-      })
-      .then(response => {
-        if (fallbackFetchOrderId && hasDetailedOrderProductMetadata(response)) {
-          requestedFallbackOrderKeys.delete(fallbackFetchOrderId);
-        }
-
-        return response;
-      })
-      .catch(() => null)
-  }, [
-    normalizedRouteOrderId,
-    fallbackAlreadyRequested,
-    fallbackRequestKey,
-    primaryHasOwnOrderProducts,
-    skipFallbackReason,
-  ])
 
   const productStyles = useMemo(
     () =>
@@ -425,11 +257,11 @@ const OrderItemsTab = ({
     [detailsVariant, localStyles],
   )
 
-  const isLoadingFallback =
-    !hasOrderProducts(primaryOrderProducts) &&
-    !fallbackOrderProducts.length &&
-    orderProductsGetters?.isLoading
-  const showLoadingState = isLoadingOrderDetails || isLoadingFallback
+  const showLoadingState =
+    fallbackResolutionActive &&
+    (completeFallback.status === 'idle' || completeFallback.status === 'loading')
+  const showFallbackError =
+    fallbackResolutionActive && completeFallback.status === 'error'
   const currentOrder = resolvedOrder || order
 
   return (
@@ -563,7 +395,24 @@ const OrderItemsTab = ({
           detailsVariant && localStyles.detailsItemsSection,
         ]}
       >
-        {showLoadingState ? (
+        {showFallbackError ? (
+          <View style={localStyles.detailsLoadingState}>
+            <Text style={localStyles.detailsLoadingText}>
+              Não foi possível carregar todos os itens do pedido.
+            </Text>
+            <TouchableOpacity
+              onPress={() => void completeFallback.retry().catch(() => null)}
+              style={[
+                localStyles.inlineActionButton,
+                localStyles.inlineActionButtonPrimary,
+              ]}
+            >
+              <Text style={localStyles.inlineActionButtonText}>
+                Tentar novamente
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : showLoadingState ? (
           <View style={localStyles.detailsLoadingState}>
             <Text style={localStyles.detailsLoadingText}>
               {global.t?.t('orders', 'label', 'loading') || 'Carregando itens...'}

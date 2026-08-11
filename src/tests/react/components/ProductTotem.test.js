@@ -127,7 +127,11 @@ describe('ProductTotem', () => {
       {product: '102', quantity: 1},
     ])
     expect(mockSyncOrder).toHaveBeenCalledWith({id: 123})
-    expect(mockGetOrderProducts).toHaveBeenCalledWith({'order.id': 123})
+    expect(mockGetOrderProducts).toHaveBeenCalledWith({
+      'order.id': 123,
+      itemsPerPage: 50,
+      page: 1,
+    })
     expect(mockSyncOrderProducts).toHaveBeenCalledWith({
       orderId: 123,
       orderProducts: mockMaterializedOrder.orderProducts,
