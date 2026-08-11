@@ -94,6 +94,7 @@ const createProps = () => ({
 })
 
 describe('OrderItemsTab detailed tree hydration', () => {
+  let ordersActions
   let orderProductsActions
   let orderProductsGetters
 
@@ -106,12 +107,24 @@ describe('OrderItemsTab detailed tree hydration', () => {
     orderProductsActions = {
       getItems: jest.fn(),
     }
+    ordersActions = {
+      syncOrderProducts: jest.fn(({orderId, orderProducts}) => ({
+        ...createProps().order,
+        id: orderId,
+        orderProducts,
+        orderProductsTreeComplete: true,
+      })),
+    }
     mockUseStore.mockImplementation(resource => {
       if (resource === 'order_products') {
         return {
           actions: orderProductsActions,
           getters: orderProductsGetters,
         }
+      }
+
+      if (resource === 'orders') {
+        return {actions: ordersActions, getters: {}}
       }
 
       return {actions: {}, getters: {}}
@@ -150,6 +163,10 @@ describe('OrderItemsTab detailed tree hydration', () => {
     expect(mockOrderProductsRender).toHaveBeenCalledWith(
       expect.objectContaining({orderProducts: detailedOrderProducts}),
     )
+    expect(ordersActions.syncOrderProducts).toHaveBeenCalledWith({
+      orderId: 72883,
+      orderProducts: detailedOrderProducts,
+    })
   })
 
   it('trusts an explicitly complete embedded tree without a redundant request', async () => {
@@ -183,6 +200,48 @@ describe('OrderItemsTab detailed tree hydration', () => {
     expect(orderProductsActions.getItems).not.toHaveBeenCalled()
     expect(mockOrderProductsRender).toHaveBeenCalledWith(
       expect.objectContaining({orderProducts: simpleOrderProducts}),
+    )
+  })
+
+  it('replaces a ready fallback with a newer complete tree for the same order', async () => {
+    orderProductsActions.getItems.mockResolvedValue(detailedOrderProducts)
+    let tree
+
+    await act(async () => {
+      tree = renderer.create(React.createElement(OrderItemsTab, createProps()))
+      await Promise.resolve()
+    })
+
+    expect(mockOrderProductsRender).toHaveBeenLastCalledWith(
+      expect.objectContaining({orderProducts: detailedOrderProducts}),
+    )
+
+    const updatedOrderProducts = detailedOrderProducts.map(orderProduct => ({
+      ...orderProduct,
+      quantity: 3,
+      total: Number(orderProduct.total || 0) * 1.5,
+    }))
+
+    mockOrderProductsRender.mockClear()
+    await act(async () => {
+      tree.update(
+        React.createElement(OrderItemsTab, {
+          ...createProps(),
+          order: {
+            id: 72883,
+            orderProducts: updatedOrderProducts,
+            orderProductsTreeComplete: true,
+            price: 350.58,
+          },
+          orderProducts: updatedOrderProducts,
+        }),
+      )
+      await Promise.resolve()
+    })
+
+    expect(orderProductsActions.getItems).toHaveBeenCalledTimes(1)
+    expect(mockOrderProductsRender).toHaveBeenLastCalledWith(
+      expect.objectContaining({orderProducts: updatedOrderProducts}),
     )
   })
 
@@ -245,5 +304,31 @@ describe('OrderItemsTab detailed tree hydration', () => {
 
     expect(getOrderSyncSignature(baseOrder)).toBe(getOrderSyncSignature(equivalentOrder))
     expect(getOrderSyncSignature(baseOrder)).not.toBe(getOrderSyncSignature(changedOrder))
+  })
+
+  it('changes the sync signature when tree authority or persisted totals change', () => {
+    const partialOrder = {
+      id: 72883,
+      orderProducts: shallowOrderProducts,
+      price: 233.72,
+    }
+
+    expect(getOrderSyncSignature(partialOrder)).not.toBe(
+      getOrderSyncSignature({
+        ...partialOrder,
+        orderProductsTreeComplete: true,
+      }),
+    )
+    expect(getOrderSyncSignature(partialOrder)).not.toBe(
+      getOrderSyncSignature({...partialOrder, price: 350.58}),
+    )
+    expect(getOrderSyncSignature(partialOrder)).not.toBe(
+      getOrderSyncSignature({
+        ...partialOrder,
+        orderProducts: shallowOrderProducts.map((item, index) =>
+          index === 0 ? {...item, total: 350.58} : item,
+        ),
+      }),
+    )
   })
 })

@@ -15,12 +15,10 @@ const createIdleState = orderId => ({
 const useCompleteOrderProductsFallback = ({
   actions,
   enabled,
-  getters,
   orderId,
 }) => {
   const normalizedOrderId = normalizeOrderId(orderId)
   const actionsRef = useRef(actions)
-  const gettersRef = useRef(getters)
   const activeRequestRef = useRef(0)
   const attemptedOrderIdRef = useRef('')
   const [state, setState] = useState(() => createIdleState(normalizedOrderId))
@@ -28,10 +26,6 @@ const useCompleteOrderProductsFallback = ({
   useEffect(() => {
     actionsRef.current = actions
   }, [actions])
-
-  useEffect(() => {
-    gettersRef.current = getters
-  }, [getters])
 
   const load = useCallback(async () => {
     if (!normalizedOrderId) {
@@ -51,7 +45,6 @@ const useCompleteOrderProductsFallback = ({
     try {
       const items = await fetchCompleteOrderProductsFromStore({
         actions: actionsRef.current,
-        getters: gettersRef.current,
         params: {'order.id': Number(normalizedOrderId)},
       })
 
@@ -78,6 +71,21 @@ const useCompleteOrderProductsFallback = ({
       throw error
     }
   }, [normalizedOrderId])
+
+  useEffect(() => {
+    if (enabled) {
+      return
+    }
+
+    activeRequestRef.current += 1
+    attemptedOrderIdRef.current = ''
+    setState(previousState =>
+      previousState.status === 'idle' &&
+      previousState.orderId === normalizedOrderId
+        ? previousState
+        : createIdleState(normalizedOrderId),
+    )
+  }, [enabled, normalizedOrderId])
 
   useEffect(() => {
     activeRequestRef.current += 1
@@ -113,4 +121,3 @@ const useCompleteOrderProductsFallback = ({
 }
 
 export default useCompleteOrderProductsFallback
-

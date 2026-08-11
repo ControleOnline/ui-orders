@@ -122,6 +122,7 @@ export const mergeOrderWithOrderProducts = (order, orderProducts) => ({
 export const hydrateOrderWithOrderProducts = (order, orderProducts) => ({
   ...(order || {}),
   orderProducts: Array.isArray(orderProducts) ? orderProducts : [],
+  orderProductsTreeComplete: true,
 })
 
 const hasLinkedParentOrderProduct = orderProduct =>

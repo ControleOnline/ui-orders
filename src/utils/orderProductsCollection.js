@@ -42,7 +42,6 @@ const mergeCollectionPage = (currentItems, pageItems) => {
 
 export const fetchCompleteOrderProducts = async ({
   fetchPage,
-  getTotalItems = null,
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
 } = {}) => {
   if (typeof fetchPage !== 'function') {
@@ -62,15 +61,7 @@ export const fetchCompleteOrderProducts = async ({
     collectedItems = mergeCollectionPage(collectedItems, pageItems)
 
     const responseTotalItems = resolveResponseTotalItems(response)
-    const storeTotalItems = Number(
-      typeof getTotalItems === 'function' ? getTotalItems() : NaN,
-    )
-    const expectedTotalItems =
-      responseTotalItems !== null
-        ? responseTotalItems
-        : Number.isFinite(storeTotalItems) && storeTotalItems >= 0
-          ? storeTotalItems
-          : null
+    const expectedTotalItems = responseTotalItems
 
     if (
       expectedTotalItems !== null &&
@@ -96,13 +87,11 @@ export const fetchCompleteOrderProducts = async ({
 
 export const fetchCompleteOrderProductsFromStore = ({
   actions,
-  getters,
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
   params = {},
 } = {}) =>
   fetchCompleteOrderProducts({
     itemsPerPage,
-    getTotalItems: () => getters?.totalItems,
     fetchPage: ({page, itemsPerPage: pageSize}) =>
       actions.getItems({
         ...params,
@@ -111,4 +100,3 @@ export const fetchCompleteOrderProductsFromStore = ({
         ...(page > 1 ? {append: true} : {}),
       }),
   })
-

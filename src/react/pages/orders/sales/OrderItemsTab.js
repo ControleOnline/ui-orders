@@ -81,6 +81,8 @@ const getOrderProductCollectionSignature = orderProducts =>
         getEntityId(orderProduct?.productGroup),
         Number(orderProduct?.quantity || 0),
         Number(orderProduct?.rootQuantity || orderProduct?.root_quantity || 0),
+        String(orderProduct?.price ?? ''),
+        String(orderProduct?.total ?? ''),
         String(orderProduct?.status?.status || orderProduct?.status || ''),
       ].join(':'),
     )
@@ -97,6 +99,9 @@ export const getOrderSyncSignature = order => {
     String(getEntityId(order?.client) || ''),
     String(getEntityId(order?.addressDestination) || ''),
     String(order?.comments || order?.remark || order?.description || ''),
+    String(order?.price ?? ''),
+    String(order?.total ?? ''),
+    order?.orderProductsTreeComplete === true ? 'tree-complete' : 'tree-partial',
     getOrderProductCollectionSignature(orderProducts),
   ].join('||')
 }
@@ -125,8 +130,9 @@ const OrderItemsTab = ({
   const {ppcColors, styles: localStyles} = useOrderDetailsVisuals()
   const detailsVariant = variant === 'details'
   const orderProductsStore = useStore('order_products')
-  const {actions: orderProductsActions, getters: orderProductsGetters} =
-    orderProductsStore
+  const ordersStore = useStore('orders')
+  const {actions: orderProductsActions} = orderProductsStore
+  const {actions: ordersActions} = ordersStore
   const [resolvedOrder, setResolvedOrder] = useState(order)
   const resolvedOrderSignatureRef = useRef(getOrderSyncSignature(order))
   const providedOrderProducts = useMemo(
@@ -134,9 +140,10 @@ const OrderItemsTab = ({
     [orderProducts],
   )
   const normalizedRouteOrderId = Number(routeOrderId || 0)
+  const authoritativeOrder = order || resolvedOrder
   const resolvedOrderProductsFromOrder = useMemo(
-    () => resolveEmbeddedOrderProducts(resolvedOrder),
-    [resolvedOrder],
+    () => resolveEmbeddedOrderProducts(authoritativeOrder),
+    [authoritativeOrder],
   )
   const hasProvidedOrderProducts = Array.isArray(orderProducts)
   const primaryOrderProducts = useMemo(
@@ -152,9 +159,8 @@ const OrderItemsTab = ({
   )
   const primaryHasOwnOrderProducts =
     hasProvidedOrderProducts || resolvedOrderProductsFromOrder.hasOwnOrderProducts
-  const primaryTreeIsComplete = hasCompleteEmbeddedOrderProductsTree(
-    resolvedOrder || order,
-  )
+  const primaryTreeIsComplete =
+    hasCompleteEmbeddedOrderProductsTree(authoritativeOrder)
   const requiresDetailedFallback =
     !!normalizedRouteOrderId &&
     !primaryTreeIsComplete &&
@@ -163,18 +169,40 @@ const OrderItemsTab = ({
   const completeFallback = useCompleteOrderProductsFallback({
     actions: orderProductsActions,
     enabled: requiresDetailedFallback,
-    getters: orderProductsGetters,
     orderId: normalizedRouteOrderId,
   })
-  const fallbackResolutionActive =
-    requiresDetailedFallback || completeFallback.status !== 'idle'
   const resolvedOrderProducts =
-    completeFallback.status === 'ready'
+    requiresDetailedFallback && completeFallback.status === 'ready'
       ? completeFallback.items
-      : fallbackResolutionActive
+      : requiresDetailedFallback
         ? []
         : primaryOrderProducts
   const orderSyncSignature = useMemo(() => getOrderSyncSignature(order), [order])
+
+  useEffect(() => {
+    if (
+      !requiresDetailedFallback ||
+      completeFallback.status !== 'ready' ||
+      typeof ordersActions?.syncOrderProducts !== 'function'
+    ) {
+      return
+    }
+
+    const hydratedOrder = ordersActions.syncOrderProducts({
+      orderId: normalizedRouteOrderId,
+      orderProducts: completeFallback.items,
+    })
+
+    if (Number(getEntityId(hydratedOrder) || 0) === normalizedRouteOrderId) {
+      setResolvedOrder(hydratedOrder)
+    }
+  }, [
+    completeFallback.items,
+    completeFallback.status,
+    normalizedRouteOrderId,
+    ordersActions,
+    requiresDetailedFallback,
+  ])
 
   useEffect(() => {
     if (!orderSyncSignature) {
@@ -258,11 +286,11 @@ const OrderItemsTab = ({
   )
 
   const showLoadingState =
-    fallbackResolutionActive &&
+    requiresDetailedFallback &&
     (completeFallback.status === 'idle' || completeFallback.status === 'loading')
   const showFallbackError =
-    fallbackResolutionActive && completeFallback.status === 'error'
-  const currentOrder = resolvedOrder || order
+    requiresDetailedFallback && completeFallback.status === 'error'
+  const currentOrder = authoritativeOrder
 
   return (
     <View style={localStyles.detailsTabStack}>

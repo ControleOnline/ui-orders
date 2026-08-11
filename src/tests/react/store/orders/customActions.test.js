@@ -208,9 +208,13 @@ describe('orders customActions', () => {
 
     expect(result.price).toBe(233.72);
     expect(result.orderProducts).toEqual(detailedOrderProducts);
+    expect(result.orderProductsTreeComplete).toBe(true);
     expect(commit).toHaveBeenCalledWith(
       'SET_ITEM',
-      expect.objectContaining({price: 233.72}),
+      expect.objectContaining({
+        orderProductsTreeComplete: true,
+        price: 233.72,
+      }),
     );
   });
 });

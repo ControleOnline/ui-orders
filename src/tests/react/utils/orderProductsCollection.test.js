@@ -66,8 +66,8 @@ describe('orderProductsCollection', () => {
     ).resolves.toEqual([{id: 107229, order: {id: 72883}}])
   })
 
-  it('appends store pages until the loaded count reaches totalItems', async () => {
-    const getters = {totalItems: 3}
+  it('appends store pages using request-scoped page results', async () => {
+    const getters = {totalItems: 0}
     const actions = {
       getItems: jest
         .fn()
@@ -95,5 +95,71 @@ describe('orderProductsCollection', () => {
       itemsPerPage: 2,
       page: 2,
     })
+  })
+
+  it('loads an extra empty page when a collection exactly fills a page', async () => {
+    const actions = {
+      getItems: jest
+        .fn()
+        .mockResolvedValueOnce([{id: 107229}, {id: 107230}])
+        .mockResolvedValueOnce([]),
+    }
+
+    await expect(
+      fetchCompleteOrderProductsFromStore({
+        actions,
+        getters: {totalItems: 1},
+        itemsPerPage: 2,
+        params: {'order.id': 72883},
+      }),
+    ).resolves.toEqual([{id: 107229}, {id: 107230}])
+
+    expect(actions.getItems).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps concurrent order collections isolated from shared totalItems', async () => {
+    const pagesByOrder = {
+      72883: {
+        1: [{id: 107229}, {id: 107230}],
+        2: [{id: 107231}],
+      },
+      72884: {
+        1: [{id: 107240}, {id: 107241}],
+        2: [{id: 107242}, {id: 107243}],
+        3: [{id: 107244}],
+      },
+    }
+    const getters = {totalItems: 0}
+    const actions = {
+      getItems: jest.fn(async params => {
+        getters.totalItems = params['order.id'] === 72883 ? 1 : 999
+        await Promise.resolve()
+        return pagesByOrder[params['order.id']][params.page] || []
+      }),
+    }
+
+    const [firstOrder, secondOrder] = await Promise.all([
+      fetchCompleteOrderProductsFromStore({
+        actions,
+        getters,
+        itemsPerPage: 2,
+        params: {'order.id': 72883},
+      }),
+      fetchCompleteOrderProductsFromStore({
+        actions,
+        getters,
+        itemsPerPage: 2,
+        params: {'order.id': 72884},
+      }),
+    ])
+
+    expect(firstOrder.map(item => item.id)).toEqual([107229, 107230, 107231])
+    expect(secondOrder.map(item => item.id)).toEqual([
+      107240,
+      107241,
+      107242,
+      107243,
+      107244,
+    ])
   })
 })

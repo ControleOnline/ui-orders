@@ -459,6 +459,7 @@ const createPosApiMock = async (page, initialState = {}) => {
       initialState.orderItemIncludesProducts !== false,
     orderProductRequests: [],
     orderProductItemRequests: [],
+    orderItemRequests: [],
     orderProductItemStatus: Number(initialState.orderProductItemStatus || 200),
     orderProductsDelayMs: Number(initialState.orderProductsDelayMs || 0),
     orderStatusDelayMs: Number(initialState.orderStatusDelayMs || 0),
@@ -703,6 +704,10 @@ const createPosApiMock = async (page, initialState = {}) => {
 
     const orderItemMatch = pathname.match(/^orders\/(\d+)$/);
     if (orderItemMatch && method === 'GET') {
+      state.orderItemRequests.push({
+        id: Number(orderItemMatch[1]),
+        pageUrl: page.url(),
+      });
       if (state.orderItemIncludesProducts) {
         return fulfillJson(route, state.order);
       }
@@ -1507,7 +1512,7 @@ test.describe('single-item browser smoke', () => {
     await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
   });
 
-  test('hydrates order products when the checkout back action resumes the draft', async ({
+  test('reuses the tree hydrated during the mutation when checkout resumes the draft', async ({
     page,
   }) => {
     bindBrowserDiagnostics(page);
@@ -1535,6 +1540,8 @@ test.describe('single-item browser smoke', () => {
     await page.getByRole('radio', {name: 'Coxinha'}).click();
     await expect(page).toHaveURL(/checkout/);
     state.orderItemIncludesProducts = false;
+    state.orderItemRequests.length = 0;
+    state.orderProductRequests.length = 0;
 
     const checkoutBack = page.getByLabel('Voltar ao catalogo');
     await expect(checkoutBack).toHaveCount(1);
@@ -1542,7 +1549,7 @@ test.describe('single-item browser smoke', () => {
 
     await expect(page).toHaveURL(/pdv-page/);
     await expect(page).toHaveURL(/resumeExistingOrder=true/);
-    await expect(page.getByText('Carregando pedido...', {exact: true})).toBeVisible();
+    await expect(page.getByText('Carregando pedido...', {exact: true})).toHaveCount(0);
     const visibleZeroTotals = await page.getByText(/R\$\s*0,00/).evaluateAll(nodes =>
       nodes.filter(node => {
         const style = window.getComputedStyle(node);
@@ -1557,11 +1564,8 @@ test.describe('single-item browser smoke', () => {
     await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeChecked();
     await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
     await expect(page.getByText('Conferir pedido', {exact: true}).last()).toBeVisible();
-    expect(state.orderProductRequests).toContainEqual({
-      'order.id': '123',
-      itemsPerPage: '50',
-      page: '1',
-    });
+    expect(state.orderItemRequests).toHaveLength(0);
+    expect(state.orderProductRequests).toHaveLength(0);
     expect(state.orderCreatePayloads).toHaveLength(0);
   });
 
@@ -1598,11 +1602,13 @@ test.describe('single-item browser smoke', () => {
     await page.waitForTimeout(100);
 
     state.orderProductRequests.length = 0;
+    state.orderItemRequests.length = 0;
     state.orderProductsDelayMs = 300000;
     await page.getByLabel('Voltar ao catalogo').click();
 
     await expect(page).toHaveURL(/pdv-page/);
     await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeChecked();
+    expect(state.orderItemRequests).toHaveLength(0);
     expect(state.orderProductRequests).toHaveLength(0);
     expect(state.order).toMatchObject({
       id: 123,

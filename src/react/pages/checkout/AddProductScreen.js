@@ -18,6 +18,31 @@ import usePosCartSession, {
   isLinkedOrderCodeRequiredError,
   isPosOrderCreationCancelledError,
 } from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
+import {hasCompleteEmbeddedOrderProductsTree} from '@controleonline/ui-orders/src/react/utils/orderProductsFetchPolicy';
+
+const normalizeOrderId = value =>
+  String(value?.id || value?.['@id'] || value || '').replace(/\D+/g, '');
+
+const hasEmbeddedOrderProductsCollection = order =>
+  Array.isArray(order?.orderProducts) ||
+  Array.isArray(order?.orderProducts?.member) ||
+  Array.isArray(order?.orderProducts?.['hydra:member']);
+
+export const canReuseCompleteResumeOrder = (order, requestedOrderId) => {
+  const normalizedRequestedOrderId = normalizeOrderId(requestedOrderId);
+  const rawPrice = order?.price;
+
+  return (
+    !!normalizedRequestedOrderId &&
+    normalizeOrderId(order) === normalizedRequestedOrderId &&
+    rawPrice !== null &&
+    rawPrice !== undefined &&
+    String(rawPrice).trim() !== '' &&
+    Number.isFinite(Number(rawPrice)) &&
+    hasEmbeddedOrderProductsCollection(order) &&
+    hasCompleteEmbeddedOrderProductsTree(order)
+  );
+};
 
 const CheckoutContent = ({navigation, route: routeProp}) => {
   const currentRoute = useRoute();
@@ -28,6 +53,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const deviceStore = useStore('device');
   const deviceConfigStore = useStore('device_config');
   const ordersActions = ordersStore.actions;
+  const storedOrder = ordersStore.getters.item;
   const peopleGetters = peopleStore.getters;
   const {currentCompany, defaultCompany} = peopleGetters;
   const deviceGetters = deviceStore.getters;
@@ -84,6 +110,14 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   });
   const activeOrderId = activeOrder?.id || activeOrder?.['@id'] || null;
   const resumeOrderId = String(route?.params?.id || '').replace(/\D+/g, '');
+  const reusableResumeOrder = useMemo(
+    () =>
+      route?.params?.resumeExistingOrder === true &&
+      canReuseCompleteResumeOrder(storedOrder, resumeOrderId)
+        ? storedOrder
+        : null,
+    [resumeOrderId, route?.params?.resumeExistingOrder, storedOrder],
+  );
   const resolveLinkedOrderEntry = useCallback(result => {
     const resolve = linkedOrderEntryResolverRef.current;
     linkedOrderEntryResolverRef.current = null;
@@ -203,6 +237,13 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
         return undefined;
       }
 
+      if (reusableResumeOrder) {
+        hasPreparedCurrentFocusRef.current = true;
+        activeOrderIdRef.current = resumeOrderId;
+        setIsPreparingOrder(false);
+        return undefined;
+      }
+
       isLoadingStoredOrderRef.current = true;
       hasPreparedCurrentFocusRef.current = true;
       const controller =
@@ -302,6 +343,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       navigation,
       ordersActions,
       refreshActiveOrder,
+      reusableResumeOrder,
       resumeOrderId,
       route?.params?.resumeExistingOrder,
       route?.params?.startNewOrder,
