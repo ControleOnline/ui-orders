@@ -40,8 +40,12 @@ import {
 } from '@controleonline/ui-orders/src/react/pages/checkout/CheckoutPaymentOptions';
 import {
   appendSyntheticOrderInvoice,
+  filterOrderProductsForOrder,
+  normalizeCheckoutEntityId,
+  resolveCheckoutRemainingAmount,
   resolveNextOperationalPayable,
 } from '@controleonline/ui-orders/src/react/utils/checkoutInvoices';
+import {fetchAllHydraCollectionPages} from '@controleonline/ui-orders/src/react/utils/orderProductsHydration';
 import {
   buildLoyaltyCpfSearchParams,
   buildLoyaltyCpfSearchResults,
@@ -239,6 +243,7 @@ const Checkout = () => {
 
   const orderProductsStore = useStore('order_products');
   const orderProductsGetters = orderProductsStore.getters;
+  const orderProductsActions = orderProductsStore.actions;
 
   const configsStore = useStore('configs');
   const configsGetters = configsStore.getters;
@@ -310,6 +315,16 @@ const Checkout = () => {
   const [loadingLoyaltySnapshot, setLoadingLoyaltySnapshot] = useState(false);
   const [loyaltySnapshotError, setLoyaltySnapshotError] = useState('');
   const [rewardableLoyaltyCard, setRewardableLoyaltyCard] = useState(null);
+  const [checkoutOrderProductsState, setCheckoutOrderProductsState] = useState({
+    complete: true,
+    error: '',
+    isLoading: false,
+    items: [],
+    orderId: '',
+    totalItems: 0,
+  });
+  const [checkoutOrderProductsReloadKey, setCheckoutOrderProductsReloadKey] =
+    useState(0);
 
   const effectiveCompanyConfigs = useMemo(
     () =>
@@ -379,7 +394,12 @@ const Checkout = () => {
       defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
       companyConfigs: currentCompany?.configs,
     });
+  const activeOrderId = normalizeCheckoutEntityId(order);
   const checkoutOrderId = routeOrderId || getOrderRouteId(order);
+  const normalizedCheckoutOrderId = normalizeCheckoutEntityId(checkoutOrderId);
+  const isCheckoutOrderCurrent =
+    !normalizedCheckoutOrderId ||
+    (!!activeOrderId && activeOrderId === normalizedCheckoutOrderId);
   const returnToSingleItemCatalog = useCallback(() => {
     if (!checkoutOrderId) {
       navigation.goBack?.();
@@ -459,70 +479,78 @@ const Checkout = () => {
     [remotePaymentDevices, selectedRemoteDeviceId],
   );
 
+  const checkoutOrderProducts = useMemo(() => {
+    if (
+      checkoutOrderProductsState.orderId === normalizedCheckoutOrderId &&
+      checkoutOrderProductsState.complete
+    ) {
+      return checkoutOrderProductsState.items;
+    }
+
+    return filterOrderProductsForOrder(orderProducts, normalizedCheckoutOrderId);
+  }, [
+    checkoutOrderProductsState.complete,
+    checkoutOrderProductsState.items,
+    checkoutOrderProductsState.orderId,
+    normalizedCheckoutOrderId,
+    orderProducts,
+  ]);
+  const checkoutOrderProductsComplete =
+    !normalizedCheckoutOrderId ||
+    (checkoutOrderProductsState.orderId === normalizedCheckoutOrderId &&
+      checkoutOrderProductsState.complete);
+
   const canRenderCheckout =
+    isCheckoutOrderCurrent &&
     !orderIsloading &&
     !orderIsSaving &&
     !invoiceIsloading &&
     !orderProductsIsloading &&
+    !checkoutOrderProductsState.isLoading &&
     !invoiceIsSaving &&
     !orderProductsIsSaving;
 
-  const remainingAmount = useMemo(() => {
-    const payableValue = Math.abs(Number(payable || 0));
-    if (payableValue > 0) {
-      return payableValue;
-    }
-
-    return Number(order?.price || 0);
-  }, [order?.price, payable]);
+  const remainingAmount = useMemo(
+    () =>
+      resolveCheckoutRemainingAmount({
+        order,
+        orderProducts: checkoutOrderProducts,
+        orderProductsComplete: checkoutOrderProductsComplete,
+        payable,
+        routeOrderId: normalizedCheckoutOrderId,
+      }),
+    [
+      checkoutOrderProducts,
+      checkoutOrderProductsComplete,
+      normalizedCheckoutOrderId,
+      order,
+      payable,
+    ],
+  );
   const resolveOrderRemainingAmount = useCallback(
     currentOrder => {
-      const currentPayable = Math.abs(Number(currentOrder?.payable || 0));
+      const currentOrderId = normalizeCheckoutEntityId(currentOrder);
+      const currentOrderProducts = Array.isArray(currentOrder?.orderProducts)
+        ? currentOrder.orderProducts
+        : checkoutOrderProducts;
+      const resolvedAmount = resolveCheckoutRemainingAmount({
+        order: currentOrder || order,
+        orderProducts: currentOrderProducts,
+        orderProductsComplete: checkoutOrderProductsComplete,
+        payable,
+        routeOrderId: currentOrderId || normalizedCheckoutOrderId,
+      });
 
-      if (currentPayable > 0) {
-        return currentPayable;
-      }
-
-      const currentPrice = Number(currentOrder?.price || 0);
-
-      if (currentPrice > 0) {
-        return currentPrice;
-      }
-
-      const currentOrderProductsTotal = (
-        Array.isArray(currentOrder?.orderProducts) ? currentOrder.orderProducts : []
-      ).reduce(
-        (sum, item) =>
-          sum +
-          Number(
-            item?.total ??
-              Number(item?.price || 0) * Number(item?.quantity || 0),
-          ),
-        0,
-      );
-
-      if (currentOrderProductsTotal > 0) {
-        return currentOrderProductsTotal;
-      }
-
-      const orderProductsTotal = (Array.isArray(orderProducts) ? orderProducts : [])
-        .reduce(
-          (sum, item) =>
-            sum +
-            Number(
-              item?.total ??
-                Number(item?.price || 0) * Number(item?.quantity || 0),
-            ),
-          0,
-        );
-
-      if (orderProductsTotal > 0) {
-        return orderProductsTotal;
-      }
-
-      return remainingAmount;
+      return resolvedAmount > 0 ? resolvedAmount : remainingAmount;
     },
-    [orderProducts, remainingAmount],
+    [
+      checkoutOrderProducts,
+      checkoutOrderProductsComplete,
+      normalizedCheckoutOrderId,
+      order,
+      payable,
+      remainingAmount,
+    ],
   );
   const checkoutPaymentOrder = materializedCheckoutOrder || order;
   const effectiveRemainingAmount = useMemo(
@@ -642,6 +670,84 @@ const Checkout = () => {
 
     navigation.setParams({showBottomToolBar: false});
   }, [navigation, route.params?.showBottomToolBar]);
+
+  useEffect(() => {
+    if (!normalizedCheckoutOrderId) {
+      setCheckoutOrderProductsState({
+        complete: true,
+        error: '',
+        isLoading: false,
+        items: [],
+        orderId: '',
+        totalItems: 0,
+      });
+      return undefined;
+    }
+
+    let isActive = true;
+    setCheckoutOrderProductsState({
+      complete: false,
+      error: '',
+      isLoading: true,
+      items: [],
+      orderId: normalizedCheckoutOrderId,
+      totalItems: 0,
+    });
+
+    fetchAllHydraCollectionPages(page =>
+      api.fetch('order_products', {
+        params: {
+          'order.id': Number(normalizedCheckoutOrderId),
+          itemsPerPage: 50,
+          page,
+        },
+      }),
+    )
+      .then(result => {
+        if (!isActive) {
+          return;
+        }
+
+        orderProductsActions.setItems?.(result.items);
+        ordersActions.syncOrderProducts?.({
+          orderId: Number(normalizedCheckoutOrderId),
+          orderProducts: result.items,
+        });
+        setCheckoutOrderProductsState({
+          complete: result.complete,
+          error: '',
+          isLoading: false,
+          items: result.items,
+          orderId: normalizedCheckoutOrderId,
+          totalItems: result.totalItems,
+        });
+      })
+      .catch(error => {
+        if (!isActive) {
+          return;
+        }
+
+        setCheckoutOrderProductsState({
+          complete: false,
+          error:
+            error?.message ||
+            'Nao foi possivel carregar os produtos deste pedido.',
+          isLoading: false,
+          items: [],
+          orderId: normalizedCheckoutOrderId,
+          totalItems: 0,
+        });
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    checkoutOrderProductsReloadKey,
+    normalizedCheckoutOrderId,
+    orderProductsActions,
+    ordersActions,
+  ]);
 
   const loyaltyRewardBasePayment = useMemo(() => {
     const options = [...localPaymentOptions, ...remotePaymentOptions];
@@ -1150,8 +1256,20 @@ const Checkout = () => {
         return;
       }
 
+      setMaterializedCheckoutOrder(null);
+      setCheckoutOrderProductsReloadKey(current => current + 1);
+      ordersActions.setPayable(0);
+      orderInvoicesActions.setItems([]);
+      orderProductsActions.setItems?.([]);
       ordersActions.get(routeOrderId);
-    }, [invoiceActions, order?.id, ordersActions, routeOrderId]),
+    }, [
+      invoiceActions,
+      order?.id,
+      orderInvoicesActions,
+      orderProductsActions,
+      ordersActions,
+      routeOrderId,
+    ]),
   );
 
   useEffect(() => {
@@ -1591,7 +1709,7 @@ const Checkout = () => {
           gateway: localGateway,
           installments,
           order,
-          orderProducts,
+          orderProducts: checkoutOrderProducts,
           payment,
           total,
         });
@@ -1610,11 +1728,11 @@ const Checkout = () => {
     },
     [
       createPaidInvoice,
+      checkoutOrderProducts,
       invoiceActions,
       localGateway,
       order,
       order?.['@id'],
-      orderProducts,
     ],
   );
 
@@ -1743,8 +1861,8 @@ const Checkout = () => {
 
       const targetOrderProducts = Array.isArray(targetOrder?.orderProducts)
         ? targetOrder.orderProducts
-        : Array.isArray(orderProducts)
-          ? orderProducts
+        : Array.isArray(checkoutOrderProducts)
+          ? checkoutOrderProducts
           : [];
       const hasLoyaltyGiftProduct = targetOrderProducts.some(
         item =>
@@ -1791,10 +1909,10 @@ const Checkout = () => {
     },
     [
       checkoutPaymentOrder,
+      checkoutOrderProducts,
       invoiceActions,
       loyaltyGiftProductId,
       order,
-      orderProducts,
       ordersActions,
     ],
   );
@@ -2225,7 +2343,20 @@ const Checkout = () => {
         ]}
       />
 
-      {canRenderCheckout ? (
+      {checkoutOrderProductsState.error ? (
+        <View style={styles.loyaltyCard}>
+          <Text style={styles.loyaltyTitle}>Nao foi possivel carregar o pedido</Text>
+          <Text style={styles.loyaltyHint}>
+            {checkoutOrderProductsState.error}
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setCheckoutOrderProductsReloadKey(current => current + 1)}
+            style={styles.loyaltySecondaryAction}>
+            <Text style={styles.loyaltySecondaryActionText}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : canRenderCheckout ? (
         <>
           {shouldRenderLoyaltyCpfStep ? (
             <>
