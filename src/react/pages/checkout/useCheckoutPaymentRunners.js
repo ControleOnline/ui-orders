@@ -3,12 +3,15 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {
   createInvoiceForGatewayFreePayment,
   normalizeMoneyInputText,
+  parseMoneyInputValue,
+  resolveCashPaymentDetails,
 } from '@controleonline/ui-common/src/react/utils/cashPayment';
+import {getPaymentOptionLabel} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   clearCreateInvoiceOnlyMode,
   isCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
-import {tryCreateInvoiceOnlyPayment} from '@controleonline/ui-orders/src/react/utils/createInvoiceCheckout';
+import {clearCreateInvoiceFlagIfActive} from '@controleonline/ui-orders/src/react/utils/createInvoiceCheckout';
 import {
   normalizeGatewayPaymentError,
   runConfiguredGatewayPayment,
@@ -18,7 +21,10 @@ import {
   REMOTE_PAYMENT_MESSAGE_STORE,
   REMOTE_PAYMENT_REQUEST_ACTION,
 } from '@controleonline/ui-common/src/react/utils/remotePayment';
-import {resolvePosPaidInvoiceStatusIri} from './checkoutStatusHelpers';
+import {
+  PAYMENT_CHANNEL_LOCAL,
+  resolvePosPaidInvoiceStatusIri,
+} from './checkoutStatusHelpers';
 
 export default function useCheckoutPaymentRunners(d) {
   const {
@@ -32,6 +38,7 @@ export default function useCheckoutPaymentRunners(d) {
     activeSelectedPaymentOption, remainingAmount, localGateway, selectedRemoteDeviceId,
     setPendingRemotePaymentRequest, websocketActions, storagedDevice, setAmountEntryModalMode,
     cashReceivedValue, effectiveRemainingAmount, checkoutPaymentOrder, selectedRemoteDevice,
+    orderProducts, selectedPayment, cashPaymentContext,
   } = d;
 
   const createPaidInvoice = useCallback(

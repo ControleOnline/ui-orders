@@ -38,6 +38,9 @@ import {
   buildPaymentSelectionOption,
 } from '@controleonline/ui-orders/src/react/pages/checkout/CheckoutPaymentOptions';
 import useCheckoutNavigation from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutNavigation';
+import useCheckoutPaymentRunners from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPaymentRunners';
+import useCheckoutPayHandlers from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPayHandlers';
+import useCheckoutLoyaltyHandlers from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyHandlers';
 import {
   appendSyntheticOrderInvoice,
   resolveNextOperationalPayable,
@@ -147,6 +150,7 @@ const Checkout = () => {
 
   const orderProductsStore = useStore('order_products');
   const orderProductsGetters = orderProductsStore.getters;
+  const orderProductsActions = orderProductsStore.actions;
 
   const configsStore = useStore('configs');
   const configsGetters = configsStore.getters;
@@ -1280,6 +1284,7 @@ const Checkout = () => {
     activeSelectedPaymentOption, remainingAmount, localGateway, selectedRemoteDeviceId,
     setPendingRemotePaymentRequest, websocketActions, storagedDevice, setAmountEntryModalMode,
     cashReceivedValue, effectiveRemainingAmount, checkoutPaymentOrder, selectedRemoteDevice,
+    orderProducts, selectedPayment, cashPaymentContext,
   });
 
   const {
@@ -1289,6 +1294,7 @@ const Checkout = () => {
     handlePay,
     handleConfirmAmountEntry,
     handleInstallmentsSelect,
+    renderRemoteDeviceOption,
   } = useCheckoutPayHandlers({
     createPaidInvoice, runLocalPayment, dispatchRemotePayment,
     order, checkoutPaymentOrder, resolveCheckoutOrderForPayment,
@@ -1300,6 +1306,11 @@ const Checkout = () => {
     isLocalCieloPdv, localGateway, selectedRemoteDeviceId,
     materializedCheckoutOrder, setMaterializedCheckoutOrder,
     cashReceivedValue, isCashAmountEntry,
+    selectedPayment, selectedPaymentChannel, selectedRemoteDevice,
+    isRemotePaymentSelected, resolveOrderRemainingAmount,
+    setCashReceivedValue, setPaymentExplanationVisible,
+    handleConfirmCashAmountEntry, setRemoteDeviceModalVisible,
+    submittingPayment, orderProducts, setSelectedRemoteDeviceId,
   });
 
   const paymentSections = useMemo(() => {
@@ -1327,11 +1338,33 @@ const Checkout = () => {
     handleSelectLoyaltyPerson,
     handleSkipLoyaltyCpfStep,
     handleContinueAfterLoyaltyCpf,
+    shouldRenderLoyaltyCpfStep,
+    loyaltyPreviewPerson,
+    loyaltyPreviewFullName,
+    loyaltyPreviewCpf,
+    isLoyaltyPreviewSelected,
+    paymentTopContent,
+    emptyTitle,
+    emptyText,
+    payDisabled,
+    actionLabel,
+    actionIcon,
+    amountEntryTitle,
+    amountEntryDescription,
+    amountEntryFieldLabel,
+    amountEntryDetails,
+    paymentExplanationTitle,
+    paymentExplanationDescription,
   } = useCheckoutLoyaltyHandlers({
     setLoyaltyCpfInput, setLoyaltyCpfResults, setSelectedLoyaltyPerson,
     setLoyaltyCpfStepCompleted, setLoyaltyCpfStepSkipped, selectedLoyaltyPerson,
     requiresLoyaltyCpfStep, loyaltyCpfStepCompleted, loyaltyCpfStepSkipped,
     setLoadingLoyaltySnapshot, setLoyaltySnapshotError, setRewardableLoyaltyCard,
+    loadingLoyaltySnapshot, loyaltySnapshotError, invoiceActions,
+    loyaltyCpfResults, loyaltyRewardOnlyMode, submittingPayment,
+    themeColors, selectedPayment, loadingPaymentOptions, allPaymentOptions,
+    isRemotePaymentSelected, selectedRemoteDevice, amountEntryModalMode,
+    isCashAmountEntry, remainingAmount, cashPaymentDetails, cashPaymentContext,
   });
 
   return (
