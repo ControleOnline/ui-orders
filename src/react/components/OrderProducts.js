@@ -24,27 +24,15 @@ const semanticIconByType = {
   removal: 'minus',
 }
 
-export const resolveOrderProductImageSize = (depth, compactTree = false) => {
-  const normalizedDepth = Math.max(0, Number(depth || 0))
+import {
+  resolveOrderProductImageSize,
+  resolveOrderProductHierarchyIndent,
+} from './orderProductHierarchyUi'
 
-  if (compactTree) {
-    if (normalizedDepth === 0) return 48
-    if (normalizedDepth === 1) return 32
-    return 26
-  }
-
-  if (normalizedDepth === 0) return 56
-  if (normalizedDepth === 1) return 42
-  return 34
-}
-
-export const resolveOrderProductHierarchyIndent = (
-  depth,
-  compact,
-  compactTree = false,
-) =>
-  Math.min(Math.max(0, Number(depth || 0)), 3) *
-  (compactTree ? 10 : compact ? 12 : 18)
+export {
+  resolveOrderProductImageSize,
+  resolveOrderProductHierarchyIndent,
+} from './orderProductHierarchyUi'
 
 const QueueIdentifier = ({ presentation, mode, styles }) => {
   const queue = presentation?.queue?.queue || null
