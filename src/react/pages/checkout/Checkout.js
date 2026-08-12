@@ -38,6 +38,7 @@ const Checkout = () => {
   const orderInvoicesActions = orderInvoicesStore.actions;
   const orderProductsStore = useStore('order_products');
   const orderProductsGetters = orderProductsStore.getters;
+  const orderProductsActions = orderProductsStore.actions;
   const configsStore = useStore('configs');
   const configsGetters = configsStore.getters;
   const printStore = useStore('print');
@@ -141,10 +142,14 @@ const Checkout = () => {
   const {
     appendInvoiceToStore,
     appendOrderInvoiceToStore,
+    canRenderHydratedCheckout,
     checkoutPaymentOrder,
+    checkoutOrderProducts,
+    checkoutOrderProductsError,
     closeRewardableLoyaltyParentOrder,
     effectiveRemainingAmount,
     remainingAmount,
+    reloadCheckoutOrderProducts,
     resetCompletedOrderState,
     resolveCheckoutOrderForPayment,
     resolveNextPayableAfterPayment,
@@ -163,6 +168,7 @@ const Checkout = () => {
     order,
     orderInvoicesActions,
     orderProducts,
+    orderProductsActions,
     ordersActions,
     ordersGetters,
     payable,
@@ -381,7 +387,7 @@ const Checkout = () => {
     localGateway,
     navigation,
     order,
-    orderProducts,
+    orderProducts: checkoutOrderProducts,
     ordersActions,
     resetCompletedOrderState,
     resetToCounterDestination,
@@ -416,7 +422,7 @@ const Checkout = () => {
     localGateway,
     loyaltyGiftProductId,
     order,
-    orderProducts,
+    orderProducts: checkoutOrderProducts,
     ordersActions,
     resolveCheckoutOrderForPayment,
     resolveOrderRemainingAmount,
@@ -436,10 +442,11 @@ const Checkout = () => {
       allPaymentOptions={allPaymentOptions}
       amountEntryModalMode={amountEntryModalMode}
       canChangePaymentDeviceDuringCheckout={canChangePaymentDeviceDuringCheckout}
-      canRenderCheckout={canRenderCheckout}
+      canRenderCheckout={canRenderCheckout && canRenderHydratedCheckout}
       cashPaymentDetails={cashPaymentDetails}
       cashPaymentContext={cashPaymentContext}
       cashReceivedValue={cashReceivedValue}
+      checkoutOrderProductsError={checkoutOrderProductsError}
       continueSelectedPayment={continueSelectedPayment}
       effectiveLocalPaymentOptions={effectiveLocalPaymentOptions}
       effectiveRemotePaymentOptions={effectiveRemotePaymentOptions}
@@ -473,6 +480,7 @@ const Checkout = () => {
       remoteDeviceModalVisible={remoteDeviceModalVisible}
       remotePaymentDevices={remotePaymentDevices}
       remainingAmount={remainingAmount}
+      reloadCheckoutOrderProducts={reloadCheckoutOrderProducts}
       rewardableLoyaltyProgress={rewardableLoyaltyProgress}
       selectedLoyaltyPerson={selectedLoyaltyPerson}
       selectedPayment={selectedPayment}

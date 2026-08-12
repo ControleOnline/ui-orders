@@ -1,11 +1,15 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
 import {api} from '@controleonline/ui-common/src/api';
 import {normalizeGatewayPaymentError} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
 import {
   appendSyntheticOrderInvoice,
+  filterOrderProductsForOrder,
+  normalizeCheckoutEntityId,
+  resolveCheckoutRemainingAmount,
   resolveNextOperationalPayable,
 } from '@controleonline/ui-orders/src/react/utils/checkoutInvoices';
+import {fetchAllHydraCollectionPages} from '@controleonline/ui-orders/src/react/utils/orderProductsHydration';
 import {resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 
 export default function useCheckoutOrderLifecycle({
@@ -20,6 +24,7 @@ export default function useCheckoutOrderLifecycle({
   order,
   orderInvoicesActions,
   orderProducts,
+  orderProductsActions,
   ordersActions,
   ordersGetters,
   payable,
@@ -32,39 +37,86 @@ export default function useCheckoutOrderLifecycle({
   storedOrderInvoices,
   loyaltyCpfStepSkipped,
 }) {
-  const remainingAmount = useMemo(() => {
-    const payableValue = Math.abs(Number(payable || 0));
-    return payableValue > 0 ? payableValue : Number(order?.price || 0);
-  }, [order?.price, payable]);
+  const [checkoutOrderProductsState, setCheckoutOrderProductsState] = useState({
+    complete: true,
+    error: '',
+    isLoading: false,
+    items: [],
+    orderId: '',
+    totalItems: 0,
+  });
+  const [checkoutOrderProductsReloadKey, setCheckoutOrderProductsReloadKey] =
+    useState(0);
+  const activeOrderId = normalizeCheckoutEntityId(order);
+  const normalizedCheckoutOrderId = normalizeCheckoutEntityId(routeOrderId || order);
+  const isCheckoutOrderCurrent =
+    !normalizedCheckoutOrderId ||
+    (!!activeOrderId && activeOrderId === normalizedCheckoutOrderId);
+  const checkoutOrderProducts = useMemo(() => {
+    if (
+      checkoutOrderProductsState.orderId === normalizedCheckoutOrderId &&
+      checkoutOrderProductsState.complete
+    ) {
+      return checkoutOrderProductsState.items;
+    }
+
+    return filterOrderProductsForOrder(orderProducts, normalizedCheckoutOrderId);
+  }, [
+    checkoutOrderProductsState.complete,
+    checkoutOrderProductsState.items,
+    checkoutOrderProductsState.orderId,
+    normalizedCheckoutOrderId,
+    orderProducts,
+  ]);
+  const checkoutOrderProductsComplete =
+    !normalizedCheckoutOrderId ||
+    (checkoutOrderProductsState.orderId === normalizedCheckoutOrderId &&
+      checkoutOrderProductsState.complete);
+  const canRenderHydratedCheckout =
+    isCheckoutOrderCurrent && !checkoutOrderProductsState.isLoading;
+
+  const remainingAmount = useMemo(
+    () =>
+      resolveCheckoutRemainingAmount({
+        order,
+        orderProducts: checkoutOrderProducts,
+        orderProductsComplete: checkoutOrderProductsComplete,
+        payable,
+        routeOrderId: normalizedCheckoutOrderId,
+      }),
+    [
+      checkoutOrderProducts,
+      checkoutOrderProductsComplete,
+      normalizedCheckoutOrderId,
+      order,
+      payable,
+    ],
+  );
 
   const resolveOrderRemainingAmount = useCallback(
     currentOrder => {
-      const currentPayable = Math.abs(Number(currentOrder?.payable || 0));
-      if (currentPayable > 0) return currentPayable;
+      const currentOrderId = normalizeCheckoutEntityId(currentOrder);
+      const currentOrderProducts = Array.isArray(currentOrder?.orderProducts)
+        ? currentOrder.orderProducts
+        : checkoutOrderProducts;
+      const resolvedAmount = resolveCheckoutRemainingAmount({
+        order: currentOrder || order,
+        orderProducts: currentOrderProducts,
+        orderProductsComplete: checkoutOrderProductsComplete,
+        payable,
+        routeOrderId: currentOrderId || normalizedCheckoutOrderId,
+      });
 
-      const currentPrice = Number(currentOrder?.price || 0);
-      if (currentPrice > 0) return currentPrice;
-
-      const currentProductsTotal = (
-        Array.isArray(currentOrder?.orderProducts) ? currentOrder.orderProducts : []
-      ).reduce(
-        (sum, item) =>
-          sum +
-          Number(item?.total ?? Number(item?.price || 0) * Number(item?.quantity || 0)),
-        0,
-      );
-      if (currentProductsTotal > 0) return currentProductsTotal;
-
-      const orderProductsTotal = (Array.isArray(orderProducts) ? orderProducts : [])
-        .reduce(
-          (sum, item) =>
-            sum +
-            Number(item?.total ?? Number(item?.price || 0) * Number(item?.quantity || 0)),
-          0,
-        );
-      return orderProductsTotal > 0 ? orderProductsTotal : remainingAmount;
+      return resolvedAmount > 0 ? resolvedAmount : remainingAmount;
     },
-    [orderProducts, remainingAmount],
+    [
+      checkoutOrderProducts,
+      checkoutOrderProductsComplete,
+      normalizedCheckoutOrderId,
+      order,
+      payable,
+      remainingAmount,
+    ],
   );
 
   const checkoutPaymentOrder = materializedCheckoutOrder || order;
@@ -258,9 +310,96 @@ export default function useCheckoutOrderLifecycle({
       invoiceActions.setError('');
       invoiceActions.setMessage(null);
       if (!routeOrderId || String(order?.id || '') === String(routeOrderId)) return;
+      setMaterializedCheckoutOrder(null);
+      setCheckoutOrderProductsReloadKey(current => current + 1);
+      ordersActions.setPayable(0);
+      orderInvoicesActions.setItems([]);
+      orderProductsActions.setItems?.([]);
       ordersActions.get(routeOrderId);
-    }, [invoiceActions, order?.id, ordersActions, routeOrderId]),
+    }, [
+      invoiceActions,
+      order?.id,
+      orderInvoicesActions,
+      orderProductsActions,
+      ordersActions,
+      routeOrderId,
+      setMaterializedCheckoutOrder,
+    ]),
   );
+
+  useEffect(() => {
+    if (!normalizedCheckoutOrderId) {
+      setCheckoutOrderProductsState({
+        complete: true,
+        error: '',
+        isLoading: false,
+        items: [],
+        orderId: '',
+        totalItems: 0,
+      });
+      return undefined;
+    }
+
+    let isActive = true;
+    setCheckoutOrderProductsState({
+      complete: false,
+      error: '',
+      isLoading: true,
+      items: [],
+      orderId: normalizedCheckoutOrderId,
+      totalItems: 0,
+    });
+
+    fetchAllHydraCollectionPages(page =>
+      api.fetch('order_products', {
+        params: {
+          'order.id': Number(normalizedCheckoutOrderId),
+          itemsPerPage: 50,
+          page,
+        },
+      }),
+    )
+      .then(result => {
+        if (!isActive) return;
+
+        orderProductsActions.setItems?.(result.items);
+        ordersActions.syncOrderProducts?.({
+          orderId: Number(normalizedCheckoutOrderId),
+          orderProducts: result.items,
+        });
+        setCheckoutOrderProductsState({
+          complete: result.complete,
+          error: '',
+          isLoading: false,
+          items: result.items,
+          orderId: normalizedCheckoutOrderId,
+          totalItems: result.totalItems,
+        });
+      })
+      .catch(error => {
+        if (!isActive) return;
+
+        setCheckoutOrderProductsState({
+          complete: false,
+          error:
+            error?.message ||
+            'Nao foi possivel carregar os produtos deste pedido.',
+          isLoading: false,
+          items: [],
+          orderId: normalizedCheckoutOrderId,
+          totalItems: 0,
+        });
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    checkoutOrderProductsReloadKey,
+    normalizedCheckoutOrderId,
+    orderProductsActions,
+    ordersActions,
+  ]);
 
   useEffect(() => {
     if (
@@ -277,10 +416,15 @@ export default function useCheckoutOrderLifecycle({
   return {
     appendInvoiceToStore,
     appendOrderInvoiceToStore,
+    canRenderHydratedCheckout,
     checkoutPaymentOrder,
+    checkoutOrderProducts,
+    checkoutOrderProductsError: checkoutOrderProductsState.error,
     closeRewardableLoyaltyParentOrder,
     effectiveRemainingAmount,
     remainingAmount,
+    reloadCheckoutOrderProducts: () =>
+      setCheckoutOrderProductsReloadKey(current => current + 1),
     resetCompletedOrderState,
     resolveCheckoutOrderForPayment,
     resolveNextPayableAfterPayment,

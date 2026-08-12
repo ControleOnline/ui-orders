@@ -34,6 +34,7 @@ export default function CheckoutView({
   cashPaymentDetails,
   cashPaymentContext,
   cashReceivedValue,
+  checkoutOrderProductsError,
   continueSelectedPayment,
   effectiveLocalPaymentOptions,
   effectiveRemotePaymentOptions,
@@ -67,6 +68,7 @@ export default function CheckoutView({
   remoteDeviceModalVisible,
   remotePaymentDevices,
   remainingAmount,
+  reloadCheckoutOrderProducts,
   rewardableLoyaltyProgress,
   selectedLoyaltyPerson,
   selectedPayment,
@@ -200,7 +202,18 @@ export default function CheckoutView({
         ]}
       />
 
-      {canRenderCheckout ? (
+      {checkoutOrderProductsError ? (
+        <View style={styles.loyaltyCard}>
+          <Text style={styles.loyaltyTitle}>Nao foi possivel carregar o pedido</Text>
+          <Text style={styles.loyaltyHint}>{checkoutOrderProductsError}</Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={reloadCheckoutOrderProducts}
+            style={styles.loyaltySecondaryAction}>
+            <Text style={styles.loyaltySecondaryActionText}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : canRenderCheckout ? (
         <>
           {shouldRenderLoyaltyCpfStep ? (
             <LoyaltyCpfStep
