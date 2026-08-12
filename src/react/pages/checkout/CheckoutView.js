@@ -8,10 +8,7 @@ import {
   View,
 } from 'react-native';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {
-  getPaymentOptionLabel,
-  isCashPaymentOption,
-} from '@controleonline/ui-common/src/react/utils/paymentOptions';
+import {getPaymentOptionLabel, isCashPaymentOption} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import OrderIdentityLabel from '@controleonline/ui-orders/src/react/components/OrderIdentityLabel';
 import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import PaymentCheckoutPanel from '@controleonline/ui-orders/src/react/components/PaymentCheckoutPanel';
@@ -485,7 +482,7 @@ function LoyaltyCpfStatus({
   ) {
     return (
       <Text style={styles.loyaltyHint}>
-        Nenhum CPF encontrado com os dígitos informados.
+        Nenhum CPF encontrado com os digitos informados.
       </Text>
     );
   }

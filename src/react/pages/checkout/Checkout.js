@@ -2,6 +2,9 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import {resolveLoyaltyCardProgress, resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
+import {parseMoneyInputValue, resolveCashPaymentDetails} from '@controleonline/ui-common/src/react/utils/cashPayment';
+import {SHOP_LOYALTY_GIFT_PRODUCT_ID_CONFIG_KEY} from '@controleonline/ui-common/src/react/utils/shopConfig';
+import {useStore} from '@store';
 import useCheckoutPaymentRunners from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPaymentRunners';
 import useCheckoutPayFlow from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPayFlow';
 import useCheckoutLoyaltyEffects from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyEffects';
@@ -13,9 +16,6 @@ import CheckoutView from '@controleonline/ui-orders/src/react/pages/checkout/Che
 import useCheckoutContextState from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutContextState';
 import useCheckoutPaymentSelection from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPaymentSelection';
 import useCheckoutLoyaltyUi from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyUi';
-import {parseMoneyInputValue, resolveCashPaymentDetails} from '@controleonline/ui-common/src/react/utils/cashPayment';
-import {SHOP_LOYALTY_GIFT_PRODUCT_ID_CONFIG_KEY} from '@controleonline/ui-common/src/react/utils/shopConfig';
-import {useStore} from '@store';
 const PAYMENT_CHANNEL_LOCAL = 'local';
 
 const Checkout = () => {
@@ -53,10 +53,7 @@ const Checkout = () => {
   const {currentCompany, defaultCompany} = peopleGetters;
   const themeColors = themeGetters?.colors || {};
   const {items: companyConfigs} = configsGetters;
-  const {
-    item: order,
-    payable,
-  } = ordersGetters;
+  const {item: order, payable} = ordersGetters;
   const {
     items: invoices,
     error: invoiceError,
@@ -64,9 +61,7 @@ const Checkout = () => {
     messages: invoiceMessages,
   } = invoiceGetters;
   const {items: storedOrderInvoices = []} = orderInvoicesGetters;
-  const {
-    items: orderProducts = [],
-  } = orderProductsGetters;
+  const {items: orderProducts = []} = orderProductsGetters;
 
   const [companyDeviceConfigs, setCompanyDeviceConfigs] = useState([]);
   const [remoteDeviceModalVisible, setRemoteDeviceModalVisible] = useState(false);

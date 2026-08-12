@@ -367,6 +367,42 @@ test.describe('single-item checkout and history browser smoke', () => {
     await expect(page.getByText('cart', { exact: true })).toBeVisible();
   });
 
+  test('creates an invoice from the order history action without Cielo', async ({
+    page,
+  }) => {
+    bindBrowserDiagnostics(page);
+    const state = await createPosApiMock(page, {
+      order: createOpenOrder({id: 123, products: [], price: 0}),
+    });
+
+    await bootstrapPosBrowser(page);
+    await page.goto('/order-history-page');
+    await page.getByLabel('Criar fatura').click();
+
+    await expect(page).toHaveURL(/add-product-screen/);
+    await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeVisible();
+    await page.getByRole('radio', {name: 'Coxinha'}).click();
+
+    await expect(page).toHaveURL(/checkout/);
+    await expect(page.getByText(/R\$\s*12,50/).last()).toBeVisible();
+    const invoiceRequestPromise = page.waitForRequest(request =>
+      request.url().endsWith('/invoices') &&
+      request.method() === 'POST',
+    );
+    await page.getByText('Receber em dinheiro', {exact: true}).click();
+    await page.getByPlaceholder('Ex.: 50,00').fill('12,50');
+    await page.getByText('Confirmar', {exact: true}).click();
+
+    const invoiceRequest = await invoiceRequestPromise;
+    expect(invoiceRequest.postDataJSON()).toMatchObject({
+      order: '/orders/123',
+      price: 12.5,
+    });
+    expect(state.invoices).toHaveLength(1);
+    expect(state.invoices[0]).toMatchObject({order: '/orders/123', price: 12.5});
+    await expect(page).toHaveURL(/order-history-page/);
+  });
+
   test('bootstraps period translations after a direct authenticated reload', async ({page}) => {
     bindBrowserDiagnostics(page);
     await createPosApiMock(page);
