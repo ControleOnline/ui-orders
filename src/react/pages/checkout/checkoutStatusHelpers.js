@@ -1,6 +1,9 @@
 /**
  * Status/IRI helpers for Checkout (modularization app-community#329).
  */
+import {Platform} from 'react-native';
+import {api} from '@controleonline/ui-common/src/api';
+
 const PAYMENT_CHANNEL_LOCAL = 'local';
 const PAYMENT_CHANNEL_REMOTE = 'remote';
 const IS_WEB_PLATFORM = Platform.OS === 'web';
