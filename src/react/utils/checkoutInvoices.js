@@ -11,6 +11,72 @@ export const normalizeCheckoutEntityId = value => {
   return matches ? matches[matches.length - 1] : ''
 }
 
+export const isCheckoutEntityMatch = (left, right) => {
+  const leftId = normalizeCheckoutEntityId(left)
+  const rightId = normalizeCheckoutEntityId(right)
+
+  return !!leftId && !!rightId && leftId === rightId
+}
+
+export const filterOrderProductsForOrder = (orderProducts = [], order = null) => {
+  const orderId = normalizeCheckoutEntityId(order)
+
+  if (!orderId || !Array.isArray(orderProducts)) {
+    return []
+  }
+
+  return orderProducts.filter(item => isCheckoutEntityMatch(item?.order, orderId))
+}
+
+export const resolveOrderProductsTotal = (orderProducts = []) =>
+  roundMoney(
+    (Array.isArray(orderProducts) ? orderProducts : []).reduce(
+      (sum, item) =>
+        sum +
+        Number(
+          item?.total ?? Number(item?.price || 0) * Number(item?.quantity || 0),
+        ),
+      0,
+    ),
+  )
+
+export const resolveCheckoutRemainingAmount = ({
+  order = null,
+  orderProducts = [],
+  payable = 0,
+  routeOrderId = '',
+  orderProductsComplete = true,
+} = {}) => {
+  const orderId = normalizeCheckoutEntityId(order)
+  const targetOrderId = normalizeCheckoutEntityId(routeOrderId || order)
+
+  if (targetOrderId && orderId && targetOrderId !== orderId) {
+    return 0
+  }
+
+  if (targetOrderId && !orderId) {
+    return 0
+  }
+
+  const currentPayable = Number(payable || 0)
+
+  if (currentPayable < -0.009) {
+    return roundMoney(Math.abs(currentPayable))
+  }
+
+  const currentPrice = Number(order?.price || 0)
+
+  if (currentPrice > 0) {
+    return roundMoney(currentPrice)
+  }
+
+  if (!orderProductsComplete) {
+    return 0
+  }
+
+  return resolveOrderProductsTotal(filterOrderProductsForOrder(orderProducts, targetOrderId))
+}
+
 export const resolvePaidAmountForOrder = ({
   order = null,
   orderInvoices = [],

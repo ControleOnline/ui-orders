@@ -1,5 +1,7 @@
 const {
   appendSyntheticOrderInvoice,
+  filterOrderProductsForOrder,
+  resolveCheckoutRemainingAmount,
   resolvePaidAmountForOrder,
   resolveOperationalDisplayAmount,
   resolveOperationalDisplayLabelKey,
@@ -142,5 +144,43 @@ describe('checkoutInvoices', () => {
     })
 
     expect(paid).toBe(5)
+  })
+
+  it('prioritizes the synced order price over a stale positive payable', () => {
+    expect(
+      resolveCheckoutRemainingAmount({
+        order: {id: 72884, '@id': '/orders/72884', price: 116.86},
+        payable: 105.87,
+        routeOrderId: 72884,
+      }),
+    ).toBe(116.86)
+  })
+
+  it('does not expose totals while the route points to another order', () => {
+    expect(
+      resolveCheckoutRemainingAmount({
+        order: {id: 72883, price: 105.87},
+        payable: 105.87,
+        routeOrderId: 72884,
+      }),
+    ).toBe(0)
+  })
+
+  it('totals only products that belong to the checkout order', () => {
+    const orderProducts = [
+      {id: 1, order: '/orders/72883', price: 105.87, quantity: 1},
+      {id: 2, order: '/orders/72884', price: 58.43, quantity: 2},
+    ]
+
+    expect(filterOrderProductsForOrder(orderProducts, '/orders/72884')).toEqual([
+      {id: 2, order: '/orders/72884', price: 58.43, quantity: 2},
+    ])
+    expect(
+      resolveCheckoutRemainingAmount({
+        order: {id: 72884},
+        orderProducts,
+        routeOrderId: 72884,
+      }),
+    ).toBe(116.86)
   })
 })

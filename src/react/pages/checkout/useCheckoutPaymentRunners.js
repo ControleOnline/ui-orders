@@ -3,37 +3,65 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import {
   createInvoiceForGatewayFreePayment,
   normalizeMoneyInputText,
+  parseMoneyInputValue,
+  resolveCashPaymentDetails,
 } from '@controleonline/ui-common/src/react/utils/cashPayment';
 import {
   clearCreateInvoiceOnlyMode,
   isCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
-import {tryCreateInvoiceOnlyPayment} from '@controleonline/ui-orders/src/react/utils/createInvoiceCheckout';
 import {
   normalizeGatewayPaymentError,
   runConfiguredGatewayPayment,
 } from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
+import {getPaymentOptionLabel} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   buildRemotePaymentRequestKey,
   REMOTE_PAYMENT_MESSAGE_STORE,
   REMOTE_PAYMENT_REQUEST_ACTION,
 } from '@controleonline/ui-common/src/react/utils/remotePayment';
-import {resolvePosPaidInvoiceStatusIri} from './checkoutStatusHelpers';
+import {
+  PAYMENT_CHANNEL_LOCAL,
+  resolvePosPaidInvoiceStatusIri,
+} from './checkoutStatusHelpers';
 
-export default function useCheckoutPaymentRunners(d) {
-  const {
-    defaultCompany, invoiceActions, order, currentCompany, routeOrderId,
-    resolveNextPayableAfterPayment, syncLoyaltySelectionToOrder,
-    closeRewardableLoyaltyParentOrder, resetCompletedOrderState, resetToOrderHistory,
-    isSingleItemMode, device, appendInvoiceToStore, appendOrderInvoiceToStore,
-    ordersActions, navigation, buildOrderDetailsNavigationParams, isCounterMode,
-    isSelfServiceMode, resetToCounterDestination, resetToSelfServiceCatalog,
-    setSubmittingPayment, setCashReceivedValue, selectedPaymentOption,
-    activeSelectedPaymentOption, remainingAmount, localGateway, selectedRemoteDeviceId,
-    setPendingRemotePaymentRequest, websocketActions, storagedDevice, setAmountEntryModalMode,
-    cashReceivedValue, effectiveRemainingAmount, checkoutPaymentOrder, selectedRemoteDevice,
-  } = d;
-
+export default function useCheckoutPaymentRunners({
+  appendInvoiceToStore,
+  appendOrderInvoiceToStore,
+  buildOrderDetailsNavigationParams,
+  cashPaymentContext,
+  cashReceivedValue,
+  checkoutPaymentOrder,
+  closeRewardableLoyaltyParentOrder,
+  currentCompany,
+  defaultCompany,
+  device,
+  effectiveRemainingAmount,
+  invoiceActions,
+  isCounterMode,
+  isSelfServiceMode,
+  isSingleItemMode,
+  localGateway,
+  navigation,
+  order,
+  orderProducts,
+  ordersActions,
+  resetCompletedOrderState,
+  resetToCounterDestination,
+  resetToOrderHistory,
+  resetToSelfServiceCatalog,
+  resolveNextPayableAfterPayment,
+  routeOrderId,
+  selectedPayment,
+  selectedRemoteDevice,
+  setAmountEntryModalMode,
+  setCashReceivedValue,
+  setPendingRemotePaymentRequest,
+  setSubmittingPayment,
+  storagedDevice,
+  syncLoyaltySelectionToOrder,
+  websocketActions,
+}) {
   const createPaidInvoice = useCallback(
     async (payment, total, currentOrder = null) => {
       const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
@@ -49,23 +77,25 @@ export default function useCheckoutPaymentRunners(d) {
 
       try {
         const targetOrder = currentOrder || order;
-        const payload = {
+        const createdInvoice = await invoiceActions.save({
           dueDate: Formatter.getCurrentDate(),
           status: paidStatusIri,
           destinationWallet: payment?.wallet?.['@id'],
           paymentType: payment?.paymentType?.['@id'],
           price: total,
           receiver: '/people/' + currentCompany.id,
-          order: targetOrder?.['@id'] || (routeOrderId ? `/orders/${routeOrderId}` : undefined),
-        };
-
-        const createdInvoice = await invoiceActions.save(payload);
+          order:
+            targetOrder?.['@id'] ||
+            (routeOrderId ? `/orders/${routeOrderId}` : undefined),
+        });
 
         if (!createdInvoice) {
           return null;
         }
 
-        clearCreateInvoiceFlagIfActive();
+        if (isCreateInvoiceOnlyMode()) {
+          clearCreateInvoiceOnlyMode();
+        }
 
         const paidAmount = Number(createdInvoice.price || 0);
         const nextPayable = resolveNextPayableAfterPayment(paidAmount, targetOrder);
@@ -74,10 +104,7 @@ export default function useCheckoutPaymentRunners(d) {
 
         if (payment?.__loyaltyReward) {
           const loyaltyParentClosed = await closeRewardableLoyaltyParentOrder();
-          if (!loyaltyParentClosed) {
-            return createdInvoice;
-          }
-
+          if (!loyaltyParentClosed) return createdInvoice;
           resetCompletedOrderState();
           resetToOrderHistory();
           return createdInvoice;
@@ -101,13 +128,9 @@ export default function useCheckoutPaymentRunners(d) {
             );
           } else {
             resetCompletedOrderState();
-            if (isCounterMode) {
-              resetToCounterDestination();
-            } else if (isSelfServiceMode) {
-              resetToSelfServiceCatalog();
-            } else {
-              navigation.navigate('OrderHistoryPage');
-            }
+            if (isCounterMode) resetToCounterDestination();
+            else if (isSelfServiceMode) resetToSelfServiceCatalog();
+            else navigation.navigate('OrderHistoryPage');
           }
         } else {
           appendInvoiceToStore(createdInvoice);
@@ -115,11 +138,8 @@ export default function useCheckoutPaymentRunners(d) {
           ordersActions.setPayable(nextPayable < 0 ? nextPayable : 0);
           if ((isSelfServiceMode || isCounterMode) && nextPayable >= 0) {
             resetCompletedOrderState();
-            if (isCounterMode) {
-              resetToCounterDestination();
-            } else {
-              resetToSelfServiceCatalog();
-            }
+            if (isCounterMode) resetToCounterDestination();
+            else resetToSelfServiceCatalog();
           } else {
             ordersActions.syncOrder?.(resolvedOrder);
             navigation.navigate(
@@ -144,6 +164,7 @@ export default function useCheckoutPaymentRunners(d) {
       appendInvoiceToStore,
       appendOrderInvoiceToStore,
       buildOrderDetailsNavigationParams,
+      closeRewardableLoyaltyParentOrder,
       currentCompany?.id,
       defaultCompany?.configs,
       device?.configs,
@@ -154,20 +175,19 @@ export default function useCheckoutPaymentRunners(d) {
       navigation,
       order,
       ordersActions,
-      routeOrderId,
+      resetCompletedOrderState,
       resetToCounterDestination,
       resetToOrderHistory,
-      resetCompletedOrderState,
       resetToSelfServiceCatalog,
-      closeRewardableLoyaltyParentOrder,
       resolveNextPayableAfterPayment,
+      routeOrderId,
       syncLoyaltySelectionToOrder,
     ],
   );
 
   const handleCashReceivedInputChange = useCallback(text => {
     setCashReceivedValue(normalizeMoneyInputText(text));
-  }, []);
+  }, [setCashReceivedValue]);
 
   const runLocalPayment = useCallback(
     async ({payment, total, installments = null, currentOrder = null}) => {
@@ -180,12 +200,12 @@ export default function useCheckoutPaymentRunners(d) {
 
       setSubmittingPayment(true);
       try {
-        // From Order History "Criar fatura": reuse Checkout UI but never call Cielo/gateway.
         if (isCreateInvoiceOnlyMode()) {
           await createPaidInvoice(payment, total, currentOrder);
           clearCreateInvoiceOnlyMode();
           return;
         }
+
         if (
           await createInvoiceForGatewayFreePayment({
             payment,
@@ -196,6 +216,7 @@ export default function useCheckoutPaymentRunners(d) {
         ) {
           return;
         }
+
         const {paidAmount} = await runConfiguredGatewayPayment({
           gateway: localGateway,
           installments,
@@ -204,7 +225,6 @@ export default function useCheckoutPaymentRunners(d) {
           payment,
           total,
         });
-
         await createPaidInvoice(payment, paidAmount, currentOrder);
       } catch (error) {
         invoiceActions.setError(
@@ -222,20 +242,20 @@ export default function useCheckoutPaymentRunners(d) {
       invoiceActions,
       localGateway,
       order,
-      order?.['@id'],
       orderProducts,
+      setSubmittingPayment,
     ],
   );
 
   const handleConfirmCashAmountEntry = useCallback(async receivedAmount => {
-    const resolvedCashPaymentDetails = resolveCashPaymentDetails({
+    const details = resolveCashPaymentDetails({
       allowPartial: cashPaymentContext === PAYMENT_CHANNEL_LOCAL,
       receivedAmount:
         receivedAmount ?? parseMoneyInputValue(cashReceivedValue),
       totalAmount: effectiveRemainingAmount,
     });
 
-    if (resolvedCashPaymentDetails.receivedAmount <= 0.009) {
+    if (details.receivedAmount <= 0.009) {
       invoiceActions.setError('Informe o valor recebido para continuar.');
       return;
     }
@@ -244,16 +264,17 @@ export default function useCheckoutPaymentRunners(d) {
     await runLocalPayment({
       currentOrder: checkoutPaymentOrder,
       payment: selectedPayment,
-      total: resolvedCashPaymentDetails.appliedAmount,
+      total: details.appliedAmount,
     });
   }, [
-    cashReceivedValue,
     cashPaymentContext,
+    cashReceivedValue,
     checkoutPaymentOrder,
     effectiveRemainingAmount,
     invoiceActions,
     runLocalPayment,
     selectedPayment,
+    setAmountEntryModalMode,
   ]);
 
   const dispatchRemotePayment = useCallback(
@@ -265,7 +286,6 @@ export default function useCheckoutPaymentRunners(d) {
         return;
       }
 
-      // Create-invoice-only: never send remote/Cielo payment; persist invoice locally.
       if (isCreateInvoiceOnlyMode()) {
         setSubmittingPayment(true);
         try {
@@ -331,9 +351,12 @@ export default function useCheckoutPaymentRunners(d) {
       }
     },
     [
+      createPaidInvoice,
       invoiceActions,
-      order?.id,
+      order,
       selectedRemoteDevice,
+      setPendingRemotePaymentRequest,
+      setSubmittingPayment,
       storagedDevice?.id,
       websocketActions,
     ],
@@ -341,9 +364,9 @@ export default function useCheckoutPaymentRunners(d) {
 
   return {
     createPaidInvoice,
-    handleCashReceivedInputChange,
-    runLocalPayment,
-    handleConfirmCashAmountEntry,
     dispatchRemotePayment,
+    handleCashReceivedInputChange,
+    handleConfirmCashAmountEntry,
+    runLocalPayment,
   };
 }

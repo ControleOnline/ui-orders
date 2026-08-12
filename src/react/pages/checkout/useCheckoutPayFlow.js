@@ -1,47 +1,37 @@
 import {useCallback} from 'react';
-import {Text, TouchableOpacity} from 'react-native';
-import {
-  getPaymentGatewayLabel,
-  PAYMENT_GATEWAY_INFINITE_PAY,
-} from '@controleonline/ui-common/src/react/utils/paymentDevices';
-import {
-  isCashPaymentOption,
-} from '@controleonline/ui-common/src/react/utils/paymentOptions';
+import {PAYMENT_GATEWAY_INFINITE_PAY} from '@controleonline/ui-common/src/react/utils/paymentDevices';
+import {isCashPaymentOption} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {normalizeGatewayPaymentError} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
 import {resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 import {
   LOYALTY_GIFT_ORDER_PRODUCT_COMMENT,
   PAYMENT_CHANNEL_REMOTE,
 } from './checkoutStatusHelpers';
-import styles from './Checkout.styles';
 
-export default function useCheckoutPayHandlers(d) {
-  const {
-    createPaidInvoice, runLocalPayment, dispatchRemotePayment,
-    order, checkoutPaymentOrder, resolveCheckoutOrderForPayment,
-    ordersActions, orderProductsActions, loyaltyGiftProductId,
-    rewardableLoyaltyCard, selectedLoyaltyPerson, invoiceActions,
-    navigation, buildOrderDetailsNavigationParams, setSubmittingPayment,
-    setInstallmentsModalVisible, setAmountEntryModalMode,
-    activeSelectedPaymentOption, remainingAmount, effectiveRemainingAmount,
-    isLocalCieloPdv, localGateway, selectedRemoteDeviceId,
-    materializedCheckoutOrder, setMaterializedCheckoutOrder,
-    cashReceivedValue, isCashAmountEntry,
-    selectedPayment, selectedPaymentChannel, selectedRemoteDevice,
-    isRemotePaymentSelected, resolveOrderRemainingAmount,
-    setCashReceivedValue, setPaymentExplanationVisible,
-    handleConfirmCashAmountEntry, setRemoteDeviceModalVisible,
-    submittingPayment, orderProducts, setSelectedRemoteDeviceId,
-  } = d;
-
-  const handleEdit = orderItem => {
-    ordersActions.syncOrder?.(orderItem);
-    navigation.navigate(
-      'OrderDetails',
-      buildOrderDetailsNavigationParams(orderItem),
-    );
-  };
-
+export default function useCheckoutPayFlow({
+  checkoutPaymentOrder,
+  dispatchRemotePayment,
+  effectiveRemainingAmount,
+  handleConfirmCashAmountEntry,
+  invoiceActions,
+  isCashAmountEntry,
+  isRemotePaymentSelected,
+  localGateway,
+  loyaltyGiftProductId,
+  order,
+  orderProducts,
+  ordersActions,
+  resolveCheckoutOrderForPayment,
+  resolveOrderRemainingAmount,
+  runLocalPayment,
+  selectedPayment,
+  selectedPaymentChannel,
+  selectedRemoteDevice,
+  setAmountEntryModalMode,
+  setInstallmentsModalVisible,
+  setMaterializedCheckoutOrder,
+  setPaymentExplanationVisible,
+}) {
   const ensureLoyaltyRewardOrderReady = useCallback(
     async currentOrder => {
       const targetOrder = currentOrder || checkoutPaymentOrder || order;
@@ -108,6 +98,7 @@ export default function useCheckoutPayHandlers(d) {
       order,
       orderProducts,
       ordersActions,
+      setMaterializedCheckoutOrder,
     ],
   );
 
@@ -128,10 +119,7 @@ export default function useCheckoutPayHandlers(d) {
 
     if (selectedPayment?.__loyaltyReward) {
       const rewardReadyOrder = await ensureLoyaltyRewardOrderReady(currentOrder);
-      if (!rewardReadyOrder) {
-        return;
-      }
-
+      if (!rewardReadyOrder) return;
       await runLocalPayment({
         currentOrder: rewardReadyOrder,
         payment: selectedPayment,
@@ -141,7 +129,6 @@ export default function useCheckoutPayHandlers(d) {
     }
 
     if (isCashPaymentOption(selectedPayment) && !isRemotePaymentSelected) {
-      setCashReceivedValue('');
       setAmountEntryModalMode('cash-local');
       return;
     }
@@ -165,7 +152,6 @@ export default function useCheckoutPayHandlers(d) {
     }
 
     if (
-      !isRemotePaymentSelected &&
       localGateway === PAYMENT_GATEWAY_INFINITE_PAY &&
       selectedPayment.paymentCode &&
       selectedPayment.installments === 'split'
@@ -185,7 +171,9 @@ export default function useCheckoutPayHandlers(d) {
     runLocalPayment,
     selectedPayment,
     selectedPaymentChannel,
-    selectedRemoteDevice?.deviceId,
+    selectedRemoteDevice,
+    setAmountEntryModalMode,
+    setInstallmentsModalVisible,
   ]);
 
   const handlePay = useCallback(async materializedOrder => {
@@ -219,6 +207,8 @@ export default function useCheckoutPayHandlers(d) {
     ordersActions,
     resolveCheckoutOrderForPayment,
     selectedPayment,
+    setMaterializedCheckoutOrder,
+    setPaymentExplanationVisible,
   ]);
 
   const handleConfirmAmountEntry = useCallback(
@@ -229,7 +219,6 @@ export default function useCheckoutPayHandlers(d) {
       }
 
       setAmountEntryModalMode('');
-
       await runLocalPayment({
         currentOrder: checkoutPaymentOrder,
         payment: selectedPayment,
@@ -242,6 +231,7 @@ export default function useCheckoutPayHandlers(d) {
       isCashAmountEntry,
       runLocalPayment,
       selectedPayment,
+      setAmountEntryModalMode,
     ],
   );
 
@@ -272,34 +262,14 @@ export default function useCheckoutPayHandlers(d) {
       isRemotePaymentSelected,
       runLocalPayment,
       selectedPayment,
+      setInstallmentsModalVisible,
     ],
   );
 
-  const renderRemoteDeviceOption = ({item}) => {
-    const active = item.deviceId === selectedRemoteDevice?.deviceId;
-
-    return (
-      <TouchableOpacity
-        style={[styles.modalItem, active && styles.modalItemActive]}
-        disabled={submittingPayment}
-        onPress={() => {
-          setSelectedRemoteDeviceId(item.deviceId);
-          setRemoteDeviceModalVisible(false);
-        }}>
-        <Text style={styles.modalItemTitle}>{item.alias}</Text>
-        <Text style={styles.modalItemSubtitle}>
-          {getPaymentGatewayLabel(item.gateway)} • {item.deviceId}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
   return {
-    handleEdit,
-    ensureLoyaltyRewardOrderReady,
     continueSelectedPayment,
-    handlePay,
     handleConfirmAmountEntry,
     handleInstallmentsSelect,
-    renderRemoteDeviceOption,
+    handlePay,
   };
 }
