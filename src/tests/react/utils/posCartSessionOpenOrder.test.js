@@ -1,4 +1,3 @@
-const {jest} = require('@jest/globals')
 jest.mock('@controleonline/ui-common/src/api', () => ({
   api: {
     fetch: jest.fn(),
@@ -22,7 +21,7 @@ jest.mock(
   }),
 )
 
-const {isOpenPosCartOrder} = require('../../../react/hooks/usePosCartSession')
+const {isOpenPosCartOrder} = require('../../../react/hooks/posCartSession/status')
 
 const {describe, expect, it} = global
 

@@ -1,6 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
-
-import {api} from '@controleonline/ui-common/src/api'
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   canManagePosCheckOrders,
@@ -9,117 +7,49 @@ import {
   resolvePosCheckOrderTypeForShop,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {useStore} from '@store'
-import {resolveCounterDestinationFromOrders} from '@controleonline/ui-orders/src/react/utils/counterOrderFlow'
-import {
-  buildLinkedOrderMetadata,
-  getLinkedOrderContext,
-  isLinkedChildOrder,
-  isLinkedParentOrder,
-  matchesLinkedOrderExternalCode,
-  resolveLinkedOrderLabel,
-} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
+import {isLinkedChildOrder} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 
 import {
   normalizeStatusKey,
   buildStatusIriFromId,
   normalizeId,
-  extractCollectionItems,
   DRAFT_SALE_ORDER_TYPE,
-  LINKED_SALE_ORDER_TYPE,
-  LINKED_ORDER_CODE_REQUIRED_ERROR,
-  POS_ORDER_CREATION_CANCELLED_ERROR,
   RECENT_LINKED_ORDER_INPUT_TTL_MS,
-  buildCancelledOrderCreationError,
 } from '@controleonline/ui-orders/src/react/utils/posCartHelpers'
+import {
+  buildCancelledOrderCreationError,
+  buildPosDraftOrderStorageKey,
+  getOrderPeopleValue,
+  isLinkedOrderCodeRequiredError,
+  isOpenPosCartOrder,
+  isPosOrderCreationCancelledError,
+} from '@controleonline/ui-orders/src/react/hooks/posCartSession/status'
+import {requestPosLinkedOrderCode} from '@controleonline/ui-orders/src/react/hooks/posCartSession/linkedOrderInput'
+import {buildPosOrderPayload} from '@controleonline/ui-orders/src/react/hooks/posCartSession/orderPayload'
+import {
+  createEnsureActiveOrderRequestKey,
+  runEnsureActiveOrder,
+} from '@controleonline/ui-orders/src/react/hooks/posCartSession/ensureActiveOrder'
+import {
+  materializeOpenPosOrder as materializeOpenPosOrderHelper,
+  refreshPosActiveOrder,
+  resolveCounterStartDestinationFromSession,
+} from '@controleonline/ui-orders/src/react/hooks/posCartSession/hydration'
+import {syncPosOrderPeople} from '@controleonline/ui-orders/src/react/hooks/posCartSession/peopleSync'
+import {
+  ensureSettlementOrder as ensureSettlementOrderHelper,
+  findOpenLinkedSessionOrder as findOpenLinkedSessionOrderHelper,
+  loadOpenPosDraftOrders as loadOpenPosDraftOrdersHelper,
+} from '@controleonline/ui-orders/src/react/hooks/posCartSession/linkedOrders'
 
-let posOpenOrderStatusIriCache = null
+export {
+  getOrderPeopleValue,
+  isLinkedOrderCodeRequiredError,
+  isOpenPosCartOrder,
+  isPosOrderCreationCancelledError,
+}
+
 const pendingEnsureActiveOrderRequests = new Map()
-
-const hasActiveEnsureConsumer = entry =>
-  Array.from(entry?.consumers || []).some(
-    consumer => !consumer.signal || consumer.signal.aborted !== true,
-  )
-
-const assertActiveEnsureConsumer = entry => {
-  if (!hasActiveEnsureConsumer(entry)) {
-    throw buildCancelledOrderCreationError()
-  }
-}
-
-export const isOpenPosCartOrder = (
-  order,
-  {usesLinkedCheckOrders = false} = {},
-) => {
-  const linkedOrderContext = getLinkedOrderContext(order)
-
-  return (
-    String(order?.app || '').trim().toUpperCase() === 'POS' &&
-    normalizeStatusKey(order?.status?.realStatus) === 'open' &&
-    normalizeStatusKey(order?.status?.status) === 'open' &&
-    !isLinkedParentOrder(order) &&
-    (
-      usesLinkedCheckOrders
-        ? (
-            (
-              !!linkedOrderContext.mainOrderId ||
-              !!linkedOrderContext.externalCode
-            ) &&
-            [DRAFT_SALE_ORDER_TYPE, LINKED_SALE_ORDER_TYPE].includes(
-              normalizeStatusKey(order?.orderType),
-            )
-          )
-        : normalizeStatusKey(order?.orderType) === DRAFT_SALE_ORDER_TYPE
-    )
-  )
-}
-
-const buildPosDraftOrderStorageKey = (companyId, deviceId) =>
-  `pdv-active-order:${normalizeId(companyId) || '0'}:${normalizeId(deviceId) || '0'}`
-
-const resolvePosOpenOrderStatusIri = async fallbackStatusId => {
-  if (posOpenOrderStatusIriCache) return posOpenOrderStatusIriCache
-
-  const fallbackIri = buildStatusIriFromId(fallbackStatusId)
-
-  try {
-    const response = await api.fetch('statuses', {
-      params: {
-        context: 'order',
-        realStatus: 'open',
-        status: 'open',
-      },
-    })
-    const items = extractCollectionItems(response)
-    const matchedStatus =
-      items.find(
-        item =>
-          normalizeStatusKey(item?.realStatus) === 'open' &&
-          normalizeStatusKey(item?.status) === 'open',
-      ) || items[0]
-    const resolvedIri =
-      matchedStatus?.['@id'] || buildStatusIriFromId(matchedStatus?.id) || fallbackIri
-
-    if (resolvedIri) {
-      posOpenOrderStatusIriCache = resolvedIri
-    }
-
-    return resolvedIri
-  } catch {
-    return fallbackIri
-  }
-}
-
-export const getOrderPeopleValue = order =>
-  order?.people ||
-  order?.client ||
-  order?.customer ||
-  null
-
-export const isLinkedOrderCodeRequiredError = error =>
-  error?.code === LINKED_ORDER_CODE_REQUIRED_ERROR
-
-export const isPosOrderCreationCancelledError = error =>
-  error?.code === POS_ORDER_CREATION_CANCELLED_ERROR
 
 export default function usePosCartSession({
   companyId = null,
@@ -247,213 +177,25 @@ export default function usePosCartSession({
     orderId = null,
     orderType = DRAFT_SALE_ORDER_TYPE,
     extraOptions = {},
-  ) => {
-    const payload = {
-      app: 'POS',
-      provider: '/people/' + companyId,
-      status: statusIri,
+  ) =>
+    buildPosOrderPayload({
+      companyId,
+      deviceId,
+      extraOptions,
+      orderId,
       orderType,
-    }
-
-    if (orderId) {
-      payload.id = Number(orderId)
-    }
-
-    if (peopleIri !== undefined) {
-      payload.people = peopleIri
-    }
-
-    const normalizedExternalCode = String(
-      extraOptions.externalCode || '',
-    ).trim()
-    if (normalizedExternalCode) {
-      payload.externalCode = normalizedExternalCode
-    }
-
-    if (extraOptions.otherInformations) {
-      payload.otherInformations = extraOptions.otherInformations
-    }
-
-    if (extraOptions.mainOrderId) {
-      const normalizedMainOrderId = normalizeId(extraOptions.mainOrderId)
-      if (normalizedMainOrderId) {
-        payload.mainOrderId = Number(normalizedMainOrderId)
-      }
-    }
-
-    if (extraOptions.includeDevice !== false && deviceId) {
-      payload['device.device'] = deviceId
-    }
-
-    return payload
-  }, [companyId, deviceId])
-
-  async function requestLinkedOrderCode() {
-    const buildMissingLinkedOrderCodeError = () => {
-      const missingLinkedOrderCodeError = new Error(
-        global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
-          'A tab, table or stamp code is required to continue.',
-      )
-      missingLinkedOrderCodeError.code = LINKED_ORDER_CODE_REQUIRED_ERROR
-      return missingLinkedOrderCodeError
-    }
-
-    const buildLinkedOrderManagementError = () => {
-      const orderLabel = resolveLinkedOrderLabel(linkedOrderType)
-
-      return new Error(
-        global.t?.t(
-          'orders',
-          'message',
-          'linkedOrderManagementDisabled',
-        ) ||
-          `This device can only use ${orderLabel.toLowerCase()}s that are already open.`,
-      )
-    }
-
-    const validateLinkedOrderInput = async linkedOrderInput => {
-      const externalCode = String(linkedOrderInput?.externalCode || '').trim()
-      const linkedOrderInputType = String(
-        linkedOrderInput?.inputType || checkInputType,
-      )
-        .trim()
-        .toLowerCase()
-
-      if (!externalCode) {
-        throw buildMissingLinkedOrderCodeError()
-      }
-
-      const orderOpenStatusIri = await resolvePosOpenOrderStatusIri(defaultStatusId)
-
-      if (!orderOpenStatusIri) {
-        throw new Error('Nao foi possivel resolver o status open/open do pedido no PDV.')
-      }
-
-      const settlementOrder = await ensureSettlementOrder({
-        externalCode,
-        peopleIri: getOrderPeopleValue(activeOrder)?.['@id'] || null,
-        statusIri: orderOpenStatusIri,
-      })
-
-      if (!settlementOrder) {
-        throw buildLinkedOrderManagementError()
-      }
-
-      return {
-        externalCode,
-        inputType: linkedOrderInputType,
-        settlementOrder,
-      }
-    }
-
-    if (typeof requestLinkedOrderInput === 'function') {
-      const requestedInput = await requestLinkedOrderInput({
-        orderType: linkedOrderType,
-        preferredInputType: checkInputType,
-        validateInput: validateLinkedOrderInput,
-      })
-
-      if (typeof requestedInput === 'string') {
-        return {
-          externalCode: String(requestedInput || '').trim(),
-          inputType: checkInputType,
-        }
-      }
-
-      return {
-        externalCode: String(requestedInput?.externalCode || '').trim(),
-        inputType: String(requestedInput?.inputType || checkInputType)
-          .trim()
-          .toLowerCase(),
-        settlementOrder: requestedInput?.settlementOrder || null,
-      }
-    }
-
-    const orderLabel =
-      resolveLinkedOrderLabel(linkedOrderType)
-    const readMethodLabel =
-      checkInputType === 'barcode'
-        ? global.t?.t('orders', 'label', 'barcode') || 'barcode'
-        : checkInputType === 'rfid'
-          ? global.t?.t('orders', 'label', 'rfid') || 'NFC / RFID'
-          : global.t?.t('orders', 'label', 'code') || 'code'
-    const promptValue = await showPrompt?.({
-      title:
-        global.t?.t('orders', 'title', 'identifyOrderBase') ||
-        `Identify ${orderLabel}`,
-      message:
-        global.t?.t('orders', 'message', 'enterLinkedOrderCode') ||
-        `Inform the ${readMethodLabel} for this ${orderLabel.toLowerCase()}.`,
-      placeholder:
-        global.t?.t('orders', 'placeholder', 'linkedOrderCode') ||
-        `${orderLabel} ${global.t?.t('orders', 'label', 'code') || 'code'}`,
-      confirmLabel: global.t?.t('orders', 'button', 'confirm') || 'Confirm',
-      cancelLabel: global.t?.t('orders', 'button', 'cancel') || 'Cancel',
-    })
-
-    return {
-      externalCode: String(promptValue || '').trim(),
-      inputType: checkInputType,
-    }
-  }
-
-  const findOpenSettlementOrder = useCallback(async externalCode => {
-    if (!companyId || !linkedOrderType || !externalCode) {
-      return null
-    }
-
-    const normalizedExternalCode = String(externalCode || '').trim()
-    const legacyQuery = {
-      app: 'POS',
-      orderType: linkedOrderType,
-      provider: '/people/' + companyId,
-      'status.realStatus': 'open',
-      'status.status': 'open',
-      'order[id]': 'DESC',
-    }
-    const query = {
-      ...legacyQuery,
-      externalCode: normalizedExternalCode,
-    }
-
-    const exactItems = await cartActions.getItems(query)
-    const exactMatch = (Array.isArray(exactItems) ? exactItems : []).find(orderItem =>
-      matchesLinkedOrderExternalCode(orderItem, externalCode, linkedOrderType),
-    )
-
-    if (exactMatch) {
-      return exactMatch
-    }
-
-    const items = await cartActions.getItems({
-      ...legacyQuery,
-    })
-
-    return (Array.isArray(items) ? items : []).find(orderItem =>
-      matchesLinkedOrderExternalCode(orderItem, externalCode, linkedOrderType),
-    ) || null
-  }, [cartActions, companyId, linkedOrderType])
+      peopleIri,
+      statusIri,
+    }),
+  [companyId, deviceId])
 
   const findOpenLinkedSessionOrder = useCallback(async mainOrderId => {
-    if (!companyId || !mainOrderId) {
-      return null
-    }
-
-    const items = await cartActions.getItems({
-      app: 'POS',
-      mainOrderId: Number(mainOrderId),
-      provider: '/people/' + companyId,
-      'status.realStatus': 'open',
-      'status.status': 'open',
-      'order[id]': 'DESC',
-      ...(deviceId ? {'device.device': deviceId} : {}),
+    return findOpenLinkedSessionOrderHelper({
+      cartActions,
+      companyId,
+      deviceId,
+      mainOrderId,
     })
-
-    return (Array.isArray(items) ? items : [])
-      .filter(orderItem =>
-        isOpenPosCartOrder(orderItem, {usesLinkedCheckOrders: true}),
-      )
-      .sort((left, right) => Number(right?.id || 0) - Number(left?.id || 0))[0] || null
   }, [cartActions, companyId, deviceId])
 
   const ensureSettlementOrder = useCallback(async ({
@@ -461,39 +203,49 @@ export default function usePosCartSession({
     peopleIri = null,
     statusIri,
   }) => {
-    const existingOrder = await findOpenSettlementOrder(externalCode)
-    if (existingOrder) {
-      return existingOrder
-    }
-
-    if (!canManageLinkedOrders) {
-      return null
-    }
-
-    return ordersActions.save(
-      buildOrderPayload(
-        statusIri,
-        peopleIri,
-        null,
-        linkedOrderType,
-        {
-          includeDevice: false,
-          externalCode,
-          otherInformations: buildLinkedOrderMetadata({
-            inputType: checkInputType,
-            orderType: linkedOrderType,
-          }),
-        },
-      ),
-    )
+    return ensureSettlementOrderHelper({
+      buildOrderPayload,
+      canManageLinkedOrders,
+      cartActions,
+      checkInputType,
+      companyId,
+      externalCode,
+      linkedOrderType,
+      ordersActions,
+      peopleIri,
+      statusIri,
+    })
   }, [
     buildOrderPayload,
     canManageLinkedOrders,
+    cartActions,
     checkInputType,
-    findOpenSettlementOrder,
+    companyId,
     linkedOrderType,
     ordersActions,
   ])
+
+  const requestLinkedOrderCode = useCallback(
+    () =>
+      requestPosLinkedOrderCode({
+        activeOrder,
+        checkInputType,
+        defaultStatusId,
+        ensureSettlementOrder,
+        linkedOrderType,
+        requestLinkedOrderInput,
+        showPrompt,
+      }),
+    [
+      activeOrder,
+      checkInputType,
+      defaultStatusId,
+      ensureSettlementOrder,
+      linkedOrderType,
+      requestLinkedOrderInput,
+      showPrompt,
+    ],
+  )
 
   const normalizeDraftOrderType = useCallback(async order => {
     if (!isOpenPosCartOrder(order, {usesLinkedCheckOrders})) {
@@ -540,82 +292,24 @@ export default function usePosCartSession({
   ])
 
   const loadOpenPosDraftOrders = useCallback(async () => {
-    if (!companyId) {
-      return []
-    }
-
-    const items = await cartActions.getItems({
-      app: 'POS',
-      provider: '/people/' + companyId,
-      'status.realStatus': 'open',
-      'status.status': 'open',
-      'order[id]': 'DESC',
-      ...(deviceId ? {'device.device': deviceId} : {}),
-      ...(!usesLinkedCheckOrders ? {orderType: DRAFT_SALE_ORDER_TYPE} : {}),
+    return loadOpenPosDraftOrdersHelper({
+      cartActions,
+      companyId,
+      deviceId,
+      usesLinkedCheckOrders,
     })
-
-    return (Array.isArray(items) ? items : [])
-      .filter(orderItem =>
-        isOpenPosCartOrder(orderItem, {usesLinkedCheckOrders}),
-      )
-      .sort(
-        (left, right) =>
-          Number(right?.id || 0) - Number(left?.id || 0),
-      )
   }, [cartActions, companyId, deviceId, usesLinkedCheckOrders])
 
   const refreshActiveOrder = useCallback(async orderId => {
-    const targetId = normalizeId(
-      orderId ||
-      activeOrderIdRef.current ||
-      storedOrderIdRef.current,
-    )
-
-    if (!targetId) {
-      return syncActiveOrderState(null)
-    }
-
-    try {
-      const [orderResult, productsResult] = await Promise.allSettled([
-        api.fetch(`orders/${targetId}`),
-        api.fetch('order_products', {
-          params: {'order.id': Number(targetId)},
-        }),
-      ])
-
-      if (orderResult.status !== 'fulfilled') {
-        return syncActiveOrderState(null)
-      }
-
-      const normalizedOrder = await normalizeDraftOrderType(orderResult.value)
-      const hydratedProducts =
-        productsResult.status === 'fulfilled'
-          ? extractCollectionItems(productsResult.value)
-          : null
-      const hydratedOrder =
-        Array.isArray(hydratedProducts)
-          ? {...normalizedOrder, orderProducts: hydratedProducts}
-          : normalizedOrder
-
-      const syncedOrder = syncActiveOrderState(hydratedOrder)
-
-      if (
-        Array.isArray(hydratedProducts) &&
-        typeof ordersActions.syncOrderProducts === 'function'
-      ) {
-        orderProductsActions.setItems?.(hydratedProducts)
-        return (
-          ordersActions.syncOrderProducts({
-            orderId: Number(targetId),
-            orderProducts: hydratedProducts,
-          }) || syncedOrder
-        )
-      }
-
-      return syncedOrder
-    } catch {
-      return syncActiveOrderState(null)
-    }
+    return refreshPosActiveOrder({
+      activeOrderId: activeOrderIdRef.current,
+      normalizeDraftOrderType,
+      orderProductsActions,
+      ordersActions,
+      storedOrderId: storedOrderIdRef.current,
+      syncActiveOrderState,
+      targetOrderId: orderId,
+    })
   }, [
     normalizeDraftOrderType,
     orderProductsActions,
@@ -633,30 +327,12 @@ export default function usePosCartSession({
   }, [readStoredDraftOrderId, refreshActiveOrder, syncActiveOrderState])
 
   const materializeOpenPosOrder = useCallback(async orderCandidate => {
-    const normalizedOrder = await normalizeDraftOrderType(orderCandidate)
-
-    if (isOpenPosCartOrder(normalizedOrder, {usesLinkedCheckOrders})) {
-      return normalizedOrder
-    }
-
-    const orderId = normalizeId(
-      orderCandidate?.id ||
-      orderCandidate?.['@id'] ||
-      normalizedOrder?.id ||
-      normalizedOrder?.['@id'],
-    )
-
-    if (!orderId) {
-      return normalizedOrder || orderCandidate || null
-    }
-
-    try {
-      const hydratedOrder = await ordersActions.get(orderId)
-      const normalizedHydratedOrder = await normalizeDraftOrderType(hydratedOrder)
-      return normalizedHydratedOrder || normalizedOrder || orderCandidate || null
-    } catch {
-      return normalizedOrder || orderCandidate || null
-    }
+    return materializeOpenPosOrderHelper({
+      normalizeDraftOrderType,
+      orderCandidate,
+      ordersActions,
+      usesLinkedCheckOrders,
+    })
   }, [
     normalizeDraftOrderType,
     ordersActions,
@@ -686,7 +362,7 @@ export default function usePosCartSession({
     const forceNew = options?.forceNew === true
     const providedLinkedOrderInput = options?.linkedOrderInput
     const requestSignal = options?.signal || null
-    const requestKey = `${storageKey}:${forceNew ? 'new' : 'resume'}`
+    const requestKey = createEnsureActiveOrderRequestKey(storageKey, forceNew)
     const consumer = {signal: requestSignal}
 
     if (!forceNew && activeOrder) {
@@ -705,157 +381,31 @@ export default function usePosCartSession({
       promise: null,
     }
 
-    const ensureRequest = (async () => {
-      assertActiveEnsureConsumer(requestEntry)
-
-      if (!forceNew) {
-        const storedDraftOrder = await loadStoredDraftOrder()
-        assertActiveEnsureConsumer(requestEntry)
-        if (storedDraftOrder) {
-          return storedDraftOrder
-        }
-      }
-
-      if (!companyId) {
-        throw new Error('Empresa nao disponivel para criar o carrinho POS.')
-      }
-
-      const orderOpenStatusIri = await resolvePosOpenOrderStatusIri(defaultStatusId)
-      assertActiveEnsureConsumer(requestEntry)
-
-      if (!orderOpenStatusIri) {
-        throw new Error('Nao foi possivel resolver o status open/open do pedido no PDV.')
-      }
-
-      if (usesLinkedCheckOrders) {
-        const linkedOrderInput =
-          (
-            providedLinkedOrderInput && {
-              externalCode: String(providedLinkedOrderInput?.externalCode || '').trim(),
-              inputType: String(
-                providedLinkedOrderInput?.inputType || checkInputType,
-              )
-                .trim()
-                .toLowerCase(),
-              settlementOrder: providedLinkedOrderInput?.settlementOrder || null,
-            }
-          ) ||
-          getRecentLinkedOrderInput() ||
-          (await requestLinkedOrderCode())
-        assertActiveEnsureConsumer(requestEntry)
-        const externalCode = String(linkedOrderInput?.externalCode || '').trim()
-        const linkedOrderInputType = String(
-          linkedOrderInput?.inputType || checkInputType,
-        )
-          .trim()
-          .toLowerCase()
-
-        if (!externalCode) {
-          const missingLinkedOrderCodeError = new Error(
-            global.t?.t('orders', 'message', 'linkedOrderCodeRequired') ||
-              'A tab, table or stamp code is required to continue.',
-          )
-          missingLinkedOrderCodeError.code = LINKED_ORDER_CODE_REQUIRED_ERROR
-          throw missingLinkedOrderCodeError
-        }
-
-        const settlementOrder =
-          linkedOrderInput?.settlementOrder ||
-          (await ensureSettlementOrder({
-            externalCode,
-            peopleIri,
-            statusIri: orderOpenStatusIri,
-          }))
-        assertActiveEnsureConsumer(requestEntry)
-
-        lastLinkedOrderInputRef.current = {
-          createdAt: Date.now(),
-          externalCode,
-          inputType: linkedOrderInputType,
-          settlementOrder,
-        }
-
-        if (!settlementOrder) {
-          const orderLabel =
-            resolveLinkedOrderLabel(linkedOrderType)
-
-          throw new Error(
-            global.t?.t(
-              'orders',
-              'message',
-              'linkedOrderManagementDisabled',
-            ) ||
-              `This device can only use ${orderLabel.toLowerCase()}s that are already open.`,
-          )
-        }
-
-        const settlementOrderId = normalizeId(settlementOrder?.id || settlementOrder?.['@id'])
-        
-        if (!settlementOrderId) {
-          throw new Error(
-            global.t?.t('orders', 'message', 'invalidSettlementOrder') ||
-              'Unable to retrieve valid settlement order ID.',
-          )
-        }
-
-        const existingLinkedOrder = await findOpenLinkedSessionOrder(settlementOrderId)
-        assertActiveEnsureConsumer(requestEntry)
-
-        if (existingLinkedOrder) {
-          return syncActiveOrderState(
-            await materializeOpenPosOrder(existingLinkedOrder),
-          )
-        }
-
-        if (forceNew) {
-          syncActiveOrderState(null)
-        }
-
-        const createdLinkedOrder = await ordersActions.save(
-          buildOrderPayload(
-            orderOpenStatusIri,
-            peopleIri,
-            null,
-            DRAFT_SALE_ORDER_TYPE,
-            {
-              externalCode,
-              otherInformations: buildLinkedOrderMetadata({
-                inputType: linkedOrderInputType,
-                orderType: linkedOrderType,
-              }),
-            },
-          ),
-        )
-
-        // Backend não grava mainOrderId no POST, sempre fazer UPDATE
-        const orderIri = createdLinkedOrder['@id'] || `/orders/${normalizeId(createdLinkedOrder.id)}`
-        const linkedOrder = await ordersActions.save({
-          '@id': orderIri,
-          id: Number(normalizeId(createdLinkedOrder.id)),
-          mainOrderId: Number(settlementOrderId),
-        })
-
-        console.log('✅ [POS Cart] Pedido criado - PAI:', settlementOrderId, 'FILHO:', linkedOrder?.id, 'mainOrderId:', linkedOrder?.mainOrderId)
-
-        return syncActiveOrderState(
-          await materializeOpenPosOrder(linkedOrder),
-        )
-      }
-
-      assertActiveEnsureConsumer(requestEntry)
-
-      if (forceNew) {
-        syncActiveOrderState(null)
-      }
-
-      const createdOrder = await ordersActions.save(
-        buildOrderPayload(orderOpenStatusIri, peopleIri, null, DRAFT_SALE_ORDER_TYPE),
-      )
-
-      return syncActiveOrderState(
-        await materializeOpenPosOrder(createdOrder),
-      )
-    })()
+    const ensureRequest = runEnsureActiveOrder({
+      activeOrder,
+      buildCancelledError: buildCancelledOrderCreationError,
+      buildOrderPayload,
+      checkInputType,
+      companyId,
+      defaultStatusId,
+      ensureSettlementOrder,
+      findOpenLinkedSessionOrder,
+      forceNew,
+      getRecentLinkedOrderInput,
+      linkedOrderType,
+      loadStoredDraftOrder,
+      materializeOpenPosOrder,
+      ordersActions,
+      peopleIri,
+      providedLinkedOrderInput,
+      rememberLinkedOrderInput: input => {
+        lastLinkedOrderInputRef.current = input
+      },
+      requestEntry,
+      requestLinkedOrderCode,
+      syncActiveOrderState,
+      usesLinkedCheckOrders,
+    })
 
     requestEntry.promise = ensureRequest
     pendingEnsureActiveOrderRequests.set(requestKey, requestEntry)
@@ -889,79 +439,19 @@ export default function usePosCartSession({
   ])
 
   const syncOrderPeople = useCallback(async nextPeople => {
-    const currentOrder = activeOrder || storedOrder
-
-    if (!currentOrder?.id || !companyId) {
-      return currentOrder
-    }
-
-    const currentPeopleIri =
-      getOrderPeopleValue(currentOrder)?.['@id'] ||
-      null
-    const nextPeopleIri = nextPeople?.['@id'] || null
-
-    if (currentPeopleIri === nextPeopleIri) {
-      return currentOrder
-    }
-
-    const currentStatusIri =
-      currentOrder?.status?.['@id'] ||
-      buildStatusIriFromId(currentOrder?.status?.id)
-
-    if (!currentStatusIri) {
-      return currentOrder
-    }
-
-    const currentLinkedOrderContext = getLinkedOrderContext(currentOrder)
-    const nextOrderType =
-      usesLinkedCheckOrders &&
-      isLinkedChildOrder(currentOrder) &&
-      normalizeStatusKey(currentOrder?.orderType) === LINKED_SALE_ORDER_TYPE
-        ? LINKED_SALE_ORDER_TYPE
-        : DRAFT_SALE_ORDER_TYPE
-    const updatedOrder = await ordersActions.save(
-      buildOrderPayload(
-        currentStatusIri,
-        nextPeopleIri,
-        currentOrder.id,
-        nextOrderType,
-        usesLinkedCheckOrders && isLinkedChildOrder(currentOrder)
-          ? {
-              mainOrderId: currentLinkedOrderContext.mainOrderId,
-              externalCode: currentLinkedOrderContext.externalCode,
-              otherInformations: buildLinkedOrderMetadata({
-                inputType: currentLinkedOrderContext.inputType || checkInputType,
-                orderType: currentLinkedOrderContext.orderType || linkedOrderType,
-              }),
-            }
-          : {},
-      ),
-    )
-
-    if (usesLinkedCheckOrders && currentLinkedOrderContext.mainOrderId) {
-      const orderOpenStatusIri = await resolvePosOpenOrderStatusIri(defaultStatusId)
-
-      if (orderOpenStatusIri) {
-        await ordersActions.save(
-          buildOrderPayload(
-            orderOpenStatusIri,
-            nextPeopleIri,
-            currentLinkedOrderContext.mainOrderId,
-            currentLinkedOrderContext.orderType || linkedOrderType,
-            {
-              includeDevice: false,
-              externalCode: currentLinkedOrderContext.externalCode,
-              otherInformations: buildLinkedOrderMetadata({
-                inputType: currentLinkedOrderContext.inputType || checkInputType,
-                orderType: currentLinkedOrderContext.orderType || linkedOrderType,
-              }),
-            },
-          ),
-        )
-      }
-    }
-
-    return syncActiveOrderState(updatedOrder)
+    return syncPosOrderPeople({
+      activeOrder,
+      buildOrderPayload,
+      checkInputType,
+      companyId,
+      defaultStatusId,
+      linkedOrderType,
+      nextPeople,
+      ordersActions,
+      storedOrder,
+      syncActiveOrderState,
+      usesLinkedCheckOrders,
+    })
   }, [
     activeOrder,
     buildOrderPayload,
@@ -980,39 +470,12 @@ export default function usePosCartSession({
   }, [syncActiveOrderState])
 
   const resolveCounterStartDestination = useCallback(async () => {
-    const openDraftOrders = await loadOpenPosDraftOrders()
-    const initialDestination = resolveCounterDestinationFromOrders(
-      openDraftOrders,
-    )
-
-    if (initialDestination.orderCount === 0) {
-      syncActiveOrderState(null)
-      return initialDestination
-    }
-
-    if (initialDestination.orderCount > 1) {
-      syncActiveOrderState(null)
-      return initialDestination
-    }
-
-    const singleOrderId = normalizeId(
-      initialDestination.order?.id || initialDestination.order?.['@id'],
-    )
-    let detailedOrder = initialDestination.order
-
-    if (singleOrderId) {
-      detailedOrder = (await refreshActiveOrder(singleOrderId)) || detailedOrder
-    } else if (detailedOrder) {
-      detailedOrder =
-        syncActiveOrderState(await normalizeDraftOrderType(detailedOrder)) ||
-        detailedOrder
-    }
-
-    const finalDestination = resolveCounterDestinationFromOrders([
-      detailedOrder,
-    ])
-
-    return finalDestination
+    return resolveCounterStartDestinationFromSession({
+      loadOpenPosDraftOrders,
+      normalizeDraftOrderType,
+      refreshActiveOrder,
+      syncActiveOrderState,
+    })
   }, [
     loadOpenPosDraftOrders,
     normalizeDraftOrderType,
@@ -1035,4 +498,3 @@ export default function usePosCartSession({
     syncOrderPeople,
   }
 }
-// TODO(store-first): quando este arquivo for mexido, mover a leitura para stores, remover api.fetch e evitar repassar dados em objetos quando o store ja resolver isso.

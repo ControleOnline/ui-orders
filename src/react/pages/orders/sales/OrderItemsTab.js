@@ -571,13 +571,19 @@ const OrderItemsTab = ({
           </View>
         ) : (
           <OrderProducts
+            compactTree
             order={currentOrder}
             orderProducts={resolvedOrderProducts}
             styles={productStyles}
             showDetails
+            hierarchyGuideColor={ppcColors.accentInfo}
+            hierarchySurfaceColor={ppcColors.cardBg}
+            showHierarchyGuides
             showPricing={showPricing}
             showImages
+            showGroupStatusMarker={false}
             renderActions={renderOrderProductActions}
+            showRootStatusMarker={false}
             showRootQuantityPrefix={showRootQuantityPrefix}
             showQueuePresentation={showQueuePresentation}
           />

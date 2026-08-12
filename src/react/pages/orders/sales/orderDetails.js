@@ -38,6 +38,7 @@ import {
   normalizeText,
   resolveAddressDisplayParts,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay'
+import AddressForm from '@controleonline/ui-common/src/react/components/address/AddressForm'
 import {
   formatInvoiceTypeLabel,
   getInvoicePaymentTypeLabel,
@@ -2434,14 +2435,15 @@ const OrderDetails = ({ route, navigation }) => {
       return null
     }
 
-    // Grouped children must be edited through the parent customization flow so
-    // the group constraints remain consistent.
+    const isChildEntry = entryType === 'group' || !!card?.parentCardKey
     if (entryType === 'group') {
       return null
     }
 
-    const rootOrderProduct = card?.rootItem || orderProduct
-    if (isOrderProductProductionCompleted(rootOrderProduct)) {
+    const editableOrderProduct = isChildEntry
+      ? orderProduct
+      : card?.rootItem || orderProduct
+    if (isOrderProductProductionCompleted(editableOrderProduct)) {
       return null
     }
 
@@ -2452,11 +2454,13 @@ const OrderDetails = ({ route, navigation }) => {
     const quantity = Number(orderProduct?.quantity || 0)
     const isOpLoading = orderProductId ? isOrderProductCommitting(orderProductId) : false
     const isConfirming = orderProductId && confirmRemoveItemId === orderProductId
-    const canEditCustomization =
-      entryType === 'root' &&
-      canReopenOrderProductCustomization(rootOrderProduct)
-
-    if (!canEditCustomization && !orderProductId) {
+    const canEditCustomization = canReopenOrderProductCustomization(
+      editableOrderProduct,
+    )
+    if (
+      !canEditCustomization &&
+      (!orderProductId || isChildEntry)
+    ) {
       return null
     }
 
@@ -2464,7 +2468,8 @@ const OrderDetails = ({ route, navigation }) => {
       <View style={localStyles.orderProductActionStack}>
         {canEditCustomization && (
           <TouchableOpacity
-            onPress={() => handleEditCustomizableOrderProduct(rootOrderProduct)}
+            accessibilityLabel={`Personalizar ${editableOrderProduct?.product?.product || 'item'}`}
+            onPress={() => handleEditCustomizableOrderProduct(editableOrderProduct)}
             style={localStyles.orderProductCustomizeButton}
             disabled={isOpLoading}
           >
@@ -2472,7 +2477,7 @@ const OrderDetails = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
 
-        {orderProductId ? (
+        {!isChildEntry && orderProductId ? (
           isConfirming ? (
             <View style={localStyles.editConfirmRow}>
               <Text style={localStyles.editConfirmText}>Remover?</Text>
@@ -3597,86 +3602,19 @@ const OrderDetails = ({ route, navigation }) => {
                 </TouchableOpacity>
 
                 {addressModalMode === 'create' && (
-                  <>
-                    <TextInput
-                      value={addressForm.nickname}
-                      onChangeText={value => handleAddressFormFieldChange('nickname', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Referencia ou apelido"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <View style={localStyles.assignmentFormRow}>
-                      <TextInput
-                        value={addressForm.cep}
-                        onChangeText={value => handleAddressFormFieldChange('cep', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="CEP"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        keyboardType="number-pad"
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                      <TextInput
-                        value={addressForm.number}
-                        onChangeText={value => handleAddressFormFieldChange('number', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="Numero"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        keyboardType="number-pad"
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                    </View>
-                    <TextInput
-                      value={addressForm.street}
-                      onChangeText={value => handleAddressFormFieldChange('street', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Rua"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <TextInput
-                      value={addressForm.complement}
-                      onChangeText={value => handleAddressFormFieldChange('complement', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Complemento"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <TextInput
-                      value={addressForm.district}
-                      onChangeText={value => handleAddressFormFieldChange('district', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Bairro"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <TextInput
-                      value={addressForm.city}
-                      onChangeText={value => handleAddressFormFieldChange('city', value)}
-                      editable={!addressSaveLoading}
-                      placeholder="Cidade"
-                      placeholderTextColor={ppcColors.textSecondary}
-                      style={localStyles.assignmentFormInput}
-                    />
-                    <View style={localStyles.assignmentFormRow}>
-                      <TextInput
-                        value={addressForm.state}
-                        onChangeText={value => handleAddressFormFieldChange('state', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="Estado"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                      <TextInput
-                        value={addressForm.country}
-                        onChangeText={value => handleAddressFormFieldChange('country', value)}
-                        editable={!addressSaveLoading}
-                        placeholder="Pais"
-                        placeholderTextColor={ppcColors.textSecondary}
-                        style={[localStyles.assignmentFormInput, { flex: 1 }]}
-                      />
-                    </View>
-                  </>
+                  <AddressForm
+                    mode="create"
+                    hideActions
+                    row={addressForm}
+                    onFormChange={next =>
+                      setAddressForm(previousForm => ({
+                        ...previousForm,
+                        ...next,
+                        state: next.uf || next.state || previousForm.state,
+                        country: next.countryCode || next.country || previousForm.country,
+                      }))
+                    }
+                  />
                 )}
               </ScrollView>
 
