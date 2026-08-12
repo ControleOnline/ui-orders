@@ -1,15 +1,19 @@
 import {useCallback} from 'react';
+import {Text, TouchableOpacity} from 'react-native';
 import {
-  clearCreateInvoiceOnlyMode,
-  isCreateInvoiceOnlyMode,
-} from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
+  getPaymentGatewayLabel,
+  PAYMENT_GATEWAY_INFINITE_PAY,
+} from '@controleonline/ui-common/src/react/utils/paymentDevices';
+import {
+  isCashPaymentOption,
+} from '@controleonline/ui-common/src/react/utils/paymentOptions';
+import {normalizeGatewayPaymentError} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
 import {resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 import {
   LOYALTY_GIFT_ORDER_PRODUCT_COMMENT,
-  resolvePosClosedOrderStatusIri,
-  buildLoyaltyRewardPayment,
+  PAYMENT_CHANNEL_REMOTE,
 } from './checkoutStatusHelpers';
-import {parseMoneyInputValue} from '@controleonline/ui-common/src/react/utils/cashPayment';
+import styles from './Checkout.styles';
 
 export default function useCheckoutPayHandlers(d) {
   const {
@@ -23,6 +27,11 @@ export default function useCheckoutPayHandlers(d) {
     isLocalCieloPdv, localGateway, selectedRemoteDeviceId,
     materializedCheckoutOrder, setMaterializedCheckoutOrder,
     cashReceivedValue, isCashAmountEntry,
+    selectedPayment, selectedPaymentChannel, selectedRemoteDevice,
+    isRemotePaymentSelected, resolveOrderRemainingAmount,
+    setCashReceivedValue, setPaymentExplanationVisible,
+    handleConfirmCashAmountEntry, setRemoteDeviceModalVisible,
+    submittingPayment, orderProducts, setSelectedRemoteDeviceId,
   } = d;
 
   const handleEdit = orderItem => {
@@ -291,5 +300,6 @@ export default function useCheckoutPayHandlers(d) {
     handlePay,
     handleConfirmAmountEntry,
     handleInstallmentsSelect,
+    renderRemoteDeviceOption,
   };
 }
