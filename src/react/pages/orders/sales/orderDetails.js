@@ -38,7 +38,7 @@ import {
   normalizeText,
   resolveAddressDisplayParts,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay'
-import AddressForm from '@controleonline/ui-common/src/react/components/address/AddressForm'
+import DefaultAddress from '@controleonline/ui-default/src/react/components/address/DefaultAddress'
 import {
   formatInvoiceTypeLabel,
   getInvoicePaymentTypeLabel,
@@ -3602,7 +3602,7 @@ const OrderDetails = ({ route, navigation }) => {
                 </TouchableOpacity>
 
                 {addressModalMode === 'create' && (
-                  <AddressForm
+                  <DefaultAddress
                     mode="create"
                     hideActions
                     row={addressForm}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Feather';
 import {app_type} from '@appType';
 import { useStore } from '@store';
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService';
@@ -18,7 +17,6 @@ import {
   isPosCounterMode,
   isPosSingleItemMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import { getDateRange } from '@controleonline/ui-common/src/react/utils/dateRangeFilter';
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {
   buildAddProductsRouteParams,
@@ -27,7 +25,6 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import { shouldResumeCounterOrderFlow } from '@controleonline/ui-orders/src/react/utils/counterOrderFlow';
-import { resolveHistoryOrderTypeQuery } from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
 import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import {
   getCancelReasonLabel,
@@ -36,195 +33,31 @@ import {
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
 import {
-  clearCreateInvoiceOnlyMode,
   setCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
+import {
+  SIMPLE_TAB_KEYS,
+  ORDER_HISTORY_TABLE_PREFERENCE_KEY,
+  normalizeText,
+  buildDefaultHistoryFilters,
+  buildExternalColumnsSignature,
+  resolveOrderTypeFilter,
+  getEntityId,
+  getPeopleLabel,
+  isCanceledOrder,
+  getCurrentUserLabel,
+  buildOrderHistoryPalette,
+  buildHistoryRequestParams,
+  buildStatusOptions,
+  configureOrderHistoryColumns,
+} from './orderHistoryHelpers';
+import OrderHistoryRowActions from './OrderHistoryRowActions';
+import OrderHistoryCard from './OrderHistoryCard';
+import usePurchaseSupplierLabels from './usePurchaseSupplierLabels';
+import useOrderCancellation from './useOrderCancellation';
 
-const ORDER_TYPE_FILTER_KEYS = new Set(['sale', 'purchase', 'transfer', 'loss']);
-const SIMPLE_TAB_KEYS = new Set(['transfer', 'loss']);
-const TERMINAL_ORDER_STATUSES = new Set(['closed', 'canceled', 'cancelled']);
-const ORDER_HISTORY_TABLE_PREFERENCE_KEY = 'order-history-page';
-
-const normalizeText = value => String(value || '').trim();
-
-const buildDefaultHistoryFilters = () => ({
-  alterDate: {
-    shortcut: 'today',
-    customRange: { from: '', to: '' },
-  },
-});
-
-const buildExternalColumnsSignature = columns =>
-  (Array.isArray(columns) ? columns : [])
-    .map(column => [
-      column?.key || column?.name || '',
-      column?.externalFilter === true ? '1' : '0',
-      column?.inputType || column?.type || '',
-      column?.label || '',
-      column?.list ? '1' : '0',
-      column?.emptyOptionLabel || '',
-    ].join(':'))
-    .join('|');
-
-const resolveOrderTypeFilter = value => {
-  const normalizedValue = normalizeText(value).toLowerCase();
-  return ORDER_TYPE_FILTER_KEYS.has(normalizedValue) ? normalizedValue : 'sale';
-};
-
-const resolveDateRangeFilter = value => {
-  if (!value || typeof value !== 'object') {
-    return {};
-  }
-
-  const shortcut = value.shortcut || value.value || 'all';
-  const customRange = value.customRange || { from: '', to: '' };
-  const dateRange = getDateRange(shortcut, customRange, {
-    relativeMode: 'rolling',
-    useCurrentMoment: true,
-  });
-
-  return {
-    after: dateRange?.after || '',
-    before: dateRange?.before || '',
-  };
-};
-
-const getEntityId = entity => {
-  if (!entity) return null;
-
-  if (typeof entity === 'number' || typeof entity === 'string') {
-    const matches = String(entity).match(/\d+/g);
-    return matches ? Number(matches[matches.length - 1]) : null;
-  }
-
-  if (typeof entity === 'object') {
-    if (entity.id) return Number(entity.id);
-    if (entity['@id']) {
-      const matches = String(entity['@id']).match(/\d+/g);
-      return matches ? Number(matches[matches.length - 1]) : null;
-    }
-  }
-
-  return null;
-};
-
-const getPeopleLabel = entity =>
-  normalizeText(
-    entity?.alias ||
-    entity?.name ||
-    entity?.fantasy_name ||
-    entity?.company ||
-    entity?.document
-  );
-
-const formatApiError = error =>
-  normalizeText(
-    error?.errmsg ||
-    error?.message ||
-    error?.error ||
-    error?.description ||
-    error?.['hydra:description'],
-  ) || 'Nao foi possivel concluir a operacao.';
-
-const isCancelableOrder = order => {
-  const realStatus = normalizeText(order?.status?.realStatus || order?.realStatus).toLowerCase();
-  const status = normalizeText(order?.status?.status || order?.status).toLowerCase();
-
-  return !TERMINAL_ORDER_STATUSES.has(realStatus) && !TERMINAL_ORDER_STATUSES.has(status);
-};
-
-const isCanceledOrder = order => {
-  const realStatus = normalizeText(order?.status?.realStatus || order?.realStatus).toLowerCase();
-  const status = normalizeText(order?.status?.status || order?.status).toLowerCase();
-
-  return ['canceled', 'cancelled'].includes(realStatus) ||
-    ['canceled', 'cancelled', 'cancelado'].includes(status);
-};
-
-const getCurrentUserLabel = user =>
-  normalizeText(
-    user?.people?.alias ||
-    user?.people?.name ||
-    user?.name ||
-    user?.email ||
-    user?.username,
-  );
-
-const buildOrderHistoryPalette = themeColors => ({
-  cardBackground: themeColors.cardBackground,
-  cardBorder: themeColors.cardBorder,
-  cardShadow: themeColors.cardShadow,
-  dividerBorder: themeColors.dividerBorder,
-  pageBackground: themeColors.pageBackground,
-  textPrimary: themeColors.textPrimary,
-  textSecondary: themeColors.textSecondary,
-});
-
-export const buildHistoryRequestParams = ({
-  appType = app_type,
-  canViewCompanyOrders,
-  currentCompanyId,
-  currentDeviceId,
-  filters,
-  orderTypeFilter,
-  showAdvancedFilters,
-}) => {
-  if (!currentCompanyId) {
-    return null;
-  }
-
-  const query = {
-    provider: `/people/${currentCompanyId}`,
-    orderType: resolveHistoryOrderTypeQuery({
-      orderTypeFilter,
-    }),
-  };
-
-  if (showAdvancedFilters && orderTypeFilter === 'sale') {
-    query.report = 1;
-  }
-
-  if (!showAdvancedFilters && orderTypeFilter === 'sale') {
-    query['status.realStatus'] = 'open';
-  }
-
-  if (showAdvancedFilters && filters?.app) {
-    query.app = filters.app;
-  }
-
-  if (showAdvancedFilters && filters?.status) {
-    query.status = filters.status;
-  }
-
-  if (appType === 'POS' && !canViewCompanyOrders && currentDeviceId) {
-    query['device.device'] = currentDeviceId;
-  }
-
-  if (showAdvancedFilters) {
-    const orderDateRange = resolveDateRangeFilter(filters?.orderDate);
-    const dateRange = resolveDateRangeFilter(filters?.alterDate);
-
-    if (orderDateRange?.after) {
-      query['orderDate[after]'] = orderDateRange.after;
-    }
-
-    if (orderDateRange?.before) {
-      query['orderDate[before]'] = orderDateRange.before;
-    }
-
-    if (dateRange?.after) {
-      query['alterDate[after]'] = dateRange.after;
-    }
-
-    if (dateRange?.before) {
-      query['alterDate[before]'] = dateRange.before;
-    }
-  }
-
-  return query;
-};
-
+export { buildHistoryRequestParams };
 export default function OrderHistoryPage({ navigation, route }) {
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
@@ -279,14 +112,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     [],
   );
   const [historyFilters, setHistoryFilters] = useState(buildDefaultHistoryFilters);
-  const [cancelModalOrder, setCancelModalOrder] = useState(null);
-  const [cancelReasons, setCancelReasons] = useState([]);
-  const [selectedCancelReasonId, setSelectedCancelReasonId] = useState('');
-  const [cancelReasonText, setCancelReasonText] = useState('');
-  const [cancelDetailsOrder, setCancelDetailsOrder] = useState(null);
-  const [cancelReasonsLoading, setCancelReasonsLoading] = useState(false);
-  const [cancellingOrder, setCancellingOrder] = useState(false);
-  const [reasonManagerVisible, setReasonManagerVisible] = useState(false);
   const applyHistoryFilters = useCallback(
     nextFilters => {
       const resolvedFilters =
@@ -302,8 +127,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     },
     [orderActions],
   );
-  const [purchaseSuppliersById, setPurchaseSuppliersById] = useState({});
-  const loadingPurchaseSuppliersRef = useRef(new Set());
 
   const routeOrderTypeFilter = useMemo(
     () => resolveOrderTypeFilter(route?.params?.orderTypeFilter),
@@ -319,31 +142,7 @@ export default function OrderHistoryPage({ navigation, route }) {
     [defaultHistoryTitle, route?.params?.historyTitle],
   );
 
-  const statusOptions = useMemo(() => {
-    const seenKeys = new Set();
-    return statusItems
-      .filter(item => normalizeText(item?.context).toLowerCase() === 'order')
-      .reduce((accumulator, status) => {
-        const key = normalizeText(
-          status?.['@id'] || (status?.id ? `/statuses/${status.id}` : ''),
-        );
-
-        if (!key || seenKeys.has(key)) {
-          return accumulator;
-        }
-
-        seenKeys.add(key);
-        const statusKey = normalizeText(status?.status).toLowerCase();
-        accumulator.push({
-          ...status,
-          value: key,
-          label: global.t?.t('orders', 'status', statusKey),
-          ...(normalizeText(status?.color) ? { color: status.color } : {}),
-          ...(normalizeText(status?.icon) ? { icon: status.icon } : {}),
-        });
-        return accumulator;
-      }, []);
-  }, [statusItems]);
+  const statusOptions = useMemo(() => buildStatusOptions(statusItems), [statusItems]);
 
   useEffect(() => {
     navigation.setOptions?.({ title: historyPageTitle });
@@ -462,56 +261,11 @@ export default function OrderHistoryPage({ navigation, route }) {
   }, [orderTypeFilter]);
 
   const configuredOrderColumns = useMemo(
-    () => (ordersGetters.columns || []).map(column => {
-      const fieldName = column?.name || column?.key;
-
-      if (fieldName === 'app') {
-        return {
-          ...column,
-          externalFilter: showAdvancedFilters && orderTypeFilter === 'sale',
-          emptyOptionLabel: allChannelOption.label,
-          label: 'channel',
-        };
-      }
-
-      if (fieldName === 'status') {
-        return {
-          ...column,
-          externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter),
-          emptyOptionLabel: allChannelOption.label,
-          list: 'status/getItems',
-        };
-      }
-
-      if (fieldName === 'orderDate') {
-        return {
-          ...column,
-          externalFilter: showAdvancedFilters,
-          inputType: 'date-range',
-          show: true,
-        };
-      }
-
-      if (fieldName === 'alterDate') {
-        return {
-          ...column,
-          externalFilter: showAdvancedFilters,
-          inputType: 'date-range',
-          label: 'period',
-        };
-      }
-
-      return {
-        ...column,
-        externalFilter: false,
-      };
+    () => configureOrderHistoryColumns({
+      columns: ordersGetters.columns, showAdvancedFilters, orderTypeFilter,
+      allChannelLabel: allChannelOption.label,
     }),
-    [
-      allChannelOption.label,
-      orderTypeFilter,
-      ordersGetters.columns,
-      showAdvancedFilters,
-    ],
+    [allChannelOption.label, orderTypeFilter, ordersGetters.columns, showAdvancedFilters],
   );
   const orderColumnsReady = useMemo(
     () =>
@@ -555,109 +309,20 @@ export default function OrderHistoryPage({ navigation, route }) {
       storagedDevice?.id,
     ],
   );
+  const {
+    cancelModalOrder, cancelDetailsOrder, setCancelDetailsOrder, cancelReasons,
+    selectedCancelReasonId, setSelectedCancelReasonId, cancelReasonText, setCancelReasonText,
+    cancelReasonsLoading, cancellingOrder, reasonManagerVisible, setReasonManagerVisible,
+    openCancelModal, closeCancelModal, closeReasonManager, confirmCancelOrder,
+  } = useOrderCancellation({
+    currentCompanyId: currentCompany?.id, historyRequestParams, orderActions, showError, showSuccess,
+  });
 
   const orders = useMemo(
     () => (Array.isArray(ordersGetters.items) ? ordersGetters.items : []),
     [ordersGetters.items],
   );
-
-  const loadCancelReasons = useCallback(async order => {
-    const orderId = getEntityId(order);
-    if (!orderId || typeof orderActions.getCancelReasons !== 'function') {
-      setCancelReasons([]);
-      return [];
-    }
-
-    setCancelReasonsLoading(true);
-    try {
-      const reasons = await orderActions.getCancelReasons({
-        id: orderId,
-        companyId: currentCompany?.id,
-      });
-      const applicableReasons = (Array.isArray(reasons) ? reasons : [])
-        .filter(reason => reason?.applicable !== false);
-      setCancelReasons(applicableReasons);
-      return applicableReasons;
-    } catch (error) {
-      setCancelReasons([]);
-      showError?.(formatApiError(error));
-      return [];
-    } finally {
-      setCancelReasonsLoading(false);
-    }
-  }, [currentCompany?.id, orderActions, showError]);
-
-  const openCancelModal = useCallback(order => {
-    setCancelModalOrder(order);
-    setCancelReasons([]);
-    setSelectedCancelReasonId('');
-    setCancelReasonText('');
-    void loadCancelReasons(order);
-  }, [loadCancelReasons]);
-
-  const closeCancelModal = useCallback(() => {
-    if (cancellingOrder) return;
-    setCancelModalOrder(null);
-    setCancelReasons([]);
-    setSelectedCancelReasonId('');
-    setCancelReasonText('');
-  }, [cancellingOrder]);
-
-  const closeReasonManager = useCallback(() => {
-    setReasonManagerVisible(false);
-    if (cancelModalOrder) {
-      void loadCancelReasons(cancelModalOrder);
-    }
-  }, [cancelModalOrder, loadCancelReasons]);
-
-  const confirmCancelOrder = useCallback(async () => {
-    const orderId = getEntityId(cancelModalOrder);
-    if (!orderId || typeof orderActions.cancelOrder !== 'function') {
-      return;
-    }
-
-    const selectedReason = cancelReasons.find(reason =>
-      normalizeText(
-        reason?.reason_id ??
-        reason?.reasonId ??
-        reason?.cancelCodeId ??
-        reason?.cancelCode ??
-        reason?.code ??
-        reason?.id ??
-        reason?.value,
-      ) === selectedCancelReasonId,
-    );
-
-    setCancellingOrder(true);
-    try {
-      await orderActions.cancelOrder({
-        id: orderId,
-        companyId: currentCompany?.id,
-        reasonId: selectedCancelReasonId,
-        reason: cancelReasonText || getCancelReasonLabel(selectedReason),
-        reloadParams: historyRequestParams,
-      });
-      showSuccess?.(global.t?.t('orders', 'message', 'orderCanceled'));
-      setCancelModalOrder(null);
-      setCancelReasons([]);
-      setSelectedCancelReasonId('');
-      setCancelReasonText('');
-    } catch (error) {
-      showError?.(formatApiError(error));
-    } finally {
-      setCancellingOrder(false);
-    }
-  }, [
-    cancelModalOrder,
-    cancelReasonText,
-    cancelReasons,
-    currentCompany?.id,
-    historyRequestParams,
-    orderActions,
-    selectedCancelReasonId,
-    showError,
-    showSuccess,
-  ]);
+  const purchaseSuppliersById = usePurchaseSupplierLabels(orders, peopleActions);
 
   const orderToolbarActions = useMemo(
     () => [
@@ -699,160 +364,10 @@ export default function OrderHistoryPage({ navigation, route }) {
     );
   }, [deviceConfig?.configs, navigation, orderActions]);
 
-  const renderRowActions = useCallback(({ row }) => {
-    if (isCanceledOrder(row)) {
-      return (
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={
-            global.t?.t('orders', 'button', 'viewCancellationDetails') ||
-            'Ver cancelamento'
-          }
-          style={[
-            styles.rowActionButton,
-            {
-              borderColor: themeColors.buttonBackground,
-              backgroundColor: themeColors.buttonBackground,
-            },
-          ]}
-          activeOpacity={0.82}
-          onPress={event => {
-            event?.stopPropagation?.();
-            setCancelDetailsOrder(row);
-          }}
-        >
-          <Icon name="eye" size={16} color={themeColors.buttonIcon} />
-        </TouchableOpacity>
-      );
-    }
-
-    const canCancel = isCancelableOrder(row);
-    // Qualquer pedido não cancelado: permite abrir modal para adicionar produtos e pagamento
-    const canCreateInvoice = !isCanceledOrder(row);
-
-    if (!canCancel && !canCreateInvoice) {
-      return null;
-    }
-
-    return (
-      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-        {canCreateInvoice ? (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={
-              global.t?.t('orders', 'button', 'createInvoice') || 'Criar fatura'
-            }
-            style={[
-              styles.rowActionButton,
-              {
-                borderColor: themeColors.buttonBackground,
-                backgroundColor: themeColors.buttonBackground,
-              },
-            ]}
-            activeOpacity={0.82}
-            onPress={event => {
-              event?.stopPropagation?.();
-              openCreateInvoiceFlow(row);
-            }}
-          >
-            <Icon name="file-text" size={16} color={themeColors.buttonIcon} />
-          </TouchableOpacity>
-        ) : null}
-        {canCancel ? (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={global.t?.t('orders', 'button', 'cancelOrder')}
-            style={[
-              styles.rowActionButton,
-              {
-                borderColor: themeColors.buttonBackground,
-                backgroundColor: themeColors.buttonBackground,
-              },
-            ]}
-            activeOpacity={0.82}
-            onPress={event => {
-              event?.stopPropagation?.();
-              openCancelModal(row);
-            }}
-          >
-            <Icon name="trash-2" size={16} color={themeColors.buttonIcon} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    );
-  }, [
-    openCancelModal,
-    openCreateInvoiceFlow,
-    styles.rowActionButton,
-    themeColors,
-  ]);
-
-  useEffect(() => {
-    const missingSupplierIds = [...new Set(
-      orders
-        .filter(order => order?.orderType === 'purchase')
-        .map(order => {
-          const supplierId = getEntityId(order?.client);
-          const supplierLabel = getPeopleLabel(order?.client);
-          const alreadyResolved = supplierId
-            ? Object.prototype.hasOwnProperty.call(purchaseSuppliersById, supplierId)
-            : false;
-
-          if (
-            !supplierId ||
-            supplierLabel ||
-            alreadyResolved ||
-            loadingPurchaseSuppliersRef.current.has(supplierId)
-          ) {
-            return null;
-          }
-
-          return supplierId;
-        })
-        .filter(Boolean)
-    )];
-
-    if (!missingSupplierIds.length) return undefined;
-
-    missingSupplierIds.forEach(id => loadingPurchaseSuppliersRef.current.add(id));
-
-    let cancelled = false;
-
-    (async () => {
-      const resolvedSuppliers = await Promise.all(
-        missingSupplierIds.map(async id => {
-          try {
-            const supplier = await peopleActions.get(id);
-            return [id, getPeopleLabel(supplier)];
-          } catch {
-            return [id, ''];
-          } finally {
-            loadingPurchaseSuppliersRef.current.delete(id);
-          }
-        }),
-      );
-
-      if (cancelled) return;
-
-      setPurchaseSuppliersById(prev => {
-        let changed = false;
-        const next = { ...prev };
-
-        resolvedSuppliers.forEach(([id, label]) => {
-          if (next[id] !== label) {
-            next[id] = label;
-            changed = true;
-          }
-        });
-
-        return changed ? next : prev;
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [orders, peopleActions, purchaseSuppliersById]);
+  const renderRowActions = useCallback(({ row }) => (
+    <OrderHistoryRowActions row={row} styles={styles} themeColors={themeColors}
+      onViewCancellation={setCancelDetailsOrder} onCreateInvoice={openCreateInvoiceFlow} onCancelOrder={openCancelModal} />
+  ), [openCancelModal, openCreateInvoiceFlow, styles, themeColors]);
 
   const goToAddProduct = useCallback(() => {
     if (orderTypeFilter === 'purchase') {
@@ -895,41 +410,9 @@ export default function OrderHistoryPage({ navigation, route }) {
     navigation.navigate('OrderDetails', buildOrderDetailsRouteParams(order));
   }, [deviceConfig?.configs, navigation, orderActions]);
 
-  const renderCard = useCallback(({ item: order, openRow }) => {
-    const isPurchase = order.orderType === 'purchase';
-    const isTransfer = order.orderType === 'transfer';
-    const isLoss = order.orderType === 'loss';
-    const purchaseSupplierId = getEntityId(order?.client);
-    const purchaseSupplierLabel =
-      getPeopleLabel(order?.client) ||
-      (purchaseSupplierId ? purchaseSuppliersById[purchaseSupplierId] : '');
-
-    const channelLabel = isPurchase
-      ? (purchaseSupplierLabel || global.t?.t('orders', 'label', 'supplier'))
-      : isTransfer
-        ? global.t?.t('orders', 'label', 'stock_transfer')
-        : isLoss
-          ? global.t?.t('orders', 'label', 'stock_loss')
-          : '';
-    const showChannelLabel = isPurchase || isTransfer || isLoss;
-
-    return (
-      <TouchableOpacity
-        key={order.id}
-        style={styles.orderCard}
-        activeOpacity={0.85}
-        onPress={openRow || (() => openOrder(order))}
-      >
-        <OrderHeader order={order} isKds={false} layout="historyCompact" />
-
-        {showChannelLabel && (
-          <View style={styles.cardMetaRow}>
-            <Text style={styles.channelText} numberOfLines={1}>{channelLabel}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }, [openOrder, purchaseSuppliersById]);
+  const renderCard = useCallback(({ item: order, openRow }) => (
+    <OrderHistoryCard order={order} openRow={openRow} onOpenOrder={openOrder} styles={styles} purchaseSuppliersById={purchaseSuppliersById} />
+  ), [openOrder, purchaseSuppliersById, styles]);
 
   if (shouldResumeCounterFlow || !currentCompany?.id || !orderColumnsReady) {
     return (
