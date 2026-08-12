@@ -1,17 +1,55 @@
-import {useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react';
+import {TouchableOpacity} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import {
+  buildAddProductsRouteParams,
   buildManagerPdvRouteParams,
   buildOrderDetailsRouteParams,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 
-/**
- * Navigation helpers for Checkout page (resets + order details params).
- * Extracted to keep Checkout.js under the absolute 500-line limit.
- */
 export default function useCheckoutNavigation({
-  navigation,
+  checkoutOrderId,
   isPdvInteractionMode,
+  isSingleItemMode,
+  navigation,
 }) {
+  const returnToSingleItemCatalog = useCallback(() => {
+    if (!checkoutOrderId) {
+      navigation.goBack?.();
+      return;
+    }
+
+    const catalogRoute = buildAddProductsRouteParams(
+      checkoutOrderId,
+      buildManagerPdvRouteParams({singleItemMode: true}),
+    );
+
+    if (typeof navigation.popTo === 'function') {
+      navigation.popTo('PdvPage', catalogRoute);
+    } else if (typeof navigation.replace === 'function') {
+      navigation.replace('PdvPage', catalogRoute);
+    } else {
+      navigation.navigate('PdvPage', catalogRoute);
+    }
+  }, [checkoutOrderId, navigation]);
+
+  useEffect(() => {
+    if (!isSingleItemMode) return undefined;
+
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          accessibilityLabel="Voltar ao catalogo"
+          onPress={returnToSingleItemCatalog}
+          style={{paddingHorizontal: 12, paddingVertical: 8}}>
+          <Icon name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+
+    return () => navigation.setOptions({headerLeft: undefined});
+  }, [isSingleItemMode, navigation, returnToSingleItemCatalog]);
+
   const buildOrderDetailsNavigationParams = useCallback(
     orderItem =>
       buildOrderDetailsRouteParams(
@@ -51,8 +89,9 @@ export default function useCheckoutNavigation({
 
   return {
     buildOrderDetailsNavigationParams,
-    resetToSelfServiceCatalog,
     resetToCounterDestination,
     resetToOrderHistory,
+    resetToSelfServiceCatalog,
+    returnToSingleItemCatalog,
   };
 }
