@@ -1,5 +1,19 @@
 import {useCallback} from 'react';
-import {digitsOnly} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
+import {Text, TouchableOpacity, View} from 'react-native';
+import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import {
+  getPaymentOptionLabel,
+  isCashPaymentOption,
+} from '@controleonline/ui-common/src/react/utils/paymentOptions';
+import {
+  digitsOnly,
+  resolvePeopleId,
+} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
+import {
+  LOYALTY_REWARD_PAYMENT_LABEL,
+  PAYMENT_CHANNEL_LOCAL,
+} from './checkoutStatusHelpers';
+import styles from './Checkout.styles';
 
 export default function useCheckoutLoyaltyHandlers(d) {
   const {
@@ -7,6 +21,11 @@ export default function useCheckoutLoyaltyHandlers(d) {
     setLoyaltyCpfStepCompleted, setLoyaltyCpfStepSkipped, selectedLoyaltyPerson,
     requiresLoyaltyCpfStep, loyaltyCpfStepCompleted, loyaltyCpfStepSkipped,
     setLoadingLoyaltySnapshot, setLoyaltySnapshotError, setRewardableLoyaltyCard,
+    loadingLoyaltySnapshot, loyaltySnapshotError, invoiceActions,
+    loyaltyCpfResults, loyaltyRewardOnlyMode, submittingPayment,
+    themeColors, selectedPayment, loadingPaymentOptions, allPaymentOptions,
+    isRemotePaymentSelected, selectedRemoteDevice, amountEntryModalMode,
+    isCashAmountEntry, remainingAmount, cashPaymentDetails, cashPaymentContext,
   } = d;
 
   const handleLoyaltyCpfInputChange = useCallback(value => {
@@ -216,5 +235,22 @@ export default function useCheckoutLoyaltyHandlers(d) {
     handleSelectLoyaltyPerson,
     handleSkipLoyaltyCpfStep,
     handleContinueAfterLoyaltyCpf,
+    shouldRenderLoyaltyCpfStep,
+    loyaltyPreviewPerson,
+    loyaltyPreviewFullName,
+    loyaltyPreviewCpf,
+    isLoyaltyPreviewSelected,
+    paymentTopContent,
+    emptyTitle,
+    emptyText,
+    payDisabled,
+    actionLabel,
+    actionIcon,
+    amountEntryTitle,
+    amountEntryDescription,
+    amountEntryFieldLabel,
+    amountEntryDetails,
+    paymentExplanationTitle,
+    paymentExplanationDescription,
   };
 }

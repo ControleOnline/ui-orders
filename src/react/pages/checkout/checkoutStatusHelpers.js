@@ -4,28 +4,28 @@
 import {Platform} from 'react-native';
 import {api} from '@controleonline/ui-common/src/api';
 
-const PAYMENT_CHANNEL_LOCAL = 'local';
-const PAYMENT_CHANNEL_REMOTE = 'remote';
-const IS_WEB_PLATFORM = Platform.OS === 'web';
-const LOYALTY_REWARD_PAYMENT_CODE = 'VOUCHER_CORTESIA';
-const LOYALTY_REWARD_PAYMENT_LABEL = 'Cartao Fidelidade';
-const LOYALTY_GIFT_ORDER_PRODUCT_COMMENT = 'Brinde fidelidade';
+export const PAYMENT_CHANNEL_LOCAL = 'local';
+export const PAYMENT_CHANNEL_REMOTE = 'remote';
+export const IS_WEB_PLATFORM = Platform.OS === 'web';
+export const LOYALTY_REWARD_PAYMENT_CODE = 'VOUCHER_CORTESIA';
+export const LOYALTY_REWARD_PAYMENT_LABEL = 'Cartao Fidelidade';
+export const LOYALTY_GIFT_ORDER_PRODUCT_COMMENT = 'Brinde fidelidade';
 
-const normalizeStatusKey = value => String(value || '').trim().toLowerCase();
+export const normalizeStatusKey = value => String(value || '').trim().toLowerCase();
 
-const extractCollectionItems = response => {
+export const extractCollectionItems = response => {
   if (Array.isArray(response)) return response;
   if (Array.isArray(response?.member)) return response.member;
   if (Array.isArray(response?.['hydra:member'])) return response['hydra:member'];
   return [];
 };
 
-const buildStatusIriFromId = value => {
+export const buildStatusIriFromId = value => {
   const normalizedId = String(value || '').replace(/\D/g, '');
   return normalizedId ? `/statuses/${normalizedId}` : null;
 };
 
-const buildLoyaltyRewardPayment = payment => {
+export const buildLoyaltyRewardPayment = payment => {
   if (!payment) {
     return null;
   }
@@ -45,7 +45,7 @@ const buildLoyaltyRewardPayment = payment => {
 let posPaidInvoiceStatusIriCache = null;
 let posClosedOrderStatusIriCache = null;
 
-const resolvePosPaidInvoiceStatusIri = async fallbackStatusId => {
+export const resolvePosPaidInvoiceStatusIri = async fallbackStatusId => {
   if (posPaidInvoiceStatusIriCache) return posPaidInvoiceStatusIriCache;
 
   const fallbackIri = buildStatusIriFromId(fallbackStatusId);
@@ -80,7 +80,7 @@ const resolvePosPaidInvoiceStatusIri = async fallbackStatusId => {
   }
 };
 
-const resolvePosClosedOrderStatusIri = async fallbackStatusId => {
+export const resolvePosClosedOrderStatusIri = async fallbackStatusId => {
   if (posClosedOrderStatusIriCache) return posClosedOrderStatusIriCache;
 
   const fallbackIri = buildStatusIriFromId(fallbackStatusId);
@@ -113,20 +113,4 @@ const resolvePosClosedOrderStatusIri = async fallbackStatusId => {
   } catch {
     return fallbackIri;
   }
-};
-
-
-module.exports = {
-  PAYMENT_CHANNEL_LOCAL,
-  PAYMENT_CHANNEL_REMOTE,
-  IS_WEB_PLATFORM,
-  LOYALTY_REWARD_PAYMENT_CODE,
-  LOYALTY_REWARD_PAYMENT_LABEL,
-  LOYALTY_GIFT_ORDER_PRODUCT_COMMENT,
-  normalizeStatusKey,
-  extractCollectionItems,
-  buildStatusIriFromId,
-  buildLoyaltyRewardPayment,
-  resolvePosPaidInvoiceStatusIri,
-  resolvePosClosedOrderStatusIri,
 };
