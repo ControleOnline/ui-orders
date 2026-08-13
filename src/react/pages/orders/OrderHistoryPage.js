@@ -253,7 +253,7 @@ export default function OrderHistoryPage({ navigation, route }) {
       return global.t?.t('orders', 'placeholder', 'search_purchase');
     }
     if (orderTypeFilter === 'transfer') {
-      return global.t?.t('orders', 'placeholder', 'search_loss');
+      return global.t?.t('orders', 'placeholder', 'search_transfer');
     }
     if (orderTypeFilter === 'loss') {
       return global.t?.t('orders', 'placeholder', 'search_loss');
