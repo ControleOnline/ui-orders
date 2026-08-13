@@ -33,6 +33,7 @@ import {
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
 import {
+  clearCreateInvoiceOnlyMode,
   setCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
