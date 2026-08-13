@@ -33,6 +33,7 @@ import {
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
 import {
+  clearCreateInvoiceOnlyMode,
   setCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
@@ -252,7 +253,7 @@ export default function OrderHistoryPage({ navigation, route }) {
       return global.t?.t('orders', 'placeholder', 'search_purchase');
     }
     if (orderTypeFilter === 'transfer') {
-      return global.t?.t('orders', 'placeholder', 'search_transfer');
+      return global.t?.t('orders', 'placeholder', 'search_loss');
     }
     if (orderTypeFilter === 'loss') {
       return global.t?.t('orders', 'placeholder', 'search_loss');
