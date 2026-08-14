@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -59,6 +59,21 @@ import usePurchaseSupplierLabels from './usePurchaseSupplierLabels';
 import useOrderCancellation from './useOrderCancellation';
 
 export { buildHistoryRequestParams };
+
+/** Stable compare for history filter objects to avoid setState/setFilters loops (React #185). */
+const areHistoryFiltersEqual = (a, b) => {
+  try {
+    return JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
+  } catch {
+    return a === b;
+  }
+};
+
+const buildStatusOptionsSignature = options =>
+  (Array.isArray(options) ? options : [])
+    .map(option => `${option?.value || option?.key || ''}:${option?.label || ''}`)
+    .join('|');
+
 export default function OrderHistoryPage({ navigation, route }) {
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
@@ -86,6 +101,11 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { colors: themeColors } = themeStore.getters;
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
+  const setFiltersRef = useRef(orderActions?.setFilters);
+  setFiltersRef.current = orderActions?.setFilters;
+  const setColumnsRef = useRef(orderActions?.setColumns);
+  setColumnsRef.current = orderActions?.setColumns;
+
   const orderHistoryPalette = useMemo(
     () => buildOrderHistoryPalette(themeColors),
     [themeColors],
@@ -113,21 +133,26 @@ export default function OrderHistoryPage({ navigation, route }) {
     [],
   );
   const [historyFilters, setHistoryFilters] = useState(buildDefaultHistoryFilters);
-  const applyHistoryFilters = useCallback(
-    nextFilters => {
-      const resolvedFilters =
-        nextFilters && typeof nextFilters === 'object' && !Array.isArray(nextFilters)
-          ? nextFilters
-          : {};
+  const historyFiltersRef = useRef(historyFilters);
+  historyFiltersRef.current = historyFilters;
 
-      setHistoryFilters(resolvedFilters);
+  const applyHistoryFilters = useCallback(nextFilters => {
+    const resolvedFilters =
+      nextFilters && typeof nextFilters === 'object' && !Array.isArray(nextFilters)
+        ? nextFilters
+        : {};
 
-      if (typeof orderActions.setFilters === 'function') {
-        orderActions.setFilters(resolvedFilters);
-      }
-    },
-    [orderActions],
-  );
+    if (areHistoryFiltersEqual(historyFiltersRef.current, resolvedFilters)) {
+      return;
+    }
+
+    setHistoryFilters(resolvedFilters);
+    historyFiltersRef.current = resolvedFilters;
+
+    if (typeof setFiltersRef.current === 'function') {
+      setFiltersRef.current(resolvedFilters);
+    }
+  }, []);
 
   const routeOrderTypeFilter = useMemo(
     () => resolveOrderTypeFilter(route?.params?.orderTypeFilter),
@@ -144,6 +169,10 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   const statusOptions = useMemo(() => buildStatusOptions(statusItems), [statusItems]);
+  const statusOptionsSignature = useMemo(
+    () => buildStatusOptionsSignature(statusOptions),
+    [statusOptions],
+  );
 
   useEffect(() => {
     navigation.setOptions?.({ title: historyPageTitle });
@@ -162,15 +191,17 @@ export default function OrderHistoryPage({ navigation, route }) {
         changed = true;
       }
 
-      if (changed) {
-        if (typeof orderActions.setFilters === 'function') {
-          orderActions.setFilters(next);
-        }
+      if (!changed) {
+        return current;
       }
 
-      return changed ? next : current;
+      historyFiltersRef.current = next;
+      if (typeof setFiltersRef.current === 'function') {
+        setFiltersRef.current(next);
+      }
+      return next;
     });
-  }, [orderActions, statusOptions]);
+  }, [statusOptionsSignature, statusOptions]);
 
   const isCashRegisterClosed = useMemo(
     () => isPosCashRegisterClosed(deviceConfig?.configs),
@@ -285,10 +316,10 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   useEffect(() => {
-    if (!orderColumnsReady) {
-      orderActions.setColumns(configuredOrderColumns);
+    if (!orderColumnsReady && typeof setColumnsRef.current === 'function') {
+      setColumnsRef.current(configuredOrderColumns);
     }
-  }, [configuredOrderColumns, orderActions, orderColumnsReady]);
+  }, [configuredOrderColumns, orderColumnsReady]);
 
   const historyRequestParams = useMemo(
     () =>
