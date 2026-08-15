@@ -103,7 +103,7 @@ export const buildHistoryRequestParams = ({
   if (showAdvancedFilters) {
     const orderDateRange = resolveDateRangeFilter(filters?.orderDate);
     const dateRange = resolveDateRangeFilter(filters?.alterDate);
-    if (orderDateRange?.after) query['orderDate[after]'] = dateRange.after;
+    if (orderDateRange?.after) query['orderDate[after]'] = orderDateRange.after;
     if (orderDateRange?.before) query['orderDate[before]'] = orderDateRange.before;
     if (dateRange?.after) query['alterDate[after]'] = dateRange.after;
     if (dateRange?.before) query['alterDate[before]'] = dateRange.before;
