@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -38,27 +38,23 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
 import {
-  SIMPLE_TAB_KEYS,
   ORDER_HISTORY_TABLE_PREFERENCE_KEY,
   normalizeText,
-  buildDefaultHistoryFilters,
   buildExternalColumnsSignature,
   resolveOrderTypeFilter,
-  getEntityId,
-  getPeopleLabel,
-  isCanceledOrder,
   getCurrentUserLabel,
   buildOrderHistoryPalette,
   buildHistoryRequestParams,
-  buildStatusOptions,
   configureOrderHistoryColumns,
 } from './orderHistoryHelpers';
 import OrderHistoryRowActions from './OrderHistoryRowActions';
 import OrderHistoryCard from './OrderHistoryCard';
 import usePurchaseSupplierLabels from './usePurchaseSupplierLabels';
 import useOrderCancellation from './useOrderCancellation';
+import useOrderHistoryFilters from './useOrderHistoryFilters';
 
 export { buildHistoryRequestParams };
+
 export default function OrderHistoryPage({ navigation, route }) {
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
@@ -71,12 +67,10 @@ export default function OrderHistoryPage({ navigation, route }) {
   const isFocused = useIsFocused();
 
   useEffect(() => {
-    // Se o usuário voltou ao histórico sem concluir, encerra o modo fatura-only.
     if (isFocused) {
       clearCreateInvoiceOnlyMode();
     }
   }, [isFocused]);
-
 
   const { item: storagedDevice } = deviceStore.getters || {};
   const { item: deviceConfig } = deviceConfigStore.getters || {};
@@ -86,6 +80,9 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { colors: themeColors } = themeStore.getters;
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
+  const setColumnsRef = useRef(orderActions?.setColumns);
+  setColumnsRef.current = orderActions?.setColumns;
+
   const orderHistoryPalette = useMemo(
     () => buildOrderHistoryPalette(themeColors),
     [themeColors],
@@ -112,22 +109,10 @@ export default function OrderHistoryPage({ navigation, route }) {
     }),
     [],
   );
-  const [historyFilters, setHistoryFilters] = useState(buildDefaultHistoryFilters);
-  const applyHistoryFilters = useCallback(
-    nextFilters => {
-      const resolvedFilters =
-        nextFilters && typeof nextFilters === 'object' && !Array.isArray(nextFilters)
-          ? nextFilters
-          : {};
-
-      setHistoryFilters(resolvedFilters);
-
-      if (typeof orderActions.setFilters === 'function') {
-        orderActions.setFilters(resolvedFilters);
-      }
-    },
-    [orderActions],
-  );
+  const { historyFilters, applyHistoryFilters, statusOptions } = useOrderHistoryFilters({
+    orderActions,
+    statusItems,
+  });
 
   const routeOrderTypeFilter = useMemo(
     () => resolveOrderTypeFilter(route?.params?.orderTypeFilter),
@@ -143,34 +128,9 @@ export default function OrderHistoryPage({ navigation, route }) {
     [defaultHistoryTitle, route?.params?.historyTitle],
   );
 
-  const statusOptions = useMemo(() => buildStatusOptions(statusItems), [statusItems]);
-
   useEffect(() => {
     navigation.setOptions?.({ title: historyPageTitle });
   }, [historyPageTitle, navigation]);
-
-  useEffect(() => {
-    setHistoryFilters(current => {
-      const next = { ...current };
-      let changed = false;
-
-      if (
-        next.status &&
-        !statusOptions.some(option => option.value === next.status || option.key === next.status)
-      ) {
-        delete next.status;
-        changed = true;
-      }
-
-      if (changed) {
-        if (typeof orderActions.setFilters === 'function') {
-          orderActions.setFilters(next);
-        }
-      }
-
-      return changed ? next : current;
-    });
-  }, [orderActions, statusOptions]);
 
   const isCashRegisterClosed = useMemo(
     () => isPosCashRegisterClosed(deviceConfig?.configs),
@@ -286,9 +246,11 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   useEffect(() => {
     if (!orderColumnsReady) {
-      orderActions.setColumns(configuredOrderColumns);
+      if (typeof setColumnsRef.current === 'function') {
+        setColumnsRef.current(configuredOrderColumns);
+      }
     }
-  }, [configuredOrderColumns, orderActions, orderColumnsReady]);
+  }, [configuredOrderColumns, orderColumnsReady]);
 
   const historyRequestParams = useMemo(
     () =>
@@ -350,7 +312,6 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   const openCreateInvoiceFlow = useCallback(order => {
-    // Reuse POS product selection + Checkout; flag skips Cielo and only saves invoice.
     setCreateInvoiceOnlyMode(true);
     orderActions.syncOrder?.(order);
     navigation.navigate(
@@ -392,7 +353,6 @@ export default function OrderHistoryPage({ navigation, route }) {
 
     navigation.navigate('PdvPage', { startNewOrder: true });
   }, [navigation, isCashRegisterClosed, orderTypeFilter]);
-
 
   const openOrder = useCallback(order => {
     orderActions.syncOrder?.(order);
