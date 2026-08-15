@@ -103,7 +103,7 @@ export const buildHistoryRequestParams = ({
   if (showAdvancedFilters) {
     const orderDateRange = resolveDateRangeFilter(filters?.orderDate);
     const dateRange = resolveDateRangeFilter(filters?.alterDate);
-    if (orderDateRange?.after) query['orderDate[after]'] = orderDateRange.after;
+    if (orderDateRange?.after) query['orderDate[after]'] = dateRange.after;
     if (orderDateRange?.before) query['orderDate[before]'] = orderDateRange.before;
     if (dateRange?.after) query['alterDate[after]'] = dateRange.after;
     if (dateRange?.before) query['alterDate[before]'] = dateRange.before;
@@ -146,3 +146,17 @@ export const configureOrderHistoryColumns = ({ columns, showAdvancedFilters, ord
     }
     return { ...column, externalFilter: false };
   });
+
+/** Stable compare for history filter objects to avoid setState/setFilters loops (React #185). */
+export const areHistoryFiltersEqual = (a, b) => {
+  try {
+    return JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
+  } catch {
+    return a === b;
+  }
+};
+
+export const buildStatusOptionsSignature = options =>
+  (Array.isArray(options) ? options : [])
+    .map(option => `${option?.value || option?.key || ''}:${option?.label || ''}`)
+    .join('|');
