@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -38,41 +38,22 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
 import {
-  SIMPLE_TAB_KEYS,
   ORDER_HISTORY_TABLE_PREFERENCE_KEY,
   normalizeText,
-  buildDefaultHistoryFilters,
   buildExternalColumnsSignature,
   resolveOrderTypeFilter,
-  getEntityId,
-  getPeopleLabel,
-  isCanceledOrder,
   getCurrentUserLabel,
   buildOrderHistoryPalette,
   buildHistoryRequestParams,
-  buildStatusOptions,
   configureOrderHistoryColumns,
 } from './orderHistoryHelpers';
 import OrderHistoryRowActions from './OrderHistoryRowActions';
 import OrderHistoryCard from './OrderHistoryCard';
 import usePurchaseSupplierLabels from './usePurchaseSupplierLabels';
 import useOrderCancellation from './useOrderCancellation';
+import useOrderHistoryFilters from './useOrderHistoryFilters';
 
 export { buildHistoryRequestParams };
-
-/** Stable compare for history filter objects to avoid setState/setFilters loops (React #185). */
-const areHistoryFiltersEqual = (a, b) => {
-  try {
-    return JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
-  } catch {
-    return a === b;
-  }
-};
-
-const buildStatusOptionsSignature = options =>
-  (Array.isArray(options) ? options : [])
-    .map(option => `${option?.value || option?.key || ''}:${option?.label || ''}`)
-    .join('|');
 
 export default function OrderHistoryPage({ navigation, route }) {
   const ordersStore = useStore('orders');
@@ -99,8 +80,6 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { colors: themeColors } = themeStore.getters;
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
-  const setFiltersRef = useRef(orderActions?.setFilters);
-  setFiltersRef.current = orderActions?.setFilters;
   const setColumnsRef = useRef(orderActions?.setColumns);
   setColumnsRef.current = orderActions?.setColumns;
 
@@ -130,27 +109,10 @@ export default function OrderHistoryPage({ navigation, route }) {
     }),
     [],
   );
-  const [historyFilters, setHistoryFilters] = useState(buildDefaultHistoryFilters);
-  const historyFiltersRef = useRef(historyFilters);
-  historyFiltersRef.current = historyFilters;
-
-  const applyHistoryFilters = useCallback(nextFilters => {
-    const resolvedFilters =
-      nextFilters && typeof nextFilters === 'object' && !Array.isArray(nextFilters)
-        ? nextFilters
-        : {};
-
-    if (areHistoryFiltersEqual(historyFiltersRef.current, resolvedFilters)) {
-      return;
-    }
-
-    setHistoryFilters(resolvedFilters);
-    historyFiltersRef.current = resolvedFilters;
-
-    if (typeof setFiltersRef.current === 'function') {
-      setFiltersRef.current(resolvedFilters);
-    }
-  }, []);
+  const { historyFilters, applyHistoryFilters, statusOptions } = useOrderHistoryFilters({
+    orderActions,
+    statusItems,
+  });
 
   const routeOrderTypeFilter = useMemo(
     () => resolveOrderTypeFilter(route?.params?.orderTypeFilter),
@@ -166,40 +128,9 @@ export default function OrderHistoryPage({ navigation, route }) {
     [defaultHistoryTitle, route?.params?.historyTitle],
   );
 
-  const statusOptions = useMemo(() => buildStatusOptions(statusItems), [statusItems]);
-  const statusOptionsSignature = useMemo(
-    () => buildStatusOptionsSignature(statusOptions),
-    [statusOptions],
-  );
-
   useEffect(() => {
     navigation.setOptions?.({ title: historyPageTitle });
   }, [historyPageTitle, navigation]);
-
-  useEffect(() => {
-    setHistoryFilters(current => {
-      const next = { ...current };
-      let changed = false;
-
-      if (
-        next.status &&
-        !statusOptions.some(option => option.value === next.status || option.key === next.status)
-      ) {
-        delete next.status;
-        changed = true;
-      }
-
-      if (!changed) {
-        return current;
-      }
-
-      historyFiltersRef.current = next;
-      if (typeof setFiltersRef.current === 'function') {
-        setFiltersRef.current(next);
-      }
-      return next;
-    });
-  }, [statusOptionsSignature, statusOptions]);
 
   const isCashRegisterClosed = useMemo(
     () => isPosCashRegisterClosed(deviceConfig?.configs),
@@ -314,8 +245,10 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   useEffect(() => {
-    if (!orderColumnsReady && typeof setColumnsRef.current === 'function') {
-      setColumnsRef.current(configuredOrderColumns);
+    if (!orderColumnsReady) {
+      if (typeof setColumnsRef.current === 'function') {
+        setColumnsRef.current(configuredOrderColumns);
+      }
     }
   }, [configuredOrderColumns, orderColumnsReady]);
 

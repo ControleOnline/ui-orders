@@ -146,3 +146,17 @@ export const configureOrderHistoryColumns = ({ columns, showAdvancedFilters, ord
     }
     return { ...column, externalFilter: false };
   });
+
+/** Stable compare for history filter objects to avoid setState/setFilters loops (React #185). */
+export const areHistoryFiltersEqual = (a, b) => {
+  try {
+    return JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
+  } catch {
+    return a === b;
+  }
+};
+
+export const buildStatusOptionsSignature = options =>
+  (Array.isArray(options) ? options : [])
+    .map(option => `${option?.value || option?.key || ''}:${option?.label || ''}`)
+    .join('|');
