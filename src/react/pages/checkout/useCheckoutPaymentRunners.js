@@ -24,6 +24,10 @@ import {
   PAYMENT_CHANNEL_LOCAL,
   resolvePosPaidInvoiceStatusIri,
 } from './checkoutStatusHelpers';
+import {
+  CHECKOUT_COMPLETION_DESTINATION,
+  resolveCheckoutCompletionPolicy,
+} from './checkoutCompletionPolicy';
 
 export default function useCheckoutPaymentRunners({
   appendInvoiceToStore,
@@ -89,13 +93,8 @@ export default function useCheckoutPaymentRunners({
             (routeOrderId ? `/orders/${routeOrderId}` : undefined),
         });
 
-        if (!createdInvoice) {
-          return null;
-        }
-
-        if (isCreateInvoiceOnlyMode()) {
-          clearCreateInvoiceOnlyMode();
-        }
+        if (!createdInvoice) return null;
+        if (isCreateInvoiceOnlyMode()) clearCreateInvoiceOnlyMode();
 
         const paidAmount = Number(createdInvoice.price || 0);
         const nextPayable = resolveNextPayableAfterPayment(paidAmount, targetOrder);
@@ -110,43 +109,37 @@ export default function useCheckoutPaymentRunners({
           return createdInvoice;
         }
 
-        if (isSingleItemMode && nextPayable >= 0) {
-          resetCompletedOrderState();
-          resetToOrderHistory();
-          return createdInvoice;
-        }
+        const completion = resolveCheckoutCompletionPolicy({
+          isCounterMode,
+          isSelfServiceMode,
+          isSimplePos: device?.configs?.['pos-type'] == 'simple',
+          isSingleItemMode,
+          remainingAmount: nextPayable,
+        });
 
-        if (device?.configs?.['pos-type'] == 'simple') {
-          if (nextPayable < 0) {
-            appendInvoiceToStore(createdInvoice);
-            appendOrderInvoiceToStore(createdInvoice, paidAmount);
-            ordersActions.setPayable(nextPayable);
-            ordersActions.syncOrder?.(resolvedOrder);
-            navigation.navigate(
-              'OrderDetails',
-              buildOrderDetailsNavigationParams(resolvedOrder),
-            );
-          } else {
-            resetCompletedOrderState();
-            if (isCounterMode) resetToCounterDestination();
-            else if (isSelfServiceMode) resetToSelfServiceCatalog();
-            else navigation.navigate('OrderHistoryPage');
-          }
-        } else {
+        if (completion.destination === CHECKOUT_COMPLETION_DESTINATION.ORDER_DETAILS) {
           appendInvoiceToStore(createdInvoice);
           appendOrderInvoiceToStore(createdInvoice, paidAmount);
           ordersActions.setPayable(nextPayable < 0 ? nextPayable : 0);
-          if ((isSelfServiceMode || isCounterMode) && nextPayable >= 0) {
-            resetCompletedOrderState();
-            if (isCounterMode) resetToCounterDestination();
-            else resetToSelfServiceCatalog();
-          } else {
-            ordersActions.syncOrder?.(resolvedOrder);
-            navigation.navigate(
-              'OrderDetails',
-              buildOrderDetailsNavigationParams(resolvedOrder),
-            );
-          }
+          ordersActions.syncOrder?.(resolvedOrder);
+          navigation.navigate(
+            'OrderDetails',
+            buildOrderDetailsNavigationParams(resolvedOrder),
+          );
+          return createdInvoice;
+        }
+
+        if (completion.resetCompletedOrder) resetCompletedOrderState();
+
+        if (completion.destination === CHECKOUT_COMPLETION_DESTINATION.COUNTER) {
+          resetToCounterDestination();
+        } else if (
+          completion.destination ===
+          CHECKOUT_COMPLETION_DESTINATION.SELF_SERVICE_CATALOG
+        ) {
+          resetToSelfServiceCatalog();
+        } else {
+          resetToOrderHistory();
         }
 
         return createdInvoice;
@@ -213,9 +206,7 @@ export default function useCheckoutPaymentRunners({
             createInvoice: gatewayFreePayment =>
               createPaidInvoice(gatewayFreePayment, total, currentOrder),
           })
-        ) {
-          return;
-        }
+        ) return;
 
         const {paidAmount} = await runConfiguredGatewayPayment({
           gateway: localGateway,
@@ -237,21 +228,13 @@ export default function useCheckoutPaymentRunners({
         setSubmittingPayment(false);
       }
     },
-    [
-      createPaidInvoice,
-      invoiceActions,
-      localGateway,
-      order,
-      orderProducts,
-      setSubmittingPayment,
-    ],
+    [createPaidInvoice, invoiceActions, localGateway, order, orderProducts, setSubmittingPayment],
   );
 
   const handleConfirmCashAmountEntry = useCallback(async receivedAmount => {
     const details = resolveCashPaymentDetails({
       allowPartial: cashPaymentContext === PAYMENT_CHANNEL_LOCAL,
-      receivedAmount:
-        receivedAmount ?? parseMoneyInputValue(cashReceivedValue),
+      receivedAmount: receivedAmount ?? parseMoneyInputValue(cashReceivedValue),
       totalAmount: effectiveRemainingAmount,
     });
 
@@ -266,23 +249,12 @@ export default function useCheckoutPaymentRunners({
       payment: selectedPayment,
       total: details.appliedAmount,
     });
-  }, [
-    cashPaymentContext,
-    cashReceivedValue,
-    checkoutPaymentOrder,
-    effectiveRemainingAmount,
-    invoiceActions,
-    runLocalPayment,
-    selectedPayment,
-    setAmountEntryModalMode,
-  ]);
+  }, [cashPaymentContext, cashReceivedValue, checkoutPaymentOrder, effectiveRemainingAmount, invoiceActions, runLocalPayment, selectedPayment, setAmountEntryModalMode]);
 
   const dispatchRemotePayment = useCallback(
     async ({payment, total, installments = null}) => {
       if (!payment?.wallet || !payment?.paymentType) {
-        invoiceActions.setError(
-          global.t?.t('orders', 'message', 'selectPaymentMethod'),
-        );
+        invoiceActions.setError(global.t?.t('orders', 'message', 'selectPaymentMethod'));
         return;
       }
 
@@ -293,10 +265,7 @@ export default function useCheckoutPaymentRunners({
           clearCreateInvoiceOnlyMode();
         } catch (error) {
           invoiceActions.setError(
-            normalizeGatewayPaymentError(
-              error,
-              'Nao foi possivel registrar a fatura.',
-            ),
+            normalizeGatewayPaymentError(error, 'Nao foi possivel registrar a fatura.'),
           );
         } finally {
           setSubmittingPayment(false);
@@ -305,9 +274,7 @@ export default function useCheckoutPaymentRunners({
       }
 
       if (!selectedRemoteDevice?.deviceId || !order?.id) {
-        invoiceActions.setError(
-          'Configure um device de pagamento remoto para continuar.',
-        );
+        invoiceActions.setError('Configure um device de pagamento remoto para continuar.');
         return;
       }
 
@@ -333,33 +300,18 @@ export default function useCheckoutPaymentRunners({
           requestKey,
           order: order.id,
           total,
-          wallet_payment_type: {
-            ...payment,
-            ...(installments ? {installments} : {}),
-          },
+          wallet_payment_type: {...payment, ...(installments ? {installments} : {})},
           'master-device': storagedDevice?.id,
         });
       } catch (error) {
         setPendingRemotePaymentRequest(null);
         setSubmittingPayment(false);
         invoiceActions.setError(
-          normalizeGatewayPaymentError(
-            error,
-            'Nao foi possivel enviar o pagamento remoto.',
-          ),
+          normalizeGatewayPaymentError(error, 'Nao foi possivel enviar o pagamento remoto.'),
         );
       }
     },
-    [
-      createPaidInvoice,
-      invoiceActions,
-      order,
-      selectedRemoteDevice,
-      setPendingRemotePaymentRequest,
-      setSubmittingPayment,
-      storagedDevice?.id,
-      websocketActions,
-    ],
+    [createPaidInvoice, invoiceActions, order, selectedRemoteDevice, setPendingRemotePaymentRequest, setSubmittingPayment, storagedDevice?.id, websocketActions],
   );
 
   return {
