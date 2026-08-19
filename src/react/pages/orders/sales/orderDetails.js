@@ -1076,7 +1076,7 @@ const OrderDetails = ({ route, navigation }) => {
     if (!orderId) {
       throw new Error(
         global.t?.t('orders', 'message', 'unableCompleteOperation') ||
-          'Nao foi possivel identificar o pedido para atualizar.',
+          'Não foi possível identificar o pedido para atualizar.',
       )
     }
 
@@ -1354,7 +1354,7 @@ const OrderDetails = ({ route, navigation }) => {
     const productId = getEntityId(product)
 
     if (!rootOrderProduct || !product || !productId) {
-      showError('Nao foi possivel identificar o item customizavel deste pedido.')
+      showError('Não foi possível identificar o item customizável deste pedido.')
       return
     }
 
@@ -1767,7 +1767,7 @@ const OrderDetails = ({ route, navigation }) => {
 
       const nextProductId = getEntityId(product)
       if (!nextProductId) {
-        showError('Nao foi possivel identificar o produto selecionado.')
+        showError('Não foi possível identificar o produto selecionado.')
         return
       }
 
@@ -1819,7 +1819,7 @@ const OrderDetails = ({ route, navigation }) => {
 
       const productId = getEntityId(product)
       if (!productId) {
-        showError('Nao foi possivel identificar o produto selecionado.')
+        showError('Não foi possível identificar o produto selecionado.')
         return
       }
 
@@ -2084,8 +2084,8 @@ const OrderDetails = ({ route, navigation }) => {
       setObservationEditing(false)
       showSuccess(
         normalizeText(observationDraft)
-          ? 'Observacao do pedido atualizada com sucesso.'
-          : 'Observacao do pedido removida com sucesso.',
+          ? 'Observação do pedido atualizada com sucesso.'
+          : 'Observação do pedido removida com sucesso.',
       )
     } catch (observationError) {
       showError(formatApiError(observationError))
@@ -2215,7 +2215,7 @@ const OrderDetails = ({ route, navigation }) => {
       setAddressSelectingId(nextAddressId)
       await updateCurrentOrder({ addressDestination: nextAddressIri })
       closeAddressModal()
-      showSuccess('Endereco de entrega atualizado com sucesso.')
+      showSuccess('Endereço de entrega atualizado com sucesso.')
     } catch (updateError) {
       showError(formatApiError(updateError))
     } finally {
@@ -2241,7 +2241,7 @@ const OrderDetails = ({ route, navigation }) => {
     const nickname = resolvePreferredText(addressForm.nickname, 'Entrega')
 
     if (!street || !district || !city || !state || !country || !number || !cep) {
-      showError('Rua, numero, bairro, cidade, estado, pais e CEP sao obrigatorios.')
+      showError('Rua, número, bairro, cidade, estado, país e CEP são obrigatórios.')
       return
     }
 
@@ -2265,12 +2265,12 @@ const OrderDetails = ({ route, navigation }) => {
       const savedAddressIri = toEntityIri(savedAddress, 'addresses')
 
       if (!savedAddressIri) {
-        throw new Error('Endereco criado sem identificador valido.')
+        throw new Error('Endereço criado sem identificador válido.')
       }
 
       await updateCurrentOrder({ addressDestination: savedAddressIri })
       closeAddressModal()
-      showSuccess('Endereco de entrega atualizado com sucesso.')
+      showSuccess('Endereço de entrega atualizado com sucesso.')
     } catch (saveError) {
       showError(formatApiError(saveError))
     } finally {
@@ -3128,7 +3128,7 @@ const OrderDetails = ({ route, navigation }) => {
                   color={ppcColors.accentInfo}
                 />
                 <Text style={localStyles.inlineActionButtonText}>
-                  {selectedOrderClientIri ? 'Escolher endereco' : 'Novo endereco'}
+                  {selectedOrderClientIri ? 'Escolher endereço' : 'Novo endereço'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -3512,8 +3512,8 @@ const OrderDetails = ({ route, navigation }) => {
               >
                 <Text style={localStyles.deliveryCodeDescription}>
                   {selectedOrderClientIri
-                    ? 'Escolha um endereco ja cadastrado para este cliente ou use o cadastro rapido abaixo sem sair deste modal.'
-                    : 'Sem cliente vinculado, use o cadastro rapido abaixo para definir o endereco deste pedido.'}
+                    ? 'Escolha um endereço já cadastrado para este cliente ou use o cadastro rápido abaixo sem sair deste modal.'
+                    : 'Sem cliente vinculado, use o cadastro rápido abaixo para definir o endereço deste pedido.'}
                 </Text>
 
                 {!!orderCustomerName && !!selectedOrderClientIri && (
@@ -3597,7 +3597,7 @@ const OrderDetails = ({ route, navigation }) => {
                   <Text style={localStyles.assignmentQuickActionText}>
                     {addressModalMode === 'create'
                       ? 'Ocultar o formulario rapido.'
-                      : 'Crie um novo endereco sem sair do detalhe do pedido.'}
+                      : 'Crie um novo endereço sem sair do detalhe do pedido.'}
                   </Text>
                 </TouchableOpacity>
 
