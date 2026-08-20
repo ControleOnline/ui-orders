@@ -48,10 +48,6 @@ import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddC
 import OrderInvoices from './OrderInvoices'
 import OrderItemsTab from './OrderItemsTab'
 import {
-  canReopenOrderProductCustomization,
-  isOrderProductProductionCompleted,
-} from '@controleonline/ui-orders/src/react/components/OrderProducts.utils'
-import {
   buildAddProductsRouteParams,
   buildCheckoutRouteParams,
   buildManagerPdvRouteParams,
@@ -151,10 +147,13 @@ import { buildOrderSummaryData } from './orderDetails/buildOrderSummaryData';
 import useOrderDetailsParty from './orderDetails/useOrderDetailsParty'
 import useOrderDetailsProductSearch from './orderDetails/useOrderDetailsProductSearch'
 import useOrderDetailsFinancials from './orderDetails/useOrderDetailsFinancials'
+import useOrderDetailsProductMutations from './orderDetails/useOrderDetailsProductMutations'
+import useOrderDetailsToolbarActions from './orderDetails/useOrderDetailsToolbarActions'
 import { InlineLoadingText } from './orderDetails/InlineLoadingText';
 import OrderDetailsInvoiceCards from './orderDetails/OrderDetailsInvoiceCards';
 import OrderDetailsProductActions from './orderDetails/OrderDetailsProductActions';
 import OrderDetailsKdsContent from './orderDetails/OrderDetailsKdsContent';
+import OrderDetailsAssignmentModals from './orderDetails/OrderDetailsAssignmentModals'
 
 const OrderDetails = ({ route, navigation }) => {
   const appType = String(app_type || '').trim().toUpperCase()
@@ -351,7 +350,6 @@ const OrderDetails = ({ route, navigation }) => {
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
 
-  const [confirmRemoveItemId, setConfirmRemoveItemId] = useState(null)
   const currentOrderProductsRef = useRef([])
   const storedOrderProductsRef = useRef([])
   const ordersActionsRef = useRef(ordersActions)
@@ -682,12 +680,6 @@ const OrderDetails = ({ route, navigation }) => {
     !isLocallyTerminalOrder
 
   useEffect(() => {
-    if (!canMutateOrderProducts) {
-      setConfirmRemoveItemId(null)
-    }
-  }, [canMutateOrderProducts])
-
-  useEffect(() => {
     if (Array.isArray(item?.orderProducts)) {
       commitResolvedOrderProducts(item)
       return
@@ -890,69 +882,23 @@ const OrderDetails = ({ route, navigation }) => {
     await handleAddPayment()
   }, [handleAddPayment, handleProduceOrder, primaryActionMode])
 
-  const handleUpdateOpQuantity = useCallback((op, newQtyOrUpdater) => {
-    const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
-    if (!id) return
-    scheduleQuantityChange(op, newQtyOrUpdater)
-  }, [scheduleQuantityChange])
-
-  const handleIncreaseOpQuantity = useCallback(op => {
-    setConfirmRemoveItemId(null)
-    handleUpdateOpQuantity(op, currentQuantity => currentQuantity + 1)
-  }, [handleUpdateOpQuantity])
-
-  const handleDecreaseOpQuantity = useCallback(op => {
-    const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
-    if (!id) return
-
-    if (getScheduledQuantity(op) <= 1) {
-      setConfirmRemoveItemId(id)
-      return
-    }
-
-    setConfirmRemoveItemId(null)
-    handleUpdateOpQuantity(op, currentQuantity => currentQuantity - 1)
-  }, [getScheduledQuantity, handleUpdateOpQuantity])
-
-  const handleRemoveOp = useCallback(op => {
-    const id = String(op?.id || String(op?.['@id'] || '').replace(/\D/g, ''))
-    if (!id) return
-    setConfirmRemoveItemId(null)
-    scheduleQuantityChange(op, 0)
-  }, [scheduleQuantityChange])
-
-  const handleEditCustomizableOrderProduct = useCallback(orderProduct => {
-    if (!canMutateOrderProducts) {
-      return
-    }
-
-    const rootOrderProduct = orderProduct || null
-    const product = rootOrderProduct?.product
-    const productId = getEntityId(product)
-
-    if (!rootOrderProduct || !product || !productId) {
-      showError('Não foi possível identificar o item customizável deste pedido.')
-      return
-    }
-
-    if (isOrderProductProductionCompleted(rootOrderProduct)) {
-      return
-    }
-
-    navigation.navigate('CustomizeScreen', {
-      productId,
-      orderProductId: getEntityId(rootOrderProduct),
-      returnDepth: 1,
-      interactionMode: route?.params?.interactionMode,
-      singleItemMode: isSingleItemOperationMode,
-    })
-  }, [
+  const {
+    confirmRemoveItemId,
+    setConfirmRemoveItemId,
+    handleUpdateOpQuantity,
+    handleIncreaseOpQuantity,
+    handleDecreaseOpQuantity,
+    handleRemoveOp,
+    handleEditCustomizableOrderProduct,
+  } = useOrderDetailsProductMutations({
+    scheduleQuantityChange,
+    getScheduledQuantity,
     canMutateOrderProducts,
     navigation,
-    route?.params?.interactionMode,
+    route,
     isSingleItemOperationMode,
     showError,
-  ])
+  })
 
   const resolvedDisplayOrderProducts = useMemo(() => {
     const currentOrderProductsPayload = resolveEmbeddedOrderProducts(item)
@@ -1276,88 +1222,30 @@ const OrderDetails = ({ route, navigation }) => {
     setFinancialDetailsVisible(false)
   }, [])
 
-  const handleOpenFinancialDetails = useCallback(async () => {
-    setFinancialDetailsVisible(true)
-    if (!localInvoiceCards.length) {
-      await loadOrderInvoices({silent: true})
-    }
-  }, [loadOrderInvoices, localInvoiceCards.length])
-
-  const handleOpenInvoiceDetails = useCallback(invoiceCard => {
-    const invoiceId = Number(invoiceCard?.invoiceId || 0)
-    if (!invoiceId) {
-      return
-    }
-
-    const storeInvoice =
-      invoiceCard?.invoice && typeof invoiceCard.invoice === 'object'
-        ? invoiceCard.invoice
-        : {
-            id: invoiceId,
-            '@id': `/invoices/${invoiceId}`,
-          }
-
-    invoiceActions?.setItem?.(storeInvoice)
-    closeFinancialDetailsModal()
-
-    const openInvoiceDetails = () => {
-      navigation.navigate('InvoiceDetailsPage', {
-        id: invoiceId,
-      })
-    }
-
-    const scheduleOpenInvoiceDetails = globalThis?.requestAnimationFrame
-
-    if (typeof scheduleOpenInvoiceDetails === 'function') {
-      scheduleOpenInvoiceDetails(openInvoiceDetails)
-      return
-    }
-
-    setTimeout(openInvoiceDetails, 0)
-  }, [closeFinancialDetailsModal, invoiceActions, navigation])
-
-  const handleOrderTools = useCallback(async () => {
-    if (!canShowDebugActions) {
-      return
-    }
-
-    setDetailsModalVisible(true)
-    await marketplaceSummary.ensureMarketplaceSummary()
-  }, [canShowDebugActions, marketplaceSummary])
-
   const topBarOrderId = item?.id || orderParam?.id || routeOrderId
 
-  const handleOrderAttachments = useCallback(() => {
-    if (!topBarOrderId) {
-      return
-    }
-
-    setAttachmentsVisible(true)
-  }, [topBarOrderId])
-
-  const handleOrderLogs = useCallback(() => {
-    if (!canShowDebugActions) {
-      return
-    }
-
-    const currentOrderId = item?.id || orderParam?.id
-    if (!currentOrderId) return
-
-    navigation.navigate('EntityLogPage', {
-      id: currentOrderId,
-      store: 'orders',
-    })
-  }, [canShowDebugActions, item?.id, navigation, orderParam?.id])
-
-  const handleOrderLogistics = useCallback(() => {
-    if (!topBarOrderId) {
-      return
-    }
-
-    navigation.navigate('OrderLogisticsPage', {
-      id: topBarOrderId,
-    })
-  }, [navigation, topBarOrderId])
+  const {
+    handleOpenFinancialDetails,
+    handleOpenInvoiceDetails,
+    handleOrderTools,
+    handleOrderAttachments,
+    handleOrderLogs,
+    handleOrderLogistics,
+  } = useOrderDetailsToolbarActions({
+    canShowDebugActions,
+    localInvoiceCards,
+    loadOrderInvoices,
+    setFinancialDetailsVisible,
+    closeFinancialDetailsModal,
+    invoiceActions,
+    navigation,
+    marketplaceSummary,
+    setDetailsModalVisible,
+    setAttachmentsVisible,
+    topBarOrderId,
+    itemId: item?.id,
+    orderParamId: orderParam?.id,
+  })
 
   const renderOrderProductActions = useCallback(({
     card,
