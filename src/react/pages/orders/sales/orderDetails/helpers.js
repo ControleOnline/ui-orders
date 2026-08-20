@@ -431,4 +431,3 @@ export const mergeOrderProductWithResolvedProduct = (orderProduct, resolvedProdu
 export const pendingOrderDetailRefreshes = new Map()
 export const recentOrderDetailRefreshStarts = new Map()
 export const ORDER_DETAIL_REFRESH_COOLDOWN_MS = 1500
-
