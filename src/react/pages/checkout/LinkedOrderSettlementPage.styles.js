@@ -341,6 +341,15 @@ const styles = StyleSheet.create({
   invoiceStatusTextOpen: {
     color: '#B45309',
   },
+  cardItem: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 10,
+    backgroundColor: '#FFFFFF',
+  },
   emptySectionText: {
     fontSize: 13,
     lineHeight: 20,

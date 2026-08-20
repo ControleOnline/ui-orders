@@ -181,10 +181,57 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
             No {orderLabel.toLowerCase()} selected
           </Text>
           <Text style={styles.emptyText}>
-            Start by identifying the first {orderLabel.toLowerCase()}. The screen
-            will create it when needed and keep every linked sale under the same
-            financial root.
+            {canManageRoots
+              ? `Select an open ${orderLabel.toLowerCase()} below or identify a new one. Manage mode can open and operate roots.`
+              : `Select an existing open ${orderLabel.toLowerCase()} below. Existing-only mode does not create new roots.`}
           </Text>
+          {loadingOpenRoots ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="small" color={palette.primary} />
+              <Text style={styles.loadingText}>
+                Loading open {orderLabel.toLowerCase()}s...
+              </Text>
+            </View>
+          ) : null}
+          {!loadingOpenRoots && Array.isArray(openRootOrders) && openRootOrders.length > 0 ? (
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                  Open {orderLabel}s
+                </Text>
+                <Text style={styles.sectionMeta}>{openRootOrders.length}</Text>
+              </View>
+              {openRootOrders.map(root => {
+                const rootId = normalizeEntityId(root)
+                const code =
+                  root?.externalCode ||
+                  root?.context?.externalCode ||
+                  `${orderLabel} #${rootId || '-'}`
+                return (
+                  <TouchableOpacity
+                    key={String(rootId || code)}
+                    activeOpacity={0.88}
+                    onPress={() => {
+                      void handleSelectOpenRoot?.(root)
+                    }}
+                    style={styles.cardItem}
+                    testID={`open-root-${rootId}`}>
+                    <Text style={styles.primaryCode}>{code}</Text>
+                    <Text style={styles.primarySubtitle}>
+                      Order #{rootId || '-'} ·{' '}
+                      {root?.status?.status || root?.status?.realStatus || 'open'}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          ) : null}
+          {!loadingOpenRoots &&
+          (!Array.isArray(openRootOrders) || openRootOrders.length === 0) ? (
+            <Text style={styles.emptySectionText} testID="open-roots-empty">
+              No open {orderLabel.toLowerCase()}s found.
+            </Text>
+          ) : null}
         </View>
       ) : (
         <>
