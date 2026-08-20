@@ -4,8 +4,10 @@ const ALL_PRODUCTS_SENTINEL_ID = '__all_products__';
 /**
  * Decide whether AddProductScreen should render ProductsPage instead of Categories.
  * - single-item / POS single mode always lists products
- * - when categories finished loading and there are no real categories, list products
- *   so the UI never shows a blank "Empty" state in PDV.
+ * - when categories finished loading AND have been fetched, and there are no real
+ *   categories, list products so the UI never shows a blank "Empty" state in PDV.
+ * - until a fetch completes, keep Categories (or loading) to avoid treating the
+ *   store's initial `items: []` as a definitive empty catalog.
  */
 export function hasRealCategoryItems(categoryItems) {
   if (!Array.isArray(categoryItems)) {
@@ -27,6 +29,7 @@ export function hasRealCategoryItems(categoryItems) {
 export function resolveShouldListProductsDirectly({
   isSingleItemMode = false,
   categoriesLoading = false,
+  categoriesFetched = false,
   categoryItems,
 } = {}) {
   if (isSingleItemMode) {
@@ -34,6 +37,10 @@ export function resolveShouldListProductsDirectly({
   }
 
   if (categoriesLoading) {
+    return false;
+  }
+
+  if (!categoriesFetched) {
     return false;
   }
 
