@@ -11,6 +11,7 @@ import {useStore} from '@store'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
+import {createOrderItemsRenderActions} from './orderItemsTabActions'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import {resolveProductCoverUrl} from '@controleonline/ui-products/src/react/domain/productMedia'
 import {
@@ -155,6 +156,10 @@ const OrderItemsTab = ({
   productSearchSelectionId = '',
   productSearchText = '',
   renderOrderProductActions = null,
+  onOrderProductAdjusted = null,
+  deviceId = null,
+  appType = null,
+  isClientContext = false,
   routeOrderId = '',
   showPricing = true,
   showRootQuantityPrefix = true,
@@ -582,7 +587,14 @@ const OrderItemsTab = ({
             showPricing={showPricing}
             showImages
             showGroupStatusMarker={false}
-            renderActions={renderOrderProductActions}
+            renderActions={createOrderItemsRenderActions({
+              renderOrderProductActions,
+              currentOrder,
+              deviceId,
+              appType,
+              isClientContext,
+              onOrderProductAdjusted,
+            })}
             showRootStatusMarker={false}
             showRootQuantityPrefix={showRootQuantityPrefix}
             showQueuePresentation={showQueuePresentation}
