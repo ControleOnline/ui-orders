@@ -1,85 +1,11 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-
-import { useFocusEffect } from '@react-navigation/native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useStore } from '@store'
-import css from '@controleonline/ui-orders/src/react/css/orders'
-import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
-import {
-  isDeviceRuntimeDebugInfoEnabled,
-  isPosTotemMode,
-  isPosSingleItemMode,
-  isTruthyValue,
-  parseConfigsObject,
-  isPosSelfServiceMode,
-} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
-import {
-  searchCompanyProducts,
-  toEntityIri,
-} from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
+import React from 'react'
 
 import {
-  normalizeText,
-} from '@controleonline/ui-common/src/react/utils/entityDisplay'
-import {
-  formatInvoiceTypeLabel,
-  getInvoicePaymentTypeLabel,
-} from '@controleonline/ui-common/src/react/utils/invoicePresentation'
-
-import {
-  buildAddProductsRouteParams,
-  buildManagerPdvRouteParams,
-  getOrderRouteId,
-} from '@controleonline/ui-orders/src/react/utils/orderRoute'
-import {app_type} from '@appType'
-import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
-import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
-
-import {
-  calculateOrderProductsSubtotal,
-  mergeOrderProductIntoList,
-  mergeOrderWithOrderProducts,
-  removeOrderProductFromList,
-  withOrderProductQuantity,
-} from '@controleonline/ui-orders/src/utils/orderState'
-import { extractVisibleOrderExtraEntries } from '@controleonline/ui-orders/src/react/utils/orderExtraData'
-import {
-  resolveOperationalDisplayAmount,
-  resolveOperationalDisplayLabelKey,
-} from '@controleonline/ui-orders/src/react/utils/checkoutInvoices'
-
-import {
-  getOwnedBottomBarOffset,
-  shouldShowOperationalBottomNavigation,
-} from '@controleonline/ui-layout/src/react/utils/posBottomNavigation'
-import useOrderDetailsVisuals from './useOrderDetailsVisuals'
-import useOrderMarketplaceSummary from './useOrderMarketplaceSummary'
-import {
-  resolveMarketplaceInvoicePresentation,
-  resolveMarketplaceReceivableAmount,
-} from './orderMarketplaceFinancialPresentation'
-import {
-  shouldRenderOrderDetailsPaymentBar,
-} from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetailsPaymentBar'
-
-import {
-  inlineStyle_2712_14,
-  inlineStyle_2718_20,
-  inlineStyle_2725_26,
-  inlineStyle_2737_26,
-  inlineStyle_2748_24,
-} from './orderDetails.styles';
-
-import {
-  POS_DELIVERY_ENABLED_CONFIG_KEY,
-  isTerminalOrderStatus,
-  resolveEditableOrderType,
-  translateOrderStatus,
-  getEntityId,
-  resolveDocumentLabel,
-  formatOrderDateTime,
   resolveOrderDateValue,
-} from './orderDetails/helpers';
+  resolvePreferredText,
+  formatOrderDateTime,
+} from './orderDetails/helpers'
+import useOrderDetailsBootstrap from './orderDetails/useOrderDetailsBootstrap'
 import useOrderDetailsParty from './orderDetails/useOrderDetailsParty'
 import useOrderDetailsProductSearch from './orderDetails/useOrderDetailsProductSearch'
 import useOrderDetailsFinancials from './orderDetails/useOrderDetailsFinancials'
@@ -93,211 +19,65 @@ import useOrderDetailsRenderers from './orderDetails/useOrderDetailsRenderers'
 import OrderDetailsView from './orderDetails/OrderDetailsView'
 
 const OrderDetails = ({ route, navigation }) => {
-  const appType = String(app_type || '').trim().toUpperCase()
-  const routeOrderId = useMemo(
-    () => getOrderRouteId(route.params?.id || route.params?.order),
-    [route.params?.id, route.params?.order],
-  )
-  const routeOrderIri = useMemo(
-    () => (routeOrderId ? `/orders/${routeOrderId}` : null),
-    [routeOrderId],
-  )
-  const orderParam = useMemo(() => {
-    const routeOrder = route.params?.order || null
-    if (!routeOrder) return null
-
-    const routeParamOrderId = getOrderRouteId(routeOrder)
-    if (routeOrderId && routeParamOrderId && routeParamOrderId !== routeOrderId) {
-      return null
-    }
-
-    return routeOrder
-  }, [route.params?.order, routeOrderId])
-  const useUnifiedKdsLayout = true
-  const hasKdsOrigin =
-    appType === 'PPC' ||
-    !!route.params?.displayId ||
-    !!route.params?.display?.id ||
-    String(
-      route.params?.displayType || route.params?.display?.displayType || '',
-    ).trim() !== ''
-  const isKds = Boolean(route.params?.kds && hasKdsOrigin)
-  const isTvDisplay = String(route.params?.displayType || '').toLowerCase() === 'tv'
-  const shouldShowMobilePaymentBar = shouldRenderOrderDetailsPaymentBar({
+  const bootstrap = useOrderDetailsBootstrap({ route, navigation })
+  const {
+    appType,
+    routeOrderId,
+    routeOrderIri,
+    orderParam,
     useUnifiedKdsLayout,
     isKds,
     isTvDisplay,
-  })
-  const { showError, showSuccess } = useMessage()
-  const [detailsModalVisible, setDetailsModalVisible] = useState(false)
-  const [financialDetailsVisible, setFinancialDetailsVisible] = useState(false)
-  const [attachmentsVisible, setAttachmentsVisible] = useState(false)
-  const insets = useSafeAreaInsets()
-
-  const ordersStore = useStore('orders')
-  const { getters: ordersGetters, actions: ordersActions } = ordersStore
-  const { item: storedOrderItem, isLoading, error } = ordersGetters
-  const item = useMemo(() => {
-    if (!routeOrderId) return storedOrderItem
-    return getOrderRouteId(storedOrderItem) === routeOrderId ? storedOrderItem : null
-  }, [routeOrderId, storedOrderItem])
-  const invoiceStore = useStore('invoice')
-  const { actions: invoiceActions } = invoiceStore
-  const orderInvoicesStore = useStore('order_invoices')
-  const {
-    actions: orderInvoicesActions,
-    getters: orderInvoicesGetters,
-  } = orderInvoicesStore
-  const {
-    items: storedOrderInvoiceItems,
-    isLoading: orderInvoicesLoading,
-  } = orderInvoicesGetters
-
-  const peopleStore = useStore('people')
-  const { getters: peopleGetters, actions: peopleActions } = peopleStore
-  const { defaultCompany, currentCompany } = peopleGetters
-  const addressStore = useStore('address')
-  const { actions: addressActions } = addressStore
-
-  const { styles: cssStyles, globalStyles } = css()
-  const { ppcColors, styles: localStyles, width: viewportWidth } = useOrderDetailsVisuals()
-  const selectedDisplay = useMemo(() => {
-    if (!isKds) {
-      return null
-    }
-
-    const normalizedDisplayId = String(
-      route.params?.displayId || route.params?.display?.id || '',
-    )
-      .replace(/\D+/g, '')
-      .trim()
-
-    if (!normalizedDisplayId) {
-      return null
-    }
-
-    return {
-      id: normalizedDisplayId,
-      displayType: route.params?.displayType || route.params?.display?.displayType || '',
-    }
-  }, [isKds, route.params?.display?.displayType, route.params?.display?.id, route.params?.displayId, route.params?.displayType])
-  const orderCompanyId = useMemo(
-    () =>
-      getEntityId(item?.provider) ||
-      getEntityId(orderParam?.provider) ||
-      getEntityId(currentCompany) ||
-      getEntityId(defaultCompany),
-    [item?.provider, orderParam?.provider, currentCompany, defaultCompany],
-  )
-  const orderCompanyIri = useMemo(
-    () => (orderCompanyId ? `/people/${orderCompanyId}` : null),
-    [orderCompanyId],
-  )
-  const deviceConfigStore = useStore('device_config')
-  const device = deviceConfigStore.getters?.item
-  const deviceConfigs = parseConfigsObject(device?.configs)
-  const productInputType = device?.configs?.['product-input-type'] || 'manual'
-  const isPosSelfServiceOperationMode = isPosSelfServiceMode(deviceConfigs)
-  const isSingleItemOperationMode =
-    route?.params?.singleItemMode === true ||
-    isPosSingleItemMode(deviceConfigs)
-  const shouldShowBottomNavigation = useMemo(
-    () =>
-      shouldShowOperationalBottomNavigation({
-        appType,
-        interactionMode: route?.params?.interactionMode,
-        isTotemMode: isPosTotemMode(deviceConfigs),
-      }),
-    [appType, deviceConfigs, route?.params?.interactionMode],
-  )
-  const isDeviceDeliveryEnabled = isTruthyValue(
-    deviceConfigs?.[POS_DELIVERY_ENABLED_CONFIG_KEY],
-  )
-  const isDeviceDebugEnabled = isDeviceRuntimeDebugInfoEnabled(deviceConfigs)
-  const canShowDebugActions = !isPosSelfServiceOperationMode || isDeviceDebugEnabled
-
-  useEffect(() => {
-    if (!shouldShowBottomNavigation) {
-      if (route?.params?.showBottomToolBar !== true) {
-        return;
-      }
-
-      navigation.setParams({showBottomToolBar: false});
-      return;
-    }
-
-    if (route?.params?.showBottomToolBar === true) {
-      return;
-    }
-
-    navigation.setParams({showBottomToolBar: true});
-  }, [
-    navigation,
-    route?.params?.showBottomToolBar,
-    shouldShowBottomNavigation,
-  ])
-
-  useLayoutEffect(() => {
-    if (!isSingleItemOperationMode) {
-      return;
-    }
-
-    // No single-item o detalhe do pedido nao participa do fluxo.
-    // Voltar daqui significa trocar o item no AddProductScreen antes de pagar.
-    const replaceRoute = buildAddProductsRouteParams(
-      item || orderParam || routeOrderId,
-      buildManagerPdvRouteParams({singleItemMode: true}),
-    )
-
-    if (typeof navigation?.replace === 'function') {
-      navigation.replace('AddProductScreen', replaceRoute)
-      return
-    }
-
-    navigation?.navigate?.('AddProductScreen', replaceRoute)
-  }, [
+    shouldShowMobilePaymentBar,
+    showError,
+    showSuccess,
+    detailsModalVisible,
+    setDetailsModalVisible,
+    financialDetailsVisible,
+    setFinancialDetailsVisible,
+    attachmentsVisible,
+    setAttachmentsVisible,
+    insets,
+    ordersGetters,
+    ordersActions,
+    isLoading,
+    error,
     item,
-    navigation,
-    orderParam,
-    route?.params?.interactionMode,
-    routeOrderId,
+    invoiceActions,
+    orderInvoicesActions,
+    storedOrderInvoiceItems,
+    peopleActions,
+    defaultCompany,
+    addressActions,
+    ppcColors,
+    localStyles,
+    viewportWidth,
+    selectedDisplay,
+    orderCompanyId,
+    orderCompanyIri,
+    isPosSelfServiceOperationMode,
     isSingleItemOperationMode,
-  ])
-
-  const isManualInput = productInputType === 'manual'
-  const showBarcodeInput = item?.app === 'POS' && !isManualInput
-  const localStatusNameKey = String(
-    item?.status?.status ||
-    orderParam?.status?.status ||
-    '',
-  ).trim().toLowerCase()
-  const localRealStatusKey = String(
-    item?.status?.realStatus ||
-    orderParam?.status?.realStatus ||
-    '',
-  ).trim().toLowerCase()
-  const isLocallyTerminalOrder =
-    isTerminalOrderStatus(item?.status?.realStatus) ||
-    isTerminalOrderStatus(orderParam?.status?.realStatus)
-  const isPurchaseOrder = String(item?.orderType || orderParam?.orderType || '').toLowerCase() === 'purchase'
-  const shouldShowOrderPartyDetails = isPurchaseOrder || isDeviceDeliveryEnabled
-  const localOrderTypeKey = resolveEditableOrderType(item?.orderType || orderParam?.orderType || '')
+    shouldShowBottomNavigation,
+    canShowDebugActions,
+    showBarcodeInput,
+    localStatusNameKey,
+    localRealStatusKey,
+    isLocallyTerminalOrder,
+    isPurchaseOrder,
+    shouldShowOrderPartyDetails,
+    localOrderTypeKey,
+  } = bootstrap
 
   const {
-    orderProductsStore,
-    currentOrderProductsRef,
     filteredStoredOrderProducts,
     materializeOrderWithProducts,
     orderInvoices,
     loadOrderInvoices,
     commitResolvedOrderProducts,
     refreshCurrentOrder,
-    refreshIntegrationFinancialData,
     marketplaceSummary,
-    buildOrderUpdatePayload,
     canEditItems,
     canMutateOrderProducts,
-    syncCurrentOrderProducts,
     flushPendingOrderProductChanges,
     getScheduledQuantity,
     isOrderProductCommitting,
@@ -325,11 +105,7 @@ const OrderDetails = ({ route, navigation }) => {
   const {
     primaryActionLoading,
     handleAddProduct,
-    handleAddPayment,
-    handleProduceOrder,
     handlePrimaryAction,
-    currentOrderSnapshot,
-    primaryActionMode,
     primaryActionLabel,
     primaryActionIcon,
   } = useOrderDetailsPrimaryActions({
@@ -350,8 +126,6 @@ const OrderDetails = ({ route, navigation }) => {
 
   const {
     confirmRemoveItemId,
-    setConfirmRemoveItemId,
-    handleUpdateOpQuantity,
     handleIncreaseOpQuantity,
     handleDecreaseOpQuantity,
     handleRemoveOp,
@@ -367,18 +141,16 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const {
-    resolvedDisplayOrderProducts,
-    resolvedProductCandidatesById,
     resolvedDisplayOrderProductsWithProductDetails,
-    effectiveDisplayedOperationalStatus,
-    effectiveLocalStatusNameKey,
-    effectiveLocalRealStatusKey,
     resolvedDisplayOrder,
     orderIdentitySource,
     orderAdditionalInfoEntries,
-    normalizedOrderRealStatus,
-    hasTerminalOrderState,
     isTerminalOrder,
+    shouldShowOrderAddress,
+    translatedLocalStatusLabel,
+    translatedLocalRealStatusLabel,
+    localOrderAddressParts,
+    localOrderAddress,
   } = useOrderDetailsProductDisplay({
     item,
     orderParam,
@@ -386,16 +158,14 @@ const OrderDetails = ({ route, navigation }) => {
     filteredStoredOrderProducts,
     isLocallyTerminalOrder,
     localRealStatusKey,
+    localStatusNameKey,
+    isPurchaseOrder,
+    shouldShowOrderPartyDetails,
   })
 
   const {
-    activeLocalInvoices,
-    localFinancialCompanyId,
     localInvoiceCards,
-    localPaidAmount,
     localReceivedAmount,
-    groupedInvoiceSections,
-    hasAuthoritativeEmptyOrderProducts,
     localOrderTotal,
     localPendingAmount,
     localDisplayAmount,
@@ -415,8 +185,6 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const canAddProductsToOrder = canMutateOrderProducts
-  const addProductsButtonLabel =
-    global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
 
   const {
     productSearchText,
@@ -446,11 +214,6 @@ const OrderDetails = ({ route, navigation }) => {
     !!item?.id &&
     localPendingAmount > 0 &&
     !isTerminalOrder
-  // The same primary slot can render Pagar or Produzir; the action helper
-  // decides which CTA the current cart should expose.
-  const showInlinePrimaryAction =
-    canAddOrderPayment &&
-    !useUnifiedKdsLayout
   const primaryActionDisabled = !canAddOrderPayment || primaryActionLoading
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
   const orderWaitingMinutes = resolvedOrderDateValue
@@ -461,7 +224,6 @@ const OrderDetails = ({ route, navigation }) => {
       ? ''
       : `${orderWaitingMinutes} min`
   const localOrderClient = item?.client || orderParam?.client || null
-  const localOrderAddress = item?.addressDestination || orderParam?.addressDestination || null
   const localOrderObservationSource = resolvePreferredText(
     item?.comments,
     item?.remark,
@@ -473,9 +235,9 @@ const OrderDetails = ({ route, navigation }) => {
   const showBaseOrderObservationCard =
     shouldShowOrderPartyDetails &&
     (!!baseOrderObservationText || canEditItems)
+
   const {
     customerModalVisible,
-    setCustomerModalVisible,
     customerCreateModalVisible,
     setCustomerCreateModalVisible,
     customerSearch,
@@ -486,9 +248,6 @@ const OrderDetails = ({ route, navigation }) => {
     addressModalVisible,
     addressModalMode,
     setAddressModalMode,
-    addressOptions,
-    addressOptionsLoading,
-    addressForm,
     addressSaveLoading,
     addressSelectingId,
     observationDraft,
@@ -502,13 +261,11 @@ const OrderDetails = ({ route, navigation }) => {
     orderAddressPrimary,
     orderAddressSecondary,
     selectedOrderClientIri,
-    selectedOrderAddressIri,
     closeCustomerModal,
     openCustomerModal,
     orderHeaderActionProps,
     openCustomerCreateModal,
     closeAddressModal,
-    openAddressCreateMode,
     openAddressModal,
     handleAddressFormFieldChange,
     handleStartObservationEdit,
@@ -516,8 +273,6 @@ const OrderDetails = ({ route, navigation }) => {
     handleSaveObservation,
     handleSelectCustomer,
     handleCustomerCreated,
-    handleSelectAddress,
-    handleCreateAddress,
   } = useOrderDetailsParty({
     canEditItems,
     isKds,
@@ -536,8 +291,6 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const {
-    localInvoicesEmptyText,
-    localInvoicesSectionTitle,
     shouldShowPreparationTime,
     summaryInformationEntries,
     orderAppLabel,
@@ -668,7 +421,14 @@ const OrderDetails = ({ route, navigation }) => {
       useUnifiedKdsLayout={useUnifiedKdsLayout}
       showBarcodeInput={showBarcodeInput}
       isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
-      isPurchaseOrder={isPurchaseOrder}
+      productSearchText={productSearchText}
+      setProductSearchText={setProductSearchText}
+      productSearchResults={productSearchResults}
+      productSearchLoading={productSearchLoading}
+      productSearchSelectionId={productSearchSelectionId}
+      handleQuickAddProductFromSearch={handleQuickAddProductFromSearch}
+      handleCustomizeProductFromSearch={handleCustomizeProductFromSearch}
+      resolvedDisplayOrderProductsWithProductDetails={resolvedDisplayOrderProductsWithProductDetails}
       shouldShowOrderPartyDetails={shouldShowOrderPartyDetails}
       customerModalVisible={customerModalVisible}
       closeCustomerModal={closeCustomerModal}
