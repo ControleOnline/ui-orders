@@ -102,6 +102,16 @@ export default function useOrderDetailsToolbarActions({
     })
   }, [navigation, topBarOrderId])
 
+  const handleOrderNf = useCallback(() => {
+    if (!topBarOrderId) {
+      return
+    }
+
+    navigation.navigate('OrderNfPage', {
+      id: topBarOrderId,
+    })
+  }, [navigation, topBarOrderId])
+
   return {
     handleOpenFinancialDetails,
     handleOpenInvoiceDetails,
@@ -109,5 +119,6 @@ export default function useOrderDetailsToolbarActions({
     handleOrderAttachments,
     handleOrderLogs,
     handleOrderLogistics,
+    handleOrderNf,
   }
 }

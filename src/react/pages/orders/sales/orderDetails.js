@@ -320,6 +320,7 @@ const OrderDetails = ({ route, navigation }) => {
     handleOrderAttachments,
     handleOrderLogs,
     handleOrderLogistics,
+    handleOrderNf,
   } = useOrderDetailsToolbarActions({
     canShowDebugActions,
     localInvoiceCards,
@@ -359,6 +360,7 @@ const OrderDetails = ({ route, navigation }) => {
     appType,
     isPosSelfServiceOperationMode,
     handleOrderLogistics,
+    handleOrderNf,
     handleOrderAttachments,
     handleOrderTools,
     handleOrderLogs,

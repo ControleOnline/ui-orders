@@ -36,6 +36,7 @@ export default function useOrderDetailsRenderers(p) {
     appType,
     isPosSelfServiceOperationMode,
     handleOrderLogistics,
+    handleOrderNf,
     handleOrderAttachments,
     handleOrderTools,
     handleOrderLogs,
@@ -136,6 +137,7 @@ export default function useOrderDetailsRenderers(p) {
     const buttons = [ORDER_TOP_BAR_ACTIONS.PRINT]
 
     if (topBarOrderId) {
+      buttons.push(ORDER_TOP_BAR_ACTIONS.NF)
       buttons.push(ORDER_TOP_BAR_ACTIONS.LOGISTICS)
       buttons.push(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS)
     }
@@ -174,9 +176,11 @@ export default function useOrderDetailsRenderers(p) {
         onPressAttachments={handleOrderAttachments}
         onPressTools={handleOrderTools}
         onPressLogs={handleOrderLogs}
+        onPressNf={handleOrderNf}
         logisticsDisabled={!topBarOrderId}
         attachmentsDisabled={!topBarOrderId}
         logsDisabled={!topBarOrderId}
+        nfDisabled={!topBarOrderId}
       />
     ),
     [
@@ -184,6 +188,7 @@ export default function useOrderDetailsRenderers(p) {
       handleOrderTools,
       handleOrderAttachments,
       handleOrderLogistics,
+      handleOrderNf,
       isKds,
       isTvDisplay,
       item?.id,
@@ -214,9 +219,11 @@ export default function useOrderDetailsRenderers(p) {
       onPressAttachments={handleOrderAttachments}
       onPressTools={handleOrderTools}
       onPressLogs={handleOrderLogs}
+      onPressNf={handleOrderNf}
       logisticsDisabled={!topBarOrderId}
       attachmentsDisabled={!topBarOrderId}
       logsDisabled={!topBarOrderId}
+      nfDisabled={!topBarOrderId}
       showActions={!shouldHideCompactTopBarActions}
     />
   ), [
@@ -225,6 +232,7 @@ export default function useOrderDetailsRenderers(p) {
     handleOrderTools,
     handleOrderAttachments,
     handleOrderLogistics,
+    handleOrderNf,
     isTvDisplay,
     navigation,
     orderHeaderActionProps,
