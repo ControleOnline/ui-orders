@@ -3,6 +3,8 @@ import {useMessage} from '@controleonline/ui-common/src/react/components/Message
 import {
   POS_CHECK_ORDER_TYPE_NONE,
   resolvePosCheckOrderTypeForShop,
+  isPosLocalChargeEnabled,
+  canManagePosCheckOrders,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {
   normalizeBooleanConfig,
@@ -21,6 +23,8 @@ import {
   normalizeText,
   normalizeStatusKey,
   summarizeInvoices,
+  listPendingCartOrders,
+  partitionTreeRounds,
 } from './linkedOrderSettlementHelpers'
 import {
   buildSettlementPayload as buildSettlementPayloadOp,
@@ -28,6 +32,7 @@ import {
   findSettlementOrderByCode as findSettlementOrderByCodeOp,
   linkExistingInvoicesToPrimary as linkExistingInvoicesToPrimaryOp,
   loadSettlementTree,
+  loadOpenLinkedRootOrders,
   mergeSettlementOrderIntoPrimary as mergeSettlementOrderIntoPrimaryOp,
   reopenSettlementOrderIfPaid as reopenSettlementOrderIfPaidOp,
   resolveSettlementRootOrder as resolveSettlementRootOrderOp,
@@ -92,6 +97,8 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
   const companyId = normalizeEntityId(currentCompany)
   const companyIri = companyId ? `/people/${companyId}` : null
   const canUseSettlementScreen = linkedOrderType !== POS_CHECK_ORDER_TYPE_NONE
+  const canChargeLocally = isPosLocalChargeEnabled(runtimeDeviceConfig?.configs)
+  const canManageRoots = canManagePosCheckOrders(runtimeDeviceConfig?.configs)
   const palette = useMemo(
     () =>
       resolveThemePalette(
@@ -103,6 +110,8 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
 
   const linkedOrderEntryResolverRef = useRef(null)
   const [linkedOrderEntryState, setLinkedOrderEntryState] = useState(null)
+  const [openRootOrders, setOpenRootOrders] = useState([])
+  const [loadingOpenRoots, setLoadingOpenRoots] = useState(false)
   const [primaryOrder, setPrimaryOrder] = useState(null)
   const [treeOrders, setTreeOrders] = useState([])
   const [treeInvoices, setTreeInvoices] = useState([])
@@ -331,6 +340,55 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
     () => Math.max(primaryOrderTotal - invoiceSummary.paidAmount, 0),
     [invoiceSummary.paidAmount, primaryOrderTotal],
   )
+  const refreshOpenRootOrders = useCallback(async () => {
+    if (!canUseSettlementScreen || !companyIri || !linkedOrderType) {
+      setOpenRootOrders([])
+      return []
+    }
+    setLoadingOpenRoots(true)
+    try {
+      const roots = await loadOpenLinkedRootOrders({
+        companyIri,
+        linkedOrderType,
+        ordersActions,
+      })
+      setOpenRootOrders(roots)
+      return roots
+    } catch (error) {
+      showError?.(
+        error?.message ||
+          `Unable to list open ${orderLabel.toLowerCase()}s.`,
+      )
+      return []
+    } finally {
+      setLoadingOpenRoots(false)
+    }
+  }, [
+    canUseSettlementScreen,
+    companyIri,
+    linkedOrderType,
+    orderLabel,
+    ordersActions,
+    showError,
+  ])
+
+  useEffect(() => {
+    if (!canUseSettlementScreen || !companyIri) {
+      setOpenRootOrders([])
+      return
+    }
+    void refreshOpenRootOrders()
+  }, [canUseSettlementScreen, companyIri, linkedOrderType, refreshOpenRootOrders])
+
+  const pendingCartOrders = useMemo(
+    () => listPendingCartOrders(treeOrders),
+    [treeOrders],
+  )
+  const treeRounds = useMemo(
+    () => partitionTreeRounds(treeOrders),
+    [treeOrders],
+  )
+
   const settlementOrders = useMemo(
     () =>
       [
@@ -390,5 +448,12 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
     selectPrimaryOrder,
     setTreeOrders,
     setTreeInvoices,
+    openRootOrders,
+    loadingOpenRoots,
+    refreshOpenRootOrders,
+    canChargeLocally,
+    canManageRoots,
+    pendingCartOrders,
+    treeRounds,
   }
 }

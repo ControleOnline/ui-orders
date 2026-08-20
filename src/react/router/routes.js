@@ -1,6 +1,8 @@
 /* eslint-disable no-unused-vars */
 import OrderDetailsPage from '@controleonline/ui-orders/src/react/pages/orders/OrderDetailsPage';
 import Checkout from '@controleonline/ui-orders/src/react/pages/checkout/Checkout';
+import LinkedOrderSettlementPage from '@controleonline/ui-orders/src/react/pages/checkout/LinkedOrderSettlementPage';
+
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
 import CashRegister from '@controleonline/ui-orders/src/react/pages/CashRegister';
 import Withdrawal from '@controleonline/ui-orders/src/react/pages/CashRegister/Withdrawal';
@@ -244,6 +246,20 @@ const ordersRoutes = [
       title: () => global.t?.t('orders', 'title', 'order'),
     },
     initialParams: { store: 'orders' },
+  },
+  {
+    name: 'LinkedOrderSettlementPage',
+    component: LinkedOrderSettlementPage,
+    options: {
+      headerShown: true,
+      title: 'Settlement',
+    },
+    menu: {
+      title: 'Tables / Tabs',
+      icon: 'table-chair',
+      visible: true,
+      order: 35,
+    },
   },
   {
     name: 'Checkout',

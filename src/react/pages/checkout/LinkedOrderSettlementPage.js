@@ -43,6 +43,13 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     primaryContext,
     canUseSettlementScreen,
     currentCompany,
+    openRootOrders,
+    loadingOpenRoots,
+    handleSelectOpenRoot,
+    canChargeLocally,
+    canManageRoots,
+    pendingCartOrders,
+    treeRounds,
   } = useLinkedOrderSettlement({navigation, route})
 
   if (!currentCompany?.id) {
@@ -295,16 +302,20 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
           <View style={styles.footerActions}>
             <TouchableOpacity
               activeOpacity={0.88}
-              disabled={actionLoading !== ''}
+              disabled={actionLoading !== '' || !canChargeLocally}
               onPress={handleOpenCheckout}
               style={[
                 styles.footerPrimaryButton,
                 {backgroundColor: palette.primary},
-                actionLoading !== '' && styles.actionDisabled,
+                (actionLoading !== '' || !canChargeLocally) && styles.actionDisabled,
               ]}>
               <Icon name="dollar-sign" size={16} color="#FFFFFF" />
               <Text style={styles.footerPrimaryButtonText}>
-                {pendingAmount > 0.009 ? 'Charge balance' : 'Review payments'}
+                {!canChargeLocally
+                  ? 'Charge not authorized'
+                  : pendingAmount > 0.009
+                    ? 'Charge balance'
+                    : 'Review payments'}
               </Text>
             </TouchableOpacity>
 
