@@ -149,6 +149,9 @@ import useOrderDetailsProductSearch from './orderDetails/useOrderDetailsProductS
 import useOrderDetailsFinancials from './orderDetails/useOrderDetailsFinancials'
 import useOrderDetailsProductMutations from './orderDetails/useOrderDetailsProductMutations'
 import useOrderDetailsToolbarActions from './orderDetails/useOrderDetailsToolbarActions'
+import useOrderDetailsPrimaryActions from './orderDetails/useOrderDetailsPrimaryActions'
+import useOrderDetailsRenderers from './orderDetails/useOrderDetailsRenderers'
+import OrderDetailsView from './orderDetails/OrderDetailsView'
 import { InlineLoadingText } from './orderDetails/InlineLoadingText';
 import OrderDetailsInvoiceCards from './orderDetails/OrderDetailsInvoiceCards';
 import OrderDetailsProductActions from './orderDetails/OrderDetailsProductActions';
@@ -195,7 +198,6 @@ const OrderDetails = ({ route, navigation }) => {
   const [detailsModalVisible, setDetailsModalVisible] = useState(false)
   const [financialDetailsVisible, setFinancialDetailsVisible] = useState(false)
   const [attachmentsVisible, setAttachmentsVisible] = useState(false)
-  const [primaryActionLoading, setPrimaryActionLoading] = useState(false)
   const insets = useSafeAreaInsets()
 
   const ordersStore = useStore('orders')
@@ -550,25 +552,6 @@ const OrderDetails = ({ route, navigation }) => {
     }, []),
   )
 
-  const handleAddProduct = () => {
-    if (!canMutateOrderProducts) return
-    const shouldUseManagerPdv =
-      String(app_type || '').toUpperCase() === 'MANAGER' ||
-      route?.params?.interactionMode === 'pdv'
-
-    navigation.navigate(
-      'AddProductScreen',
-      buildAddProductsRouteParams(
-        item || orderParam || routeOrderId,
-        shouldUseManagerPdv
-          ? buildManagerPdvRouteParams({
-              singleItemMode: isSingleItemOperationMode,
-            })
-          : {singleItemMode: isSingleItemOperationMode},
-      ),
-    )
-  }
-
   const refreshCurrentOrder = useCallback(async ({force = false} = {}) => {
     if (!routeOrderId) {
       return null
@@ -784,103 +767,31 @@ const OrderDetails = ({ route, navigation }) => {
     refreshCurrentOrder,
   ])
 
-  const handleAddPayment = useCallback(async () => {
-    if (!item?.id || isLocallyTerminalOrder) return
-    await flushPendingOrderProductChanges()
-    const shouldKeepPdvMode = isPdvRouteContext(route?.params)
-    navigation.navigate(
-      'Checkout',
-      buildCheckoutRouteParams(
-        ordersGetters.item || item,
-        shouldKeepPdvMode
-          ? buildManagerPdvRouteParams({showBottomCart: false})
-          : {},
-      ),
-    )
-  }, [
-    flushPendingOrderProductChanges,
-    item,
-    navigation,
-    isLocallyTerminalOrder,
-    ordersGetters.item,
-    route?.params,
-  ])
-
-  const currentOrderSnapshot = useMemo(
-    () =>
-      item || orderParam
-        ? {
-            ...(orderParam || {}),
-            ...(item || {}),
-          }
-        : null,
-    [item, orderParam],
-  )
-
-  const handleProduceOrder = useCallback(async () => {
-    const targetOrder = currentOrderSnapshot
-    const orderId = getEntityId(targetOrder)
-
-    if (!orderId || isLocallyTerminalOrder) {
-      return
-    }
-
-    // Cart orders with mesa/comanda context are promoted here instead of opening Checkout.
-    // The backend confirm endpoint turns cart -> sale and resolves the operational status.
-    setPrimaryActionLoading(true)
-
-    try {
-      await flushPendingOrderProductChanges()
-
-      const response = await api.post(`/orders/${orderId}/confirm`, {})
-      const result = response?.result || response
-
-      if (String(result?.errno ?? '0') !== '0') {
-        throw result || response
-      }
-
-      await refreshCurrentOrder({force: true})
-      showSuccess(
-        global.t?.t('orders', 'message', 'orderSentToProduction') ||
-          'Pedido enviado para producao.',
-      )
-    } catch (error) {
-      showError(formatApiError(error))
-    } finally {
-      setPrimaryActionLoading(false)
-    }
-  }, [
-    flushPendingOrderProductChanges,
-    item,
-    isLocallyTerminalOrder,
+  const {
+    primaryActionLoading,
+    handleAddProduct,
+    handleAddPayment,
+    handleProduceOrder,
+    handlePrimaryAction,
     currentOrderSnapshot,
+    primaryActionMode,
+    primaryActionLabel,
+    primaryActionIcon,
+  } = useOrderDetailsPrimaryActions({
+    canMutateOrderProducts,
+    item,
+    orderParam,
+    routeOrderId,
+    route,
+    navigation,
+    isSingleItemOperationMode,
+    isLocallyTerminalOrder,
+    flushPendingOrderProductChanges,
+    ordersGetters,
     refreshCurrentOrder,
     showError,
     showSuccess,
-  ])
-
-  const primaryActionSourceOrder = currentOrderSnapshot
-  const primaryActionMode = resolveOrderDetailsPrimaryActionMode({
-    appType,
-    order: primaryActionSourceOrder,
   })
-  const primaryActionLabel = resolveOrderDetailsPrimaryActionLabel({
-    appType,
-    order: primaryActionSourceOrder,
-  })
-  const primaryActionIcon = resolveOrderDetailsPrimaryActionIcon({
-    appType,
-    order: primaryActionSourceOrder,
-  })
-
-  const handlePrimaryAction = useCallback(async () => {
-    if (primaryActionMode === 'produce') {
-      await handleProduceOrder()
-      return
-    }
-
-    await handleAddPayment()
-  }, [handleAddPayment, handleProduceOrder, primaryActionMode])
 
   const {
     confirmRemoveItemId,
@@ -1247,26 +1158,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderParamId: orderParam?.id,
   })
 
-  const renderOrderProductActions = useCallback(({
-    card,
-    orderProduct,
-    entryType,
-  }) => (
-    <OrderDetailsProductActions
-      card={card}
-      orderProduct={orderProduct}
-      entryType={entryType}
-      canMutateOrderProducts={canMutateOrderProducts}
-      confirmRemoveItemId={confirmRemoveItemId}
-      handleDecreaseOpQuantity={handleDecreaseOpQuantity}
-      handleEditCustomizableOrderProduct={handleEditCustomizableOrderProduct}
-      handleIncreaseOpQuantity={handleIncreaseOpQuantity}
-      handleRemoveOp={handleRemoveOp}
-      isOrderProductCommitting={isOrderProductCommitting}
-      localStyles={localStyles}
-      ppcColors={ppcColors}
-    />
-  ), [
+  const renderers = useOrderDetailsRenderers({
     canMutateOrderProducts,
     confirmRemoveItemId,
     handleDecreaseOpQuantity,
@@ -1276,508 +1168,136 @@ const OrderDetails = ({ route, navigation }) => {
     isOrderProductCommitting,
     localStyles,
     ppcColors,
-  ])
-
-  const isCompactMobileViewport = viewportWidth < 360
-  const shouldStackHeaderActions = useUnifiedKdsLayout && viewportWidth <= 600
-  const mobileBottomCartOffset = getOwnedBottomBarOffset({
-    hasBottomNavigation: shouldShowBottomNavigation,
-    bottomInset: insets?.bottom,
-  })
-  const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
-    ? (isCompactMobileViewport ? 148 : 132)
-    : 24
-  const topBarButtons = useMemo(() => {
-    const buttons = [ORDER_TOP_BAR_ACTIONS.PRINT]
-
-    if (topBarOrderId) {
-      buttons.push(ORDER_TOP_BAR_ACTIONS.LOGISTICS)
-      buttons.push(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS)
-    }
-
-    if (canShowDebugActions) {
-      buttons.push(ORDER_TOP_BAR_ACTIONS.TOOLS, ORDER_TOP_BAR_ACTIONS.LOGS)
-    }
-
-    return buttons
-  }, [canShowDebugActions, topBarOrderId])
-  const topBarPrintJob = {type: 'order', orderId: topBarOrderId}
-  const topBarPrinterSelection = isKds
-    ? {
-        enabled: true,
-        context: 'display',
-        display: selectedDisplay,
-        displayId: selectedDisplay?.id,
-      }
-    : {enabled: true}
-  const shouldHideCompactTopBarActions =
-    appType === 'POS' && isPosSelfServiceOperationMode
-
-  const renderTopBarActions = useCallback(
-    containerStyle => (
-      <OrderTopBarActions
-        buttons={topBarButtons}
-        containerStyle={containerStyle}
-        iconButtonStyle={localStyles.topBarIconButton}
-        iconButtonDisabledStyle={localStyles.topBarIconButtonDisabled}
-        iconColor={ppcColors.accentInfo}
-        printJob={topBarPrintJob}
-        printDisabled={!topBarOrderId}
-        printerSelection={topBarPrinterSelection}
-        isTvDisplay={isTvDisplay}
-        onPressLogistics={handleOrderLogistics}
-        onPressAttachments={handleOrderAttachments}
-        onPressTools={handleOrderTools}
-        onPressLogs={handleOrderLogs}
-        logisticsDisabled={!topBarOrderId}
-        attachmentsDisabled={!topBarOrderId}
-        logsDisabled={!topBarOrderId}
-      />
-    ),
-    [
-      handleOrderLogs,
-      handleOrderTools,
-      handleOrderAttachments,
-      handleOrderLogistics,
-      isKds,
-      isTvDisplay,
-      item?.id,
-      localStyles.topBarIconButtonDisabled,
-      localStyles.topBarIconButton,
-      orderParam?.id,
-      ppcColors.accentInfo,
-      selectedDisplay,
-      topBarButtons,
-      topBarOrderId,
-      topBarPrintJob,
-      topBarPrinterSelection,
-    ],
-  )
-
-  const renderCompactInlineTopBar = useCallback(() => (
-      <OrderStackedTopBar
-      order={orderIdentitySource}
-      isKds
-      orderHeaderProps={orderHeaderActionProps}
-      onBackPress={() => navigation.goBack()}
-      buttons={topBarButtons}
-      printJob={topBarPrintJob}
-      printDisabled={!topBarOrderId}
-      printerSelection={topBarPrinterSelection}
-      isTvDisplay={isTvDisplay}
-      onPressLogistics={handleOrderLogistics}
-      onPressAttachments={handleOrderAttachments}
-      onPressTools={handleOrderTools}
-      onPressLogs={handleOrderLogs}
-      logisticsDisabled={!topBarOrderId}
-      attachmentsDisabled={!topBarOrderId}
-      logsDisabled={!topBarOrderId}
-      showActions={!shouldHideCompactTopBarActions}
-    />
-  ), [
-    shouldHideCompactTopBarActions,
-    handleOrderLogs,
-    handleOrderTools,
-    handleOrderAttachments,
-    handleOrderLogistics,
-    isTvDisplay,
-    navigation,
-    orderHeaderActionProps,
-    orderIdentitySource,
-    topBarButtons,
-    topBarOrderId,
-    topBarPrintJob,
-    topBarPrinterSelection,
-  ])
-
-  const orderPageTitle = useUnifiedKdsLayout
-    ? ''
-    : global.t?.t('orders', 'title', 'order') || 'Pedido'
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: orderPageTitle,
-      headerShown: !shouldStackHeaderActions,
-      headerStyle: shouldStackHeaderActions ? undefined : undefined,
-      headerBackVisible: !shouldStackHeaderActions,
-      headerLeft: shouldStackHeaderActions ? undefined : undefined,
-      headerTitleAlign: shouldStackHeaderActions ? undefined : undefined,
-      headerTitle: shouldStackHeaderActions
-        ? undefined
-        : useUnifiedKdsLayout
-        ? () => (
-          <View
-            style={
-              localStyles.topBarTitleWrap
-            }
-          >
-            <OrderHeader
-              order={orderIdentitySource}
-              isKds
-              {...orderHeaderActionProps}
-            />
-          </View>
-        )
-        : () => (
-          <View style={localStyles.topBarTitleWrap}>
-            <View style={localStyles.topBarTitleContent}>
-              <Text style={localStyles.topBarTitleText}>
-                {orderPageTitle}
-              </Text>
-            </View>
-          </View>
-        ),
-      headerRight: shouldStackHeaderActions
-        ? () => null
-        : () => renderTopBarActions(localStyles.topBarActions),
-    })
-  }, [
-    canShowDebugActions,
-    handleOrderLogs,
-    handleOrderTools,
-    item?.id,
-    orderParam?.id,
-    isKds,
-    isTvDisplay,
-    localStyles.topBarTitleContent,
-    localStyles.topBarActions,
-    localStyles.topBarIconButton,
-    localStyles.topBarTitleText,
-    localStyles.topBarTitleWrap,
-    marketplaceSummary.summary,
-    navigation,
-    orderPageTitle,
-    orderHeaderActionProps,
-    orderIdentitySource,
-    ppcColors.accentInfo,
-    renderTopBarActions,
-    selectedDisplay,
-    shouldStackHeaderActions,
+    viewportWidth,
     useUnifiedKdsLayout,
-  ])
-
-  const renderLocalInvoiceCards = useCallback(
-    variant => (
-      <OrderDetailsInvoiceCards
-        variant={variant}
-        localInvoiceCards={localInvoiceCards}
-        groupedInvoiceSections={groupedInvoiceSections}
-        localInvoicesEmptyText={localInvoicesEmptyText}
-        localStyles={localStyles}
-        ppcColors={ppcColors}
-        handleOpenInvoiceDetails={handleOpenInvoiceDetails}
-      />
-    ),
-    [
-      handleOpenInvoiceDetails,
-      groupedInvoiceSections,
-      localInvoiceCards,
-      localInvoicesEmptyText,
-      localStyles,
-      ppcColors,
-    ],
-  )
-  const renderInvoiceListOnly = useCallback(
-    variant => (
-      <OrderInvoices
-        isLoadingInvoices={orderInvoicesLoading}
-        localInvoiceCards={localInvoiceCards}
-        localInvoicesEmptyText={localInvoicesEmptyText}
-        localInvoicesSectionTitle={localInvoicesSectionTitle}
-        renderLocalInvoiceCards={renderLocalInvoiceCards}
-        showFinancialSections={false}
-        showInvoicesSectionTitle={false}
-        variant={variant}
-      />
-    ),
-    [
-      orderInvoicesLoading,
-      localInvoiceCards,
-      localInvoicesEmptyText,
-      localInvoicesSectionTitle,
-      renderLocalInvoiceCards,
-    ],
-  )
-  const renderItemsTab = useCallback(
-    variant => {
-      return (
-        <OrderItemsTab
-          addProductsButtonLabel={addProductsButtonLabel}
-          canAddProductsToOrder={canAddProductsToOrder}
-          onAddProduct={handleAddProduct}
-          onCustomizeProduct={handleCustomizeProductFromSearch}
-          onQuickAddProduct={handleQuickAddProductFromSearch}
-          order={resolvedDisplayOrder || item}
-          orderProducts={resolvedDisplayOrderProductsWithProductDetails}
-          productSearchLoading={productSearchLoading}
-          productSearchResults={productSearchResults}
-          productSearchSelectionId={productSearchSelectionId}
-          productSearchText={productSearchText}
-          renderOrderProductActions={canMutateOrderProducts ? renderOrderProductActions : null}
-          routeOrderId={routeOrderId}
-          setProductSearchText={setProductSearchText}
-          showPricing={!isKds && !isTvDisplay}
-          variant={variant}
-        />
-      )
-    },
-    [
-      addProductsButtonLabel,
-      canAddProductsToOrder,
-      canMutateOrderProducts,
-      handleCustomizeProductFromSearch,
-      handleQuickAddProductFromSearch,
-      handleAddProduct,
-      item,
-      productSearchLoading,
-      productSearchResults,
-      productSearchSelectionId,
-      productSearchText,
-      renderOrderProductActions,
-      resolvedDisplayOrder,
-      resolvedDisplayOrderProductsWithProductDetails,
-      routeOrderId,
-      setProductSearchText,
-      isKds,
-      isTvDisplay,
-    ],
-  )
-
-  const orderSummaryData = buildOrderSummaryData({
+    shouldShowBottomNavigation,
+    insets,
+    shouldShowMobilePaymentBar,
+    topBarOrderId,
+    canShowDebugActions,
+    isKds,
+    selectedDisplay,
+    isTvDisplay,
+    appType,
+    isPosSelfServiceOperationMode,
+    handleOrderLogistics,
+    handleOrderAttachments,
+    handleOrderTools,
+    handleOrderLogs,
     orderIdentitySource,
-    hasMarketplaceIntegration,
-    orderAppLabel,
-    translatedLocalStatusLabel,
-    translatedLocalRealStatusLabel,
+    orderHeaderActionProps,
+    navigation,
     localInvoiceCards,
-    resolvedOrderDateValue,
     item,
     orderParam,
-    localDisplayLabel,
-    localDisplayAmount,
+    canEditItems,
+    canAddProductsToOrder,
+    handleAddProduct,
+    productSearchText,
+    setProductSearchText,
+    isLoading,
+    isPurchaseOrder,
     shouldShowOrderPartyDetails,
     orderCustomerName,
     orderCustomerPhone,
-    orderCustomerDocument,
+    localOrderCustomerDocument,
     orderCustomerDocumentLabel,
+    openCustomerModal,
+    customerLinkingId,
+    openAddressModal,
     shouldShowOrderAddress,
+    observationEditing,
+    observationDraft,
+    setObservationDraft,
+    handleStartObservationEdit,
+    handleCancelObservationEdit,
+    handleSaveObservation,
+    observationSaving,
+    baseOrderObservationText,
+    compactOrderSummary,
+    addressSaveLoading,
+    addressSelectingId,
+    shouldShowInlineOrderTotal,
+    orderAddressPrimary,
+    orderAddressSecondary,
+    selectedOrderClientIri,
+    showBaseOrderObservationCard,
+    orderAppLabel,
+    translatedLocalStatusLabel,
+    translatedLocalRealStatusLabel,
+    resolvedOrderDateValue,
+    localDisplayLabel,
+    localDisplayAmount,
     localOrderAddressParts,
     summaryInformationEntries,
     marketplaceSummary,
+    hasMarketplaceIntegration,
     formatOrderDateTime,
-    Formatter,
   })
-  const renderKdsMobileContent = () => (
-    <OrderDetailsKdsContent
-      localStyles={localStyles}
-      ppcColors={ppcColors}
-      mobileOrderBottomSpacing={mobileOrderBottomSpacing}
-      isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
-      shouldShowOrderPartyDetails={shouldShowOrderPartyDetails}
-      isPurchaseOrder={isPurchaseOrder}
-      item={item}
-      orderParam={orderParam}
-      orderCustomerName={orderCustomerName}
-      orderCustomerPhone={orderCustomerPhone}
-      localOrderCustomerDocument={localOrderCustomerDocument}
-      orderCustomerDocumentLabel={orderCustomerDocumentLabel}
-      canEditItems={canEditItems}
-      openCustomerModal={openCustomerModal}
-      customerLinkingId={customerLinkingId}
-      openAddressModal={openAddressModal}
-      shouldShowOrderAddress={shouldShowOrderAddress}
-      observationEditing={observationEditing}
-      observationDraft={observationDraft}
-      setObservationDraft={setObservationDraft}
-      handleStartObservationEdit={handleStartObservationEdit}
-      handleCancelObservationEdit={handleCancelObservationEdit}
-      handleSaveObservation={handleSaveObservation}
-      observationSaving={observationSaving}
-      baseOrderObservationText={baseOrderObservationText}
-      compactOrderSummary={compactOrderSummary}
-      renderItemsTab={renderItemsTab}
-      addressSaveLoading={addressSaveLoading}
-      addressSelectingId={addressSelectingId}
-      shouldShowInlineOrderTotal={shouldShowInlineOrderTotal}
-      orderAddressPrimary={orderAddressPrimary}
-      orderAddressSecondary={orderAddressSecondary}
-      selectedOrderClientIri={selectedOrderClientIri}
-      showBaseOrderObservationCard={showBaseOrderObservationCard}
-    />
-  )
-
-
-  const modalBottomInset = Math.max(insets?.bottom || 0, 8)
 
   return (
-    <SafeAreaView
-      style={[
-        cssStyles.container,
-        {
-          flex: 1,
-          paddingBottom: useUnifiedKdsLayout ? 0 : 120,
-          backgroundColor: useUnifiedKdsLayout ? ppcColors.appBg : undefined,
-        },
-        useUnifiedKdsLayout && localStyles.kdsContainer,
-      ]}
-    >
-      {shouldStackHeaderActions && renderCompactInlineTopBar()}
-      {showBarcodeInput && <BarcodeInput />}
-      <StateStore store={['orders', 'order_file', 'file']} />
-      {!isPosSelfServiceOperationMode &&
-        !isPurchaseOrder &&
-        shouldShowOrderPartyDetails && (
-        <>
-          <OrderDetailsAssignmentModals
-            customerModalVisible={customerModalVisible}
-            closeCustomerModal={closeCustomerModal}
-            customerLinkingId={customerLinkingId}
-            orderCustomerName={orderCustomerName}
-            localStyles={localStyles}
-            ppcColors={ppcColors}
-            modalBottomInset={modalBottomInset}
-            customerSearch={customerSearch}
-            setCustomerSearch={setCustomerSearch}
-            customerSearchLoading={customerSearchLoading}
-            customerSearchResults={customerSearchResults}
-            handleSelectCustomer={handleSelectCustomer}
-            openCustomerCreateModal={openCustomerCreateModal}
-            customerCreateModalVisible={customerCreateModalVisible}
-            setCustomerCreateModalVisible={setCustomerCreateModalVisible}
-            handleCustomerCreated={handleCustomerCreated}
-            addressModalVisible={addressModalVisible}
-            closeAddressModal={closeAddressModal}
-            addressModalMode={addressModalMode}
-            setAddressModalMode={setAddressModalMode}
-            addressOptions={addressOptions}
-            addressOptionsLoading={addressOptionsLoading}
-            addressSelectingId={addressSelectingId}
-            handleSelectAddress={handleSelectAddress}
-            addressForm={addressForm}
-            handleAddressFormFieldChange={handleAddressFormFieldChange}
-            handleCreateAddress={handleCreateAddress}
-            addressSaveLoading={addressSaveLoading}
-            peopleStore={peopleStore}
-          />
-        </>
-      )}
-      <OrderSummaryModal
-        visible={detailsModalVisible}
-        onClose={closeDetailsModal}
-        summary={orderSummaryData}
-      />
-      <OrderFinancialDetailsModal
-        visible={financialDetailsVisible}
-        onClose={closeFinancialDetailsModal}
-        order={orderIdentitySource}
-        isKds
-        orderHeaderProps={orderHeaderActionProps}
-        content={renderInvoiceListOnly('details')}
-      />
-      <OrderAttachmentManager
-        visible={attachmentsVisible}
-        onClose={() => setAttachmentsVisible(false)}
-        order={orderIdentitySource}
-        company={currentCompany || defaultCompany}
-        onChanged={() => refreshCurrentOrder({force: true})}
-      />
-      <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
-      {!isLoading && item && !error && (
-        <View style={inlineStyle_2712_14}>
-          {useUnifiedKdsLayout ? (
-            renderKdsMobileContent()
-          ) : (
-            <>
-              <View style={inlineStyle_2718_20}>
-                {canAddProductsToOrder && (
-                  <TouchableOpacity
-                    onPress={handleAddProduct}
-                    style={[globalStyles.button, { marginRight: 5 }]}
-                  >
-                    <Icon name="add-circle" size={24} color="#fff" />
-                    <Text style={inlineStyle_2725_26}>
-                      {addProductsButtonLabel}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                {showInlinePrimaryAction && (
-                  <TouchableOpacity
-                    onPress={handlePrimaryAction}
-                    disabled={primaryActionLoading}
-                    style={[globalStyles.button, { marginRight: 5 }]}
-                  >
-                    <Icon name={primaryActionIcon} size={24} color="#fff" />
-                    <Text style={inlineStyle_2737_26}>
-                      {primaryActionLabel}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                {canShowDebugActions && (
-                  <>
-                    <TouchableOpacity
-                      onPress={handleOrderLogs}
-                      disabled={!(item?.id || orderParam?.id)}
-                      style={[globalStyles.button, { marginLeft: 5 }]}
-                    >
-                      <Icon name="history" size={24} color="#fff" />
-                      <Text style={inlineStyle_2748_24}>
-                        {global.t?.t('orders', 'button', 'logs') || 'Logs'}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handleOrderTools}
-                      style={[globalStyles.button, { marginLeft: 5 }]}
-                    >
-                      <Icon name="settings" size={24} color="#fff" />
-                      <Text style={inlineStyle_2748_24}>
-                        {global.t?.t('orders', 'button', 'details')}
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            </>
-          )}
-
-          {shouldShowMobilePaymentBar && (
-            <BottomCart
-              bottomOffset={mobileBottomCartOffset}
-              actionLabel={primaryActionLabel}
-              actionIcon={primaryActionIcon}
-              actionDisabled={primaryActionDisabled}
-              collapsePayableWhenPaid={false}
-              paymentPendingAmount={hasMarketplaceIntegration ? 0 : localPendingAmount}
-              paymentPendingLabel={global.t?.t('orders', 'label', 'pending') || 'Pendente'}
-              paymentPaidLabel={global.t?.t('orders', 'label', 'paid') || 'Paga'}
-              paidDetailsLabel={global.t?.t('orders', 'button', 'details') || 'Detalhes'}
-              paidOrderAmount={localOrderTotal}
-              paidOrderLabel={
-                hasMarketplaceIntegration
-                  ? 'Valor do pedido'
-                  : global.t?.t('orders', 'label', 'localTotal') || 'Total do pedido'
-              }
-              paidReceivedAmount={localReceivedAmount}
-              paidReceivedLabel={
-                hasMarketplaceIntegration
-                  ? 'Valor do pagamento'
-                  : global.t?.t('orders', 'label', 'paid') || 'Recebido'
-              }
-              onActionPress={handlePrimaryAction}
-              onPaidDetailsPress={handleOpenFinancialDetails}
-              showPaidBreakdown
-              showActionButton={shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}
-              showPayableBadge={false}
-              variant="payment-status"
-            />
-          )}
-
-        </View>
-      )}
-    </SafeAreaView>
-  );
+    <OrderDetailsView
+      {...renderers}
+      localStyles={localStyles}
+      ppcColors={ppcColors}
+      useUnifiedKdsLayout={useUnifiedKdsLayout}
+      showBarcodeInput={showBarcodeInput}
+      isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
+      isPurchaseOrder={isPurchaseOrder}
+      shouldShowOrderPartyDetails={shouldShowOrderPartyDetails}
+      customerModalVisible={customerModalVisible}
+      closeCustomerModal={closeCustomerModal}
+      customerLinkingId={customerLinkingId}
+      orderCustomerName={orderCustomerName}
+      customerSearch={customerSearch}
+      setCustomerSearch={setCustomerSearch}
+      customerSearchLoading={customerSearchLoading}
+      customerSearchResults={customerSearchResults}
+      handleSelectCustomer={handleSelectCustomer}
+      openCustomerCreateModal={openCustomerCreateModal}
+      customerCreateModalVisible={customerCreateModalVisible}
+      setCustomerCreateModalVisible={setCustomerCreateModalVisible}
+      handleCustomerCreated={handleCustomerCreated}
+      addressModalVisible={addressModalVisible}
+      closeAddressModal={closeAddressModal}
+      addressModalMode={addressModalMode}
+      setAddressModalMode={setAddressModalMode}
+      handleAddressFormFieldChange={handleAddressFormFieldChange}
+      orderIdentitySource={orderIdentitySource}
+      orderHeaderActionProps={orderHeaderActionProps}
+      navigation={navigation}
+      isKds={isKds}
+      detailsModalVisible={detailsModalVisible}
+      closeDetailsModal={closeDetailsModal}
+      financialDetailsVisible={financialDetailsVisible}
+      closeFinancialDetailsModal={closeFinancialDetailsModal}
+      attachmentsVisible={attachmentsVisible}
+      setAttachmentsVisible={setAttachmentsVisible}
+      topBarOrderId={topBarOrderId}
+      item={item}
+      handleAddProduct={handleAddProduct}
+      handlePrimaryAction={handlePrimaryAction}
+      primaryActionLoading={primaryActionLoading}
+      primaryActionDisabled={primaryActionDisabled}
+      primaryActionLabel={primaryActionLabel}
+      primaryActionIcon={primaryActionIcon}
+      canAddOrderPayment={canAddOrderPayment}
+      handleOpenFinancialDetails={handleOpenFinancialDetails}
+      localOrderTotal={localOrderTotal}
+      localReceivedAmount={localReceivedAmount}
+      hasMarketplaceIntegration={hasMarketplaceIntegration}
+      shouldShowMobilePaymentBar={shouldShowMobilePaymentBar}
+      shouldShowBottomNavigation={shouldShowBottomNavigation}
+      canAddProductsToOrder={canAddProductsToOrder}
+      isLoading={isLoading}
+      error={error}
+      shouldShowInlineOrderTotal={shouldShowInlineOrderTotal}
+      localDisplayLabel={localDisplayLabel}
+      localDisplayAmount={localDisplayAmount}
+      shouldShowPreparationTime={shouldShowPreparationTime}
+      orderWaitingLabel={orderWaitingLabel}
+    />
+  )
 }
 
 export default OrderDetails
