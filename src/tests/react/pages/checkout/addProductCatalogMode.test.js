@@ -42,6 +42,7 @@ describe('addProductCatalogMode', () => {
         resolveShouldListProductsDirectly({
           isSingleItemMode: true,
           categoriesLoading: true,
+          categoriesFetched: false,
           categoryItems: undefined,
         }),
       ).toBe(true);
@@ -52,36 +53,49 @@ describe('addProductCatalogMode', () => {
         resolveShouldListProductsDirectly({
           isSingleItemMode: false,
           categoriesLoading: true,
+          categoriesFetched: false,
           categoryItems: [],
         }),
       ).toBe(false);
     });
 
-    it('keeps Categories until items array is known', () => {
+    it('keeps Categories until a fetch has completed (initial empty array is not definitive)', () => {
       expect(
         resolveShouldListProductsDirectly({
           isSingleItemMode: false,
           categoriesLoading: false,
+          categoriesFetched: false,
+          categoryItems: [],
+        }),
+      ).toBe(false);
+
+      expect(
+        resolveShouldListProductsDirectly({
+          isSingleItemMode: false,
+          categoriesLoading: false,
+          categoriesFetched: false,
           categoryItems: undefined,
         }),
       ).toBe(false);
     });
 
-    it('lists products when categories resolved empty', () => {
+    it('lists products when categories resolved empty after fetch', () => {
       expect(
         resolveShouldListProductsDirectly({
           isSingleItemMode: false,
           categoriesLoading: false,
+          categoriesFetched: true,
           categoryItems: [],
         }),
       ).toBe(true);
     });
 
-    it('keeps Categories when real categories exist', () => {
+    it('keeps Categories when real categories exist after fetch', () => {
       expect(
         resolveShouldListProductsDirectly({
           isSingleItemMode: false,
           categoriesLoading: false,
+          categoriesFetched: true,
           categoryItems: [{id: 5, name: 'Pizzas'}],
         }),
       ).toBe(false);

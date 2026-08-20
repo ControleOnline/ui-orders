@@ -40,6 +40,10 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const categoryActions = categoriesStore.actions;
   const categoryItems = categoriesGetters?.items;
   const categoriesLoading = categoriesGetters?.isLoading === true;
+  const [categoriesFetched, setCategoriesFetched] = useState(false);
+  useEffect(() => {
+    setCategoriesFetched(false);
+  }, [currentCompany?.id]);
   const {showError} = useMessage() || {};
   const isTotemMode = isPosTotemMode(runtimeDeviceConfig?.configs);
   const isSingleItemMode =
@@ -180,16 +184,14 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       resolveShouldListProductsDirectly({
         isSingleItemMode,
         categoriesLoading,
+        categoriesFetched,
         categoryItems,
       }),
-    [categoryItems, categoriesLoading, isSingleItemMode],
+    [categoriesFetched, categoryItems, categoriesLoading, isSingleItemMode],
   );
 
   useEffect(() => {
-    if (isSingleItemMode || !currentCompany?.id || categoriesLoading) {
-      return undefined;
-    }
-    if (Array.isArray(categoryItems)) {
+    if (isSingleItemMode || !currentCompany?.id || categoriesFetched) {
       return undefined;
     }
 
@@ -200,18 +202,30 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       return undefined;
     }
 
-    void categoryActions
-      ?.getItems?.({
-        company: companyId,
-        context: route?.params?.context || 'products',
-      })
-      ?.catch?.(() => {});
+    let cancelled = false;
+    void (async () => {
+      try {
+        await categoryActions?.getItems?.({
+          company: companyId,
+          context: route?.params?.context || 'products',
+          'order[sortOrder]': 'ASC',
+          'order[name]': 'ASC',
+        });
+      } catch {
+        // Decision still needs a definitive fetch result (empty on failure).
+      } finally {
+        if (!cancelled) {
+          setCategoriesFetched(true);
+        }
+      }
+    })();
 
-    return undefined;
+    return () => {
+      cancelled = true;
+    };
   }, [
     categoryActions,
-    categoryItems,
-    categoriesLoading,
+    categoriesFetched,
     currentCompany,
     isSingleItemMode,
     route?.params?.context,
