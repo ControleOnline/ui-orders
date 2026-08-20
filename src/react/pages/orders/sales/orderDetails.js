@@ -154,6 +154,9 @@ import {
   ORDER_DETAIL_REFRESH_COOLDOWN_MS,
 } from './orderDetails/helpers';
 import { InlineLoadingText } from './orderDetails/InlineLoadingText';
+import OrderDetailsInvoiceCards from './orderDetails/OrderDetailsInvoiceCards';
+import OrderDetailsProductActions from './orderDetails/OrderDetailsProductActions';
+import OrderDetailsKdsContent from './orderDetails/OrderDetailsKdsContent';
 
 const OrderDetails = ({ route, navigation }) => {
   const appType = String(app_type || '').trim().toUpperCase()
@@ -2030,101 +2033,22 @@ const OrderDetails = ({ route, navigation }) => {
     card,
     orderProduct,
     entryType,
-  }) => {
-    if (!canMutateOrderProducts || !orderProduct) {
-      return null
-    }
-
-    const isChildEntry = entryType === 'group' || !!card?.parentCardKey
-    if (entryType === 'group') {
-      return null
-    }
-
-    const editableOrderProduct = isChildEntry
-      ? orderProduct
-      : card?.rootItem || orderProduct
-    if (isOrderProductProductionCompleted(editableOrderProduct)) {
-      return null
-    }
-
-    const orderProductId = String(
-      orderProduct?.id ||
-      String(orderProduct?.['@id'] || '').replace(/\D/g, ''),
-    )
-    const quantity = Number(orderProduct?.quantity || 0)
-    const isOpLoading = orderProductId ? isOrderProductCommitting(orderProductId) : false
-    const isConfirming = orderProductId && confirmRemoveItemId === orderProductId
-    const canEditCustomization = canReopenOrderProductCustomization(
-      editableOrderProduct,
-    )
-    if (
-      !canEditCustomization &&
-      (!orderProductId || isChildEntry)
-    ) {
-      return null
-    }
-
-    return (
-      <View style={localStyles.orderProductActionStack}>
-        {canEditCustomization && (
-          <TouchableOpacity
-            accessibilityLabel={`Personalizar ${editableOrderProduct?.product?.product || 'item'}`}
-            onPress={() => handleEditCustomizableOrderProduct(editableOrderProduct)}
-            style={localStyles.orderProductCustomizeButton}
-            disabled={isOpLoading}
-          >
-            <Icon name="tune" size={16} color={ppcColors.textPrimary} />
-          </TouchableOpacity>
-        )}
-
-        {!isChildEntry && orderProductId ? (
-          isConfirming ? (
-            <View style={localStyles.editConfirmRow}>
-              <Text style={localStyles.editConfirmText}>Remover?</Text>
-              <TouchableOpacity
-                onPress={() => handleRemoveOp(orderProduct)}
-                style={localStyles.editConfirmYes}
-                disabled={isOpLoading}
-              >
-                {isOpLoading
-                  ? <InlineLoadingText color="#fff">...</InlineLoadingText>
-                  : <Icon name="check" size={15} color="#fff" />}
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setConfirmRemoveItemId(null)}
-                style={localStyles.editConfirmNo}
-                disabled={isOpLoading}
-              >
-                <Icon name="close" size={15} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={localStyles.editQtyRow}>
-              <TouchableOpacity
-                onPress={() => handleDecreaseOpQuantity(orderProduct)}
-                style={localStyles.editQtyBtn}
-              >
-                <Icon
-                  name={quantity <= 1 ? 'delete' : 'remove'}
-                  size={18}
-                  color={quantity <= 1 ? '#c10015' : ppcColors.textPrimary}
-                />
-              </TouchableOpacity>
-              <View style={localStyles.editQtyBox}>
-                <Text style={localStyles.editQtyText}>{quantity}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => handleIncreaseOpQuantity(orderProduct)}
-                style={localStyles.editQtyBtn}
-              >
-                <Icon name="add" size={18} color={ppcColors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-          )
-        ) : null}
-      </View>
-    )
-  }, [
+  }) => (
+    <OrderDetailsProductActions
+      card={card}
+      orderProduct={orderProduct}
+      entryType={entryType}
+      canMutateOrderProducts={canMutateOrderProducts}
+      confirmRemoveItemId={confirmRemoveItemId}
+      handleDecreaseOpQuantity={handleDecreaseOpQuantity}
+      handleEditCustomizableOrderProduct={handleEditCustomizableOrderProduct}
+      handleIncreaseOpQuantity={handleIncreaseOpQuantity}
+      handleRemoveOp={handleRemoveOp}
+      isOrderProductCommitting={isOrderProductCommitting}
+      localStyles={localStyles}
+      ppcColors={ppcColors}
+    />
+  ), [
     canMutateOrderProducts,
     confirmRemoveItemId,
     handleDecreaseOpQuantity,
@@ -2132,17 +2056,8 @@ const OrderDetails = ({ route, navigation }) => {
     handleIncreaseOpQuantity,
     handleRemoveOp,
     isOrderProductCommitting,
-    localStyles.editConfirmNo,
-    localStyles.editConfirmRow,
-    localStyles.editConfirmText,
-    localStyles.editConfirmYes,
-    localStyles.editQtyBox,
-    localStyles.editQtyBtn,
-    localStyles.editQtyRow,
-    localStyles.editQtyText,
-    localStyles.orderProductActionStack,
-    localStyles.orderProductCustomizeButton,
-    ppcColors.textPrimary,
+    localStyles,
+    ppcColors,
   ])
 
   const isCompactMobileViewport = viewportWidth < 360
@@ -2324,174 +2239,24 @@ const OrderDetails = ({ route, navigation }) => {
   ])
 
   const renderLocalInvoiceCards = useCallback(
-    variant => {
-      const isDetailsVariant = variant === 'details'
-
-      if (!localInvoiceCards.length) {
-        return (
-          <Text style={isDetailsVariant ? localStyles.detailsInfoText : localStyles.mobileInfoSubtitle}>
-            {localInvoicesEmptyText}
-          </Text>
-        )
-      }
-
-      return (
-        <View style={localStyles.detailsTabStack}>
-          {groupedInvoiceSections.map(section => (
-            <View
-              key={section.key}
-              style={section.label ? localStyles.detailsSection : null}>
-              {!!section.label && (
-                <Text style={localStyles.detailsSectionTitle}>{section.label}</Text>
-              )}
-              <View style={localStyles.orderInvoiceList}>
-                {section.cards.map(invoiceCard => {
-                  const canOpenInvoiceDetails = Number(invoiceCard?.invoiceId || 0) > 0
-                  const InvoiceCardContainer = canOpenInvoiceDetails ? TouchableOpacity : View
-                  const invoiceInfoCards = [
-                    {
-                      key: 'type',
-                      label: global.t?.t('orders', 'label', 'invoiceType') || 'Tipo',
-                      value: invoiceCard.kindLabel,
-                    },
-                    {
-                      key: 'paymentType',
-                      label:
-                        global.t?.t('orders', 'label', 'paymentMethod') ||
-                        'Forma de pagamento',
-                      value: invoiceCard.paymentTypeLabel,
-                    },
-                    {
-                      key: 'description',
-                      label: global.t?.t('orders', 'label', 'description') || 'Descrição',
-                      value: invoiceCard.descriptionLabel,
-                      wide: true,
-                    },
-                    {
-                      key: 'payer',
-                      label: global.t?.t('orders', 'label', 'payer') || 'Pagador',
-                      value: invoiceCard.payerLabel,
-                    },
-                    {
-                      key: 'receiver',
-                      label: global.t?.t('orders', 'label', 'receiver') || 'Recebedor',
-                      value: invoiceCard.receiverLabel,
-                    },
-                  ].filter(detail => detail.value)
-
-                  return (
-                    <InvoiceCardContainer
-                      key={invoiceCard.id}
-                      {...(canOpenInvoiceDetails
-                        ? {
-                            activeOpacity: 0.88,
-                            onPress: () => handleOpenInvoiceDetails(invoiceCard),
-                            accessibilityRole: 'button',
-                          }
-                        : {})}
-                      style={[
-                        localStyles.orderInvoiceCard,
-                        canOpenInvoiceDetails && localStyles.orderInvoiceCardInteractive,
-                        isDetailsVariant && localStyles.orderInvoiceCardDetails,
-                      ]}
-                    >
-                      <View style={localStyles.orderInvoiceCardHeader}>
-                        <View style={localStyles.orderInvoiceTitleWrap}>
-                          <Text style={localStyles.orderInvoiceTitle}>{invoiceCard.title}</Text>
-                          {!!invoiceCard.subtitle && (
-                            <Text style={localStyles.orderInvoiceSubtitle}>
-                              {invoiceCard.subtitle}
-                            </Text>
-                          )}
-                        </View>
-
-                        <View style={localStyles.orderInvoiceCardHeaderActions}>
-                          <View
-                            style={[
-                              localStyles.orderInvoiceStatusBadge,
-                              {
-                                borderColor: invoiceCard.statusColor,
-                                backgroundColor: invoiceCard.statusBackgroundColor,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                localStyles.orderInvoiceStatusText,
-                                {color: invoiceCard.statusColor},
-                              ]}
-                            >
-                              {invoiceCard.statusLabel}
-                            </Text>
-                          </View>
-
-                          {canOpenInvoiceDetails ? (
-                            <Icon
-                              name="chevron-right"
-                              size={20}
-                              color={ppcColors.textSecondary}
-                            />
-                          ) : null}
-                        </View>
-                      </View>
-
-                      <Text style={localStyles.orderInvoiceAmount}>
-                        {Formatter.formatMoney(invoiceCard.amount || 0)}
-                      </Text>
-                      <View style={localStyles.orderInvoiceInfoGrid}>
-                        {invoiceInfoCards.map(detail => (
-                          <View
-                            key={`${invoiceCard.id}-${detail.key}`}
-                            style={[
-                              localStyles.orderInvoiceInfoCard,
-                              detail.wide && localStyles.orderInvoiceInfoCardWide,
-                            ]}>
-                            <Text style={localStyles.orderInvoiceInfoLabel}>
-                              {detail.label}
-                            </Text>
-                            <Text style={localStyles.orderInvoiceInfoValue}>
-                              {detail.value}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    </InvoiceCardContainer>
-                  )
-                })}
-              </View>
-            </View>
-          ))}
-        </View>
-      )
-    },
+    variant => (
+      <OrderDetailsInvoiceCards
+        variant={variant}
+        localInvoiceCards={localInvoiceCards}
+        groupedInvoiceSections={groupedInvoiceSections}
+        localInvoicesEmptyText={localInvoicesEmptyText}
+        localStyles={localStyles}
+        ppcColors={ppcColors}
+        handleOpenInvoiceDetails={handleOpenInvoiceDetails}
+      />
+    ),
     [
       handleOpenInvoiceDetails,
       groupedInvoiceSections,
       localInvoiceCards,
       localInvoicesEmptyText,
-      localStyles.detailsSection,
-      localStyles.detailsSectionTitle,
-      localStyles.detailsTabStack,
-      localStyles.detailsInfoText,
-      localStyles.mobileInfoSubtitle,
-      localStyles.orderInvoiceAmount,
-      localStyles.orderInvoiceCard,
-      localStyles.orderInvoiceCardInteractive,
-      localStyles.orderInvoiceCardDetails,
-      localStyles.orderInvoiceCardHeader,
-      localStyles.orderInvoiceCardHeaderActions,
-      localStyles.orderInvoiceInfoCard,
-      localStyles.orderInvoiceInfoCardWide,
-      localStyles.orderInvoiceInfoGrid,
-      localStyles.orderInvoiceInfoLabel,
-      localStyles.orderInvoiceInfoValue,
-      localStyles.orderInvoiceList,
-      localStyles.orderInvoiceStatusBadge,
-      localStyles.orderInvoiceStatusText,
-      localStyles.orderInvoiceSubtitle,
-      localStyles.orderInvoiceTitle,
-      localStyles.orderInvoiceTitleWrap,
-      ppcColors.textSecondary,
+      localStyles,
+      ppcColors,
     ],
   )
   const renderInvoiceListOnly = useCallback(
@@ -2643,235 +2408,44 @@ const OrderDetails = ({ route, navigation }) => {
     marketplace: marketplaceSummary.summary,
   }
   const renderKdsMobileContent = () => (
-    <ScrollView
-      contentContainerStyle={[
-        localStyles.mobileOrderScrollContent,
-        { paddingBottom: mobileOrderBottomSpacing },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={localStyles.mobileOrderLayout}>
-      {!isPosSelfServiceOperationMode && shouldShowOrderPartyDetails && (
-        <View style={localStyles.mobileInfoCard}>
-          <View style={localStyles.mobileInfoHeader}>
-            <View style={localStyles.mobileInfoIconWrap}>
-              <Icon name={isPurchaseOrder ? 'local-shipping' : 'person'} size={16} color={ppcColors.accentInfo} />
-            </View>
-            <View style={localStyles.mobileInfoTextWrap}>
-              <Text style={localStyles.mobileInfoLabel}>{isPurchaseOrder ? global.t?.t('orders', 'label', 'supplier') : global.t?.t('orders', 'label', 'customer')}</Text>
-              <Text style={localStyles.mobileInfoTitle}>
-                {isPurchaseOrder
-                  ? (item?.client?.alias || item?.client?.name || orderParam?.client?.alias || orderParam?.client?.name || global.t?.t('orders', 'message', 'supplierNotInformed'))
-                  : (orderCustomerName || global.t?.t('orders', 'message', 'customerNotIdentified'))
-                }
-              </Text>
-              {!isPurchaseOrder && !!orderCustomerPhone && (
-                <Text style={localStyles.mobileInfoSubtitle}>{orderCustomerPhone}</Text>
-              )}
-              {!isPurchaseOrder && !!localOrderCustomerDocument && (
-                <Text style={localStyles.mobileInfoSubtitle}>
-                  {orderCustomerDocumentLabel}: {localOrderCustomerDocument}
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {!isPurchaseOrder && canEditItems && (
-            <View style={localStyles.inlineActionRow}>
-              <TouchableOpacity
-                onPress={openCustomerModal}
-                disabled={!!customerLinkingId}
-                style={[
-                  localStyles.inlineActionButton,
-                  localStyles.inlineActionButtonPrimary,
-                  !!customerLinkingId &&
-                    localStyles.inlineActionButtonDisabled,
-                ]}
-              >
-                <Icon name="search" size={15} color={ppcColors.accentInfo} />
-                <Text style={localStyles.inlineActionButtonText}>
-                  {orderCustomerName ? 'Trocar cliente' : 'Vincular cliente'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {shouldShowOrderAddress && (
-            <View style={localStyles.mobileAddressCard}>
-              <Icon name="place" size={15} color={ppcColors.accentInfo} />
-              <View style={localStyles.mobileAddressTextWrap}>
-                <Text style={localStyles.mobileAddressPrimary}>
-                  {orderAddressPrimary || global.t?.t('orders', 'message', 'addressNotInformed')}
-                </Text>
-                {!!orderAddressSecondary && (
-                  <Text style={localStyles.mobileAddressSecondary}>{orderAddressSecondary}</Text>
-                )}
-              </View>
-            </View>
-          )}
-
-          {!isPurchaseOrder && shouldShowOrderAddress && canEditItems && (
-            <View style={localStyles.inlineActionRow}>
-              <TouchableOpacity
-                onPress={openAddressModal}
-                disabled={addressSaveLoading || !!addressSelectingId}
-                style={[
-                  localStyles.inlineActionButton,
-                  localStyles.inlineActionButtonPrimary,
-                  (addressSaveLoading || !!addressSelectingId) &&
-                    localStyles.inlineActionButtonDisabled,
-                ]}
-              >
-                <Icon
-                  name={selectedOrderClientIri ? 'place' : 'add-location'}
-                  size={15}
-                  color={ppcColors.accentInfo}
-                />
-                <Text style={localStyles.inlineActionButtonText}>
-                  {selectedOrderClientIri ? 'Escolher endereço' : 'Novo endereço'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {!isPurchaseOrder && showBaseOrderObservationCard && (
-            <View style={localStyles.mobileNoteCard}>
-              <View style={localStyles.mobileNoteHeader}>
-                <Icon name="info" size={14} color={ppcColors.accent} />
-                <Text style={localStyles.mobileNoteLabel}>{global.t?.t('orders', 'label', 'customerObservation')}</Text>
-              </View>
-              {observationEditing ? (
-                <>
-                  <TextInput
-                    value={observationDraft}
-                    onChangeText={setObservationDraft}
-                    editable={!observationSaving}
-                    multiline
-                    numberOfLines={3}
-                    placeholder={global.t?.t('orders', 'label', 'customerObservation')}
-                    placeholderTextColor={ppcColors.textSecondary}
-                    style={[
-                      localStyles.assignmentFormInput,
-                      {minHeight: 96, textAlignVertical: 'top', marginBottom: 8},
-                    ]}
-                  />
-
-                  <View style={localStyles.inlineActionRow}>
-                    <TouchableOpacity
-                      onPress={handleCancelObservationEdit}
-                      disabled={observationSaving}
-                      style={[
-                        localStyles.inlineActionButton,
-                        observationSaving && localStyles.inlineActionButtonDisabled,
-                      ]}
-                    >
-                      <Icon name="close" size={15} color={ppcColors.textSecondary} />
-                      <Text style={[localStyles.inlineActionButtonText, {color: ppcColors.textSecondary}]}>
-                        {global.t?.t('orders', 'button', 'close') || 'Cancelar'}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={handleSaveObservation}
-                      disabled={observationSaving}
-                      style={[
-                        localStyles.inlineActionButton,
-                        localStyles.inlineActionButtonPrimary,
-                        observationSaving && localStyles.inlineActionButtonDisabled,
-                      ]}
-                    >
-                      {observationSaving ? (
-                        <InlineLoadingText color={ppcColors.accentInfo}>Salvando...</InlineLoadingText>
-                      ) : (
-                        <>
-                          <Icon name="check" size={15} color={ppcColors.accentInfo} />
-                          <Text style={localStyles.inlineActionButtonText}>
-                            {global.t?.t('orders', 'button', 'save') || 'Salvar'}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </>
-              ) : !!baseOrderObservationText ? (
-                <>
-                  <Text style={localStyles.mobileNoteText}>{baseOrderObservationText}</Text>
-                  {canEditItems && (
-                    <View style={[localStyles.inlineActionRow, {marginTop: 8}]}>
-                      <TouchableOpacity
-                        onPress={handleStartObservationEdit}
-                        style={[
-                          localStyles.inlineActionButton,
-                          localStyles.inlineActionButtonPrimary,
-                        ]}
-                      >
-                        <Icon name="edit" size={15} color={ppcColors.accentInfo} />
-                        <Text style={localStyles.inlineActionButtonText}>
-                          {global.t?.t('orders', 'button', 'edit') || 'Editar'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </>
-              ) : canEditItems ? (
-                <View style={localStyles.inlineActionRow}>
-                  <TouchableOpacity
-                    onPress={handleStartObservationEdit}
-                    style={[
-                      localStyles.inlineActionButton,
-                      localStyles.inlineActionButtonPrimary,
-                    ]}
-                  >
-                    <Icon name="add-comment" size={15} color={ppcColors.accentInfo} />
-                    <Text style={localStyles.inlineActionButtonText}>
-                      {global.t?.t('orders', 'button', 'addObservation') || 'Adicionar observacao'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          )}
-        </View>
-      )}
-
-      {shouldShowInlineOrderTotal && (
-        <View style={localStyles.mobileCompactSummaryCard}>
-          <View style={localStyles.mobileCompactSummaryGrid}>
-            <View
-              accessible
-              accessibilityLabel={compactOrderSummary.accessibilityLabel}
-              style={localStyles.mobileCompactSummaryItem}
-            >
-              <View
-                style={[
-                  localStyles.mobileCompactSummaryTopRow,
-                  {justifyContent: 'flex-end'},
-                ]}
-              >
-                <View style={localStyles.mobileCompactSummaryMetric}>
-                  <Icon name="payments" size={15} color={ppcColors.accentInfo} />
-                  <Text
-                    style={[
-                      localStyles.mobileCompactSummaryValue,
-                      localStyles.mobileCompactSummaryValueStrong,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {compactOrderSummary.totalValue}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
-
-      <View style={localStyles.mobileInfoCard}>
-        {renderItemsTab('main')}
-      </View>
-      </View>
-    </ScrollView>
+    <OrderDetailsKdsContent
+      localStyles={localStyles}
+      ppcColors={ppcColors}
+      mobileOrderBottomSpacing={mobileOrderBottomSpacing}
+      isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
+      shouldShowOrderPartyDetails={shouldShowOrderPartyDetails}
+      isPurchaseOrder={isPurchaseOrder}
+      item={item}
+      orderParam={orderParam}
+      orderCustomerName={orderCustomerName}
+      orderCustomerPhone={orderCustomerPhone}
+      localOrderCustomerDocument={localOrderCustomerDocument}
+      orderCustomerDocumentLabel={orderCustomerDocumentLabel}
+      canEditItems={canEditItems}
+      openCustomerModal={openCustomerModal}
+      customerLinkingId={customerLinkingId}
+      openAddressModal={openAddressModal}
+      shouldShowOrderAddress={shouldShowOrderAddress}
+      observationEditing={observationEditing}
+      observationDraft={observationDraft}
+      setObservationDraft={setObservationDraft}
+      handleStartObservationEdit={handleStartObservationEdit}
+      handleCancelObservationEdit={handleCancelObservationEdit}
+      handleSaveObservation={handleSaveObservation}
+      observationSaving={observationSaving}
+      baseOrderObservationText={baseOrderObservationText}
+      compactOrderSummary={compactOrderSummary}
+      renderItemsTab={renderItemsTab}
+      addressSaveLoading={addressSaveLoading}
+      addressSelectingId={addressSelectingId}
+      shouldShowInlineOrderTotal={shouldShowInlineOrderTotal}
+      orderAddressPrimary={orderAddressPrimary}
+      orderAddressSecondary={orderAddressSecondary}
+      selectedOrderClientIri={selectedOrderClientIri}
+      showBaseOrderObservationCard={showBaseOrderObservationCard}
+    />
   )
+
 
   const modalBottomInset = Math.max(insets?.bottom || 0, 8)
 
