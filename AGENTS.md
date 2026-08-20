@@ -19,7 +19,7 @@ Comece pela Home da wiki do módulo e use a cópia versionada no Git quando prec
 
 | Página | O que documenta |
 | --- | --- |
-| [`docs/technical/Automacao-Technical-Documenter-Push-Master.md`](docs/technical/Automacao-Technical-Documenter-Push-Master.md) | Fluxo automático que abre/prepara issue de documentação técnica após push em `master` |
+| [`docs/technical/Automacao-Technical-Documenter-Push-Master.md`](docs/technical/Automacao-Technical-Documenter-Push-Master.md) | Fluxo Manager Worker + composite technical-documenter (substitui workflow legado standalone) |
 
 ### Módulos relacionados
 
