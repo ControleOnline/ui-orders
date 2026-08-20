@@ -18,6 +18,7 @@ import usePosCartSession, {
   isLinkedOrderCodeRequiredError,
   isPosOrderCreationCancelledError,
 } from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
+import {resolveShouldListProductsDirectly} from '@controleonline/ui-orders/src/react/pages/checkout/utils/addProductCatalogMode';
 
 const CheckoutContent = ({navigation, route: routeProp}) => {
   const currentRoute = useRoute();
@@ -27,6 +28,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const peopleStore = useStore('people');
   const deviceStore = useStore('device');
   const deviceConfigStore = useStore('device_config');
+  const categoriesStore = useStore('categories');
   const ordersActions = ordersStore.actions;
   const peopleGetters = peopleStore.getters;
   const {currentCompany, defaultCompany} = peopleGetters;
@@ -34,6 +36,10 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const deviceConfigGetters = deviceConfigStore.getters;
   const {item: storagedDevice} = deviceGetters;
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
+  const categoriesGetters = categoriesStore.getters;
+  const categoryActions = categoriesStore.actions;
+  const categoryItems = categoriesGetters?.items;
+  const categoriesLoading = categoriesGetters?.isLoading === true;
   const {showError} = useMessage() || {};
   const isTotemMode = isPosTotemMode(runtimeDeviceConfig?.configs);
   const isSingleItemMode =
@@ -169,24 +175,66 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     navigation.setParams({showBottomToolBar: true});
   }, [isTotemMode, navigation, route?.params?.showBottomToolBar]);
 
+  const shouldListProductsDirectly = useMemo(
+    () =>
+      resolveShouldListProductsDirectly({
+        isSingleItemMode,
+        categoriesLoading,
+        categoryItems,
+      }),
+    [categoryItems, categoriesLoading, isSingleItemMode],
+  );
+
+  useEffect(() => {
+    if (isSingleItemMode || !currentCompany?.id || categoriesLoading) {
+      return undefined;
+    }
+    if (Array.isArray(categoryItems)) {
+      return undefined;
+    }
+
+    const companyId =
+      currentCompany?.id ||
+      String(currentCompany?.['@id'] || '').replace(/\D+/g, '');
+    if (!companyId) {
+      return undefined;
+    }
+
+    void categoryActions
+      ?.getItems?.({
+        company: companyId,
+        context: route?.params?.context || 'products',
+      })
+      ?.catch?.(() => {});
+
+    return undefined;
+  }, [
+    categoryActions,
+    categoryItems,
+    categoriesLoading,
+    currentCompany,
+    isSingleItemMode,
+    route?.params?.context,
+  ]);
+
   const effectiveRoute = useMemo(() => {
     return {
       ...route,
       params: {
         ...(route?.params || {}),
         hideCatalogToolbar: true,
-        ...(isSingleItemMode
+        ...(shouldListProductsDirectly
           ? {
               categoryId: ALL_PRODUCTS_SENTINEL_ID,
-              context: 'products',
-              singleItemMode: true,
+              context: route?.params?.context || 'products',
+              singleItemMode: isSingleItemMode || undefined,
             }
           : {}),
       },
     };
-  }, [isSingleItemMode, route]);
+  }, [isSingleItemMode, route, shouldListProductsDirectly]);
 
-  const CatalogComponent = isSingleItemMode ? ProductsPage : Categories;
+  const CatalogComponent = shouldListProductsDirectly ? ProductsPage : Categories;
 
   useFocusEffect(
     useCallback(() => {
