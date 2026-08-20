@@ -2426,6 +2426,16 @@ const OrderDetails = ({ route, navigation }) => {
     })
   }, [navigation, topBarOrderId])
 
+  const handleOrderNf = useCallback(() => {
+    if (!topBarOrderId) {
+      return
+    }
+
+    navigation.navigate('OrderNfPage', {
+      id: topBarOrderId,
+    })
+  }, [navigation, topBarOrderId])
+
   const renderOrderProductActions = useCallback(({
     card,
     orderProduct,
@@ -2558,6 +2568,7 @@ const OrderDetails = ({ route, navigation }) => {
     const buttons = [ORDER_TOP_BAR_ACTIONS.PRINT]
 
     if (topBarOrderId) {
+      buttons.push(ORDER_TOP_BAR_ACTIONS.NF)
       buttons.push(ORDER_TOP_BAR_ACTIONS.LOGISTICS)
       buttons.push(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS)
     }
@@ -2596,7 +2607,9 @@ const OrderDetails = ({ route, navigation }) => {
         onPressAttachments={handleOrderAttachments}
         onPressTools={handleOrderTools}
         onPressLogs={handleOrderLogs}
+        onPressNf={handleOrderNf}
         logisticsDisabled={!topBarOrderId}
+        nfDisabled={!topBarOrderId}
         attachmentsDisabled={!topBarOrderId}
         logsDisabled={!topBarOrderId}
       />
@@ -2606,6 +2619,7 @@ const OrderDetails = ({ route, navigation }) => {
       handleOrderTools,
       handleOrderAttachments,
       handleOrderLogistics,
+      handleOrderNf,
       isKds,
       isTvDisplay,
       item?.id,
@@ -2636,7 +2650,9 @@ const OrderDetails = ({ route, navigation }) => {
       onPressAttachments={handleOrderAttachments}
       onPressTools={handleOrderTools}
       onPressLogs={handleOrderLogs}
+      onPressNf={handleOrderNf}
       logisticsDisabled={!topBarOrderId}
+      nfDisabled={!topBarOrderId}
       attachmentsDisabled={!topBarOrderId}
       logsDisabled={!topBarOrderId}
       showActions={!shouldHideCompactTopBarActions}
@@ -2647,6 +2663,7 @@ const OrderDetails = ({ route, navigation }) => {
     handleOrderTools,
     handleOrderAttachments,
     handleOrderLogistics,
+    handleOrderNf,
     isTvDisplay,
     navigation,
     orderHeaderActionProps,
