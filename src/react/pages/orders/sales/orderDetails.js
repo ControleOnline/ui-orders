@@ -1,18 +1,9 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-import {
-  Modal,
-  Text,
-  TextInput,
-  View,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native'
-
 import { useFocusEffect } from '@react-navigation/native'
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '@store'
-import Formatter from '@controleonline/ui-common/src/utils/formatter'
+import css from '@controleonline/ui-orders/src/react/css/orders'
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   isDeviceRuntimeDebugInfoEnabled,
@@ -26,35 +17,20 @@ import {
   searchCompanyProducts,
   toEntityIri,
 } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
-import {api} from '@controleonline/ui-common/src/api'
 
 import {
-  formatHumanLabel,
   normalizeText,
 } from '@controleonline/ui-common/src/react/utils/entityDisplay'
-import DefaultAddress from '@controleonline/ui-default/src/react/components/address/DefaultAddress'
 import {
   formatInvoiceTypeLabel,
   getInvoicePaymentTypeLabel,
 } from '@controleonline/ui-common/src/react/utils/invoicePresentation'
 
-import StateStore from '@controleonline/ui-common/src/react/components/StateStore'
-import css from '@controleonline/ui-orders/src/react/css/orders'
-import Icon from 'react-native-vector-icons/MaterialIcons'
-import BarcodeInput from '@controleonline/ui-orders/src/react/pages/checkout/BarcodeInput'
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
-import BottomCart from '@controleonline/ui-orders/src/react/components/cart/BottomCart'
-import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal'
-import OrderInvoices from './OrderInvoices'
-import OrderItemsTab from './OrderItemsTab'
 import {
   buildAddProductsRouteParams,
-  buildCheckoutRouteParams,
   buildManagerPdvRouteParams,
   getOrderRouteId,
-  isPdvRouteContext,
 } from '@controleonline/ui-orders/src/react/utils/orderRoute'
-import { resolveMarketplaceAppLabel } from '@controleonline/ui-orders/src/react/utils/orderIdentity'
 import {app_type} from '@appType'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
@@ -72,14 +48,6 @@ import {
   resolveOperationalDisplayLabelKey,
 } from '@controleonline/ui-orders/src/react/utils/checkoutInvoices'
 
-import OrderMarketplaceOverlayHost from './components/OrderMarketplaceOverlayHost'
-import OrderSummaryModal from './components/OrderSummaryModal'
-import OrderFinancialDetailsModal from './components/OrderFinancialDetailsModal'
-import OrderAttachmentManager from './components/OrderAttachmentManager'
-import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
-import OrderTopBarActions, {
-  ORDER_TOP_BAR_ACTIONS,
-} from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import {
   getOwnedBottomBarOffset,
   shouldShowOperationalBottomNavigation,
@@ -91,11 +59,6 @@ import {
   resolveMarketplaceReceivableAmount,
 } from './orderMarketplaceFinancialPresentation'
 import {
-  shouldRenderOrderDetailsInlineTotal,
-  resolveOrderDetailsPrimaryActionIcon,
-  resolveOrderDetailsPrimaryActionLabel,
-  resolveOrderDetailsPrimaryActionMode,
-  shouldRenderOrderDetailsPaymentAction,
   shouldRenderOrderDetailsPaymentBar,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetailsPaymentBar'
 
@@ -108,42 +71,15 @@ import {
 } from './orderDetails.styles';
 
 import {
-  formatApiError,
-  TERMINAL_ORDER_STATUSES,
-  DRAFT_SALE_ORDER_TYPE,
   POS_DELIVERY_ENABLED_CONFIG_KEY,
   isTerminalOrderStatus,
   resolveEditableOrderType,
   translateOrderStatus,
-  resolveEmbeddedOrderProducts,
-  hasOrderProducts,
-  getEmbeddedOrderProductComponents,
-  hasGroupingMetadata,
-  hasEmbeddedOrderProductComponents,
-  hasDetailedOrderProductsPayload,
-  filterOrderProductsByOrderId,
-  choosePreferredOrderProducts,
-  getOrderProductCollectionSignature,
-  areOrderProductCollectionsEquivalent,
-  resolveInvoiceStatusPresentation,
-  resolveInvoiceTitle,
   getEntityId,
-  getPeopleLabel,
-  resolveInvoicePartyLabel,
-  resolveInvoiceDisplayAmount,
-  resolveInvoiceKind,
-  resolvePreferredText,
   resolveDocumentLabel,
   formatOrderDateTime,
   resolveOrderDateValue,
-  resolveOrderItemUnitLabel,
-  resolveProductUnitLabel,
-  mergeOrderProductWithResolvedProduct,
-  pendingOrderDetailRefreshes,
-  recentOrderDetailRefreshStarts,
-  ORDER_DETAIL_REFRESH_COOLDOWN_MS,
 } from './orderDetails/helpers';
-import { buildOrderSummaryData } from './orderDetails/buildOrderSummaryData';
 import useOrderDetailsParty from './orderDetails/useOrderDetailsParty'
 import useOrderDetailsProductSearch from './orderDetails/useOrderDetailsProductSearch'
 import useOrderDetailsFinancials from './orderDetails/useOrderDetailsFinancials'
@@ -152,13 +88,9 @@ import useOrderDetailsToolbarActions from './orderDetails/useOrderDetailsToolbar
 import useOrderDetailsPrimaryActions from './orderDetails/useOrderDetailsPrimaryActions'
 import useOrderDetailsOrderSync from './orderDetails/useOrderDetailsOrderSync'
 import useOrderDetailsProductDisplay from './orderDetails/useOrderDetailsProductDisplay'
+import useOrderDetailsSummaryLabels from './orderDetails/useOrderDetailsSummaryLabels'
 import useOrderDetailsRenderers from './orderDetails/useOrderDetailsRenderers'
 import OrderDetailsView from './orderDetails/OrderDetailsView'
-import { InlineLoadingText } from './orderDetails/InlineLoadingText';
-import OrderDetailsInvoiceCards from './orderDetails/OrderDetailsInvoiceCards';
-import OrderDetailsProductActions from './orderDetails/OrderDetailsProductActions';
-import OrderDetailsKdsContent from './orderDetails/OrderDetailsKdsContent';
-import OrderDetailsAssignmentModals from './orderDetails/OrderDetailsAssignmentModals'
 
 const OrderDetails = ({ route, navigation }) => {
   const appType = String(app_type || '').trim().toUpperCase()
@@ -603,56 +535,30 @@ const OrderDetails = ({ route, navigation }) => {
     showSuccess,
   })
 
-  const localInvoicesEmptyText =
-    global.t?.t('orders', 'message', 'noInvoicesLinkedToOrder') ||
-    'Nenhuma invoice vinculada a este pedido.'
-  const localInvoicesSectionTitle =
-    global.t?.t('orders', 'label', 'payment') ||
-    global.t?.t('orders', 'title', 'payments') ||
-    'Pagamentos'
-  const shouldShowPreparationTime = !isTerminalOrder && !!orderWaitingLabel
-  const summaryInformationEntries = (() => {
-    const entries = orderAdditionalInfoEntries.map(entry => ({
-      key: entry.id,
-      label: formatHumanLabel(entry.label || entry.name || entry.context) || 'Campo',
-      value: entry.value,
-    }))
-
-    if (!shouldShowPreparationTime && orderWaitingLabel) {
-      entries.unshift({
-        key: 'preparation-time',
-        label: global.t?.t('orders', 'label', 'preparationTime') || 'Tempo de preparo',
-        value: orderWaitingLabel,
-      })
-    }
-
-    return entries
-  })()
-  const orderAppLabel = useMemo(() => {
-    const resolvedApp = resolveMarketplaceAppLabel(item || orderParam)
-    if (resolvedApp) {
-      return resolvedApp
-    }
-
-    return String(app_type || '').trim().toUpperCase()
-  }, [item, orderParam])
-  const compactOrderSummary = useMemo(
-    () => ({
-      accessibilityLabel: [
-        `${localDisplayLabel}: ${Formatter.formatMoney(localDisplayAmount || 0)}`,
-      ].join('. '),
-      totalValue: Formatter.formatMoney(localDisplayAmount || 0),
-    }),
-    [localDisplayAmount, localDisplayLabel],
-  )
-  const closeDetailsModal = useCallback(() => {
-    setDetailsModalVisible(false)
-  }, [])
-  const closeFinancialDetailsModal = useCallback(() => {
-    setFinancialDetailsVisible(false)
-  }, [])
-
-  const topBarOrderId = item?.id || orderParam?.id || routeOrderId
+  const {
+    localInvoicesEmptyText,
+    localInvoicesSectionTitle,
+    shouldShowPreparationTime,
+    summaryInformationEntries,
+    orderAppLabel,
+    compactOrderSummary,
+    closeDetailsModal,
+    closeFinancialDetailsModal,
+    topBarOrderId,
+  } = useOrderDetailsSummaryLabels({
+    orderAdditionalInfoEntries,
+    isTerminalOrder,
+    orderWaitingLabel,
+    item,
+    orderParam,
+    localDisplayLabel,
+    localDisplayAmount,
+    setDetailsModalVisible,
+    setFinancialDetailsVisible,
+    itemId: item?.id,
+    orderParamId: orderParam?.id,
+    routeOrderId,
+  })
 
   const {
     handleOpenFinancialDetails,
