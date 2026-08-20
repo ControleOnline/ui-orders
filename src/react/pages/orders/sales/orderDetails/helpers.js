@@ -12,10 +12,6 @@ export const formatApiError = error => {
   return error?.message || error?.description || error?.errmsg || global.t?.t('orders', 'message', 'unableCompleteOperation')
 }
 
-  <Text style={[{fontSize: 12, fontWeight: '700', color}, style]}>
-    {children}
-  </Text>
-)
 
 export const TERMINAL_ORDER_STATUSES = ['closed', 'canceled', 'cancelled']
 // `cart` is the canonical draft sale order. `quote` is a separate purchase draft
