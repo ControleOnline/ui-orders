@@ -6,7 +6,6 @@ import {
   parseMoneyInputValue,
   resolveCashPaymentDetails,
 } from '@controleonline/ui-common/src/react/utils/cashPayment';
-import {getPaymentOptionLabel} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   clearCreateInvoiceOnlyMode,
   isCreateInvoiceOnlyMode,

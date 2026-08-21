@@ -9,6 +9,7 @@ export const ORDER_TOP_BAR_ACTIONS = Object.freeze({
     ATTACHMENTS: 'attachments',
     TOOLS: 'tools',
     LOGS: 'logs',
+    NF: 'nf',
 });
 
 const OrderTopBarActions = ({
@@ -26,10 +27,12 @@ const OrderTopBarActions = ({
     onPressAttachments = null,
     onPressTools = null,
     onPressLogs = null,
+    onPressNf = null,
     logisticsDisabled = false,
     attachmentsDisabled = false,
     toolsDisabled = false,
     logsDisabled = false,
+    nfDisabled = false,
 }) => {
     const visibleButtons = useMemo(
         () => new Set(Array.isArray(buttons) ? buttons : []),
@@ -41,12 +44,15 @@ const OrderTopBarActions = ({
     const shouldShowAttachmentsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS);
     const shouldShowToolsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.TOOLS);
     const shouldShowLogsAction = visibleButtons.has(ORDER_TOP_BAR_ACTIONS.LOGS);
+    const shouldShowNfAction =
+        visibleButtons.has(ORDER_TOP_BAR_ACTIONS.NF) && !isTvDisplay;
     const resolvedLogisticsDisabled =
         logisticsDisabled || typeof onPressLogistics !== 'function';
     const resolvedAttachmentsDisabled =
         attachmentsDisabled || typeof onPressAttachments !== 'function';
     const resolvedToolsDisabled = toolsDisabled || typeof onPressTools !== 'function';
     const resolvedLogsDisabled = logsDisabled || typeof onPressLogs !== 'function';
+    const resolvedNfDisabled = nfDisabled || typeof onPressNf !== 'function';
 
     return (
         <View style={containerStyle}>
@@ -62,6 +68,21 @@ const OrderTopBarActions = ({
                     printerSelection={printerSelection}
                     disabled={printDisabled}
                 />
+            ) : null}
+
+            {shouldShowNfAction ? (
+                <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={global.t?.t('orders', 'button', 'orderNf') || 'NF'}
+                    onPress={onPressNf}
+                    style={[
+                        iconButtonStyle,
+                        resolvedNfDisabled ? iconButtonDisabledStyle : null,
+                    ]}
+                    disabled={resolvedNfDisabled}
+                >
+                    <Icon name="receipt" size={20} color={iconColor} />
+                </TouchableOpacity>
             ) : null}
 
             {shouldShowLogisticsAction ? (

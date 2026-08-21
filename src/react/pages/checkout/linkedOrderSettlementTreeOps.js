@@ -279,3 +279,26 @@ export async function mergeSettlementOrderIntoPrimary({
   })
   return ordersActions.get(primaryOrderId).catch(() => primaryRootOrder)
 }
+
+
+export async function loadOpenLinkedRootOrders({
+  companyIri,
+  linkedOrderType,
+  ordersActions,
+}) {
+  if (!companyIri || !linkedOrderType) {
+    return []
+  }
+  const response = await ordersActions.getItems({
+    app: 'POS',
+    orderType: linkedOrderType,
+    provider: companyIri,
+    'status.realStatus': 'open',
+    'order[id]': 'DESC',
+  })
+  return extractCollectionItems(response).filter(order => {
+    const mainId = order?.mainOrderId || order?.mainOrder
+    // Roots only: no mainOrder
+    return !mainId
+  })
+}
