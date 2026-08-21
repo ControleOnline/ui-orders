@@ -186,8 +186,9 @@ export default function usePosCartSession({
       orderType,
       peopleIri,
       statusIri,
+      deviceConfigs: runtimeDeviceConfig?.configs,
     }),
-  [companyId, deviceId])
+  [companyId, deviceId, runtimeDeviceConfig?.configs])
 
   const findOpenLinkedSessionOrder = useCallback(async mainOrderId => {
     return findOpenLinkedSessionOrderHelper({
