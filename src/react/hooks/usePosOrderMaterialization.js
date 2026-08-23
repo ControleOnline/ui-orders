@@ -189,9 +189,34 @@ export default function usePosOrderMaterialization({
 
   const openOrderDetails = useCallback(
     orderItem => {
-      if (!navigation || !orderItem) {
+      if (!orderItem) {
         return orderItem;
       }
+
+      const orderId = normalizeOrderId(orderItem);
+      if (!orderId) {
+        return orderItem;
+      }
+
+      // Ensure store reflects the order we are about to open (avoids blank screens).
+      ordersActions.syncOrder?.(orderItem);
+
+      if (!navigation?.navigate) {
+        return orderItem;
+      }
+
+      const navigateTo = (routeName, params) => {
+        try {
+          navigation.navigate(routeName, params);
+        } catch {
+          // Fallback for nested navigators that reject bare navigate.
+          try {
+            navigation.navigate({name: routeName, params, merge: true});
+          } catch {
+            // Intentionally swallow — caller already showed materialize errors.
+          }
+        }
+      };
 
       if (isSingleItemOperationMode) {
         const checkoutRoute = buildCheckoutRouteParams(
@@ -199,29 +224,28 @@ export default function usePosOrderMaterialization({
           buildManagerPdvRouteParams({
             showBottomCart: false,
             singleItemMode: true,
+            id: orderId,
           }),
         );
 
-        navigation.navigate('Checkout', checkoutRoute);
-
+        navigateTo('Checkout', checkoutRoute);
         return orderItem;
       }
 
-      navigation.navigate(
-        'OrderDetails',
-        buildOrderDetailsRouteParams(
-          orderItem,
-          isPdvRouteContext(interactionParams)
-            ? buildManagerPdvRouteParams({
-                showBottomCart: false,
-              })
-            : {},
-        ),
+      const detailsParams = buildOrderDetailsRouteParams(
+        orderItem,
+        isPdvRouteContext(interactionParams)
+          ? buildManagerPdvRouteParams({
+              showBottomCart: false,
+              id: orderId,
+            })
+          : {id: orderId},
       );
 
+      navigateTo('OrderDetails', detailsParams);
       return orderItem;
     },
-    [interactionParams, isSingleItemOperationMode, navigation],
+    [interactionParams, isSingleItemOperationMode, navigation, ordersActions],
   );
 
   return {
