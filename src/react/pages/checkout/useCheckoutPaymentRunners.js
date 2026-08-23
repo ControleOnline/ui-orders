@@ -14,7 +14,6 @@ import {
   normalizeGatewayPaymentError,
   runConfiguredGatewayPayment,
 } from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
-import {getPaymentOptionLabel} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   buildRemotePaymentRequestKey,
   REMOTE_PAYMENT_MESSAGE_STORE,
