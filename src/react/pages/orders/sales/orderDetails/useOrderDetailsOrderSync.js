@@ -16,6 +16,7 @@ import {
   resolveEditableOrderType,
   DRAFT_SALE_ORDER_TYPE,
   isTerminalOrderStatus,
+  hasDetailedOrderProductsPayload,
 } from './helpers'
 import {
   mergeOrderProductIntoList,
