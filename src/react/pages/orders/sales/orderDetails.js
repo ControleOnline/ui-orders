@@ -270,6 +270,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderAddressPrimary,
     orderAddressSecondary,
     selectedOrderClientIri,
+    selectedOrderAddressIri,
     closeCustomerModal,
     openCustomerModal,
     orderHeaderActionProps,
@@ -459,6 +460,8 @@ const OrderDetails = ({ route, navigation }) => {
       closeCustomerModal={closeCustomerModal}
       customerLinkingId={customerLinkingId}
       orderCustomerName={orderCustomerName}
+      selectedOrderClientIri={selectedOrderClientIri}
+      selectedOrderAddressIri={selectedOrderAddressIri}
       customerSearch={customerSearch}
       setCustomerSearch={setCustomerSearch}
       customerSearchLoading={customerSearchLoading}
