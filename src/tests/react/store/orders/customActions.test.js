@@ -156,4 +156,60 @@ describe('orders customActions', () => {
     expect(commit).toHaveBeenCalledWith('SET_ISSAVING', true);
     expect(commit).toHaveBeenCalledWith('SET_ISSAVING', false);
   });
+
+  it('patches local list status to canceled when cancel succeeds without order payload', async () => {
+    const commit = jest.fn();
+    mockFetch.mockResolvedValueOnce({
+      result: {
+        errno: 0,
+        errmsg: 'ok',
+      },
+    });
+
+    const openOrder = {
+      id: 72829,
+      status: {status: 'open', realStatus: 'open', color: '#00aa00'},
+    };
+
+    await cancelOrder(
+      {
+        commit,
+        getters: {
+          item: openOrder,
+          items: [openOrder],
+          resourceEndpoint: 'orders',
+        },
+      },
+      {
+        id: 72829,
+        companyId: 8,
+        reasonId: 10,
+        reason: 'Cliente desistiu',
+      },
+    );
+
+    expect(commit).toHaveBeenCalledWith(
+      'SET_ITEMS',
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 72829,
+          status: expect.objectContaining({
+            status: 'canceled',
+            realStatus: 'canceled',
+          }),
+          realStatus: 'canceled',
+        }),
+      ]),
+    );
+    expect(commit).toHaveBeenCalledWith(
+      'SET_ITEM',
+      expect.objectContaining({
+        id: 72829,
+        status: expect.objectContaining({
+          status: 'canceled',
+          realStatus: 'canceled',
+        }),
+      }),
+    );
+  });
 });

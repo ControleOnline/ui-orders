@@ -204,7 +204,47 @@ export const cancelOrder = ({commit, getters}, params = {}) => {
   })
     .then(response => {
       commit(types.SET_ERROR, null);
-      assertSuccessfulOrderAction(response);
+      const result = assertSuccessfulOrderAction(response);
+
+      // Keep list in sync immediately so OrderHistory shows canceled without F5.
+      // Prefer API order payload when present; otherwise patch the local row.
+      const updatedOrder =
+        result?.data?.order ||
+        result?.order ||
+        response?.order ||
+        (result?.data && typeof result.data === 'object' && (result.data.id || result.data['@id'])
+          ? result.data
+          : null);
+
+      if (updatedOrder && typeof updatedOrder === 'object') {
+        commitSyncedOrder({commit, getters}, updatedOrder);
+      } else if (Array.isArray(getters.items)) {
+        const nextItems = getters.items.map(item => {
+          if (normalizeEntityId(item) !== orderId) {
+            return item;
+          }
+          const currentStatus =
+            item?.status && typeof item.status === 'object' && !Array.isArray(item.status)
+              ? item.status
+              : {};
+          return {
+            ...item,
+            status: {
+              ...currentStatus,
+              status: 'canceled',
+              realStatus: 'canceled',
+            },
+            realStatus: 'canceled',
+          };
+        });
+        commit(types.SET_ITEMS, nextItems);
+        if (normalizeEntityId(getters.item) === orderId) {
+          const patched = nextItems.find(item => normalizeEntityId(item) === orderId);
+          if (patched) {
+            commit(types.SET_ITEM, patched);
+          }
+        }
+      }
 
       if (reloadParams) {
         return fetchHistoryPage({commit, getters}, {query: reloadParams})
