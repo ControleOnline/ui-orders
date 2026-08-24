@@ -1,3 +1,4 @@
+export const normalizeText = value => String(value ?? '').trim()
 
 export const formatApiError = error => {
   if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')
