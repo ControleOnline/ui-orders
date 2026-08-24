@@ -9,4 +9,4 @@ O fluxo `single-item` mantém a seleção e a substituição do item em `Product
 - [Documentacao para clientes](http://ajuda.controleonline.com/)
 - [Site institucional](http://controleonline.com/)
 - [Wiki tecnica](https://github.com/ControleOnline/ui-orders/wiki)
-
+- [Cópia técnica versionada — automação technical-documenter](docs/technical/Automacao-Technical-Documenter-Push-Master.md)
