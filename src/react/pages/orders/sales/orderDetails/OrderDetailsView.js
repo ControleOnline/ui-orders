@@ -61,6 +61,14 @@ export default function OrderDetailsView(p) {
     addressModalMode,
     setAddressModalMode,
     handleAddressFormFieldChange,
+    addressOptions = [],
+    addressOptionsLoading = false,
+    addressSelectingId = null,
+    handleSelectAddress = () => {},
+    addressForm = {},
+    handleCreateAddress = () => {},
+    addressSaveLoading = false,
+    peopleStore = null,
     orderIdentitySource,
     orderHeaderActionProps,
     navigation,
@@ -95,6 +103,18 @@ export default function OrderDetailsView(p) {
     localDisplayAmount,
     shouldShowPreparationTime,
     orderWaitingLabel,
+    currentCompany = null,
+    defaultCompany = null,
+    refreshCurrentOrder = () => {},
+    marketplaceSummary = {},
+    globalStyles = {},
+    addProductsButtonLabel = global.t?.t('orders', 'button', 'addProduct') || 'Adicionar produto',
+    showInlinePrimaryAction = true,
+    canShowDebugActions = false,
+    handleOrderLogs = () => {},
+    handleOrderTools = () => {},
+    orderParam = null,
+    localPendingAmount = 0,
   } = p
 
   return (
@@ -169,7 +189,7 @@ export default function OrderDetailsView(p) {
         company={currentCompany || defaultCompany}
         onChanged={() => refreshCurrentOrder({force: true})}
       />
-      <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
+      <OrderMarketplaceOverlayHost marketplace={marketplaceSummary?.summary} />
       {!isLoading && item && !error && (
         <View style={inlineStyle_2712_14}>
           {useUnifiedKdsLayout ? (

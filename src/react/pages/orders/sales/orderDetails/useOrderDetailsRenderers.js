@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useLayoutEffect, useMemo } from 'react'
+import { Text, View } from 'react-native'
 import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
@@ -91,6 +92,20 @@ export default function useOrderDetailsRenderers(p) {
     marketplaceSummary,
     hasMarketplaceIntegration,
     formatOrderDateTime,
+    groupedInvoiceSections = [],
+    localInvoicesEmptyText = '',
+    handleOpenInvoiceDetails = () => {},
+    orderInvoicesLoading = false,
+    localInvoicesSectionTitle = '',
+    addProductsButtonLabel = global.t?.t('orders', 'button', 'addProduct') || 'Adicionar produto',
+    handleCustomizeProductFromSearch = () => {},
+    handleQuickAddProductFromSearch = () => {},
+    resolvedDisplayOrder = null,
+    resolvedDisplayOrderProductsWithProductDetails = [],
+    productSearchLoading = false,
+    productSearchResults = [],
+    productSearchSelectionId = null,
+    routeOrderId = null,
   } = p
 
   const renderOrderProductActions = useCallback(({
@@ -411,7 +426,7 @@ export default function useOrderDetailsRenderers(p) {
     shouldShowOrderPartyDetails,
     orderCustomerName,
     orderCustomerPhone,
-    orderCustomerDocument,
+    orderCustomerDocument: localOrderCustomerDocument,
     orderCustomerDocumentLabel,
     shouldShowOrderAddress,
     localOrderAddressParts,

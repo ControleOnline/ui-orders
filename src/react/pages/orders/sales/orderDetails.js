@@ -51,6 +51,10 @@ const OrderDetails = ({ route, navigation }) => {
     addressActions,
     ppcColors,
     localStyles,
+    globalStyles,
+    currentCompany,
+    cssStyles,
+    orderInvoicesLoading,
     viewportWidth,
     selectedDisplay,
     orderCompanyId,
@@ -250,6 +254,9 @@ const OrderDetails = ({ route, navigation }) => {
     setAddressModalMode,
     addressSaveLoading,
     addressSelectingId,
+    addressOptions,
+    addressOptionsLoading,
+    addressForm,
     observationDraft,
     setObservationDraft,
     observationEditing,
@@ -268,6 +275,8 @@ const OrderDetails = ({ route, navigation }) => {
     closeAddressModal,
     openAddressModal,
     handleAddressFormFieldChange,
+    handleSelectAddress,
+    handleCreateAddress,
     handleStartObservationEdit,
     handleCancelObservationEdit,
     handleSaveObservation,
@@ -413,12 +422,24 @@ const OrderDetails = ({ route, navigation }) => {
     marketplaceSummary,
     hasMarketplaceIntegration,
     formatOrderDateTime,
+    handleOpenInvoiceDetails,
+    orderInvoicesLoading,
+    routeOrderId,
+    productSearchLoading,
+    productSearchResults,
+    productSearchSelectionId,
+    handleCustomizeProductFromSearch,
+    handleQuickAddProductFromSearch,
+    resolvedDisplayOrder,
+    resolvedDisplayOrderProductsWithProductDetails,
   })
 
   return (
     <OrderDetailsView
       {...renderers}
+      cssStyles={cssStyles}
       localStyles={localStyles}
+      globalStyles={globalStyles}
       ppcColors={ppcColors}
       useUnifiedKdsLayout={useUnifiedKdsLayout}
       showBarcodeInput={showBarcodeInput}
@@ -450,6 +471,14 @@ const OrderDetails = ({ route, navigation }) => {
       addressModalMode={addressModalMode}
       setAddressModalMode={setAddressModalMode}
       handleAddressFormFieldChange={handleAddressFormFieldChange}
+      addressOptions={addressOptions}
+      addressOptionsLoading={addressOptionsLoading}
+      addressSelectingId={addressSelectingId}
+      handleSelectAddress={handleSelectAddress}
+      addressForm={addressForm}
+      handleCreateAddress={handleCreateAddress}
+      addressSaveLoading={addressSaveLoading}
+      peopleStore={null}
       orderIdentitySource={orderIdentitySource}
       orderHeaderActionProps={orderHeaderActionProps}
       navigation={navigation}
@@ -484,6 +513,17 @@ const OrderDetails = ({ route, navigation }) => {
       localDisplayAmount={localDisplayAmount}
       shouldShowPreparationTime={shouldShowPreparationTime}
       orderWaitingLabel={orderWaitingLabel}
+      currentCompany={currentCompany}
+      defaultCompany={defaultCompany}
+      refreshCurrentOrder={refreshCurrentOrder}
+      marketplaceSummary={marketplaceSummary}
+      addProductsButtonLabel={global.t?.t('orders', 'button', 'addProduct') || 'Adicionar produto'}
+      showInlinePrimaryAction={canAddOrderPayment}
+      canShowDebugActions={canShowDebugActions}
+      handleOrderLogs={handleOrderLogs}
+      handleOrderTools={handleOrderTools}
+      orderParam={orderParam}
+      localPendingAmount={localPendingAmount}
     />
   )
 }
