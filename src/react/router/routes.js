@@ -212,7 +212,7 @@ const ordersRoutes = [
     },
     initialParams: { store: 'categories' },
   },
-  
+
   {
     name: 'OrderNfPage',
     path: '/orders/:id/nf',
