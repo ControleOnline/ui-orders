@@ -21,10 +21,12 @@ const OrderStackedTopBar = ({
     onPressAttachments = null,
     onPressTools = null,
     onPressLogs = null,
+    onPressNf = null,
     logisticsDisabled = false,
     attachmentsDisabled = false,
     toolsDisabled = false,
     logsDisabled = false,
+    nfDisabled = false,
     eyebrow = '',
     eyebrowTextStyle = null,
     showActions = true,
@@ -77,10 +79,12 @@ const OrderStackedTopBar = ({
                         onPressAttachments={onPressAttachments}
                         onPressTools={onPressTools}
                         onPressLogs={onPressLogs}
+                        onPressNf={onPressNf}
                         logisticsDisabled={logisticsDisabled}
                         attachmentsDisabled={attachmentsDisabled}
                         toolsDisabled={toolsDisabled}
                         logsDisabled={logsDisabled}
+                        nfDisabled={nfDisabled}
                     />
                 </View>
             ) : null}

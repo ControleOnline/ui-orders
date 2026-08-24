@@ -190,14 +190,22 @@ const BottomCart = ({
     setIsMaterializingOrder(true);
 
     try {
-      const resolvedOrder = isPdvMode && !skipOrderMaterialization
+      // PDV/POS: always materialize pending selections before conference so the
+      // order exists and products are attached before navigation.
+      const shouldMaterialize =
+        !skipOrderMaterialization &&
+        (isPdvMode || hasPendingSelections || !order?.id);
+
+      const resolvedOrder = shouldMaterialize
         ? await materializePendingSelections()
         : order;
 
-      if (!resolvedOrder) {
+      if (!resolvedOrder?.id && !resolvedOrder?.['@id']) {
         showError?.('Nao foi possivel preparar o pedido para conferencia.');
         return;
       }
+
+      ordersActions.syncOrder?.(resolvedOrder);
 
       if (typeof onActionPress === 'function') {
         onActionPress(resolvedOrder);
@@ -212,11 +220,15 @@ const BottomCart = ({
     }
   }, [
     handleDefaultAction,
+    hasPendingSelections,
     isActionDisabled,
-    skipOrderMaterialization,
+    isPdvMode,
     materializePendingSelections,
     onActionPress,
+    order,
+    ordersActions,
     showError,
+    skipOrderMaterialization,
   ]);
 
   return (

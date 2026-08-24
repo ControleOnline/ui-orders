@@ -49,6 +49,13 @@ export function useLinkedOrderSettlement({navigation, route}) {
     selectPrimaryOrder,
     setTreeOrders,
     setTreeInvoices,
+    openRootOrders,
+    loadingOpenRoots,
+    refreshOpenRootOrders,
+    canChargeLocally,
+    canManageRoots,
+    pendingCartOrders,
+    treeRounds,
   } = tree
 
   const handleIdentifyLinkedOrder = useCallback(async () => {
@@ -153,6 +160,13 @@ export function useLinkedOrderSettlement({navigation, route}) {
     if (!primaryOrder) {
       return
     }
+    if (!canChargeLocally) {
+      showError?.(
+        global.t?.t('orders', 'message', 'localChargeDisabled') ||
+          'This device is not authorized to charge. Enable local charge on the device or use an authorized cashier.',
+      )
+      return
+    }
 
     navigation.navigate(
       'Checkout',
@@ -161,7 +175,7 @@ export function useLinkedOrderSettlement({navigation, route}) {
         buildManagerPdvRouteParams({showBottomCart: false}),
       ),
     )
-  }, [navigation, primaryOrder])
+  }, [canChargeLocally, navigation, primaryOrder, showError])
 
   const runCloseSettlementTree = useCallback(async () => {
     const primaryOrderId = normalizeEntityId(primaryOrder)
@@ -228,27 +242,58 @@ export function useLinkedOrderSettlement({navigation, route}) {
       return
     }
 
+    const pendingCount = pendingCartOrders?.length || 0
+    if (pendingAmount > 0.009) {
+      Alert.alert(
+        global.t?.t('orders', 'title', 'settlement') || `${orderLabel} settlement`,
+        `This ${orderLabel.toLowerCase()} still has an open balance.`,
+        [{text: global.t?.t('orders', 'button', 'ok') || 'OK'}],
+      )
+      return
+    }
+
+    const baseMessage =
+      pendingCount > 0
+        ? `There are ${pendingCount} unconfirmed cart(s). Closing will not convert or discard them silently — confirm that pending carts were handled (confirm to production, cancel, or keep). Close the ${orderLabel.toLowerCase()} and linked sales?`
+        : `Close this ${orderLabel.toLowerCase()} and every linked sale order?`
+
     Alert.alert(
       global.t?.t('orders', 'title', 'settlement') || `${orderLabel} settlement`,
-      pendingAmount > 0.009
-        ? `This ${orderLabel.toLowerCase()} still has an open balance.`
-        : `Close this ${orderLabel.toLowerCase()} and every linked sale order?`,
-      pendingAmount > 0.009
-        ? [{text: global.t?.t('orders', 'button', 'ok') || 'OK'}]
-        : [
-            {
-              text: global.t?.t('orders', 'button', 'cancel') || 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: global.t?.t('orders', 'button', 'confirm') || 'Confirm',
-              onPress: () => {
-                void runCloseSettlementTree()
-              },
-            },
-          ],
+      baseMessage,
+      [
+        {
+          text: global.t?.t('orders', 'button', 'cancel') || 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: global.t?.t('orders', 'button', 'confirm') || 'Confirm',
+          onPress: () => {
+            void runCloseSettlementTree()
+          },
+        },
+      ],
     )
-  }, [orderLabel, pendingAmount, primaryOrder, runCloseSettlementTree])
+  }, [orderLabel, pendingAmount, pendingCartOrders, primaryOrder, runCloseSettlementTree])
+
+  const handleSelectOpenRoot = useCallback(
+    async order => {
+      if (!order) {
+        return
+      }
+      setActionLoading('select-root')
+      try {
+        await refreshSettlementTree(order)
+      } catch (error) {
+        showError?.(
+          error?.message ||
+            `Unable to open the selected ${orderLabel.toLowerCase()}.`,
+        )
+      } finally {
+        setActionLoading('')
+      }
+    },
+    [orderLabel, refreshSettlementTree, setActionLoading, showError],
+  )
 
   const primaryContext = primaryOrder
     ? getLinkedOrderContext(primaryOrder)
@@ -274,8 +319,16 @@ export function useLinkedOrderSettlement({navigation, route}) {
     handleOpenOrderDetails,
     handleOpenCheckout,
     handleCloseSettlement,
+    handleSelectOpenRoot,
     primaryContext,
     canUseSettlementScreen,
     currentCompany,
+    openRootOrders,
+    loadingOpenRoots,
+    refreshOpenRootOrders,
+    canChargeLocally,
+    canManageRoots,
+    pendingCartOrders,
+    treeRounds,
   }
 }
