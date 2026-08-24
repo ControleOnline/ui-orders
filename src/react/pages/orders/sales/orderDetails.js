@@ -93,6 +93,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam,
     routeOrderId,
     routeOrderIri,
+    orderCompanyIri,
     route,
     navigation,
     ordersActions,

@@ -32,6 +32,7 @@ export default function useOrderDetailsOrderSync({
   orderParam,
   routeOrderId,
   routeOrderIri,
+  orderCompanyIri = null,
   route,
   navigation,
   ordersActions,
