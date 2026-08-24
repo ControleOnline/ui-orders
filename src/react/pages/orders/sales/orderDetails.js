@@ -3728,6 +3728,22 @@ const OrderDetails = ({ route, navigation }) => {
                   </TouchableOpacity>
                 )}
 
+                {/* NF belongs to the visible sales action bar; the header icon is only a secondary shortcut. */}
+                {!!topBarOrderId && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={global.t?.t('orders', 'button', 'orderNf') || 'NF'}
+                    testID="order-nf-action"
+                    onPress={handleOrderNf}
+                    style={[globalStyles.button, { marginRight: 5 }]}
+                  >
+                    <Icon name="receipt" size={24} color="#fff" />
+                    <Text style={inlineStyle_2737_26}>
+                      {global.t?.t('orders', 'button', 'orderNf') || 'NF'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {canShowDebugActions && (
                   <>
                     <TouchableOpacity
