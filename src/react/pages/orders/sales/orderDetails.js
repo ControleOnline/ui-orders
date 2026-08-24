@@ -464,6 +464,7 @@ const OrderDetails = ({ route, navigation }) => {
       item={item}
       handleAddProduct={handleAddProduct}
       handlePrimaryAction={handlePrimaryAction}
+      handleOrderNf={handleOrderNf}
       primaryActionLoading={primaryActionLoading}
       primaryActionDisabled={primaryActionDisabled}
       primaryActionLabel={primaryActionLabel}
