@@ -1,3 +1,6 @@
+import { formatHumanLabel } from '@controleonline/ui-common/src/react/utils/entityDisplay'
+
+export const normalizeText = value => String(value ?? '').trim()
 
 export const formatApiError = error => {
   if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')

@@ -12,6 +12,21 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import AddCompanyModal from '@controleonline/ui-people/src/react/components/AddCompanyModal';
 import DefaultAddress from '@controleonline/ui-default/src/react/components/address/DefaultAddress';
 import { InlineLoadingText } from './InlineLoadingText';
+import { toEntityIri } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders';
+import {
+  getEntityId,
+  resolvePreferredText,
+} from './helpers';
+
+const buildCustomerSearchMeta = customer => [
+  customer?.document,
+  customer?.email,
+  customer?.phone,
+  customer?.cellphone,
+]
+  .map(value => String(value ?? '').trim())
+  .filter(Boolean)
+  .join(' • ');
 
 /**
  * Customer + address assignment modals for OrderDetails.
@@ -22,6 +37,8 @@ export default function OrderDetailsAssignmentModals(props) {
     closeCustomerModal,
     customerLinkingId,
     orderCustomerName,
+    selectedOrderClientIri,
+    selectedOrderAddressIri,
     localStyles,
     ppcColors,
     modalBottomInset,

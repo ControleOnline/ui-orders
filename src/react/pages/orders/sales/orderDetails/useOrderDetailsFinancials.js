@@ -20,6 +20,7 @@ import {
   resolveInvoiceKind,
   resolveInvoiceStatusPresentation,
   resolveInvoiceTitle,
+  resolveInvoicePartyLabel,
   resolvePreferredText,
 } from './helpers'
 
