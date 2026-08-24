@@ -4,6 +4,7 @@ import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
+import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import { getOwnedBottomBarOffset } from '@controleonline/ui-layout/src/react/utils/posBottomNavigation'
 import OrderDetailsProductActions from './OrderDetailsProductActions'
 import OrderDetailsInvoiceCards from './OrderDetailsInvoiceCards'

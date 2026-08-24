@@ -43,6 +43,7 @@ export default function useOrderDetailsOrderSync({
   localRealStatusKey,
   localOrderTypeKey,
   isLocallyTerminalOrder,
+  isKds = false,
 }) {
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
