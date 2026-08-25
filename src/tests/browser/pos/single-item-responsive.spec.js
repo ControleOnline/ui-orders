@@ -62,11 +62,12 @@ test.describe('single-item official responsive layout', () => {
         await bootstrapPosBrowser(page);
         await page.goto('/pdv-page');
 
-        await expect(page.getByText('Serviços', {exact: true})).toBeVisible();
-        await expect(page.getByText('4 disponíveis', {exact: true})).toBeVisible();
-        await expect(page.getByRole('radio', {name: 'Caminhonetas'})).toBeVisible();
-        await expect(page.getByRole('radio', {name: 'Veículos de passeio'})).toBeVisible();
-        await expect(page.getByTestId('bottom-navigation')).toBeVisible();
+        await expect(page.getByRole('heading', {name: /Produtos|Serviços/i})).toBeVisible();
+        await expect(page.getByText(/4 Items|4 disponíveis/i)).toBeVisible();
+        await expect(page.getByText('Caminhonetas', {exact: true})).toBeVisible();
+        await expect(page.getByText('Veículos de passeio', {exact: true})).toBeVisible();
+        await expect(page.getByText(/Operacao|Operação/).first()).toBeVisible();
+        await expect(page.getByText(/Caixa|Cash/i).first()).toBeVisible();
 
         fs.mkdirSync(SINGLE_ITEM_SCREENSHOT_DIR, {recursive: true});
         await page.screenshot({

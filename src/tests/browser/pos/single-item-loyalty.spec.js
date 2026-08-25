@@ -7,6 +7,17 @@ const {
   createPeopleSearchResult,
 } = require('./single-item-fixtures');
 
+const clickProduct = async (page, name) => {
+  const card = page
+    .getByText(name, {exact: true})
+    .locator("xpath=ancestor::div[contains(., '')][1]");
+  await card.locator("xpath=.//*[normalize-space(.)='']").last().click();
+};
+
+const openCheckoutWithSelectedProducts = async page => {
+  await page.getByText('Conferir pedido', {exact: true}).last().click();
+};
+
 test.describe('single-item browser smoke', () => {
   test('does not request a linked order code for loyalty stamp before customer CPF identification', async ({
     page,
@@ -68,15 +79,15 @@ test.describe('single-item browser smoke', () => {
       request.method() === 'PUT',
     );
 
-    await page.getByRole('radio', {name: 'Suco'}).click();
+    await clickProduct(page, 'Suco');
+    await openCheckoutWithSelectedProducts(page);
 
     const replaceRequest = await replaceRequestPromise;
     expect(replaceRequest.postDataJSON()).toEqual([{product: '102', quantity: 1}]);
 
     await expect(page).toHaveURL(/checkout/);
-    await expect(page.getByText('Identificar cliente', {exact: true})).toBeVisible();
-    await expect(page.getByPlaceholder('Digite o CPF')).toBeVisible();
-    await expect(page.getByText('Dinheiro', {exact: true})).toBeHidden();
+    await expect(page.getByText(/Identifique o cliente|Identificar cliente/i)).toBeVisible();
+    await expect(page.getByText(/^Dinheiro$/i)).toBeHidden();
   });
 
   test('locks the payment step to Cartao Fidelidade when the selected CPF already completed the card', async ({
@@ -144,8 +155,11 @@ test.describe('single-item browser smoke', () => {
     await page.goto(
       '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
     );
-    await page.getByRole('radio', {name: 'Suco'}).click();
+    await clickProduct(page, 'Suco');
+    await openCheckoutWithSelectedProducts(page);
 
+    await expect(page.getByText(/Identifique o cliente|Identificar cliente/i)).toBeVisible();
+    await page.getByRole('button', {name: /Continuar/i}).click();
     await expect(page.getByPlaceholder('Digite o CPF')).toBeVisible();
     await page.getByPlaceholder('Digite o CPF').fill('12345');
     await expect(page.getByText('Cliente Fidelidade', {exact: true})).toBeVisible();

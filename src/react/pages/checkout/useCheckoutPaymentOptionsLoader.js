@@ -8,9 +8,9 @@ import {
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
 import {isIntegratedPaymentOption} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {normalizeGatewayPaymentError} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
-import {extractCollectionItems} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 import {buildPaymentSelectionOption} from './CheckoutPaymentOptions';
 import {
+  extractCollectionItems,
   PAYMENT_CHANNEL_LOCAL,
   PAYMENT_CHANNEL_REMOTE,
 } from './checkoutStatusHelpers';

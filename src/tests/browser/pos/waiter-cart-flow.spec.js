@@ -470,11 +470,26 @@ const createPosApiMock = async (page, initialState = {}) => {
       })
       .filter(Boolean);
 
-  await page.route(`${API_ORIGIN}/**`, async route => {
+  await page.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
     const pathname = url.pathname.replace(/^\/+/, '');
     const method = request.method().toUpperCase();
+    const isLocalWebServer = ['127.0.0.1', 'localhost'].includes(url.hostname);
+    const isMockedApiPath =
+      /^(themes-colors\.css|runtime\/ip|people\/|menus-people|translates|configs\/|devices|device_configs|orders|order_products|categories|product-showcases\/|products|wallet_payment_types|statuses|invoices|order_invoices|websocket)/.test(pathname);
+
+    if (isLocalWebServer && !isMockedApiPath) {
+      return route.continue();
+    }
+
+    if (
+      !isMockedApiPath &&
+      !url.href.startsWith(API_ORIGIN) &&
+      !['localhost', '127.0.0.1'].includes(url.hostname)
+    ) {
+      return route.continue();
+    }
 
     if (method === 'OPTIONS') {
       return route.fulfill({

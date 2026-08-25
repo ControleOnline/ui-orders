@@ -20,6 +20,9 @@ import {
   REMOTE_PAYMENT_REQUEST_ACTION,
 } from '@controleonline/ui-common/src/react/utils/remotePayment';
 import {
+  getPaymentOptionLabel,
+} from '@controleonline/ui-common/src/react/utils/paymentOptions';
+import {
   PAYMENT_CHANNEL_LOCAL,
   resolvePosPaidInvoiceStatusIri,
 } from './checkoutStatusHelpers';

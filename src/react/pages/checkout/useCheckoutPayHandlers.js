@@ -5,6 +5,7 @@ import {
   PAYMENT_GATEWAY_INFINITE_PAY,
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
 import {
+  getPaymentOptionLabel,
   isCashPaymentOption,
 } from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {normalizeGatewayPaymentError} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
