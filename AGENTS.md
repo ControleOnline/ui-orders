@@ -15,6 +15,13 @@ Comece pela Home da wiki do módulo e use a cópia versionada no Git quando prec
 | Wiki principal do app | https://github.com/ControleOnline/app-community/wiki |
 | Visões do app (`APP_TYPE`) | https://github.com/ControleOnline/app-community/blob/master/MODOS_OPERACAO.md |
 
+### Por categoria — fluxos de negócio e settlement
+
+| Página | O que documenta |
+| --- | --- |
+| [LinkedOrderSettlement — Mesa com múltiplas comandas](https://github.com/ControleOnline/ui-orders/wiki/LinkedOrderSettlement-Mesa-Comandas) | Árvore mesa→comandas→carts/sales; `listLinkedTabsUnderRoot`; smoke flowchart 1 (`#605`) |
+| [Order History — Criar fatura](https://github.com/ControleOnline/ui-orders/wiki/OrderHistory-Criar-Fatura) | Botão/modal criar fatura no histórico (`#329`) |
+
 ### Por categoria — operação e automação do repositório
 
 | Página | O que documenta |
