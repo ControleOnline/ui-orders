@@ -1,5 +1,8 @@
 import {api} from '@controleonline/ui-common/src/api'
-import {normalizeEntityId} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
+import {
+  normalizeEntityId,
+  normalizeLinkedOrderType,
+} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 
 export const normalizeText = value => String(value ?? '').trim()
 export const normalizeStatusKey = value => normalizeText(value).toLowerCase()
@@ -140,6 +143,11 @@ export const collectOrderDescendants = (rootOrderId, orders) => {
   walk(rootOrderId, 1)
   return descendants
 }
+
+export const listLinkedTabsUnderRoot = (rootOrderId, orders) =>
+  collectOrderDescendants(rootOrderId, orders).filter(
+    order => normalizeLinkedOrderType(order?.orderType) === 'tab',
+  )
 
 let linkedOrderOpenStatusIriCache = null
 

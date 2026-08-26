@@ -8,6 +8,8 @@ const {
   isPendingCartOrder,
   listPendingCartOrders,
   partitionTreeRounds,
+  collectOrderDescendants,
+  listLinkedTabsUnderRoot,
 } = require('../../../../react/pages/checkout/linkedOrderSettlementHelpers')
 
 describe('linkedOrderSettlementHelpers (#290)', () => {
@@ -28,6 +30,47 @@ describe('linkedOrderSettlementHelpers (#290)', () => {
   it('isTerminalOrder detects closed', () => {
     expect(isTerminalOrder({status: {realStatus: 'closed'}})).toBe(true)
     expect(isTerminalOrder({status: {realStatus: 'open'}})).toBe(false)
+  })
+})
+
+describe('linkedOrderSettlementHelpers table tabs (#605)', () => {
+  const table = {id: 700, orderType: 'table', externalCode: 'MESA-7'}
+  const tabA = {
+    id: 701,
+    orderType: 'tab',
+    externalCode: 'CMD-A',
+    mainOrderId: 700,
+  }
+  const cartA = {id: 702, orderType: 'cart', mainOrderId: 701}
+  const tabB = {
+    id: 703,
+    orderType: 'tab',
+    externalCode: 'CMD-B',
+    mainOrderId: 700,
+  }
+  const cartB = {id: 704, orderType: 'cart', mainOrderId: 703}
+
+  it('keeps both tabs under the same table after the second is launched', () => {
+    const afterFirst = [table, tabA, cartA]
+    expect(listLinkedTabsUnderRoot(700, afterFirst).map(o => o.externalCode)).toEqual([
+      'CMD-A',
+    ])
+
+    const afterSecond = [table, tabA, cartA, tabB, cartB]
+    const tabs = listLinkedTabsUnderRoot(700, afterSecond)
+    expect(tabs.map(o => o.externalCode)).toEqual(['CMD-A', 'CMD-B'])
+    expect(tabs).toHaveLength(2)
+    expect(collectOrderDescendants(700, afterSecond).map(o => o.id)).toEqual([
+      701, 702, 703, 704,
+    ])
+  })
+
+  it('does not drop the first tab when only the second cart is added later', () => {
+    const orders = [table, tabA, tabB, cartB]
+    expect(listLinkedTabsUnderRoot(700, orders).map(o => o.externalCode)).toEqual([
+      'CMD-A',
+      'CMD-B',
+    ])
   })
 })
 
