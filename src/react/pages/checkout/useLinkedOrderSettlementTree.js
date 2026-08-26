@@ -423,6 +423,7 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
     invoiceCards,
     invoiceSummary,
     pendingAmount,
+    primaryOrderTotal,
     linkedOrderEntryState,
     resolveLinkedOrderEntry,
     handleRefresh,
