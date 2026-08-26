@@ -11,11 +11,13 @@ import {SafeAreaView} from 'react-native-safe-area-context'
 import Icon from 'react-native-vector-icons/Feather'
 import {withOpacity} from '@controleonline/../../src/styles/branding'
 import LinkedOrderEntrySheet from '@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet'
+import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import {normalizeEntityId} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 import {
   SettlementOrdersTable,
   SettlementInvoicesTable,
 } from './SettlementSectionTable'
+import {translateOrderStatus} from './linkedOrderSettlementHelpers'
 import {useLinkedOrderSettlement} from './useLinkedOrderSettlement'
 import styles from './LinkedOrderSettlementPage.styles'
 
@@ -33,6 +35,7 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     invoiceCards,
     invoiceSummary,
     pendingAmount,
+    primaryOrderTotal,
     linkedOrderEntryState,
     resolveLinkedOrderEntry,
     handleIdentifyLinkedOrder,
