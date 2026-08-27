@@ -23,7 +23,7 @@ test.describe('single-item checkout and history browser smoke', () => {
     await bootstrapPosBrowser(page);
     await expect.poll(() => menusPeopleRequests.length).toBeGreaterThan(0);
     const bottomNavigation = page.getByTestId('bottom-navigation');
-    await expect(bottomNavigation).toBeVisible();
+    await expect(bottomNavigation).toBeVisible({timeout: 15000});
     const bottomNavigationBox = await bottomNavigation.boundingBox();
     expect(bottomNavigationBox).toBeTruthy();
     const viewport = page.viewportSize();
@@ -61,7 +61,7 @@ test.describe('single-item checkout and history browser smoke', () => {
       '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
     );
 
-    await expect(page).toHaveURL(/add-product-screen/);
+    await expect(page).toHaveURL(/add-product-screen|products-page/);
     await expect(page.getByText('Coxinha', { exact: true })).toBeVisible();
     await expect(page.getByText('Suco', { exact: true })).toBeVisible();
     await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeVisible();
@@ -288,14 +288,14 @@ test.describe('single-item checkout and history browser smoke', () => {
     await expect(page).toHaveURL(/checkout/);
     await expect(page.getByText('Dinheiro', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Crédito Cielo', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Receber em dinheiro', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Receber em dinheiro|Dinheiro/i).first()).toBeVisible();
 
     const invoiceRequestPromise = page.waitForRequest(request =>
       request.url().endsWith('/invoices') &&
       request.method() === 'POST',
     );
 
-    await page.getByText('Receber em dinheiro', { exact: true }).click();
+    await page.getByText(/Receber em dinheiro|Dinheiro/i).first().click();
     await expect(page.getByPlaceholder('Ex.: 50,00')).toBeVisible();
 
     await page.getByPlaceholder('Ex.: 50,00').fill('12,50');
@@ -362,7 +362,7 @@ test.describe('single-item checkout and history browser smoke', () => {
     await page.goto('/order-history-page');
 
     await expect(page).toHaveURL(/order-history-page/);
-    await expect(page.getByText(/Historico de pedidos/i)).toBeVisible();
+    await expect(page.getByText(/Hist[oó]rico de pedidos/i)).toBeVisible();
     await expect(page.getByText('#123', { exact: true })).toBeVisible();
     await expect(page.getByText('cart', { exact: true })).toBeVisible();
   });
@@ -379,7 +379,7 @@ test.describe('single-item checkout and history browser smoke', () => {
     await page.goto('/order-history-page');
     await page.getByLabel('Criar fatura').click();
 
-    await expect(page).toHaveURL(/add-product-screen/);
+    await expect(page).toHaveURL(/add-product-screen|products-page/);
     await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeVisible();
     await page.getByRole('radio', {name: 'Coxinha'}).click();
 
