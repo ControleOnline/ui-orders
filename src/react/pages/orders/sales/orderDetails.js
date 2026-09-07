@@ -46,8 +46,10 @@ const OrderDetails = ({ route, navigation }) => {
     invoiceActions,
     orderInvoicesActions,
     storedOrderInvoiceItems,
+    orderInvoicesLoading,
     peopleActions,
     defaultCompany,
+    currentCompany,
     addressActions,
     ppcColors,
     localStyles,
@@ -100,6 +102,8 @@ const OrderDetails = ({ route, navigation }) => {
     localRealStatusKey,
     localOrderTypeKey,
     isLocallyTerminalOrder,
+    isKds,
+    orderCompanyIri,
   })
 
   const {
@@ -165,6 +169,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const {
     localInvoiceCards,
+    groupedInvoiceSections,
     localReceivedAmount,
     localOrderTotal,
     localPendingAmount,
@@ -185,6 +190,7 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const canAddProductsToOrder = canMutateOrderProducts
+  const addProductsButtonLabel = global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
 
   const {
     productSearchText,
@@ -248,6 +254,9 @@ const OrderDetails = ({ route, navigation }) => {
     addressModalVisible,
     addressModalMode,
     setAddressModalMode,
+    addressOptions,
+    addressOptionsLoading,
+    addressForm,
     addressSaveLoading,
     addressSelectingId,
     observationDraft,
@@ -268,6 +277,8 @@ const OrderDetails = ({ route, navigation }) => {
     closeAddressModal,
     openAddressModal,
     handleAddressFormFieldChange,
+    handleSelectAddress,
+    handleCreateAddress,
     handleStartObservationEdit,
     handleCancelObservationEdit,
     handleSaveObservation,
@@ -291,6 +302,8 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const {
+    localInvoicesEmptyText,
+    localInvoicesSectionTitle,
     shouldShowPreparationTime,
     summaryInformationEntries,
     orderAppLabel,
@@ -367,6 +380,20 @@ const OrderDetails = ({ route, navigation }) => {
     orderIdentitySource,
     orderHeaderActionProps,
     navigation,
+    handleOpenInvoiceDetails,
+    groupedInvoiceSections,
+    localInvoicesEmptyText,
+    localInvoicesSectionTitle,
+    orderInvoicesLoading,
+    handleCustomizeProductFromSearch,
+    handleQuickAddProductFromSearch,
+    resolvedDisplayOrder,
+    resolvedDisplayOrderProductsWithProductDetails,
+    productSearchLoading,
+    productSearchResults,
+    productSearchSelectionId,
+    routeOrderId,
+    addProductsButtonLabel,
     localInvoiceCards,
     item,
     orderParam,
@@ -408,6 +435,7 @@ const OrderDetails = ({ route, navigation }) => {
     resolvedOrderDateValue,
     localDisplayLabel,
     localDisplayAmount,
+    localPendingAmount,
     localOrderAddressParts,
     summaryInformationEntries,
     marketplaceSummary,
@@ -421,6 +449,10 @@ const OrderDetails = ({ route, navigation }) => {
       localStyles={localStyles}
       ppcColors={ppcColors}
       useUnifiedKdsLayout={useUnifiedKdsLayout}
+      currentCompany={currentCompany}
+      defaultCompany={defaultCompany}
+      refreshCurrentOrder={refreshCurrentOrder}
+      marketplaceSummary={marketplaceSummary}
       showBarcodeInput={showBarcodeInput}
       isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
       productSearchText={productSearchText}
@@ -450,6 +482,12 @@ const OrderDetails = ({ route, navigation }) => {
       addressModalMode={addressModalMode}
       setAddressModalMode={setAddressModalMode}
       handleAddressFormFieldChange={handleAddressFormFieldChange}
+      addressOptions={addressOptions}
+      addressOptionsLoading={addressOptionsLoading}
+      addressForm={addressForm}
+      addressSelectingId={addressSelectingId}
+      handleSelectAddress={handleSelectAddress}
+      handleCreateAddress={handleCreateAddress}
       orderIdentitySource={orderIdentitySource}
       orderHeaderActionProps={orderHeaderActionProps}
       navigation={navigation}
@@ -481,6 +519,7 @@ const OrderDetails = ({ route, navigation }) => {
       shouldShowInlineOrderTotal={shouldShowInlineOrderTotal}
       localDisplayLabel={localDisplayLabel}
       localDisplayAmount={localDisplayAmount}
+      localPendingAmount={localPendingAmount}
       shouldShowPreparationTime={shouldShowPreparationTime}
       orderWaitingLabel={orderWaitingLabel}
     />

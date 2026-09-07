@@ -19,6 +19,7 @@ import {
   REMOTE_PAYMENT_MESSAGE_STORE,
   REMOTE_PAYMENT_REQUEST_ACTION,
 } from '@controleonline/ui-common/src/react/utils/remotePayment';
+import {getPaymentOptionLabel as resolvePaymentOptionLabel} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   PAYMENT_CHANNEL_LOCAL,
   resolvePosPaidInvoiceStatusIri,
@@ -285,7 +286,7 @@ export default function useCheckoutPaymentRunners({
 
       setSubmittingPayment(true);
       setPendingRemotePaymentRequest({
-        paymentLabel: getPaymentOptionLabel(payment),
+        paymentLabel: resolvePaymentOptionLabel(payment),
         requestKey,
         targetDeviceId: selectedRemoteDevice.deviceId,
         targetDeviceLabel: selectedRemoteDevice.alias,
