@@ -46,15 +46,13 @@ const OrderDetails = ({ route, navigation }) => {
     invoiceActions,
     orderInvoicesActions,
     storedOrderInvoiceItems,
+    orderInvoicesLoading,
     peopleActions,
     defaultCompany,
+    currentCompany,
     addressActions,
     ppcColors,
     localStyles,
-    globalStyles,
-    currentCompany,
-    cssStyles,
-    orderInvoicesLoading,
     viewportWidth,
     selectedDisplay,
     orderCompanyId,
@@ -93,7 +91,6 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam,
     routeOrderId,
     routeOrderIri,
-    orderCompanyIri,
     route,
     navigation,
     ordersActions,
@@ -106,6 +103,7 @@ const OrderDetails = ({ route, navigation }) => {
     localOrderTypeKey,
     isLocallyTerminalOrder,
     isKds,
+    orderCompanyIri,
   })
 
   const {
@@ -171,6 +169,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const {
     localInvoiceCards,
+    groupedInvoiceSections,
     localReceivedAmount,
     localOrderTotal,
     localPendingAmount,
@@ -191,6 +190,7 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const canAddProductsToOrder = canMutateOrderProducts
+  const addProductsButtonLabel = global.t?.t('orders', 'button', 'addProducts') || 'Adicionar produtos'
 
   const {
     productSearchText,
@@ -254,11 +254,11 @@ const OrderDetails = ({ route, navigation }) => {
     addressModalVisible,
     addressModalMode,
     setAddressModalMode,
-    addressSaveLoading,
-    addressSelectingId,
     addressOptions,
     addressOptionsLoading,
     addressForm,
+    addressSaveLoading,
+    addressSelectingId,
     observationDraft,
     setObservationDraft,
     observationEditing,
@@ -270,7 +270,6 @@ const OrderDetails = ({ route, navigation }) => {
     orderAddressPrimary,
     orderAddressSecondary,
     selectedOrderClientIri,
-    selectedOrderAddressIri,
     closeCustomerModal,
     openCustomerModal,
     orderHeaderActionProps,
@@ -303,6 +302,8 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const {
+    localInvoicesEmptyText,
+    localInvoicesSectionTitle,
     shouldShowPreparationTime,
     summaryInformationEntries,
     orderAppLabel,
@@ -379,6 +380,20 @@ const OrderDetails = ({ route, navigation }) => {
     orderIdentitySource,
     orderHeaderActionProps,
     navigation,
+    handleOpenInvoiceDetails,
+    groupedInvoiceSections,
+    localInvoicesEmptyText,
+    localInvoicesSectionTitle,
+    orderInvoicesLoading,
+    handleCustomizeProductFromSearch,
+    handleQuickAddProductFromSearch,
+    resolvedDisplayOrder,
+    resolvedDisplayOrderProductsWithProductDetails,
+    productSearchLoading,
+    productSearchResults,
+    productSearchSelectionId,
+    routeOrderId,
+    addProductsButtonLabel,
     localInvoiceCards,
     item,
     orderParam,
@@ -420,31 +435,24 @@ const OrderDetails = ({ route, navigation }) => {
     resolvedOrderDateValue,
     localDisplayLabel,
     localDisplayAmount,
+    localPendingAmount,
     localOrderAddressParts,
     summaryInformationEntries,
     marketplaceSummary,
     hasMarketplaceIntegration,
     formatOrderDateTime,
-    handleOpenInvoiceDetails,
-    orderInvoicesLoading,
-    routeOrderId,
-    productSearchLoading,
-    productSearchResults,
-    productSearchSelectionId,
-    handleCustomizeProductFromSearch,
-    handleQuickAddProductFromSearch,
-    resolvedDisplayOrder,
-    resolvedDisplayOrderProductsWithProductDetails,
   })
 
   return (
     <OrderDetailsView
       {...renderers}
-      cssStyles={cssStyles}
       localStyles={localStyles}
-      globalStyles={globalStyles}
       ppcColors={ppcColors}
       useUnifiedKdsLayout={useUnifiedKdsLayout}
+      currentCompany={currentCompany}
+      defaultCompany={defaultCompany}
+      refreshCurrentOrder={refreshCurrentOrder}
+      marketplaceSummary={marketplaceSummary}
       showBarcodeInput={showBarcodeInput}
       isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
       productSearchText={productSearchText}
@@ -460,8 +468,6 @@ const OrderDetails = ({ route, navigation }) => {
       closeCustomerModal={closeCustomerModal}
       customerLinkingId={customerLinkingId}
       orderCustomerName={orderCustomerName}
-      selectedOrderClientIri={selectedOrderClientIri}
-      selectedOrderAddressIri={selectedOrderAddressIri}
       customerSearch={customerSearch}
       setCustomerSearch={setCustomerSearch}
       customerSearchLoading={customerSearchLoading}
@@ -478,12 +484,10 @@ const OrderDetails = ({ route, navigation }) => {
       handleAddressFormFieldChange={handleAddressFormFieldChange}
       addressOptions={addressOptions}
       addressOptionsLoading={addressOptionsLoading}
+      addressForm={addressForm}
       addressSelectingId={addressSelectingId}
       handleSelectAddress={handleSelectAddress}
-      addressForm={addressForm}
       handleCreateAddress={handleCreateAddress}
-      addressSaveLoading={addressSaveLoading}
-      peopleStore={null}
       orderIdentitySource={orderIdentitySource}
       orderHeaderActionProps={orderHeaderActionProps}
       navigation={navigation}
@@ -498,7 +502,6 @@ const OrderDetails = ({ route, navigation }) => {
       item={item}
       handleAddProduct={handleAddProduct}
       handlePrimaryAction={handlePrimaryAction}
-      handleOrderNf={handleOrderNf}
       primaryActionLoading={primaryActionLoading}
       primaryActionDisabled={primaryActionDisabled}
       primaryActionLabel={primaryActionLabel}
@@ -516,19 +519,9 @@ const OrderDetails = ({ route, navigation }) => {
       shouldShowInlineOrderTotal={shouldShowInlineOrderTotal}
       localDisplayLabel={localDisplayLabel}
       localDisplayAmount={localDisplayAmount}
+      localPendingAmount={localPendingAmount}
       shouldShowPreparationTime={shouldShowPreparationTime}
       orderWaitingLabel={orderWaitingLabel}
-      currentCompany={currentCompany}
-      defaultCompany={defaultCompany}
-      refreshCurrentOrder={refreshCurrentOrder}
-      marketplaceSummary={marketplaceSummary}
-      addProductsButtonLabel={global.t?.t('orders', 'button', 'addProduct') || 'Adicionar produto'}
-      showInlinePrimaryAction={canAddOrderPayment}
-      canShowDebugActions={canShowDebugActions}
-      handleOrderLogs={handleOrderLogs}
-      handleOrderTools={handleOrderTools}
-      orderParam={orderParam}
-      localPendingAmount={localPendingAmount}
     />
   )
 }

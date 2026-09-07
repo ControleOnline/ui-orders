@@ -21,19 +21,13 @@ import {
   shouldRenderOrderDetailsPaymentAction,
 } from '../orderDetailsPaymentBar'
 import css from '@controleonline/ui-orders/src/react/css/orders'
-
-
-const inlineStyle_2712_14 = { flex: 1 }
-const inlineStyle_2718_20 = {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  alignItems: 'center',
-  paddingHorizontal: 8,
-  paddingVertical: 8,
-}
-const inlineStyle_2725_26 = { color: '#fff', marginLeft: 4 }
-const inlineStyle_2737_26 = { color: '#fff', marginLeft: 4 }
-const inlineStyle_2748_24 = { color: '#fff', marginLeft: 4 }
+import {
+  inlineStyle_2712_14,
+  inlineStyle_2718_20,
+  inlineStyle_2725_26,
+  inlineStyle_2737_26,
+  inlineStyle_2748_24,
+} from '../orderDetails.styles'
 
 export default function OrderDetailsView(p) {
   const {
@@ -41,6 +35,10 @@ export default function OrderDetailsView(p) {
     localStyles,
     ppcColors,
     useUnifiedKdsLayout,
+    currentCompany,
+    defaultCompany,
+    refreshCurrentOrder,
+    marketplaceSummary,
     shouldStackHeaderActions,
     renderCompactInlineTopBar,
     renderInvoiceListOnly,
@@ -74,14 +72,12 @@ export default function OrderDetailsView(p) {
     addressModalMode,
     setAddressModalMode,
     handleAddressFormFieldChange,
-    addressOptions = [],
-    addressOptionsLoading = false,
-    addressSelectingId = null,
-    handleSelectAddress = () => {},
-    addressForm = {},
-    handleCreateAddress = () => {},
-    addressSaveLoading = false,
-    peopleStore = null,
+    addressOptions,
+    addressOptionsLoading,
+    addressSelectingId,
+    addressForm,
+    handleSelectAddress,
+    handleCreateAddress,
     orderIdentitySource,
     orderHeaderActionProps,
     navigation,
@@ -96,7 +92,6 @@ export default function OrderDetailsView(p) {
     item,
     handleAddProduct,
     handlePrimaryAction,
-    handleOrderNf,
     primaryActionLoading,
     primaryActionDisabled,
     primaryActionLabel,
@@ -104,6 +99,7 @@ export default function OrderDetailsView(p) {
     canAddOrderPayment,
     handleOpenFinancialDetails,
     localOrderTotal,
+    localPendingAmount,
     localReceivedAmount,
     hasMarketplaceIntegration,
     shouldShowMobilePaymentBar,
@@ -116,18 +112,6 @@ export default function OrderDetailsView(p) {
     localDisplayAmount,
     shouldShowPreparationTime,
     orderWaitingLabel,
-    currentCompany = null,
-    defaultCompany = null,
-    refreshCurrentOrder = () => {},
-    marketplaceSummary = {},
-    globalStyles = {},
-    addProductsButtonLabel = global.t?.t('orders', 'button', 'addProduct') || 'Adicionar produto',
-    showInlinePrimaryAction = true,
-    canShowDebugActions = false,
-    handleOrderLogs = () => {},
-    handleOrderTools = () => {},
-    orderParam = null,
-    localPendingAmount = 0,
   } = p
 
   return (
@@ -202,7 +186,7 @@ export default function OrderDetailsView(p) {
         company={currentCompany || defaultCompany}
         onChanged={() => refreshCurrentOrder({force: true})}
       />
-      <OrderMarketplaceOverlayHost marketplace={marketplaceSummary?.summary} />
+      <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
       {!isLoading && item && !error && (
         <View style={inlineStyle_2712_14}>
           {useUnifiedKdsLayout ? (
@@ -231,22 +215,6 @@ export default function OrderDetailsView(p) {
                     <Icon name={primaryActionIcon} size={24} color="#fff" />
                     <Text style={inlineStyle_2737_26}>
                       {primaryActionLabel}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* NF belongs to the visible sales action bar; the header icon is only a secondary shortcut. */}
-                {!!topBarOrderId && (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel={global.t?.t('orders', 'button', 'orderNf') || 'NF'}
-                    testID="order-nf-action"
-                    onPress={handleOrderNf}
-                    style={[globalStyles.button, { marginRight: 5 }]}
-                  >
-                    <Icon name="receipt" size={24} color="#fff" />
-                    <Text style={inlineStyle_2737_26}>
-                      {global.t?.t('orders', 'button', 'orderNf') || 'NF'}
                     </Text>
                   </TouchableOpacity>
                 )}

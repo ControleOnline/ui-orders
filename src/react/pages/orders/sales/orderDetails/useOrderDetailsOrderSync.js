@@ -7,6 +7,7 @@ import useOrderMarketplaceSummary from '../useOrderMarketplaceSummary'
 import {
   filterOrderProductsByOrderId,
   resolveEmbeddedOrderProducts,
+  hasDetailedOrderProductsPayload,
   choosePreferredOrderProducts,
   formatApiError,
   getEntityId,
@@ -16,8 +17,6 @@ import {
   resolveEditableOrderType,
   DRAFT_SALE_ORDER_TYPE,
   isTerminalOrderStatus,
-  hasDetailedOrderProductsPayload,
-  areOrderProductCollectionsEquivalent,
 } from './helpers'
 import {
   mergeOrderProductIntoList,
@@ -34,7 +33,6 @@ export default function useOrderDetailsOrderSync({
   orderParam,
   routeOrderId,
   routeOrderIri,
-  orderCompanyIri = null,
   route,
   navigation,
   ordersActions,
@@ -46,7 +44,8 @@ export default function useOrderDetailsOrderSync({
   localRealStatusKey,
   localOrderTypeKey,
   isLocallyTerminalOrder,
-  isKds = false,
+  isKds,
+  orderCompanyIri,
 }) {
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
