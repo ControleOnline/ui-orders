@@ -61,7 +61,8 @@ test.describe('single-item checkout and history browser smoke', () => {
       '/add-product-screen?id=123&resumeExistingOrder=true&singleItemMode=true',
     );
 
-    await expect(page).toHaveURL(/add-product-screen/);
+    // The current router normalizes this legacy path to the products screen.
+    await expect(page).toHaveURL(/(?:add-product-screen|products-page)/);
     await expect(page.getByText('Coxinha', { exact: true })).toBeVisible();
     await expect(page.getByText('Suco', { exact: true })).toBeVisible();
     await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeVisible();
