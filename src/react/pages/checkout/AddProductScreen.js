@@ -47,7 +47,8 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {showError} = useMessage() || {};
   const isTotemMode = isPosTotemMode(runtimeDeviceConfig?.configs);
   const isSingleItemMode =
-    route?.params?.singleItemMode === true ||
+    (route?.params?.singleItemMode === true ||
+      String(route?.params?.singleItemMode || '').trim().toLowerCase() === 'true') ||
     isPosSingleItemMode(runtimeDeviceConfig?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     runtimeDeviceConfig?.configs,

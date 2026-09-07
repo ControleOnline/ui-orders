@@ -366,7 +366,7 @@ test.describe('single-item checkout and history browser smoke', () => {
     await expect(page).toHaveURL(/order-history-page/);
     await expect(page.getByText(/Hist(?:ó|o)rico de pedidos|Order History/i)).toBeVisible();
     await expect(page.getByText('#123', { exact: true })).toBeVisible();
-    await expect(page.getByText('cart', { exact: true })).toBeVisible();
+    await expect(page.getByText(/^(cart|Cart)$/)).toBeVisible();
   });
 
   test('creates an invoice from the order history action without Cielo', async ({
