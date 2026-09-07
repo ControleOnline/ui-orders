@@ -1,7 +1,3 @@
-import { formatHumanLabel } from '@controleonline/ui-common/src/react/utils/entityDisplay'
-
-export const normalizeText = value => String(value ?? '').trim()
-
 import {
   formatHumanLabel,
   normalizeText,
