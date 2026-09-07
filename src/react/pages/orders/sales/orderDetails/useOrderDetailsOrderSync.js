@@ -7,6 +7,7 @@ import useOrderMarketplaceSummary from '../useOrderMarketplaceSummary'
 import {
   filterOrderProductsByOrderId,
   resolveEmbeddedOrderProducts,
+  hasDetailedOrderProductsPayload,
   choosePreferredOrderProducts,
   formatApiError,
   getEntityId,

@@ -21,6 +21,13 @@ import {
   shouldRenderOrderDetailsPaymentAction,
 } from '../orderDetailsPaymentBar'
 import css from '@controleonline/ui-orders/src/react/css/orders'
+import {
+  inlineStyle_2712_14,
+  inlineStyle_2718_20,
+  inlineStyle_2725_26,
+  inlineStyle_2737_26,
+  inlineStyle_2748_24,
+} from '../orderDetails.styles'
 
 export default function OrderDetailsView(p) {
   const {
@@ -28,6 +35,10 @@ export default function OrderDetailsView(p) {
     localStyles,
     ppcColors,
     useUnifiedKdsLayout,
+    currentCompany,
+    defaultCompany,
+    refreshCurrentOrder,
+    marketplaceSummary,
     shouldStackHeaderActions,
     renderCompactInlineTopBar,
     renderInvoiceListOnly,
@@ -61,6 +72,12 @@ export default function OrderDetailsView(p) {
     addressModalMode,
     setAddressModalMode,
     handleAddressFormFieldChange,
+    addressOptions,
+    addressOptionsLoading,
+    addressSelectingId,
+    addressForm,
+    handleSelectAddress,
+    handleCreateAddress,
     orderIdentitySource,
     orderHeaderActionProps,
     navigation,
@@ -82,6 +99,7 @@ export default function OrderDetailsView(p) {
     canAddOrderPayment,
     handleOpenFinancialDetails,
     localOrderTotal,
+    localPendingAmount,
     localReceivedAmount,
     hasMarketplaceIntegration,
     shouldShowMobilePaymentBar,
