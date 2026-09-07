@@ -1,4 +1,9 @@
 
+import {
+  formatHumanLabel,
+  normalizeText,
+} from '@controleonline/ui-common/src/react/utils/entityDisplay'
+
 export const formatApiError = error => {
   if (!error) return global.t?.t('orders', 'message', 'unableCompleteOperation')
   if (typeof error === 'string') return error
