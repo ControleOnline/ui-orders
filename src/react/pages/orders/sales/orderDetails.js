@@ -101,6 +101,7 @@ const OrderDetails = ({ route, navigation }) => {
     localOrderTypeKey,
     isLocallyTerminalOrder,
     isKds,
+    orderCompanyIri,
   })
 
   const {

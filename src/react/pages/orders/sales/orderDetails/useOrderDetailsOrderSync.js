@@ -44,6 +44,7 @@ export default function useOrderDetailsOrderSync({
   localOrderTypeKey,
   isLocallyTerminalOrder,
   isKds,
+  orderCompanyIri,
 }) {
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
