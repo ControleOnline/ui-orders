@@ -1,0 +1,9 @@
+run source=1081cd23054e42aa2c8e09f360272804c54c5a2d appType=MANAGER authenticated=true
+OPTIONS themes-colors.css -> 204
+GET runtime/ip -> 200
+GET menus-people -> 200
+GET people/companies/my -> 200
+GET people/3 -> 200
+GET shop/franchises -> 200 (mapped + unmapped franchise fixtures)
+GET shop/franchises -> 503 (error/help scenario)
+authorization headers and token values: redacted by contract

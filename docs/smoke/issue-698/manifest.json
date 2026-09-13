@@ -1,0 +1,26 @@
+{
+  "wikiPage": "https://github.com/ControleOnline/app-community/wiki/Smoke-Test-Flows",
+  "fluxo": "manager-general-settings-maps",
+  "issue": "ControleOnline/app-community#698",
+  "appType": "MANAGER",
+  "authenticated": true,
+  "authEvidence": "Playwright init storage state used by the test; token value is intentionally redacted.",
+  "sourceSha": "1081cd23054e42aa2c8e09f360272804c54c5a2d",
+  "bundleId": "1.10.6+1081cd23054e",
+  "runResult": "passed",
+  "evidence": [
+    {"id": "01-off", "step": "activate locator: before", "screenshot": "evidence/01-off.png"},
+    {"id": "02-loading", "step": "activate locator: loading", "screenshot": "evidence/02-loading.png"},
+    {"id": "03-list-empty-pins", "step": "franchise list with checkbox and no selected pins", "screenshot": "evidence/03-list-empty-pins.png"},
+    {"id": "04-checked-one-pin", "step": "select franchise checkbox and show one pin", "screenshot": "evidence/04-checked-one-pin.png"},
+    {"id": "05-unchecked-empty-map", "step": "unselect franchise and clear pins", "screenshot": "evidence/05-unchecked-empty-map.png"},
+    {"id": "06-off-again", "step": "deactivate locator", "screenshot": "evidence/06-off-again.png"},
+    {"id": "07-error-help", "step": "directory error and contextual help", "screenshot": "evidence/07-error-help.png"}
+  ],
+  "checks": {
+    "pageErrors": 0,
+    "consoleWarningsRelatedToFlow": 0,
+    "affectedModulesUnder500Lines": true,
+    "currentRetry": "build timeout after 600000ms; see logs/current-retry.txt"
+  }
+}

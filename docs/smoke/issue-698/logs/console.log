@@ -1,0 +1,5 @@
+run source=1081cd23054e42aa2c8e09f360272804c54c5a2d appType=MANAGER authenticated=true
+page=http://127.0.0.1:4173/general-settings
+pageerror: none (asserted by general-settings-maps-complete.spec.js)
+console warnings/errors related to manager-general-settings-maps: none observed
+auth token: redacted by contract
