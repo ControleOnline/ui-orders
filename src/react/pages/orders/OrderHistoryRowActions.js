@@ -26,7 +26,7 @@ export default function OrderHistoryRowActions({
       {!isCanceledOrder(row) ? (
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel={global.t?.t('orders', 'button', 'createInvoice') || 'Criar fatura'}
+          accessibilityLabel={global.t?.t('orders', 'button', 'markAsPaid') || 'Marcar como pago'}
           style={[styles.rowActionButton, { borderColor: themeColors.buttonBackground, backgroundColor: themeColors.buttonBackground }]}
           activeOpacity={0.82}
           onPress={e => { e?.stopPropagation?.(); onCreateInvoice?.(row); }}
