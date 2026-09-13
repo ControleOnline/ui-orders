@@ -1,0 +1,80 @@
+{
+  "fluxo": "outros",
+  "flowchartIds": [
+    1
+  ],
+  "issue": "ControleOnline/app-community#792",
+  "build": "1.10.6",
+  "steps": [
+    {
+      "id": "01-general-settings-entry",
+      "title": "Tela inicial de General Settings",
+      "screenshot": "01-general-settings-entry.png",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:4187/general-settings"
+    },
+    {
+      "id": "02-mapas-tab",
+      "title": "Aba MAPAS aberta",
+      "screenshot": "02-mapas-tab.png",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:4187/general-settings"
+    },
+    {
+      "id": "03-franchise-list",
+      "title": "Lista de franquias e toggle visíveis",
+      "screenshot": "03-franchise-list.png",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:4187/general-settings"
+    },
+    {
+      "id": "04-pins-checkbox-map",
+      "title": "Checkbox de pin e mapa carregado",
+      "screenshot": "04-pins-checkbox-map.png",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:4187/general-settings"
+    },
+    {
+      "id": "04b-pin-popup",
+      "title": "Pin aberto com popup no mapa",
+      "screenshot": "04b-pin-popup.png",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "url": "http://127.0.0.1:4187/general-settings"
+    },
+    {
+      "id": "05-responsive-resize",
+      "title": "Viewport estreito após resize",
+      "screenshot": "05-responsive-resize.png",
+      "viewport": {
+        "width": 480,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:4187/general-settings"
+    },
+    {
+      "id": "06-desktop-final",
+      "title": "Desktop final com mapa e pins",
+      "screenshot": "06-desktop-final.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:4187/general-settings"
+    }
+  ]
+}
