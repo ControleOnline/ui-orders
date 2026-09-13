@@ -6,4 +6,4 @@ The seven PNGs were produced by the authenticated Playwright smoke at `1081cd230
 
 Every relevant step has a 1280x720 PNG: locator off, loading, franchise list with checkbox, selected franchise/pin, deselected/empty map, locator off again, and directory error/contextual help. SHA-256 values are recorded in `evidence/sha256sums.txt`.
 
-The current retry is recorded separately because the Metro web build timed out before tests started. It must be rerun after the build/cache blocker is resolved.
+The current retry is recorded separately because the Metro web build timed out at 84% before tests started, even after a clean dependency install. It must be rerun with the Node 20/Metro runtime stabilized; no new PNGs are claimed from this retry.
