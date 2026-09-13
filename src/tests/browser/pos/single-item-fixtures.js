@@ -1,5 +1,5 @@
 const packageJson = require('../../../../../../../package.json');
-const {API_ORIGIN} = require('../../../../../../../src/tests/browser/apiOrigin');
+const {API_ORIGIN, API_ORIGINS} = require('../../../../../../../src/tests/browser/apiOrigin');
 
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
@@ -310,6 +310,7 @@ const buildRemotePaymentResultMessage = ({
 });
 module.exports = {
   API_ORIGIN,
+  API_ORIGINS,
   APP_VERSION,
   CORS_HEADERS,
   LAVEGO_THEME_COLORS,
