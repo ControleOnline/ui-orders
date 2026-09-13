@@ -55,7 +55,7 @@
     "pngSha256": "see evidence/sha256sums.txt"
   },
   "taskBranch": "task-698",
-  "taskCommit": "a8f50f85302b04952da99af46b1716c3a89b7ae4",
+  "taskCommit": "fda915e831c9f43c916c5967e3d4d2045a71bdaf",
   "baseMaster": "ce53ae8ec154c5d5ee24ead8fb3ba4e3feba23b9",
-  "devMerge": "5bffbc9c2a5fb6f14f60b4be7e79b93cf80d1cae"
+  "devMerge": "e39c5c8d8fda72eca2d7a52823a3b028efbe0607"
 }
