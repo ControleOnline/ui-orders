@@ -107,6 +107,14 @@ module.exports = [
     testPaths: ['modules/controleonline/ui-logistic/src/tests/browser/delivery'],
   }),
   flow({
+    id: 'nfce-detalhe-pdf',
+    name: 'NFC-e emitida — detalhe e PDF',
+    owner: 'ui-logistic',
+    appTypes: ['DELIVERY'],
+    steps: ['abrir NFC-e emitidas e capturar a lista', 'abrir detalhe com o InvoiceTax id e capturar série/número/status/protocolo', 'abrir o PDF, validar o nome NFC-E-SERIE-NUMERO.pdf e capturar a prévia', 'validar erro acionável quando o PDF não retorna conteúdo', 'validar ações desabilitadas para documento sem id/série/número'],
+    testPaths: ['modules/controleonline/ui-logistic/src/tests/browser/delivery/nfce-detail.spec.js'],
+  }),
+  flow({
     id: 'relatorio-consulta',
     name: 'Relatórios e consultas gerenciais',
     owner: 'ui-report/ui-manager',
