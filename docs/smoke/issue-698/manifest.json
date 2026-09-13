@@ -9,18 +9,53 @@
   "bundleId": "1.10.6+1081cd23054e",
   "runResult": "passed",
   "evidence": [
-    {"id": "01-off", "step": "activate locator: before", "screenshot": "evidence/01-off.png"},
-    {"id": "02-loading", "step": "activate locator: loading", "screenshot": "evidence/02-loading.png"},
-    {"id": "03-list-empty-pins", "step": "franchise list with checkbox and no selected pins", "screenshot": "evidence/03-list-empty-pins.png"},
-    {"id": "04-checked-one-pin", "step": "select franchise checkbox and show one pin", "screenshot": "evidence/04-checked-one-pin.png"},
-    {"id": "05-unchecked-empty-map", "step": "unselect franchise and clear pins", "screenshot": "evidence/05-unchecked-empty-map.png"},
-    {"id": "06-off-again", "step": "deactivate locator", "screenshot": "evidence/06-off-again.png"},
-    {"id": "07-error-help", "step": "directory error and contextual help", "screenshot": "evidence/07-error-help.png"}
+    {
+      "id": "01-off",
+      "step": "activate locator: before",
+      "screenshot": "evidence/01-off.png"
+    },
+    {
+      "id": "02-loading",
+      "step": "activate locator: loading",
+      "screenshot": "evidence/02-loading.png"
+    },
+    {
+      "id": "03-list-empty-pins",
+      "step": "franchise list with checkbox and no selected pins",
+      "screenshot": "evidence/03-list-empty-pins.png"
+    },
+    {
+      "id": "04-checked-one-pin",
+      "step": "select franchise checkbox and show one pin",
+      "screenshot": "evidence/04-checked-one-pin.png"
+    },
+    {
+      "id": "05-unchecked-empty-map",
+      "step": "unselect franchise and clear pins",
+      "screenshot": "evidence/05-unchecked-empty-map.png"
+    },
+    {
+      "id": "06-off-again",
+      "step": "deactivate locator",
+      "screenshot": "evidence/06-off-again.png"
+    },
+    {
+      "id": "07-error-help",
+      "step": "directory error and contextual help",
+      "screenshot": "evidence/07-error-help.png"
+    }
   ],
   "checks": {
     "pageErrors": 0,
     "consoleWarningsRelatedToFlow": 0,
     "affectedModulesUnder500Lines": true,
-    "currentRetry": "build timeout after 600000ms; see logs/current-retry.txt"
-  }
+    "currentRetry": "build timeout after 120000ms before Playwright; see logs/current-retry.txt",
+    "catalogValidation": "passed: 11 browser smoke flows",
+    "pngDimensions": "all 1280x720 RGB",
+    "pngSha256": "see evidence/sha256sums.txt"
+  },
+  "taskBranch": "task-698",
+  "taskCommit": "f4f0774471c66396d8642423222b28b7594774d0",
+  "baseMaster": "7322454ddf8172337764ed92697f4ccfb23cd371",
+  "devMerge": "5bffbc9c2a5fb6f14f60b4be7e79b93cf80d1cae"
 }
