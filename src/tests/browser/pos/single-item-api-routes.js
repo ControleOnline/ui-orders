@@ -1,5 +1,5 @@
 const {
-  API_ORIGINS,
+  API_ORIGIN,
   APP_VERSION,
   CORS_HEADERS,
   buildOrderProduct,
@@ -54,7 +54,7 @@ const registerSingleItemApiRoutes = async (page, state) => {
         };
       })
       .filter(Boolean);
-  const handleApiRoute = async route => {
+  await page.route(`${API_ORIGIN}/**`, async route => {
     const request = route.request();
     const url = new URL(request.url());
     const pathname = url.pathname.replace(/^\/+/, '');
@@ -381,11 +381,7 @@ const registerSingleItemApiRoutes = async (page, state) => {
       return fulfillJson(route, {});
     }
     return fulfillJson(route, collection([]));
-  };
-
-  for (const apiOrigin of API_ORIGINS) {
-    await page.route(`${apiOrigin}/**`, handleApiRoute);
-  }
+  });
 };
 
 module.exports = {registerSingleItemApiRoutes};
