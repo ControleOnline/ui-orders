@@ -1,0 +1,5 @@
+2026-09-13: npm run test:browser -- manager
+build: Metro web export started for MANAGER
+result: timeout after 600000ms before Playwright tests started
+exit: 1
+follow-up: rerun the same smoke after the web build/cache issue is resolved; do not treat this retry as replacement for the passing evidence bundle.
