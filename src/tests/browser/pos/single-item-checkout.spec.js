@@ -379,7 +379,7 @@ test.describe('single-item checkout and history browser smoke', () => {
 
     await bootstrapPosBrowser(page);
     await page.goto('/order-history-page');
-    const createInvoiceAction = page.getByLabel(/Criar fatura|Create invoice/i);
+    const createInvoiceAction = page.getByLabel(/Marcar como pago|Criar fatura|Create invoice/i);
     if (await createInvoiceAction.count()) {
       await createInvoiceAction.click();
     } else {
