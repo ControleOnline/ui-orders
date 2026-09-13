@@ -1,5 +1,6 @@
-2026-09-13: npm run test:browser -- manager
-build: Metro web export started for MANAGER
-result: timeout after 600000ms before Playwright tests started
+2026-09-13: BROWSER_SMOKE_BUILD_TIMEOUT_MS=120000 npm run test:browser:manager
+build: Metro web export started for MANAGER and progressed from 0% to 17%
+result: timeout after 120000ms before Playwright tests started
 exit: 1
-follow-up: rerun the same smoke after the web build/cache issue is resolved; do not treat this retry as replacement for the passing evidence bundle.
+catalog: node scripts/validate-smoke-flow-catalog.cjs -> passed: 11 browser smoke flows
+follow-up: rerun the same authenticated smoke after the Metro build/cache blocker is resolved; this retry is not a replacement for the passing evidence bundle.
