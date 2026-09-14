@@ -257,6 +257,7 @@ jobs:
             app_domain: https://checkout.controleonline.com
             track: internal
             release_status: draft
+            changes_not_sent_for_review: "true"
           - app_type: CRM
             display_name: CRM
             app_domain: https://crm.controleonline.com

@@ -10,7 +10,10 @@ const normalizeAppType = value =>
     .toUpperCase();
 
 const resolveAssetsFolder = (appType, variant) =>
-  String(variant || (normalizeAppType(appType) === 'ADMIN' ? 'manager' : appType))
+  String(
+    variant ||
+      (['ADMIN', 'MKT'].includes(normalizeAppType(appType)) ? 'manager' : appType),
+  )
     .trim()
     .toLowerCase();
 
