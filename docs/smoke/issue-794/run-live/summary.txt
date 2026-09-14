@@ -1,0 +1,10 @@
+Generated at: 2026-09-14T05:50:01.394Z
+Groups: 1
+Artifacts include Playwright screenshots, traces, and videos under each group test-results directory.
+
+manager (MANAGER)
+  fluxos: produto-cadastro, compra-fluxo, device-configuracao, pedido-criacao, producao-fluxo, cliente-cadastro, usuario-permissao, financeiro-cobranca, relatorio-consulta, outros
+  build: failed (exit 1)
+  smoke: not-run
+  artifacts: none
+

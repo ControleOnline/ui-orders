@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-09-14T05:50:01.394Z",
+  "groups": [
+    {
+      "name": "manager",
+      "appType": "MANAGER",
+      "flowIds": [
+        "produto-cadastro",
+        "compra-fluxo",
+        "device-configuracao",
+        "pedido-criacao",
+        "producao-fluxo",
+        "cliente-cadastro",
+        "usuario-permissao",
+        "financeiro-cobranca",
+        "relatorio-consulta",
+        "outros"
+      ],
+      "build": "failed (exit 1)",
+      "smoke": "not-run",
+      "testPaths": [
+        "modules/controleonline/ui-login/src/tests/browser/manager/login-flow.spec.js",
+        "modules/controleonline/ui-crm/src/tests/browser/manager/general-settings-maps-complete.spec.js",
+        "modules/controleonline/ui-financial/src/tests/browser/manager/financial-hub-page.spec.js"
+      ],
+      "evidence": "required-per-step",
+      "artifacts": []
+    }
+  ]
+}
