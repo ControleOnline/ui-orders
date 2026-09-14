@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const groups = require('./browser-smoke-groups.cjs');
 
 const projectRoot = path.resolve(__dirname, '..');
@@ -14,6 +14,8 @@ const testResultsDir = path.join(projectRoot, 'test-results');
 const buildTimeoutMs = Number(process.env.BROWSER_SMOKE_BUILD_TIMEOUT_MS || 10 * 60 * 1000);
 const testTimeoutMs = Number(process.env.BROWSER_SMOKE_TEST_TIMEOUT_MS || 25 * 60 * 1000);
 const baseWebPort = Number(process.env.PLAYWRIGHT_WEB_PORT || 4173);
+const sourceSha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: projectRoot, encoding: 'utf8' }).trim();
+const bundleId = `${process.env.npm_package_version || 'app-community'}+${sourceSha.slice(0, 12)}`;
 
 const groupByName = new Map(
   groups.flatMap(group => [
@@ -114,6 +116,8 @@ resolvedGroups.forEach((group, index) => {
     PLAYWRIGHT_WEB_PORT: String(baseWebPort + index),
     PLAYWRIGHT_WEB_OUTPUT_DIR: outputDir,
     PLAYWRIGHT_SMOKE_JSON_OUTPUT_FILE: path.join(testResultsDir, 'report.json'),
+    PLAYWRIGHT_SMOKE_BUNDLE_SHA: sourceSha,
+    PLAYWRIGHT_SMOKE_BUNDLE_ID: bundleId,
   };
   const groupArtifactsDir = path.join(smokeArtifactsDir, group.name);
   const groupSummary = {
