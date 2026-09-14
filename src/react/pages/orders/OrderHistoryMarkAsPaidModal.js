@@ -52,6 +52,45 @@ const resolveProductLabel = product =>
       `Produto ${extractId(product) || ''}`.trim(),
   ).trim();
 
+const resolveOrderPrice = order => {
+  const n = Number(order?.price ?? order?.total ?? order?.amount);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+};
+
+/** Sum closed/paid invoices already linked to the order (when present on the row). */
+const resolvePaidInvoicesTotal = order => {
+  const lists = [
+    order?.invoice,
+    order?.invoices,
+    order?.orderInvoices,
+    order?.order_invoices,
+  ];
+  let total = 0;
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      const inv = entry?.invoice && typeof entry.invoice === 'object' ? entry.invoice : entry;
+      const rs = String(inv?.status?.realStatus || '').toLowerCase();
+      const st = String(inv?.status?.status || '').toLowerCase();
+      if (!(rs === 'closed' || st === 'paid' || st === 'pago')) continue;
+      const amount = Number(entry?.realPrice ?? entry?.price ?? inv?.price ?? 0);
+      if (Number.isFinite(amount) && amount > 0) total += amount;
+    }
+  }
+  return total;
+};
+
+const resolveRemainingBalance = order => {
+  const price = resolveOrderPrice(order);
+  const paid = resolvePaidInvoicesTotal(order);
+  // When invoice list is absent on the row, charge full order price.
+  if (price > 0 && paid === 0 && !Array.isArray(order?.invoice) && !Array.isArray(order?.invoices) && !Array.isArray(order?.orderInvoices)) {
+    return price;
+  }
+  return Math.max(0, Math.round((price - paid) * 100) / 100);
+};
+
+
 /**
  * Modal flow: product (single) → payment type → confirm → paid invoice.
  * Reuses products list, wallet_payment_types and invoice save (createPaidInvoice contract).
@@ -249,18 +288,70 @@ export default function OrderHistoryMarkAsPaidModal({
         throw new Error('Fluxo de invoice indisponivel.');
       }
 
+      // Prefer remaining balance (order total − paid invoices) so status can become paid.
+      // Fetch order_invoices when the list row does not carry invoice embeds.
+      let chargeAmount = resolveRemainingBalance(order);
+      try {
+        const invResp = await api.fetch('order_invoices', {
+          params: {order: orderIri, itemsPerPage: 100},
+        });
+        let paid = 0;
+        for (const entry of extractItems(invResp)) {
+          const inv = entry?.invoice && typeof entry.invoice === 'object' ? entry.invoice : entry;
+          const rs = String(inv?.status?.realStatus || '').toLowerCase();
+          const st = String(inv?.status?.status || '').toLowerCase();
+          if (!(rs === 'closed' || st === 'paid' || st === 'pago')) continue;
+          const amount = Number(entry?.realPrice ?? entry?.price ?? inv?.price ?? 0);
+          if (Number.isFinite(amount) && amount > 0) paid += amount;
+        }
+        const orderTotal = resolveOrderPrice(order);
+        if (orderTotal > 0) {
+          chargeAmount = Math.max(0, Math.round((orderTotal - paid) * 100) / 100);
+        }
+      } catch (_) {
+        // keep resolveRemainingBalance / product fallback
+      }
+      if (!(chargeAmount > 0)) {
+        chargeAmount = productPrice;
+      }
+      if (!(chargeAmount > 0)) {
+        throw new Error('Valor a cobrar invalido (pedido ja pode estar quitado).');
+      }
+
       const createdInvoice = await invoiceActions.save({
         dueDate: Formatter.getCurrentDate(),
         status: paidStatusIri,
         destinationWallet: walletIri,
         paymentType: paymentTypeIri,
-        price: productPrice,
+        price: chargeAmount,
         receiver: `/people/${companyId}`,
         order: orderIri,
       });
 
       if (!createdInvoice) {
         throw new Error('Falha ao registrar a cobranca.');
+      }
+
+      // Update order status to paid (status id 7 / name paid) so list reflects PAGO.
+      try {
+        const statusResp = await api.fetch('statuses', {
+          params: {context: 'order', itemsPerPage: 50},
+        });
+        const statuses = extractItems(statusResp);
+        const paidStatus =
+          statuses.find(
+            s =>
+              String(s?.status || '').toLowerCase() === 'paid' ||
+              String(s?.status || '').toLowerCase() === 'pago',
+          ) ||
+          statuses.find(s => String(s?.realStatus || '').toLowerCase() === 'closed');
+        const paidOrderStatusIri = paidStatus?.['@id'] || (paidStatus?.id ? `/statuses/${paidStatus.id}` : '/statuses/7');
+        await api.fetch(`orders/${orderId}`, {
+          method: 'PUT',
+          body: {status: paidOrderStatusIri},
+        });
+      } catch (_) {
+        // Invoice already created; status update is best-effort.
       }
 
       onSuccess?.(createdInvoice, order);
@@ -466,7 +557,12 @@ export default function OrderHistoryMarkAsPaidModal({
                 </Text>
                 <Text style={{color: '#0F172A'}}>
                   <Text style={{fontWeight: '700'}}>Valor: </Text>
-                  {Formatter.formatMoney?.(productPrice) || productPrice}
+                  {Formatter.formatMoney?.(
+                    (() => {
+                      const rem = resolveRemainingBalance(order);
+                      return rem > 0 ? rem : productPrice;
+                    })(),
+                  ) || productPrice}
                 </Text>
                 <Text style={{color: '#0F172A'}}>
                   <Text style={{fontWeight: '700'}}>Pagamento: </Text>
