@@ -1,0 +1,10 @@
+2026-09-13: BROWSER_SMOKE_BUILD_TIMEOUT_MS=120000 npm run test:browser:manager
+build: Metro web export started for MANAGER and progressed from 0% to 17%
+result: timeout after 120000ms before Playwright tests started
+exit: 1
+catalog: node scripts/validate-smoke-flow-catalog.cjs -> passed: 11 browser smoke flows
+follow-up: clean dependency install completed, then the same authenticated smoke was rerun from a clean task worktree at post-master-sync commit 0137b21; Metro reached 84% and timed out before Playwright started. This retry is not a replacement for the passing evidence bundle and requires Node 20/Metro runtime stabilization.
+
+2026-09-13: npm install --include=dev --foreground-scripts=false
+result: dependencies installed in disposable clean worktree; Expo 54.0.27 became available
+runtime: Node v24.20.0 (project requires Node 20)

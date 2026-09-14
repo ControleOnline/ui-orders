@@ -239,6 +239,39 @@ function copyFileToArtifact(sourcePath, destinationPath) {
   fs.copyFileSync(sourcePath, destinationPath);
 }
 
+function findManifestForSuite(reportDir, suite) {
+  const candidates = [];
+  const stack = [reportDir];
+
+  while (stack.length > 0) {
+    const currentDir = stack.pop();
+    for (const entry of fs.readdirSync(currentDir, {withFileTypes: true})) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (entry.name === 'manifest.json') {
+        candidates.push(fullPath);
+      }
+    }
+  }
+
+  const screenshotNames = new Set(
+    (Array.isArray(suite?.tests) ? suite.tests : [])
+      .flatMap(test => Array.isArray(test?.screenshots) ? test.screenshots : [])
+      .map(screenshot => String(screenshot?.name || '').replace(/\.png$/i, '')),
+  );
+
+  for (const candidate of candidates.sort()) {
+    const manifest = readJson(candidate);
+    const prints = Array.isArray(manifest?.prints) ? manifest.prints : [];
+    if (prints.some(print => screenshotNames.has(String(print)))) {
+      return candidate;
+    }
+  }
+
+  return candidates.sort()[0] || null;
+}
+
 function artifactUrlForSuite(suiteId, relativePath) {
   return `/tests/artifacts/${encodeURIComponent(suiteId)}/${normalizeRelativePath(relativePath)
     .split('/')
@@ -461,6 +494,12 @@ function parsePlaywrightReport(reportPath, report, rootPath) {
         report: `/tests/artifacts/${suiteId}/report.json`,
       },
     };
+
+    const manifestPath = findManifestForSuite(reportDir, {tests});
+    if (manifestPath) {
+      copyFileToArtifact(manifestPath, path.join(artifactsRoot, suiteId, 'manifest.json'));
+      reportPayload.links.manifest = `/tests/artifacts/${suiteId}/manifest.json`;
+    }
 
     suites.push(reportPayload);
 

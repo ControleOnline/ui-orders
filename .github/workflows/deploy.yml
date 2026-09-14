@@ -19,6 +19,11 @@ on:
         required: true
         type: choice
         options: [dev, staging, master]
+      force_deploy:
+        description: "Publicação humana autorizada sem aguardar aprovações de staging"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-${{ github.event.inputs.environment || github.ref_name }}
@@ -104,11 +109,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_ENV: ${{ needs.configure.outputs.env }}
           TARGET_SHA: ${{ github.sha }}
+          FORCE_DEPLOY: ${{ github.event_name == 'workflow_dispatch' && inputs.force_deploy || false }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           if [ "$TARGET_ENV" != "master" ]; then
             echo "Production gate skipped for $TARGET_ENV."
+            exit 0
+          fi
+          if [ "$FORCE_DEPLOY" = "true" ]; then
+            echo "Production explicitly authorized by workflow_dispatch; staging approval deferred for $TARGET_SHA."
             exit 0
           fi
           mapfile -t DEPLOYS < <(
