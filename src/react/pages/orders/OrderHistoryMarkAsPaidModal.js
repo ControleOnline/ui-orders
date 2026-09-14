@@ -62,12 +62,18 @@ export default function OrderHistoryMarkAsPaidModal({
   onClose,
   onSuccess,
   themeColors = {},
+  currentCompanyId = null,
 }) {
   const productsStore = useStore('products');
   const orderProductsStore = useStore('order_products');
   const invoiceStore = useStore('invoice');
-  const companyStore = useStore('company');
-  const currentCompany = companyStore?.getters?.currentCompany;
+  const peopleStore = useStore('people');
+  const peopleCompany = peopleStore?.getters?.currentCompany;
+  const currentCompany = peopleCompany || null;
+  const companyId =
+    extractId(currentCompanyId) ||
+    extractId(currentCompany?.id) ||
+    extractId(currentCompany);
 
   const [step, setStep] = useState('product'); // product | payment | confirm
   const [loading, setLoading] = useState(false);
@@ -101,46 +107,77 @@ export default function OrderHistoryMarkAsPaidModal({
   }, [visible, resetState]);
 
   const loadProducts = useCallback(async () => {
-    if (!currentCompany?.id) return;
+    if (!companyId) {
+      setError('Empresa atual nao identificada.');
+      setProducts([]);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const actions = productsStore?.actions;
       let list = [];
-      if (typeof actions?.getItems === 'function') {
-        const response = await actions.getItems({
-          people: `/people/${currentCompany.id}`,
-          itemsPerPage: 100,
-          page: 1,
-        });
-        list = extractItems(response);
-      } else {
-        const response = await api.fetch('products', {
+
+      // Primary: same catalog used by POS (company-scoped showcase)
+      try {
+        const catalog = await api.fetch('product-showcases/catalog', {
           params: {
-            people: `/people/${currentCompany.id}`,
-            itemsPerPage: 100,
-            page: 1,
+            active: 1,
+            integration_key: 'pos',
+            company: companyId,
+            type: ['custom', 'product', 'manufactured', 'service'],
           },
         });
-        list = extractItems(response);
+        list = extractItems(catalog);
+      } catch (_) {
+        list = [];
       }
+
+      // Fallback: products filtered by company
+      if (!list.length) {
+        const actions = productsStore?.actions;
+        if (typeof actions?.getItems === 'function') {
+          const response = await actions.getItems({
+            company: `/people/${companyId}`,
+            itemsPerPage: 200,
+            page: 1,
+          });
+          list = extractItems(response);
+        } else {
+          const response = await api.fetch('products', {
+            params: {
+              company: `/people/${companyId}`,
+              itemsPerPage: 200,
+              page: 1,
+            },
+          });
+          list = extractItems(response);
+        }
+      }
+
       setProducts(list);
+      if (!list.length) {
+        setError('Nenhum produto encontrado para a empresa atual.');
+      }
     } catch (e) {
       setError(e?.message || 'Falha ao carregar produtos.');
       setProducts([]);
     } finally {
       setLoading(false);
     }
-  }, [currentCompany?.id, productsStore?.actions]);
+  }, [companyId, productsStore?.actions]);
 
   const loadPayments = useCallback(async () => {
-    if (!currentCompany?.id) return;
+    if (!companyId) {
+      setError('Empresa atual nao identificada.');
+      setPaymentOptions([]);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const response = await api.fetch('wallet_payment_types', {
         params: {
-          'wallet.people': `/people/${currentCompany.id}`,
+          'wallet.people': `/people/${companyId}`,
           itemsPerPage: 100,
         },
       });
@@ -151,13 +188,13 @@ export default function OrderHistoryMarkAsPaidModal({
     } finally {
       setLoading(false);
     }
-  }, [currentCompany?.id]);
+  }, [companyId]);
 
   useEffect(() => {
-    if (!visible || !orderId) return;
+    if (!visible) return;
     if (step === 'product') void loadProducts();
     if (step === 'payment') void loadPayments();
-  }, [visible, orderId, step, loadProducts, loadPayments]);
+  }, [visible, step, loadProducts, loadPayments]);
 
   const filteredProducts = useMemo(() => {
     const q = String(search || '').trim().toLowerCase();
@@ -201,7 +238,7 @@ export default function OrderHistoryMarkAsPaidModal({
       }
 
       const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
-        currentCompany?.configs?.['pos-paid-status'],
+        currentCompany?.configs?.['pos-paid-status'] || peopleStore?.getters?.defaultCompany?.configs?.['pos-paid-status'],
       );
       if (!paidStatusIri) {
         throw new Error('Nao foi possivel resolver o status pago da invoice.');
@@ -218,7 +255,7 @@ export default function OrderHistoryMarkAsPaidModal({
         destinationWallet: walletIri,
         paymentType: paymentTypeIri,
         price: productPrice,
-        receiver: `/people/${currentCompany.id}`,
+        receiver: `/people/${companyId}`,
         order: orderIri,
       });
 
@@ -239,6 +276,7 @@ export default function OrderHistoryMarkAsPaidModal({
       setSubmitting(false);
     }
   }, [
+    companyId,
     currentCompany,
     invoiceStore?.actions,
     onClose,
@@ -246,6 +284,7 @@ export default function OrderHistoryMarkAsPaidModal({
     order,
     orderId,
     orderProductsStore?.actions,
+    peopleStore?.getters?.defaultCompany,
     productPrice,
     selectedPayment,
     selectedProduct,

@@ -455,6 +455,7 @@ export default function OrderHistoryPage({ navigation, route }) {
         onClose={() => setMarkAsPaidOrder(null)}
         onSuccess={handleMarkAsPaidSuccess}
         themeColors={themeColors}
+        currentCompanyId={currentCompany?.id}
       />
     </SafeAreaView>
   );
