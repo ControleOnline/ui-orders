@@ -18,6 +18,7 @@ module.exports = appTypes.map(([name, appType]) => {
       ? [
           'modules/controleonline/ui-login/src/tests/browser/manager/login-flow.spec.js',
           'modules/controleonline/ui-crm/src/tests/browser/manager/general-settings-maps-complete.spec.js',
+          'modules/controleonline/ui-common/src/tests/browser/manager',
         ]
       : name === 'pos'
       ? ['modules/controleonline/ui-orders/src/tests/browser/pos/single-item-checkout.spec.js']
