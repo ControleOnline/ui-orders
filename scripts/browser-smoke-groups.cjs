@@ -15,7 +15,10 @@ module.exports = appTypes.map(([name, appType]) => {
   const matchingFlows = flows.filter(flow => flow.appTypes.includes(appType));
   const testPaths =
     name === 'manager'
-      ? ['modules/controleonline/ui-login/src/tests/browser/manager/login-flow.spec.js']
+      ? [
+          'modules/controleonline/ui-login/src/tests/browser/manager/login-flow.spec.js',
+          'modules/controleonline/ui-crm/src/tests/browser/manager/general-settings-maps-complete.spec.js',
+        ]
       : name === 'pos'
       ? ['modules/controleonline/ui-orders/src/tests/browser/pos/single-item-checkout.spec.js']
       : unique(
