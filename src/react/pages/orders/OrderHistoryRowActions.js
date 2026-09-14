@@ -35,7 +35,7 @@ export default function OrderHistoryRowActions({
           activeOpacity={0.82}
           onPress={e => { e?.stopPropagation?.(); onCreateInvoice?.(row); }}
         >
-          <Icon name="file-text" size={16} color={themeColors.buttonIcon} />
+          <Icon name="dollar-sign" size={16} color={themeColors.buttonIcon} />
         </TouchableOpacity>
       ) : null}
       {canCancel ? (
