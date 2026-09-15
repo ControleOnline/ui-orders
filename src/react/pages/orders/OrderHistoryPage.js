@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Text,
   TouchableOpacity,
@@ -48,6 +48,7 @@ import {
   configureOrderHistoryColumns,
 } from './orderHistoryHelpers';
 import OrderHistoryRowActions from './OrderHistoryRowActions';
+import OrderHistoryMarkAsPaidModal from './OrderHistoryMarkAsPaidModal';
 import OrderHistoryCard from './OrderHistoryCard';
 import usePurchaseSupplierLabels from './usePurchaseSupplierLabels';
 import useOrderCancellation from './useOrderCancellation';
@@ -98,6 +99,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const showAdvancedFilters = !isPosApp || canViewCompanyOrders;
   const showHistoryToolbar = !shouldRestrictToDeviceOrders;
   const showOrderHistoryRowActions = !isPosApp;
+  const [markAsPaidOrder, setMarkAsPaidOrder] = useState(null);
   const statusItems = useMemo(
     () => (Array.isArray(statusGetters.items) ? statusGetters.items : []),
     [statusGetters.items],
@@ -312,19 +314,16 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
 
   const openCreateInvoiceFlow = useCallback(order => {
-    setCreateInvoiceOnlyMode(true);
     orderActions.syncOrder?.(order);
-    navigation.navigate(
-      'AddProductScreen',
-      buildAddProductsRouteParams(
-        order,
-        buildManagerPdvRouteParams({
-          createInvoiceOnly: true,
-          singleItemMode: isPosSingleItemMode(deviceConfig?.configs),
-        }),
-      ),
-    );
-  }, [deviceConfig?.configs, navigation, orderActions]);
+    setMarkAsPaidOrder(order);
+  }, [orderActions]);
+
+  const handleMarkAsPaidSuccess = useCallback(() => {
+    setMarkAsPaidOrder(null);
+    if (typeof orderActions?.getItems === 'function') {
+      void orderActions.getItems();
+    }
+  }, [orderActions]);
 
   const renderRowActions = useCallback(({ row }) => (
     <OrderHistoryRowActions row={row} styles={styles} themeColors={themeColors}
@@ -449,6 +448,14 @@ export default function OrderHistoryPage({ navigation, route }) {
         currentCompanyId={currentCompany?.id}
         onClose={closeReasonManager}
         visible={reasonManagerVisible}
+      />
+    <OrderHistoryMarkAsPaidModal
+        visible={!!markAsPaidOrder}
+        order={markAsPaidOrder}
+        onClose={() => setMarkAsPaidOrder(null)}
+        onSuccess={handleMarkAsPaidSuccess}
+        themeColors={themeColors}
+        currentCompanyId={currentCompany?.id}
       />
     </SafeAreaView>
   );

@@ -74,6 +74,21 @@ export const isCanceledOrder = order => {
     ['canceled', 'cancelled', 'cancelado'].includes(status);
 };
 
+
+export const isPayableOrder = order => {
+  if (!order) return false;
+  if (isCanceledOrder(order)) return false;
+  const realStatus = normalizeText(order?.status?.realStatus || order?.realStatus).toLowerCase();
+  const status = normalizeText(order?.status?.status || order?.status).toLowerCase();
+  // Already closed/paid financial states are not eligible
+  if (TERMINAL_ORDER_STATUSES.has(realStatus) || TERMINAL_ORDER_STATUSES.has(status)) {
+    return false;
+  }
+  const paidHints = ['paid', 'pago', 'settled', 'liquidado'];
+  if (paidHints.includes(status) || paidHints.includes(realStatus)) return false;
+  return true;
+};
+
 export const getCurrentUserLabel = user =>
   normalizeText(user?.people?.alias || user?.people?.name || user?.name || user?.email || user?.username);
 
@@ -132,17 +147,18 @@ export const buildStatusOptions = statusItems => {
 export const configureOrderHistoryColumns = ({ columns, showAdvancedFilters, orderTypeFilter, allChannelLabel }) =>
   (columns || []).map(column => {
     const fieldName = column?.name || column?.key;
+    // app-community#811: canal/status/orderDate/period sem externalFilter (só modal da DefaultTable)
     if (fieldName === 'app') {
-      return { ...column, externalFilter: showAdvancedFilters && orderTypeFilter === 'sale', emptyOptionLabel: allChannelLabel, label: 'channel' };
+      return { ...column, externalFilter: false, emptyOptionLabel: allChannelLabel, label: 'channel' };
     }
     if (fieldName === 'status') {
-      return { ...column, externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter), emptyOptionLabel: allChannelLabel, list: 'status/getItems' };
+      return { ...column, externalFilter: false, emptyOptionLabel: allChannelLabel, list: 'status/getItems' };
     }
     if (fieldName === 'orderDate') {
-      return { ...column, externalFilter: showAdvancedFilters, inputType: 'date-range', show: true };
+      return { ...column, externalFilter: false, inputType: 'date-range', show: true };
     }
     if (fieldName === 'alterDate') {
-      return { ...column, externalFilter: showAdvancedFilters, inputType: 'date-range', label: 'period' };
+      return { ...column, externalFilter: false, inputType: 'date-range', label: 'period' };
     }
     return { ...column, externalFilter: false };
   });
