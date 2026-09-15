@@ -95,11 +95,27 @@ const server = http.createServer((request, response) => {
   sendFile(response, filePath);
 });
 
+// Playwright keeps HTTP connections alive between smoke groups. Track and
+// close them explicitly so the next group's webServer can reuse the port.
+const sockets = new Set();
+server.on('connection', socket => {
+  sockets.add(socket);
+  socket.on('close', () => sockets.delete(socket));
+});
+
 server.listen(port, host, () => {
   console.log(`Playwright web server ready at http://${host}:${port}`);
 });
 
 const shutdown = signal => {
+  for (const socket of sockets) {
+    socket.destroy();
+  }
+
+  if (typeof server.closeAllConnections === 'function') {
+    server.closeAllConnections();
+  }
+
   server.close(() => {
     if (signal) {
       console.log(`Playwright web server stopped via ${signal}`);
@@ -107,6 +123,10 @@ const shutdown = signal => {
 
     process.exit(0);
   });
+
+  // Do not leave the workflow waiting forever if a client does not release
+  // its connection during shutdown.
+  setTimeout(() => process.exit(0), 1000).unref();
 };
 
 process.on('SIGINT', () => shutdown('SIGINT'));
