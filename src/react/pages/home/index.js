@@ -139,7 +139,7 @@
  * - Ao mudar qualquer regra de negocio do checkout, reescrever este arquivo de forma concisa e manter a descricao sincronizada com o codigo.
  */
 
-import React from 'react';
+import React, {useMemo} from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import {Text} from 'react-native-animatable';
 import {useStore} from '@store';
@@ -150,6 +150,10 @@ import {
   shouldUsePosCashRegisterLifecycle,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import AppMenuGrid from '@controleonline/ui-layout/src/react/components/AppMenuGrid';
+import {
+  buildPosOperationInfo,
+  resolvePosOperationModuleId,
+} from '@controleonline/ui-orders/src/react/utils/posOperationInfo';
 import styles from './index.styles';
 
 export default function HomePage({navigation}) {
@@ -170,6 +174,14 @@ export default function HomePage({navigation}) {
   const isCashRegisterClosed = isPosCashRegisterClosed(device?.configs);
 
   const checkType = device?.configs?.['check-type'] || 'manual';
+  const operationInfo = useMemo(
+    () => buildPosOperationInfo({currentCompany, deviceConfig: device}),
+    [currentCompany, device],
+  );
+  const operationModuleId = useMemo(
+    () => resolvePosOperationModuleId(menus),
+    [menus],
+  );
 
   const handleTo = to => {
     if (
@@ -245,6 +257,8 @@ export default function HomePage({navigation}) {
           menus={menus}
           navigation={navigation}
           onMenuPress={handleMenuPress}
+          operationInfo={operationInfo}
+          operationModuleId={operationModuleId}
         />
       </View>
     </>
