@@ -9,12 +9,12 @@
     "repository": "ControleOnline/app-community",
     "issue": 704,
     "taskBranch": "task-704",
-    "task": "fb558805",
-    "dev": "05eaf8a1dc2aae7430390c8209fd464db9d5562c",
-    "master": "9e85ee4f3f4c714d2030488fd64f2d79cb93e868",
+    "task": "33cbcdfc7292d510b5031324892deab072fbc07f",
+    "dev": "5a17fb26073758a094f795e38bcafc7ec3765f08",
+    "master": "5e55fed3aa24489e0128df29060f578a5c11924c",
     "evidenceCommit": "fb558805",
-    "baseMaster": "9e85ee4f3f4c714d2030488fd64f2d79cb93e868",
-    "uiCommon": "da19fa5990388a51b70477181771ce3f357ad98d"
+    "baseMaster": "5e55fed3aa24489e0128df29060f578a5c11924c",
+    "uiCommon": "ac51678d005b352c8ec3bd94c23d59956ed0aa45"
   },
   "environment": {
     "appType": "ADMIN",
