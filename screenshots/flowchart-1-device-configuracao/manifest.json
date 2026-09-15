@@ -1,0 +1,26 @@
+{
+  "fluxo": "device-configuracao",
+  "flowchartIds": [
+    1
+  ],
+  "missingPrints": [],
+  "steps": [
+    "login",
+    "lista-devices",
+    "pdv-salvo",
+    "display-salvo",
+    "print-salvo",
+    "app-pos-aberto"
+  ],
+  "prints": [
+    "login",
+    "lista-devices",
+    "pdv-salvo",
+    "display-salvo",
+    "print-salvo",
+    "app-pos-aberto"
+  ],
+  "generatedAt": "2026-08-27T13:50:53.773Z",
+  "origin": "https://admin.controleonline.com",
+  "notes": "Live UI admin.controleonline.com. Session via Drive api-token (id/people/api_key/active). Sem harness."
+}
