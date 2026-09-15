@@ -41,10 +41,10 @@
       "bundleIdentifier": "com.controleonline.app",
       "deploymentTarget": "15.1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Necessário para ler códigos de barras e QR Codes no PDV.",
-        "NFCReaderUsageDescription": "Necessário para ler tags NFC e RFID no PDV.",
-        "NSMicrophoneUsageDescription": "Necessário para processamento de áudio.",
-        "NSAppleMusicUsageDescription": "Necessário para emitir alertas sonoros.",
+        "NSCameraUsageDescription": "Necess\u00e1rio para ler c\u00f3digos de barras e QR Codes no PDV.",
+        "NFCReaderUsageDescription": "Necess\u00e1rio para ler tags NFC e RFID no PDV.",
+        "NSMicrophoneUsageDescription": "Necess\u00e1rio para processamento de \u00e1udio.",
+        "NSAppleMusicUsageDescription": "Necess\u00e1rio para emitir alertas sonoros.",
         "UIBackgroundModes": [
           "audio"
         ]
@@ -73,8 +73,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Necessário para ler códigos de barras e QR Codes no PDV.",
-          "microphonePermission": "Necessário para processamento de áudio.",
+          "cameraPermission": "Necess\u00e1rio para ler c\u00f3digos de barras e QR Codes no PDV.",
+          "microphonePermission": "Necess\u00e1rio para processamento de \u00e1udio.",
           "recordAudioAndroid": false
         }
       ],
@@ -82,7 +82,7 @@
       [
         "react-native-nfc-manager",
         {
-          "nfcPermission": "Necessário para ler tags NFC e RFID no PDV."
+          "nfcPermission": "Necess\u00e1rio para ler tags NFC e RFID no PDV."
         }
       ],
       "expo-asset",
@@ -103,7 +103,5 @@
         }
       ]
     ]
-  },
-  "version": "1.10.24",
-  "versionCode": 11024
+  }
 }
