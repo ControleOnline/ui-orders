@@ -377,7 +377,7 @@ test.describe('single-item checkout and history browser smoke', () => {
 
     await bootstrapPosBrowser(page);
     await page.goto('/order-history-page');
-    await page.getByLabel('Criar fatura').click();
+    await page.getByLabel('Marcar como pago').click();
 
     await expect(page).toHaveURL(/add-product-screen/);
     await expect(page.getByRole('radio', {name: 'Coxinha'})).toBeVisible();

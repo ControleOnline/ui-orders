@@ -74,6 +74,21 @@ export const isCanceledOrder = order => {
     ['canceled', 'cancelled', 'cancelado'].includes(status);
 };
 
+
+export const isPayableOrder = order => {
+  if (!order) return false;
+  if (isCanceledOrder(order)) return false;
+  const realStatus = normalizeText(order?.status?.realStatus || order?.realStatus).toLowerCase();
+  const status = normalizeText(order?.status?.status || order?.status).toLowerCase();
+  // Already closed/paid financial states are not eligible
+  if (TERMINAL_ORDER_STATUSES.has(realStatus) || TERMINAL_ORDER_STATUSES.has(status)) {
+    return false;
+  }
+  const paidHints = ['paid', 'pago', 'settled', 'liquidado'];
+  if (paidHints.includes(status) || paidHints.includes(realStatus)) return false;
+  return true;
+};
+
 export const getCurrentUserLabel = user =>
   normalizeText(user?.people?.alias || user?.people?.name || user?.name || user?.email || user?.username);
 
