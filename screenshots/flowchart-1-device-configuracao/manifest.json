@@ -1,26 +1,73 @@
 {
+  "wikiPage": "https://github.com/ControleOnline/app-community/wiki/Smoke-Helpers-Device-Configuracao",
   "fluxo": "device-configuracao",
   "flowchartIds": [
     1
   ],
   "missingPrints": [],
-  "steps": [
-    "login",
-    "lista-devices",
-    "pdv-salvo",
-    "display-salvo",
-    "print-salvo",
-    "app-pos-aberto"
+  "refs": {
+    "repository": "ControleOnline/app-community",
+    "issue": 704,
+    "taskBranch": "task-704",
+    "baseMaster": "a7389631d2bf469ae93a2b49218cbe6bed8cc93f",
+    "uiCommon": "03e8f6ec7e632e9e79f801002e6e3561bb3ba0ba"
+  },
+  "environment": {
+    "appType": "ADMIN",
+    "viewport": "1440x900",
+    "mode": "sanitized-harness",
+    "credentials": "redacted",
+    "network": "redacted"
+  },
+  "generatedAt": "2026-09-15T02:10:00.000Z",
+  "journey": [
+    {
+      "step": "login",
+      "file": "01-login.png",
+      "result": "authenticated ADMIN entry"
+    },
+    {
+      "step": "lista-devices",
+      "file": "02-lista-devices.png",
+      "result": "device list visible"
+    },
+    {
+      "step": "pdv-salvo",
+      "file": "03-pdv-salvo.png",
+      "result": "PDV configuration saved"
+    },
+    {
+      "step": "display-salvo",
+      "file": "04-display-salvo.png",
+      "result": "DISPLAY configuration saved"
+    },
+    {
+      "step": "print-salvo",
+      "file": "05-print-salvo.png",
+      "result": "PRINT configuration saved"
+    },
+    {
+      "step": "app-pos-aberto",
+      "file": "06-app-pos-aberto.png",
+      "result": "POS app opened"
+    }
   ],
   "prints": [
-    "login",
-    "lista-devices",
-    "pdv-salvo",
-    "display-salvo",
-    "print-salvo",
-    "app-pos-aberto"
+    "01-login.png",
+    "02-lista-devices.png",
+    "03-pdv-salvo.png",
+    "04-display-salvo.png",
+    "05-print-salvo.png",
+    "06-app-pos-aberto.png"
   ],
-  "generatedAt": "2026-08-27T13:50:53.773Z",
-  "origin": "https://admin.controleonline.com",
-  "notes": "Live UI admin.controleonline.com. Session via Drive api-token (id/people/api_key/active). Sem harness."
+  "sanitization": {
+    "liveArtifacts": false,
+    "sensitiveData": "omitted",
+    "distinctRequiredSteps": [
+      "02-lista-devices",
+      "03-pdv-salvo",
+      "04-display-salvo",
+      "05-print-salvo"
+    ]
+  }
 }
