@@ -9,8 +9,9 @@
     "repository": "ControleOnline/app-community",
     "issue": 704,
     "taskBranch": "task-704",
+    "evidenceCommit": "3681a8fd11638b48e4f53384b98f63a3ca243233",
     "baseMaster": "a7389631d2bf469ae93a2b49218cbe6bed8cc93f",
-    "uiCommon": "03e8f6ec7e632e9e79f801002e6e3561bb3ba0ba"
+    "uiCommon": "418012fc9b39fdae7a3ff719e614ab213e30722a"
   },
   "environment": {
     "appType": "ADMIN",
@@ -19,7 +20,7 @@
     "credentials": "redacted",
     "network": "redacted"
   },
-  "generatedAt": "2026-09-15T02:10:00.000Z",
+  "generatedAt": "2026-09-15T02:23:43.773Z",
   "journey": [
     {
       "step": "login",

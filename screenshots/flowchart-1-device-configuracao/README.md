@@ -7,7 +7,7 @@ Issue: ControleOnline/app-community#704
 - missingPrints: []
 - wikiPage: https://github.com/ControleOnline/app-community/wiki/Smoke-Helpers-Device-Configuracao
 - ambiente: ADMIN, viewport 1440x900, harness sanitizado; credenciais e rede redigidas
-- refs: task-704 sobre master@a7389631, ui-common@03e8f6e
+- refs: task-704 sobre master@a7389631, ui-common@418012f
 
 Os arquivos 02–05 são capturas distintas por etapa, com dados sensíveis omitidos. O manifesto é a fonte da jornada verificável e da
 sanitização aplicada.
