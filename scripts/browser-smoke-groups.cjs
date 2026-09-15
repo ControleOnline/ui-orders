@@ -20,6 +20,7 @@ module.exports = appTypes.map(([name, appType]) => {
           'modules/controleonline/ui-crm/src/tests/browser/manager/general-settings-maps-complete.spec.js',
           'modules/controleonline/ui-orders/src/tests/browser/manager/order-history-filter.spec.js',
           'modules/controleonline/ui-common/src/tests/browser/manager',
+          'modules/controleonline/ui-financial/src/tests/browser/manager/financial-hub-page.spec.js',
         ]
       : name === 'pos'
       ? ['modules/controleonline/ui-orders/src/tests/browser/pos/single-item-checkout.spec.js']
