@@ -1,0 +1,10 @@
+{
+  "wikiPage": "https://github.com/ControleOnline/ui-logistic/wiki/NFC-e-Detalhe-e-PDF",
+  "fluxo": "nfce-detalhe-pdf",
+  "issue": "ControleOnline/app-community#722",
+  "owner": "ui-logistic",
+  "appType": "ERP",
+  "testPath": "modules/controleonline/ui-logistic/src/tests/browser/delivery/nfce-detail.spec.js",
+  "runtime": {"requires": "PLAYWRIGHT_SESSION_JSON", "api": "staging authenticated session", "screenshots": "required-per-step"},
+  "steps": ["lista NFC-e emitidas", "detalhe por InvoiceTax id", "PDF com nome NFC-E-SERIE-NUMERO.pdf", "erro acionável de PDF sem conteúdo", "ações desabilitadas sem documento válido"]
+}
