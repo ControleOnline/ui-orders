@@ -9,10 +9,10 @@
     "repository": "ControleOnline/app-community",
     "issue": 704,
     "taskBranch": "task-704",
-    "task": "d6ad6857",
+    "task": "fb558805",
     "dev": "05eaf8a1dc2aae7430390c8209fd464db9d5562c",
     "master": "9e85ee4f3f4c714d2030488fd64f2d79cb93e868",
-    "evidenceCommit": "d6ad6857",
+    "evidenceCommit": "fb558805",
     "baseMaster": "9e85ee4f3f4c714d2030488fd64f2d79cb93e868",
     "uiCommon": "da19fa5990388a51b70477181771ce3f357ad98d"
   },
