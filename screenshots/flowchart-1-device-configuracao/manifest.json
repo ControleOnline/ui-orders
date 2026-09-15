@@ -9,9 +9,12 @@
     "repository": "ControleOnline/app-community",
     "issue": 704,
     "taskBranch": "task-704",
-    "evidenceCommit": "f7de446a84e3199c704eb998502ec3fbbb33ba62",
-    "baseMaster": "a7389631d2bf469ae93a2b49218cbe6bed8cc93f",
-    "uiCommon": "418012fc9b39fdae7a3ff719e614ab213e30722a"
+    "task": "d6ad6857",
+    "dev": "05eaf8a1dc2aae7430390c8209fd464db9d5562c",
+    "master": "9e85ee4f3f4c714d2030488fd64f2d79cb93e868",
+    "evidenceCommit": "d6ad6857",
+    "baseMaster": "9e85ee4f3f4c714d2030488fd64f2d79cb93e868",
+    "uiCommon": "da19fa5990388a51b70477181771ce3f357ad98d"
   },
   "environment": {
     "appType": "ADMIN",
@@ -20,7 +23,7 @@
     "credentials": "redacted",
     "network": "redacted"
   },
-  "generatedAt": "2026-09-15T02:23:43.773Z",
+  "generatedAt": "2026-09-15T10:36:00.000Z",
   "journey": [
     {
       "step": "login",
@@ -61,6 +64,14 @@
     "05-print-salvo.png",
     "06-app-pos-aberto.png"
   ],
+  "printSha256": {
+    "01-login.png": "9da211a9382f18964d60fb252accacd9039bed89c76423414e0ed988c92f86f6",
+    "02-lista-devices.png": "3b8d8db1ecfd2a62e5c1495b2f5578c4b7f3bed728b1c2575b9666de366f03c5",
+    "03-pdv-salvo.png": "ce68c1d98a4a513b4d77dcf20d3e3b27aad13f4debf22cd2940acd9f7763e8cb",
+    "04-display-salvo.png": "64f198cfa31257dc49509bec1a5db0d49cea685723015d51d288bcca7c812986",
+    "05-print-salvo.png": "388bd35fc50475c0383095e07671f40c78a72db7ef5e170ec8d7859b7a381e6b",
+    "06-app-pos-aberto.png": "a9e49c32e5ac5c5a63f0aa4bab843cf820332861923595e2ccbb7934da90b038"
+  },
   "sanitization": {
     "liveArtifacts": false,
     "sensitiveData": "omitted",
