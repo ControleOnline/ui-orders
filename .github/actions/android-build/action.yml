@@ -139,6 +139,9 @@ runs:
     - name: Configure assets
       shell: bash
       run: |
+        if [ "$APP_TYPE" = "MKT" ] && [ -f "src/assets/manager/splash.png" ]; then
+          cp "src/assets/manager/splash.png" "src/assets/splash.png"
+        fi
         if [ -f scripts/configure-assets.js ]; then
           node scripts/configure-assets.js "$APP_TYPE"
         elif [ -d "assets/${APP_LOWER}" ]; then
@@ -220,6 +223,7 @@ runs:
         path: |
           android/app/build/outputs/bundle/release/*.aab
           android/app/build/outputs/apk/release/*.apk
+          src/assets/splash.png
         if-no-files-found: warn
 
     - name: GitHub Release (AAB + APK)
