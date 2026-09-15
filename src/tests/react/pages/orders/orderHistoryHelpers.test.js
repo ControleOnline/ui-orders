@@ -35,11 +35,17 @@ describe('orderHistoryHelpers', () => {
   });
   it('configureOrderHistoryColumns', () => {
     const cols = configureOrderHistoryColumns({
-      columns: [{ name: 'app' }, { name: 'other' }],
+      columns: [
+        { name: 'app' },
+        { name: 'status' },
+        { name: 'orderDate' },
+        { name: 'alterDate' },
+        { name: 'other' },
+      ],
       showAdvancedFilters: true, orderTypeFilter: 'sale', allChannelLabel: 'All',
     });
-    expect(cols[0].externalFilter).toBe(true);
-    expect(cols[1].externalFilter).toBe(false);
+    expect(cols.slice(0, 4).every(column => column.externalFilter === false)).toBe(true);
+    expect(cols[4].externalFilter).toBe(false);
   });
   it('normalizeText', () => {
     expect(normalizeText('  a ')).toBe('a');
