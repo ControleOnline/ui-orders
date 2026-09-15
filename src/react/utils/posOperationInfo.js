@@ -112,4 +112,3 @@ export const buildPosOperationInfo = ({currentCompany, deviceConfig} = {}) => {
     },
   ];
 };
-
