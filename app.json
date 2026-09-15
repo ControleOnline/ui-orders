@@ -9,11 +9,11 @@
       "web"
     ],
     "jsEngine": "hermes",
-    "version": "1.10.23",
+    "version": "1.10.24",
     "android": {
       "jsEngine": "hermes",
       "package": "com.controleonline.app",
-      "versionCode": 11023,
+      "versionCode": 11024,
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/logo.png",
         "backgroundColor": "#ffffff"
@@ -41,10 +41,10 @@
       "bundleIdentifier": "com.controleonline.app",
       "deploymentTarget": "15.1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Necess\u00e1rio para ler c\u00f3digos de barras e QR Codes no PDV.",
-        "NFCReaderUsageDescription": "Necess\u00e1rio para ler tags NFC e RFID no PDV.",
-        "NSMicrophoneUsageDescription": "Necess\u00e1rio para processamento de \u00e1udio.",
-        "NSAppleMusicUsageDescription": "Necess\u00e1rio para emitir alertas sonoros.",
+        "NSCameraUsageDescription": "Necessário para ler códigos de barras e QR Codes no PDV.",
+        "NFCReaderUsageDescription": "Necessário para ler tags NFC e RFID no PDV.",
+        "NSMicrophoneUsageDescription": "Necessário para processamento de áudio.",
+        "NSAppleMusicUsageDescription": "Necessário para emitir alertas sonoros.",
         "UIBackgroundModes": [
           "audio"
         ]
@@ -73,8 +73,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Necess\u00e1rio para ler c\u00f3digos de barras e QR Codes no PDV.",
-          "microphonePermission": "Necess\u00e1rio para processamento de \u00e1udio.",
+          "cameraPermission": "Necessário para ler códigos de barras e QR Codes no PDV.",
+          "microphonePermission": "Necessário para processamento de áudio.",
           "recordAudioAndroid": false
         }
       ],
@@ -82,7 +82,7 @@
       [
         "react-native-nfc-manager",
         {
-          "nfcPermission": "Necess\u00e1rio para ler tags NFC e RFID no PDV."
+          "nfcPermission": "Necessário para ler tags NFC e RFID no PDV."
         }
       ],
       "expo-asset",
@@ -103,5 +103,7 @@
         }
       ]
     ]
-  }
+  },
+  "version": "1.10.24",
+  "versionCode": 11024
 }
