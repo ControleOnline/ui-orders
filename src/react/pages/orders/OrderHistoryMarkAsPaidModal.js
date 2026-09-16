@@ -11,7 +11,6 @@ import {
 import {useStore} from '@store';
 import {api} from '@controleonline/ui-common/src/api';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {resolvePosPaidInvoiceStatusIri} from '@controleonline/ui-orders/src/react/pages/checkout/checkoutStatusHelpers';
 
 const extractItems = response => {
   if (Array.isArray(response)) return response;
@@ -57,7 +56,6 @@ const resolveOrderPrice = order => {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 };
 
-/** Sum closed/paid invoices already linked to the order (when present on the row). */
 const resolvePaidInvoicesTotal = order => {
   const lists = [
     order?.invoice,
@@ -83,17 +81,21 @@ const resolvePaidInvoicesTotal = order => {
 const resolveRemainingBalance = order => {
   const price = resolveOrderPrice(order);
   const paid = resolvePaidInvoicesTotal(order);
-  // When invoice list is absent on the row, charge full order price.
-  if (price > 0 && paid === 0 && !Array.isArray(order?.invoice) && !Array.isArray(order?.invoices) && !Array.isArray(order?.orderInvoices)) {
+  if (
+    price > 0 &&
+    paid === 0 &&
+    !Array.isArray(order?.invoice) &&
+    !Array.isArray(order?.invoices) &&
+    !Array.isArray(order?.orderInvoices)
+  ) {
     return price;
   }
   return Math.max(0, Math.round((price - paid) * 100) / 100);
 };
 
-
 /**
- * Modal flow: product (single) → payment type → confirm → paid invoice.
- * Reuses products list, wallet_payment_types and invoice save (createPaidInvoice contract).
+ * Modal: product → payment → confirm.
+ * Settlement goes through dedicated API POST /orders/{id}/mark-as-paid (#797).
  */
 export default function OrderHistoryMarkAsPaidModal({
   visible,
@@ -104,8 +106,6 @@ export default function OrderHistoryMarkAsPaidModal({
   currentCompanyId = null,
 }) {
   const productsStore = useStore('products');
-  const orderProductsStore = useStore('order_products');
-  const invoiceStore = useStore('invoice');
   const peopleStore = useStore('people');
   const peopleCompany = peopleStore?.getters?.currentCompany;
   const currentCompany = peopleCompany || null;
@@ -114,7 +114,7 @@ export default function OrderHistoryMarkAsPaidModal({
     extractId(currentCompany?.id) ||
     extractId(currentCompany);
 
-  const [step, setStep] = useState('product'); // product | payment | confirm
+  const [step, setStep] = useState('product');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -155,8 +155,6 @@ export default function OrderHistoryMarkAsPaidModal({
     setError('');
     try {
       let list = [];
-
-      // Primary: same catalog used by POS (company-scoped showcase)
       try {
         const catalog = await api.fetch('product-showcases/catalog', {
           params: {
@@ -171,7 +169,6 @@ export default function OrderHistoryMarkAsPaidModal({
         list = [];
       }
 
-      // Fallback: products filtered by company
       if (!list.length) {
         const actions = productsStore?.actions;
         if (typeof actions?.getItems === 'function') {
@@ -244,13 +241,13 @@ export default function OrderHistoryMarkAsPaidModal({
   }, [products, search]);
 
   const productPrice = selectedProduct ? resolveProductPrice(selectedProduct) : 0;
+  const displayBalance = resolveRemainingBalance(order) || productPrice;
 
   const handleConfirm = useCallback(async () => {
     if (!orderId || !selectedProduct || !selectedPayment || submitting) return;
     setSubmitting(true);
     setError('');
     try {
-      const orderIri = order?.['@id'] || `/orders/${orderId}`;
       const productIri =
         selectedProduct?.['@id'] || `/products/${extractId(selectedProduct)}`;
       const paymentTypeIri =
@@ -262,104 +259,28 @@ export default function OrderHistoryMarkAsPaidModal({
         selectedPayment?.wallet ||
         null;
 
-      // Single item on the order (best-effort; invoice remains source of paid amount)
-      const orderProductsActions = orderProductsStore?.actions;
-      if (typeof orderProductsActions?.save === 'function') {
-        try {
-          await orderProductsActions.save({
-            order: orderIri,
-            product: productIri,
-            quantity: 1,
-          });
-        } catch (_) {
-          // Order may already contain items; payment still proceeds with product price
-        }
-      }
-
-      const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
-        currentCompany?.configs?.['pos-paid-status'] || peopleStore?.getters?.defaultCompany?.configs?.['pos-paid-status'],
-      );
-      if (!paidStatusIri) {
-        throw new Error('Nao foi possivel resolver o status pago da invoice.');
-      }
-
-      const invoiceActions = invoiceStore?.actions;
-      if (typeof invoiceActions?.save !== 'function') {
-        throw new Error('Fluxo de invoice indisponivel.');
-      }
-
-      // Prefer remaining balance (order total − paid invoices) so status can become paid.
-      // Fetch order_invoices when the list row does not carry invoice embeds.
-      let chargeAmount = resolveRemainingBalance(order);
-      try {
-        const invResp = await api.fetch('order_invoices', {
-          params: {order: orderIri, itemsPerPage: 100},
-        });
-        let paid = 0;
-        for (const entry of extractItems(invResp)) {
-          const inv = entry?.invoice && typeof entry.invoice === 'object' ? entry.invoice : entry;
-          const rs = String(inv?.status?.realStatus || '').toLowerCase();
-          const st = String(inv?.status?.status || '').toLowerCase();
-          if (!(rs === 'closed' || st === 'paid' || st === 'pago')) continue;
-          const amount = Number(entry?.realPrice ?? entry?.price ?? inv?.price ?? 0);
-          if (Number.isFinite(amount) && amount > 0) paid += amount;
-        }
-        const orderTotal = resolveOrderPrice(order);
-        if (orderTotal > 0) {
-          chargeAmount = Math.max(0, Math.round((orderTotal - paid) * 100) / 100);
-        }
-      } catch (_) {
-        // keep resolveRemainingBalance / product fallback
-      }
-      if (!(chargeAmount > 0)) {
-        chargeAmount = productPrice;
-      }
-      if (!(chargeAmount > 0)) {
-        throw new Error('Valor a cobrar invalido (pedido ja pode estar quitado).');
-      }
-
-      const createdInvoice = await invoiceActions.save({
-        dueDate: Formatter.getCurrentDate(),
-        status: paidStatusIri,
-        destinationWallet: walletIri,
-        paymentType: paymentTypeIri,
-        price: chargeAmount,
-        receiver: `/people/${companyId}`,
-        order: orderIri,
+      const result = await api.fetch(`orders/${orderId}/mark-as-paid`, {
+        method: 'POST',
+        body: {
+          product: productIri,
+          paymentType: paymentTypeIri,
+          destinationWallet: walletIri,
+          // Advisory only — server recomputes remaining balance.
+          price: displayBalance > 0 ? displayBalance : productPrice,
+        },
       });
 
-      if (!createdInvoice) {
-        throw new Error('Falha ao registrar a cobranca.');
+      if (result?.outcome && result.outcome !== 'success') {
+        throw new Error(result?.message || 'Nao foi possivel marcar o pedido como pago.');
       }
 
-      // Update order status to paid (status id 7 / name paid) so list reflects PAGO.
-      try {
-        const statusResp = await api.fetch('statuses', {
-          params: {context: 'order', itemsPerPage: 50},
-        });
-        const statuses = extractItems(statusResp);
-        const paidStatus =
-          statuses.find(
-            s =>
-              String(s?.status || '').toLowerCase() === 'paid' ||
-              String(s?.status || '').toLowerCase() === 'pago',
-          ) ||
-          statuses.find(s => String(s?.realStatus || '').toLowerCase() === 'closed');
-        const paidOrderStatusIri = paidStatus?.['@id'] || (paidStatus?.id ? `/statuses/${paidStatus.id}` : '/statuses/7');
-        await api.fetch(`orders/${orderId}`, {
-          method: 'PUT',
-          body: {status: paidOrderStatusIri},
-        });
-      } catch (_) {
-        // Invoice already created; status update is best-effort.
-      }
-
-      onSuccess?.(createdInvoice, order);
+      onSuccess?.(result, order);
       onClose?.();
     } catch (e) {
       setError(
-        e?.message ||
+        e?.response?.data?.message ||
           e?.response?.data?.detail ||
+          e?.message ||
           e?.description ||
           'Nao foi possivel marcar o pedido como pago.',
       );
@@ -367,15 +288,11 @@ export default function OrderHistoryMarkAsPaidModal({
       setSubmitting(false);
     }
   }, [
-    companyId,
-    currentCompany,
-    invoiceStore?.actions,
+    displayBalance,
     onClose,
     onSuccess,
     order,
     orderId,
-    orderProductsStore?.actions,
-    peopleStore?.getters?.defaultCompany,
     productPrice,
     selectedPayment,
     selectedProduct,
@@ -516,8 +433,10 @@ export default function OrderHistoryMarkAsPaidModal({
                       option?.paymentType ||
                       `Pagamento ${id}`;
                     const selected =
-                      String(extractId(selectedPayment) || extractId(selectedPayment?.paymentType)) ===
-                      String(id);
+                      String(
+                        extractId(selectedPayment) ||
+                          extractId(selectedPayment?.paymentType),
+                      ) === String(id);
                     return (
                       <TouchableOpacity
                         key={id}
@@ -548,28 +467,31 @@ export default function OrderHistoryMarkAsPaidModal({
                   gap: 8,
                 }}>
                 <Text style={{color: '#0F172A'}}>
-                  <Text style={{fontWeight: '700'}}>Pedido: </Text>
-                  {orderLabel}
+                  Pedido: <Text style={{fontWeight: '700'}}>{orderLabel}</Text>
                 </Text>
                 <Text style={{color: '#0F172A'}}>
-                  <Text style={{fontWeight: '700'}}>Produto: </Text>
-                  {resolveProductLabel(selectedProduct)}
+                  Produto:{' '}
+                  <Text style={{fontWeight: '700'}}>
+                    {resolveProductLabel(selectedProduct)}
+                  </Text>
                 </Text>
                 <Text style={{color: '#0F172A'}}>
-                  <Text style={{fontWeight: '700'}}>Valor: </Text>
-                  {Formatter.formatMoney?.(
-                    (() => {
-                      const rem = resolveRemainingBalance(order);
-                      return rem > 0 ? rem : productPrice;
-                    })(),
-                  ) || productPrice}
+                  Pagamento:{' '}
+                  <Text style={{fontWeight: '700'}}>
+                    {selectedPayment?.paymentType?.paymentType ||
+                      selectedPayment?.paymentType?.name ||
+                      selectedPayment?.name ||
+                      '—'}
+                  </Text>
                 </Text>
                 <Text style={{color: '#0F172A'}}>
-                  <Text style={{fontWeight: '700'}}>Pagamento: </Text>
-                  {selectedPayment?.paymentType?.paymentType ||
-                    selectedPayment?.paymentType?.name ||
-                    selectedPayment?.name ||
-                    '—'}
+                  Valor (ref.):{' '}
+                  <Text style={{fontWeight: '700'}}>
+                    {Formatter.formatMoney?.(displayBalance) || displayBalance}
+                  </Text>
+                </Text>
+                <Text style={{color: '#64748B', fontSize: 12, marginTop: 4}}>
+                  O valor final e o status do pedido sao definidos pelo servidor.
                 </Text>
               </View>
             ) : null}
@@ -577,12 +499,12 @@ export default function OrderHistoryMarkAsPaidModal({
 
           <View
             style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              gap: 8,
               padding: 16,
               borderTopWidth: 1,
               borderTopColor: '#E2E8F0',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              gap: 8,
             }}>
             {step !== 'product' ? (
               <TouchableOpacity
@@ -669,7 +591,9 @@ export default function OrderHistoryMarkAsPaidModal({
                 {submitting ? (
                   <ActivityIndicator color={primaryText} />
                 ) : (
-                  <Text style={{color: primaryText, fontWeight: '700'}}>Confirmar pagamento</Text>
+                  <Text style={{color: primaryText, fontWeight: '700'}}>
+                    Confirmar pagamento
+                  </Text>
                 )}
               </TouchableOpacity>
             ) : null}
