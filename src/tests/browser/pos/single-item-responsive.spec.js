@@ -55,7 +55,7 @@ test.describe('single-item official responsive layout', () => {
 
         await createPosApiMock(page, {
           company,
-          defaultCompany: company,
+          mainCompany: company,
           order: createOpenOrder({products: [visualProducts[1]], price: 45}),
           products: visualProducts,
         });

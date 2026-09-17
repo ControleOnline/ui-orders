@@ -77,7 +77,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { item: deviceConfig } = deviceConfigStore.getters || {};
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
   const { getters: statusGetters } = statusStore;
-  const { currentCompany, defaultCompany } = peopleGetters;
+  const { currentCompany, mainCompany } = peopleGetters;
   const { colors: themeColors } = themeStore.getters;
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
@@ -154,7 +154,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { resolveCounterStartDestination } = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
-    defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+    defaultStatusId: mainCompany?.configs?.['pos-default-status'],
     companyConfigs: currentCompany?.configs,
   });
 

@@ -50,7 +50,7 @@ const createWaiterPosChargeMock = async (page, overrides = {}) => {
         'pos-cielo-wallet': 102,
       },
     }),
-    defaultCompany: createCompany(3, {
+    mainCompany: createCompany(3, {
       name: 'Restaurante Centro',
       alias: 'Centro',
       configs: {
@@ -128,7 +128,7 @@ const createWaiterPosChargeMock = async (page, overrides = {}) => {
     if (pathname === 'people/companies/my' || pathname === 'people/company/default') {
       return fulfillJson(
         route,
-        pathname.includes('default') ? state.defaultCompany : [state.company],
+        pathname.includes('default') ? state.mainCompany : [state.company],
       )
     }
     if (pathname === 'device_configs' && method === 'GET') {

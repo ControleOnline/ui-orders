@@ -31,7 +31,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const categoriesStore = useStore('categories');
   const ordersActions = ordersStore.actions;
   const peopleGetters = peopleStore.getters;
-  const {currentCompany, defaultCompany} = peopleGetters;
+  const {currentCompany, mainCompany} = peopleGetters;
   const deviceGetters = deviceStore.getters;
   const deviceConfigGetters = deviceConfigStore.getters;
   const {item: storagedDevice} = deviceGetters;
@@ -88,7 +88,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   } = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
-    defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+    defaultStatusId: mainCompany?.configs?.['pos-default-status'],
     requestLinkedOrderInput,
     companyConfigs: currentCompany?.configs,
   });

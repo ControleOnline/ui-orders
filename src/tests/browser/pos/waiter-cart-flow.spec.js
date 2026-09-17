@@ -292,7 +292,7 @@ const createPosApiMock = async (page, initialState = {}) => {
         'pos-cielo-wallet': 102,
       },
     }),
-    defaultCompany: initialState.defaultCompany || createCompany(3, {
+    mainCompany: initialState.mainCompany || createCompany(3, {
       name: 'Restaurante Centro',
       alias: 'Centro',
       configs: {
@@ -503,7 +503,7 @@ const createPosApiMock = async (page, initialState = {}) => {
     }
 
     if (pathname === 'people/company/default') {
-      return fulfillJson(route, state.defaultCompany);
+      return fulfillJson(route, state.mainCompany);
     }
 
     if (pathname === 'people/7') {

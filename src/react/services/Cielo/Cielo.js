@@ -46,31 +46,31 @@ const resolveRuntimeCompanyConfigs = () => {
     return peopleStore.currentCompany.configs;
   }
 
-  if (isConfigMap(peopleStore.defaultCompany?.configs)) {
-    return peopleStore.defaultCompany.configs;
+  if (isConfigMap(peopleStore.mainCompany?.configs)) {
+    return peopleStore.mainCompany.configs;
   }
 
   return {};
 };
 
-const resolveDefaultCompanyId = () => {
+const resolveMainCompanyId = () => {
   const stores = getAllStores();
   const peopleStore = stores?.people?.getters || {};
 
   return normalizeEntityId(
-    peopleStore.defaultCompany?.id || peopleStore.defaultCompany?.['@id'],
+    peopleStore.mainCompany?.id || peopleStore.mainCompany?.['@id'],
   );
 };
 
 const loadTechnicalCieloConfig = async () => {
-  const defaultCompanyId = resolveDefaultCompanyId();
+  const mainCompanyId = resolveMainCompanyId();
 
-  if (!defaultCompanyId) {
+  if (!mainCompanyId) {
     return DEFAULT_CIELO_CONFIG;
   }
 
   if (
-    technicalCieloConfigCompanyId === defaultCompanyId &&
+    technicalCieloConfigCompanyId === mainCompanyId &&
     hasRequiredCieloConfig(technicalCieloConfigCache)
   ) {
     return technicalCieloConfigCache;
@@ -84,13 +84,13 @@ const loadTechnicalCieloConfig = async () => {
     .fetch('/configs', {
       params: {
         configKey: 'CIELO',
-        people: '/people/' + defaultCompanyId,
+        people: '/people/' + mainCompanyId,
         visibility: 'private',
       },
     })
     .then(response => {
       const item = extractCollectionItems(response)[0];
-      technicalCieloConfigCompanyId = defaultCompanyId;
+      technicalCieloConfigCompanyId = mainCompanyId;
       technicalCieloConfigCache = resolveCieloConfig(
         item?.configKey ? {[item.configKey]: item?.configValue} : {},
       );

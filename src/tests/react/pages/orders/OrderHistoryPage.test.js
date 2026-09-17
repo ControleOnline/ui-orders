@@ -150,7 +150,7 @@ describe('OrderHistoryPage', () => {
         },
         getters: {
           currentCompany: undefined,
-          defaultCompany: {
+          mainCompany: {
             configs: {},
           },
         },

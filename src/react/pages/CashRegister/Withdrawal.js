@@ -94,7 +94,7 @@ export default function BleedScreen() {
   const deviceConfigStore = useStore('device_config');
   const deviceConfigGetters = deviceConfigStore.getters;
   const {items: paymentTypes} = paymentTypeGetters;
-  const {currentCompany, defaultCompany} = peopleGetters;
+  const {currentCompany, mainCompany} = peopleGetters;
   const {item: device} = deviceConfigGetters;
   const invoiceStore = useStore('invoice');
   const invoiceActions = invoiceStore.actions;
@@ -178,7 +178,7 @@ export default function BleedScreen() {
     if (!withdrawlWallet || !cashWallet || !currentCompany?.id) return;
 
     const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
-      defaultCompany?.configs['pos-paid-status'],
+      mainCompany?.configs['pos-paid-status'],
     );
 
     if (!paidStatusIri) {

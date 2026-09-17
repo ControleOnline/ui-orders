@@ -12,7 +12,7 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 
 export default function useCheckoutLoyaltyEffects({
-  defaultCompany,
+  mainCompany,
   currentCompany,
   loadingLoyaltySnapshot,
   loyaltyCpfDigits,
@@ -159,8 +159,8 @@ export default function useCheckoutLoyaltyEffects({
   }, [
     currentCompany?.['@id'],
     currentCompany?.id,
-    defaultCompany?.['@id'],
-    defaultCompany?.id,
+    mainCompany?.['@id'],
+    mainCompany?.id,
     ordersActions,
     requiresLoyaltyCpfStep,
     selectedLoyaltyPerson?.id,

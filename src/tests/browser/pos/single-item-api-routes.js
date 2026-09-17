@@ -82,7 +82,7 @@ const registerSingleItemApiRoutes = async (page, state) => {
       return fulfillJson(route, collection([state.company]));
     }
     if (pathname === 'people/company/default') {
-      return fulfillJson(route, state.defaultCompany);
+      return fulfillJson(route, state.mainCompany);
     }
     if (pathname === 'people/7') {
       return fulfillJson(route, state.user);

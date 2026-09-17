@@ -67,7 +67,7 @@ const createWaiterTablesApiMock = async (page, initialState = {}) => {
   })
   const state = {
     company,
-    defaultCompany: company,
+    mainCompany: company,
     user: {id: 7, name: 'Admin POS', api_key: 'test-api-key', active: 1},
     deviceId: 'web-7',
     menus: createPosMenus(),
