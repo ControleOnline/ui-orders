@@ -118,7 +118,7 @@ export default {
         name: "app",
         editable: false,
         label: "app",
-        externalFilter: true,
+        externalFilter: false,
         /*
          * @agents
          * Order channels are fixed application origins, not values inferred
@@ -159,7 +159,7 @@ export default {
         listRequestParams: {context: "order"},
         emptyOptionLabel: "all",
         searchParam: "status",
-        externalFilter: true,
+        externalFilter: false,
         translate: false,
         style: function (row) {
           return { color: row?.status?.color };
@@ -246,7 +246,7 @@ export default {
         editable: false,
         sortable: true,
         type: "range-date",
-        externalFilter: true,
+        externalFilter: false,
         inputType: "date-range",
         name: "alterDate",
         label: "period",
