@@ -48,8 +48,8 @@ const OrderDetails = ({ route, navigation }) => {
     storedOrderInvoiceItems,
     orderInvoicesLoading,
     peopleActions,
-    defaultCompany,
     currentCompany,
+    mainCompany,
     addressActions,
     ppcColors,
     localStyles,
@@ -180,7 +180,7 @@ const OrderDetails = ({ route, navigation }) => {
     orderInvoices,
     item,
     orderParam,
-    defaultCompany,
+    mainCompany,
     hasMarketplaceIntegration,
     resolvedDisplayOrderProductsWithProductDetails,
     resolvedDisplayOrder,
@@ -450,7 +450,7 @@ const OrderDetails = ({ route, navigation }) => {
       ppcColors={ppcColors}
       useUnifiedKdsLayout={useUnifiedKdsLayout}
       currentCompany={currentCompany}
-      defaultCompany={defaultCompany}
+      mainCompany={mainCompany}
       refreshCurrentOrder={refreshCurrentOrder}
       marketplaceSummary={marketplaceSummary}
       showBarcodeInput={showBarcodeInput}

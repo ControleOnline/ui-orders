@@ -43,7 +43,7 @@ const createPosApiMock = async (page, initialState = {}) => {
         'pos-cielo-wallet': 102,
       },
     }),
-    defaultCompany: initialState.defaultCompany || createCompany(3, {
+    mainCompany: initialState.mainCompany || createCompany(3, {
       name: 'Restaurante Centro',
       alias: 'Centro',
       configs: {

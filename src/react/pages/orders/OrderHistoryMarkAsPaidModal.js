@@ -277,7 +277,7 @@ export default function OrderHistoryMarkAsPaidModal({
       }
 
       const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
-        currentCompany?.configs?.['pos-paid-status'] || peopleStore?.getters?.defaultCompany?.configs?.['pos-paid-status'],
+        currentCompany?.configs?.['pos-paid-status'] || peopleStore?.getters?.mainCompany?.configs?.['pos-paid-status'],
       );
       if (!paidStatusIri) {
         throw new Error('Nao foi possivel resolver o status pago da invoice.');
@@ -375,7 +375,7 @@ export default function OrderHistoryMarkAsPaidModal({
     order,
     orderId,
     orderProductsStore?.actions,
-    peopleStore?.getters?.defaultCompany,
+    peopleStore?.getters?.mainCompany,
     productPrice,
     selectedPayment,
     selectedProduct,

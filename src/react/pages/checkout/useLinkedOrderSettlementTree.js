@@ -45,7 +45,7 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
   const invoiceStore = useStore('invoice')
   const deviceConfigStore = useStore('device_config')
   const {showError, showSuccess} = useMessage() || {}
-  const {currentCompany, defaultCompany} = peopleStore.getters
+  const {currentCompany, mainCompany} = peopleStore.getters
   const {colors: themeColors} = themeStore.getters
   const {item: runtimeDeviceConfig} = deviceConfigStore.getters
   const ordersActions = ordersStore.actions
@@ -215,13 +215,13 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
         linkedOrderInput,
         companyIri,
         preferredInputType,
-        defaultCompany,
+        mainCompany,
         ordersActions,
         linkedOrderType,
       }),
     [
       companyIri,
-      defaultCompany,
+      mainCompany,
       linkedOrderType,
       ordersActions,
       preferredInputType,
@@ -232,13 +232,13 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
     order =>
       reopenSettlementOrderIfPaidOp({
         order,
-        defaultCompany,
+        mainCompany,
         ordersActions,
         companyIri,
         linkedOrderType,
         preferredInputType,
       }),
-    [companyIri, defaultCompany, linkedOrderType, ordersActions, preferredInputType],
+    [companyIri, mainCompany, linkedOrderType, ordersActions, preferredInputType],
   )
 
   const linkExistingInvoicesToPrimary = useCallback(
@@ -260,11 +260,11 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
         linkedOrderType,
         ordersActions,
         invoiceActions,
-        defaultCompany,
+        mainCompany,
       }),
     [
       companyIri,
-      defaultCompany,
+      mainCompany,
       invoiceActions,
       linkedOrderType,
       ordersActions,
@@ -438,7 +438,7 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
     ordersActions,
     showError,
     showSuccess,
-    defaultCompany,
+    mainCompany,
     navigation,
     canUseSettlementScreen,
     companyIri,

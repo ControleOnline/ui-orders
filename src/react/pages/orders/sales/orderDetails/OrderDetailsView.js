@@ -36,7 +36,7 @@ export default function OrderDetailsView(p) {
     ppcColors,
     useUnifiedKdsLayout,
     currentCompany,
-    defaultCompany,
+    mainCompany,
     refreshCurrentOrder,
     marketplaceSummary,
     shouldStackHeaderActions,
@@ -183,7 +183,7 @@ export default function OrderDetailsView(p) {
         visible={attachmentsVisible}
         onClose={() => setAttachmentsVisible(false)}
         order={orderIdentitySource}
-        company={currentCompany || defaultCompany}
+        company={currentCompany || mainCompany}
         onChanged={() => refreshCurrentOrder({force: true})}
       />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />

@@ -109,7 +109,7 @@ describe('checkoutLoyaltyCpf helpers', () => {
         currentCompanyConfigs: {
           'shop-loyalty-coupons-enabled': '0',
         },
-        defaultCompanyConfigs: {
+        mainCompanyConfigs: {
           'shop-loyalty-coupons-enabled': '1',
           'shop-loyalty-required-sales': '10',
           'shop-loyalty-product-ids': '[12,13]',

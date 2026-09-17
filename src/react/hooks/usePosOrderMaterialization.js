@@ -55,7 +55,7 @@ export default function usePosOrderMaterialization({
   const orderProductsActions = orderProductsStore.actions;
 
   const peopleStore = useStore('people');
-  const {currentCompany, defaultCompany} = peopleStore.getters;
+  const {currentCompany, mainCompany} = peopleStore.getters;
 
   const deviceStore = useStore('device');
   const {item: storagedDevice} = deviceStore.getters;
@@ -68,7 +68,7 @@ export default function usePosOrderMaterialization({
   const {ensureActiveOrder} = usePosCartSession({
     companyId: currentCompany?.id,
     deviceId: storagedDevice?.id,
-    defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+    defaultStatusId: mainCompany?.configs?.['pos-default-status'],
     companyConfigs: currentCompany?.configs,
     allowLinkedOrderManagement:
       typeof interactionParams?.allowLinkedOrderManagement === 'boolean'

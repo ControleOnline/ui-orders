@@ -48,7 +48,7 @@ jest.mock('@store', () => ({
         actions: {},
         getters: {
           currentCompany: {id: 7},
-          defaultCompany: {id: 7},
+          mainCompany: {id: 7},
         },
       }
     }

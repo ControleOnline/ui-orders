@@ -50,7 +50,7 @@ const Checkout = () => {
   const themeStore = useStore('theme');
   const themeGetters = themeStore.getters;
 
-  const {currentCompany, defaultCompany} = peopleGetters;
+  const {currentCompany, mainCompany} = peopleGetters;
   const themeColors = themeGetters?.colors || {};
   const {items: companyConfigs} = configsGetters;
   const {item: order, payable} = ordersGetters;
@@ -109,7 +109,7 @@ const Checkout = () => {
     companyConfigs,
     companyDeviceConfigs,
     currentCompany,
-    defaultCompany,
+    mainCompany,
     device,
     order,
     route,
@@ -120,7 +120,7 @@ const Checkout = () => {
     usePosCartSession({
       companyId: currentCompany?.id,
       deviceId: storagedDevice?.id,
-      defaultStatusId: defaultCompany?.configs?.['pos-default-status'],
+      defaultStatusId: mainCompany?.configs?.['pos-default-status'],
       companyConfigs: currentCompany?.configs,
     });
   const {
@@ -216,10 +216,10 @@ const Checkout = () => {
   );
   const loyaltySearchCompanyId = useMemo(
     () =>
-      resolvePeopleId(defaultCompany?.id || defaultCompany?.['@id']) ||
+      resolvePeopleId(mainCompany?.id || mainCompany?.['@id']) ||
       resolvePeopleId(currentCompany?.id || currentCompany?.['@id']) ||
       null,
-    [currentCompany?.['@id'], currentCompany?.id, defaultCompany?.['@id'], defaultCompany?.id],
+    [currentCompany?.['@id'], currentCompany?.id, mainCompany?.['@id'], mainCompany?.id],
   );
   const rewardableLoyaltyProgress = useMemo(
     () =>
@@ -296,7 +296,7 @@ const Checkout = () => {
 
   useCheckoutLoyaltyEffects({
     currentCompany,
-    defaultCompany,
+    mainCompany,
     loadingLoyaltySnapshot,
     loyaltyCpfDigits,
     loyaltyCpfStepCompleted,
@@ -372,7 +372,7 @@ const Checkout = () => {
     checkoutPaymentOrder,
     closeRewardableLoyaltyParentOrder,
     currentCompany,
-    defaultCompany,
+    mainCompany,
     device,
     effectiveRemainingAmount,
     invoiceActions,

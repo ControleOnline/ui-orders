@@ -28,7 +28,7 @@ export default function useCheckoutContextState({
   companyConfigs,
   companyDeviceConfigs,
   currentCompany,
-  defaultCompany,
+  mainCompany,
   device,
   order,
   route,
@@ -44,9 +44,9 @@ export default function useCheckoutContextState({
       resolveCheckoutCompanyConfigs({
         companyConfigs,
         currentCompanyConfigs: currentCompany?.configs,
-        defaultCompanyConfigs: defaultCompany?.configs,
+        mainCompanyConfigs: mainCompany?.configs,
       }),
-    [companyConfigs, currentCompany?.configs, defaultCompany?.configs],
+    [companyConfigs, currentCompany?.configs, mainCompany?.configs],
   );
   const localGateway = useMemo(() => getPaymentGatewayFromConfigs(device), [device]);
   const deviceType = useMemo(
