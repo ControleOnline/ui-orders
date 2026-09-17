@@ -1,10 +1,75 @@
 import {api} from '@controleonline/ui-common/src/api';
+import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import * as types from '@controleonline/ui-default/src/store/default/mutation_types';
 import {
   mergeOrderIntoList,
   mergeOrderWithOrderProducts,
   normalizeEntityId,
 } from '@controleonline/ui-orders/src/utils/orderState';
+import {getOrderChannelLogo} from '@assets/ppc/channels';
+
+const normalizeStatusKey = value => Formatter.normalizeText(value).toLowerCase();
+
+export const formatOrderChannelOption = value => {
+  if (!value) return value;
+
+  const isObject = typeof value === 'object' && !Array.isArray(value);
+  const label = Formatter.normalizeText(
+    isObject
+      ? value.label || value.app || value.value
+      : value,
+  );
+  const optionValue = isObject
+    ? value.value || value.app || label
+    : value;
+  const logo = getOrderChannelLogo({app: label || optionValue});
+
+  return {
+    ...(isObject ? value : {}),
+    value: optionValue,
+    label: label || optionValue,
+    ...(logo ? {logo} : {}),
+  };
+};
+
+export const ORDER_CHANNEL_OPTIONS = [
+  {value: 'POS', label: 'POS'},
+  {value: 'Food99', label: 'Food99'},
+  {value: 'iFood', label: 'iFood'},
+  {value: 'SHOP', label: 'SHOP'},
+].map(formatOrderChannelOption);
+
+const formatOrderStatusLabel = value => {
+  const statusKey = normalizeStatusKey(
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? value.status
+      : value,
+  );
+  return statusKey ? global.t?.t('orders', 'status', statusKey) : '';
+};
+
+export const formatOrderStatusOption = value => {
+  if (!value) return value;
+
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return {
+      value,
+      label: formatOrderStatusLabel(value),
+    };
+  }
+
+  const statusId = value?.['@id']?.split('/').pop() || value?.id || value?.value;
+  const color = Formatter.normalizeText(value?.color);
+  const icon = Formatter.normalizeText(value?.icon);
+
+  return {
+    ...value,
+    value: statusId,
+    label: formatOrderStatusLabel(value),
+    ...(color ? {color} : {}),
+    ...(icon ? {icon} : {}),
+  };
+};
 
 const extractCollectionItems = response => {
   if (Array.isArray(response)) return response;

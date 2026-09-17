@@ -10,8 +10,17 @@ jest.mock('@controleonline/ui-common/src/api', () => ({
   },
 }));
 
+jest.mock('@assets/ppc/channels', () => ({
+  getOrderChannelLogo: jest.fn(({app}) =>
+    String(app).toLowerCase().includes('ifood') ? 'ifood-logo' : null,
+  ),
+}));
+
 const {
+  ORDER_CHANNEL_OPTIONS,
   cancelOrder,
+  formatOrderChannelOption,
+  formatOrderStatusOption,
   getCancelReasons,
   getHistorySummaryApps,
 } = require('../../../../store/orders/customActions');
@@ -19,6 +28,42 @@ const {
 describe('orders customActions', () => {
   beforeEach(() => {
     mockFetch = jest.fn();
+    global.t = {
+      t: (_domain, _context, key) => `translated:${key}`,
+    };
+  });
+
+  it('formats fixed and runtime order channel options', () => {
+    expect(ORDER_CHANNEL_OPTIONS.map(option => option.value)).toEqual([
+      'POS',
+      'Food99',
+      'iFood',
+      'SHOP',
+    ]);
+    expect(formatOrderChannelOption({app: 'iFood', value: 'IFOOD'})).toEqual({
+      app: 'iFood',
+      label: 'iFood',
+      logo: 'ifood-logo',
+      value: 'IFOOD',
+    });
+  });
+
+  it('formats order status options with translated label and presentation metadata', () => {
+    expect(
+      formatOrderStatusOption({
+        '@id': '/statuses/12',
+        color: ' #123456 ',
+        icon: ' check ',
+        status: 'Paid',
+      }),
+    ).toEqual({
+      '@id': '/statuses/12',
+      color: '#123456',
+      icon: 'check',
+      label: 'translated:paid',
+      status: 'Paid',
+      value: '12',
+    });
   });
 
   it('returns the canonical summary apps list from the orders summary response', async () => {
