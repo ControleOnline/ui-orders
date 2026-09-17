@@ -17,7 +17,7 @@ A regra correta é:
 - A base persistida desse tema para este trabalho deve ser registrada no arquivo `themes-actual.md`
 
 E a restrição mais importante:
-- Não usar `defaultCompany.theme`
+- Não usar `mainCompany.theme`
 - Não usar `currentCompany.theme`
 - Não usar `colors.js` como atalho de tema, inclusive aliases como `colors.white`, `colors.black` ou semelhantes
 - Se a cor vier de um arquivo local de cores e não do tema do `DOMAIN`, ela continua sendo hardcoded para este fluxo
@@ -39,7 +39,7 @@ Exemplo:
 - `background=white` significa que a variável se chama `background` e que o conteúdo dela é `white`
 
 Então, resumindo em uma frase:
-- Valor visual de cor ou transparência só é válido se vier do tema do `DOMAIN`; se estiver literal no arquivo ou vier de `defaultCompany/currentCompany`, está errado.
+- Valor visual de cor ou transparência só é válido se vier do tema do `DOMAIN`; se estiver literal no arquivo ou vier de `mainCompany/currentCompany`, está errado.
 
 ### ### ### ### #### #### ### ### ### ###
 ### ### ### FLUXO DE TRABALHO ### ### ###

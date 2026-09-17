@@ -8,7 +8,7 @@ Objetivo:
 Regras:
 - usar apenas nomes semanticos globais
 - nao usar `colors.js` como origem final
-- nao usar `defaultCompany.theme`
+- nao usar `mainCompany.theme`
 - nao usar `currentCompany.theme`
 - se um token nao existir no tema oficial, registrar em `themes-new.md` ate ele existir de fato
 
