@@ -57,7 +57,7 @@ describe('CieloService', () => {
             id: 21,
             configs: {},
           },
-          defaultCompany: {
+          mainCompany: {
             id: 99,
           },
         },
@@ -118,7 +118,7 @@ describe('CieloService', () => {
               }),
             },
           },
-          defaultCompany: {
+          mainCompany: {
             id: 99,
           },
         },

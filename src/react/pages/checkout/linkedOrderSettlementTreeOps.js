@@ -143,7 +143,7 @@ export async function ensureSettlementOrder({
   linkedOrderInput,
   companyIri,
   preferredInputType,
-  defaultCompany,
+  mainCompany,
   ordersActions,
   linkedOrderType,
 }) {
@@ -162,7 +162,7 @@ export async function ensureSettlementOrder({
     return existingOrder
   }
   const openOrderStatusIri = await resolveOpenOrderStatusIri(
-    defaultCompany?.configs?.['pos-default-status'],
+    mainCompany?.configs?.['pos-default-status'],
   )
   return ordersActions.save(
     buildSettlementPayload({
@@ -178,7 +178,7 @@ export async function ensureSettlementOrder({
 
 export async function reopenSettlementOrderIfPaid({
   order,
-  defaultCompany,
+  mainCompany,
   ordersActions,
   companyIri,
   linkedOrderType,
@@ -191,7 +191,7 @@ export async function reopenSettlementOrderIfPaid({
     return order
   }
   const openOrderStatusIri = await resolveOpenOrderStatusIri(
-    defaultCompany?.configs?.['pos-default-status'],
+    mainCompany?.configs?.['pos-default-status'],
   )
   return ordersActions.save(
     buildSettlementPayload({
@@ -241,7 +241,7 @@ export async function mergeSettlementOrderIntoPrimary({
   linkedOrderType,
   ordersActions,
   invoiceActions,
-  defaultCompany,
+  mainCompany,
 }) {
   const primaryOrderId = normalizeEntityId(primaryRootOrder)
   const secondaryOrderId = normalizeEntityId(secondaryRootOrder)
@@ -266,7 +266,7 @@ export async function mergeSettlementOrderIntoPrimary({
   )
   await reopenSettlementOrderIfPaid({
     order: primaryRootOrder,
-    defaultCompany,
+    mainCompany,
     ordersActions,
     companyIri,
     linkedOrderType,

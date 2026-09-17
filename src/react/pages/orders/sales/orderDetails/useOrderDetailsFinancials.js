@@ -30,7 +30,7 @@ export default function useOrderDetailsFinancials({
   orderInvoices,
   item,
   orderParam,
-  defaultCompany,
+  mainCompany,
   hasMarketplaceIntegration,
   resolvedDisplayOrderProductsWithProductDetails,
   resolvedDisplayOrder,
@@ -59,9 +59,9 @@ export default function useOrderDetailsFinancials({
     () => (
       getEntityId(item?.provider) ||
       getEntityId(orderParam?.provider) ||
-      getEntityId(defaultCompany)
+      getEntityId(mainCompany)
     ),
-    [defaultCompany, item?.provider, orderParam?.provider],
+    [mainCompany, item?.provider, orderParam?.provider],
   )
   const notInformedLabel = global.t?.t('orders', 'label', 'notInformed')
   const localInvoiceCards = useMemo(

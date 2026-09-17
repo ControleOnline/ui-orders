@@ -98,7 +98,7 @@ export default function useOrderDetailsBootstrap({ route, navigation }) {
 
   const peopleStore = useStore('people')
   const { getters: peopleGetters, actions: peopleActions } = peopleStore
-  const { defaultCompany, currentCompany } = peopleGetters
+  const { mainCompany, currentCompany } = peopleGetters
   const addressStore = useStore('address')
   const { actions: addressActions } = addressStore
 
@@ -130,8 +130,8 @@ export default function useOrderDetailsBootstrap({ route, navigation }) {
       getEntityId(item?.provider) ||
       getEntityId(orderParam?.provider) ||
       getEntityId(currentCompany) ||
-      getEntityId(defaultCompany),
-    [item?.provider, orderParam?.provider, currentCompany, defaultCompany],
+      getEntityId(mainCompany),
+    [item?.provider, orderParam?.provider, currentCompany, mainCompany],
   )
   const orderCompanyIri = useMemo(
     () => (orderCompanyId ? `/people/${orderCompanyId}` : null),
@@ -255,7 +255,7 @@ export default function useOrderDetailsBootstrap({ route, navigation }) {
     storedOrderInvoiceItems,
     orderInvoicesLoading,
     peopleActions,
-    defaultCompany,
+    mainCompany,
     currentCompany,
     addressActions,
     cssStyles,

@@ -157,14 +157,14 @@ export const buildLoyaltyCpfSearchParams = ({
 export const resolveCheckoutCompanyConfigs = ({
   companyConfigs,
   currentCompanyConfigs,
-  defaultCompanyConfigs,
+  mainCompanyConfigs,
 }) => {
   const runtimeConfigs = isConfigMap(companyConfigs) ? companyConfigs : null;
   const currentConfigs = isConfigMap(currentCompanyConfigs)
     ? currentCompanyConfigs
     : null;
-  const defaultConfigs = isConfigMap(defaultCompanyConfigs)
-    ? defaultCompanyConfigs
+  const defaultConfigs = isConfigMap(mainCompanyConfigs)
+    ? mainCompanyConfigs
     : null;
 
   const baseConfigs =

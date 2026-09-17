@@ -37,7 +37,7 @@ export default function useCheckoutPaymentRunners({
   checkoutPaymentOrder,
   closeRewardableLoyaltyParentOrder,
   currentCompany,
-  defaultCompany,
+  mainCompany,
   device,
   effectiveRemainingAmount,
   invoiceActions,
@@ -68,7 +68,7 @@ export default function useCheckoutPaymentRunners({
   const createPaidInvoice = useCallback(
     async (payment, total, currentOrder = null) => {
       const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
-        defaultCompany?.configs['pos-paid-status'],
+        mainCompany?.configs['pos-paid-status'],
       );
 
       if (!paidStatusIri) {
@@ -158,7 +158,7 @@ export default function useCheckoutPaymentRunners({
       buildOrderDetailsNavigationParams,
       closeRewardableLoyaltyParentOrder,
       currentCompany?.id,
-      defaultCompany?.configs,
+      mainCompany?.configs,
       device?.configs,
       invoiceActions,
       isCounterMode,
