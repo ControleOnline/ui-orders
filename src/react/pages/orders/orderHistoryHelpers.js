@@ -147,18 +147,17 @@ export const buildStatusOptions = statusItems => {
 export const configureOrderHistoryColumns = ({ columns, showAdvancedFilters, orderTypeFilter, allChannelLabel }) =>
   (columns || []).map(column => {
     const fieldName = column?.name || column?.key;
-    // app-community#811: canal/status/orderDate/period sem externalFilter (só modal da DefaultTable)
     if (fieldName === 'app') {
-      return { ...column, externalFilter: false, emptyOptionLabel: allChannelLabel, label: 'channel' };
+      return { ...column, externalFilter: showAdvancedFilters && orderTypeFilter === 'sale', emptyOptionLabel: allChannelLabel, label: 'channel' };
     }
     if (fieldName === 'status') {
-      return { ...column, externalFilter: false, emptyOptionLabel: allChannelLabel, list: 'status/getItems' };
+      return { ...column, externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter), emptyOptionLabel: allChannelLabel, list: 'status/getItems' };
     }
     if (fieldName === 'orderDate') {
-      return { ...column, externalFilter: false, inputType: 'date-range', show: true };
+      return { ...column, externalFilter: showAdvancedFilters, inputType: 'date-range', show: true };
     }
     if (fieldName === 'alterDate') {
-      return { ...column, externalFilter: false, inputType: 'date-range', label: 'period' };
+      return { ...column, externalFilter: showAdvancedFilters, inputType: 'date-range', label: 'period' };
     }
     return { ...column, externalFilter: false };
   });

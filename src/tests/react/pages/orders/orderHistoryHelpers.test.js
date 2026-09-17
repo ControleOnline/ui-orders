@@ -44,7 +44,10 @@ describe('orderHistoryHelpers', () => {
       ],
       showAdvancedFilters: true, orderTypeFilter: 'sale', allChannelLabel: 'All',
     });
-    expect(cols.slice(0, 4).every(column => column.externalFilter === false)).toBe(true);
+    expect(cols[0].externalFilter).toBe(true);
+    expect(cols[1].externalFilter).toBe(true);
+    expect(cols[2].externalFilter).toBe(true);
+    expect(cols[3].externalFilter).toBe(true);
     expect(cols[4].externalFilter).toBe(false);
   });
   it('normalizeText', () => {
