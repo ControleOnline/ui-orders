@@ -2,71 +2,35 @@
 import * as getters from "@controleonline/ui-default/src/store/default/getters";
 import mutations from "@controleonline/ui-default/src/store/default/mutations";
 import Formatter from "@controleonline/ui-common/src/utils/formatter.js";
-import { getOrderChannelLogo } from "@assets/ppc/channels";
-import * as customActions from "./customActions";
+import {
+  ORDER_CHANNEL_OPTIONS,
+  addProducts,
+  cancelOrder,
+  fetchHistoryPage,
+  formatOrderChannelOption,
+  formatOrderStatusOption,
+  getCancelReasons,
+  getFidelitySnapshot,
+  getHistorySummaryApps,
+  replaceProducts,
+  requestConferenceAutoPrint,
+  syncOrder,
+  syncOrderProducts,
+} from "./customActions";
 
-const normalizeText = value => String(value || "").trim();
-const normalizeStatusKey = value => normalizeText(value).toLowerCase();
+export {ORDER_CHANNEL_OPTIONS};
 
-const formatOrderChannelOption = value => {
-  if (!value) return value;
-
-  const isObject = typeof value === "object" && !Array.isArray(value);
-  const label = normalizeText(
-    isObject
-      ? value.label || value.app || value.value
-      : value,
-  );
-  const optionValue = isObject
-    ? value.value || value.app || label
-    : value;
-  const logo = getOrderChannelLogo({ app: label || optionValue });
-
-  return {
-    ...(isObject ? value : {}),
-    value: optionValue,
-    label: label || optionValue,
-    ...(logo ? { logo } : {}),
-  };
-};
-
-export const ORDER_CHANNEL_OPTIONS = [
-  {value: "POS", label: "POS"},
-  {value: "Food99", label: "Food99"},
-  {value: "iFood", label: "iFood"},
-  {value: "SHOP", label: "SHOP"},
-].map(formatOrderChannelOption);
-
-const formatOrderStatusLabel = value => {
-  const statusKey = normalizeStatusKey(
-    value && typeof value === "object" && !Array.isArray(value)
-      ? value.status
-      : value,
-  );
-  return statusKey ? global.t?.t("orders", "status", statusKey) : "";
-};
-
-const formatOrderStatusOption = value => {
-  if (!value) return value;
-
-  if (typeof value !== "object" || Array.isArray(value)) {
-    return {
-      value,
-      label: formatOrderStatusLabel(value),
-    };
-  }
-
-  const statusId = value?.["@id"]?.split("/").pop() || value?.id || value?.value;
-  const color = normalizeText(value?.color);
-  const icon = normalizeText(value?.icon);
-
-  return {
-    ...value,
-    value: statusId,
-    label: formatOrderStatusLabel(value),
-    ...(color ? { color } : {}),
-    ...(icon ? { icon } : {}),
-  };
+const customActions = {
+  addProducts,
+  cancelOrder,
+  fetchHistoryPage,
+  getCancelReasons,
+  getFidelitySnapshot,
+  getHistorySummaryApps,
+  replaceProducts,
+  requestConferenceAutoPrint,
+  syncOrder,
+  syncOrderProducts,
 };
 
 export default {
