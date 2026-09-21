@@ -374,23 +374,22 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     ]),
   );
 
-  if (isPreparingOrder) {
-    return (
-      <View
-        style={{
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-        }}>
-        <ActivityIndicator size="large" />
-        <Text style={{marginTop: 12}}>Carregando pedido...</Text>
-      </View>
-    );
-  }
-
   return (
     <>
-      <CatalogComponent navigation={navigation} route={effectiveRoute} />
+      {isPreparingOrder ? (
+        <View
+          style={{
+            alignItems: 'center',
+            flex: 1,
+            justifyContent: 'center',
+          }}>
+          <ActivityIndicator size="large" />
+          <Text style={{marginTop: 12}}>Carregando pedido...</Text>
+        </View>
+      ) : (
+        <CatalogComponent navigation={navigation} route={effectiveRoute} />
+      )}
+      {/* Order preparation can wait for input from this sheet. */}
       <LinkedOrderEntrySheet
         onCancel={handleCancelLinkedOrderEntry}
         onSubmit={resolveLinkedOrderEntry}
