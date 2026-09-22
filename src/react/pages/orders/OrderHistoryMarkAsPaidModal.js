@@ -11,7 +11,6 @@ import {
 import {useStore} from '@store';
 import {api} from '@controleonline/ui-common/src/api';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
-import {resolvePosPaidInvoiceStatusIri} from '../checkout/checkoutStatusHelpers';
 
 const extractItems = response => {
   if (Array.isArray(response)) return response;
@@ -94,25 +93,10 @@ const resolveRemainingBalance = order => {
   return Math.max(0, Math.round((price - paid) * 100) / 100);
 };
 
-export const buildMarkAsPaidInvoicePayload = ({
-  order,
-  payment,
-  amount,
-  paidStatusIri,
-  currentCompanyId,
-}) => ({
-  dueDate: Formatter.getCurrentDate(),
-  status: paidStatusIri,
-  destinationWallet: payment?.wallet?.['@id'],
-  paymentType: payment?.paymentType?.['@id'],
-  price: amount,
-  receiver: '/people/' + currentCompanyId,
-  order: order?.['@id'] || '/orders/' + extractId(order),
-});
-
 /**
  * Modal: product → payment → confirm.
- * Settlement uses the canonical paid-invoice flow so the backend updates the order status.
+ * Settlement goes through the dedicated server-authorized endpoint so the backend
+ * owns order status, tenant checks and invoice associations.
  */
 export default function OrderHistoryMarkAsPaidModal({
   visible,
@@ -123,7 +107,6 @@ export default function OrderHistoryMarkAsPaidModal({
   currentCompanyId = null,
 }) {
   const productsStore = useStore('products');
-  const invoiceStore = useStore('invoice');
   const peopleStore = useStore('people');
   const peopleCompany = peopleStore?.getters?.currentCompany;
   const currentCompany = peopleCompany || null;
@@ -266,25 +249,30 @@ export default function OrderHistoryMarkAsPaidModal({
     setSubmitting(true);
     setError('');
     try {
-      const paidStatusIri = await resolvePosPaidInvoiceStatusIri();
-      if (!paidStatusIri) {
-        throw new Error('Nao foi possivel resolver o status pago da invoice.');
-      }
+      const productIri =
+        selectedProduct?.['@id'] || `/products/${extractId(selectedProduct)}`;
+      const paymentTypeIri =
+        selectedPayment?.paymentType?.['@id'] ||
+        selectedPayment?.paymentType ||
+        selectedPayment?.['@id'];
+      const walletIri =
+        selectedPayment?.wallet?.['@id'] ||
+        selectedPayment?.wallet ||
+        null;
 
-      const save = invoiceStore?.actions?.save;
-      if (typeof save !== 'function') {
-        throw new Error('Servico de invoices indisponivel.');
-      }
+      const result = await api.fetch(`orders/${orderId}/mark-as-paid`, {
+        method: 'POST',
+        body: {
+          product: productIri,
+          paymentType: paymentTypeIri,
+          destinationWallet: walletIri,
+          // Advisory only — server recomputes remaining balance and authorizes the order.
+          price: displayBalance > 0 ? displayBalance : productPrice,
+        },
+      });
 
-      const result = await save(buildMarkAsPaidInvoicePayload({
-        order,
-        payment: selectedPayment,
-        amount: displayBalance > 0 ? displayBalance : productPrice,
-        paidStatusIri,
-        currentCompanyId: companyId,
-      }));
-      if (!result) {
-        throw new Error('Nao foi possivel registrar a invoice paga.');
+      if (result?.outcome && result.outcome !== 'success') {
+        throw new Error(result?.message || 'Nao foi possivel marcar o pedido como pago.');
       }
 
       onSuccess?.(result, order);
@@ -310,8 +298,6 @@ export default function OrderHistoryMarkAsPaidModal({
     selectedPayment,
     selectedProduct,
     submitting,
-    invoiceStore?.actions,
-    companyId,
   ]);
 
   const primary = themeColors.buttonBackground || themeColors.primary || '#0F172A';
