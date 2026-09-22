@@ -11,6 +11,7 @@ import {
 import {useStore} from '@store';
 import {api} from '@controleonline/ui-common/src/api';
 import Formatter from '@controleonline/ui-common/src/utils/formatter';
+import {buildMarkAsPaidRequest} from '../../utils/markAsPaidRequest';
 
 const extractItems = response => {
   if (Array.isArray(response)) return response;
@@ -249,27 +250,15 @@ export default function OrderHistoryMarkAsPaidModal({
     setSubmitting(true);
     setError('');
     try {
-      const productIri =
-        selectedProduct?.['@id'] || `/products/${extractId(selectedProduct)}`;
-      const paymentTypeIri =
-        selectedPayment?.paymentType?.['@id'] ||
-        selectedPayment?.paymentType ||
-        selectedPayment?.['@id'];
-      const walletIri =
-        selectedPayment?.wallet?.['@id'] ||
-        selectedPayment?.wallet ||
-        null;
-
-      const result = await api.fetch(`orders/${orderId}/mark-as-paid`, {
-        method: 'POST',
-        body: {
-          product: productIri,
-          paymentType: paymentTypeIri,
-          destinationWallet: walletIri,
-          // Advisory only — server recomputes remaining balance and authorizes the order.
-          price: displayBalance > 0 ? displayBalance : productPrice,
-        },
+      const request = buildMarkAsPaidRequest({
+        order,
+        selectedProduct,
+        selectedPayment,
+        amount: displayBalance > 0 ? displayBalance : productPrice,
       });
+      if (!request) throw new Error('Pedido nao informado.');
+
+      const result = await api.fetch(request.endpoint, request.options);
 
       if (result?.outcome && result.outcome !== 'success') {
         throw new Error(result?.message || 'Nao foi possivel marcar o pedido como pago.');
