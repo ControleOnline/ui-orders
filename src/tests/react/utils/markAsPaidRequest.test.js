@@ -20,7 +20,6 @@ describe('buildMarkAsPaidRequest', () => {
           product: '/products/11',
           paymentType: '/payment_types/4',
           destinationWallet: '/wallets/8',
-          price: 99.5,
         },
       },
     });
@@ -43,5 +42,6 @@ describe('buildMarkAsPaidRequest', () => {
     expect(request.options.body).not.toHaveProperty('order');
     expect(request.options.body).not.toHaveProperty('receiver');
     expect(request.options.body).not.toHaveProperty('status');
+    expect(request.options.body).not.toHaveProperty('price');
   });
 });

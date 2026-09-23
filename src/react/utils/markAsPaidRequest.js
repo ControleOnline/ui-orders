@@ -31,9 +31,7 @@ export const buildMarkAsPaidRequest = ({
         product: productIri,
         paymentType: paymentTypeIri,
         destinationWallet: walletIri,
-        // These references and the amount are advisory; the API authorizes and
-        // recomputes the final invoice/order mutation server-side.
-        price: amount,
+        // The server authorizes references and computes the outstanding amount.
       },
     },
   };
