@@ -38,6 +38,22 @@ const OrderTopBarActions =
   require('../../../react/pages/orders/sales/components/OrderTopBarActions').default
 
 describe('OrderTopBarActions', () => {
+  it('renders the NF action when requested', () => {
+    global.__topBarIcons = []
+
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(OrderTopBarActions, {
+        buttons: [ORDER_TOP_BAR_ACTIONS.NF],
+        iconButtonStyle: {},
+        iconButtonDisabledStyle: {},
+        iconColor: '#0EA5E9',
+        onPressNf: jest.fn(),
+      }),
+    )
+
+    expect(global.__topBarIcons).toContain('receipt')
+  })
+
   it('exposes the attachments action icon', () => {
     global.__topBarIcons = []
 
