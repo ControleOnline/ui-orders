@@ -29,4 +29,19 @@ describe('buildMarkAsPaidRequest', () => {
   it('does not build a request without an order id', () => {
     expect(buildMarkAsPaidRequest({order: {id: null}})).toBeNull();
   });
+
+  it('does not forward client-controlled order authorization fields', () => {
+    const request = buildMarkAsPaidRequest({
+      order: {id: 8371, company: '/people/attacker-tenant', receiver: '/people/attacker'},
+      selectedProduct: {id: 11},
+      selectedPayment: {paymentType: {id: 4}, wallet: {id: 8}},
+      amount: 999999.99,
+    });
+
+    expect(request.endpoint).toBe('orders/8371/mark-as-paid');
+    expect(request.options.method).toBe('POST');
+    expect(request.options.body).not.toHaveProperty('order');
+    expect(request.options.body).not.toHaveProperty('receiver');
+    expect(request.options.body).not.toHaveProperty('status');
+  });
 });
