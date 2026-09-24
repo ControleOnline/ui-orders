@@ -4,13 +4,11 @@ import {api} from '@controleonline/ui-common/src/api';
 import {
   filterDeviceConfigsByCompany,
   filterWalletPaymentTypesByAllowedIds,
-  getPaymentGateway,
   resolveDevicePaymentTypeIds,
-  selectPosWalletPaymentTypes,
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
 import {isIntegratedPaymentOption} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {normalizeGatewayPaymentError} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
-import {extractCollectionItems} from '@controleonline/ui-orders/src/react/utils/posCartHelpers';
+import {extractCollectionItems} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 import {buildPaymentSelectionOption} from './CheckoutPaymentOptions';
 import {
   PAYMENT_CHANNEL_LOCAL,
@@ -92,8 +90,7 @@ export default function useCheckoutPaymentOptionsLoader({
         ? resolveDevicePaymentTypeIds(selectedRemoteDevice.config?.configs)
         : [];
 
-      const posGateway = getPaymentGateway(device) || getPaymentGateway(selectedRemoteDevice?.config);
-      if (!localPaymentTypeIds.length && !remotePaymentTypeIds.length && !posGateway) {
+      if (!localPaymentTypeIds.length && !remotePaymentTypeIds.length) {
         setLoadingPaymentOptions(false);
         setLocalPaymentOptions([]);
         setRemotePaymentOptions([]);
@@ -105,48 +102,16 @@ export default function useCheckoutPaymentOptionsLoader({
       setPaymentOptionsError('');
 
       try {
-        try {
-          await api.fetch('configs/discovery-configs', {
-            method: 'POST',
-            body: {people: '/people/' + currentCompany.id},
-          });
-        } catch (discoveryError) {
-          if (!isMounted) return;
-          setLocalPaymentOptions([]);
-          setRemotePaymentOptions([]);
-          setPaymentOptionsError(
-            normalizeGatewayPaymentError(
-              discoveryError,
-              'Nao foi possivel descobrir as configuracoes de pagamento.',
-            ),
-          );
-          return;
-        }
-
         const response = await api.fetch('wallet_payment_types', {
           params: {people: '/people/' + currentCompany.id},
         });
         if (!isMounted) return;
-        const allPaymentTypes = selectPosWalletPaymentTypes({
-          walletPaymentTypes: extractCollectionItems(response),
-          deviceConfigs: device?.configs,
-          companyConfigs: selectedRemoteDevice?.config?.configs,
-          gateway: getPaymentGateway(device) || getPaymentGateway(selectedRemoteDevice?.config),
-        });
-        const localTypes = localPaymentTypeIds.length
-          ? filterWalletPaymentTypesByAllowedIds(
-              allPaymentTypes,
-              localPaymentTypeIds,
-            )
-          : allPaymentTypes;
-        const remoteTypes = remotePaymentTypeIds.length
-          ? filterWalletPaymentTypesByAllowedIds(
-              allPaymentTypes,
-              remotePaymentTypeIds,
-            )
-          : allPaymentTypes;
+        const allPaymentTypes = extractCollectionItems(response);
         setLocalPaymentOptions(
-          localTypes.map(payment =>
+          filterWalletPaymentTypesByAllowedIds(
+            allPaymentTypes,
+            localPaymentTypeIds,
+          ).map(payment =>
             buildPaymentSelectionOption({
               channel: PAYMENT_CHANNEL_LOCAL,
               payment,
@@ -154,7 +119,10 @@ export default function useCheckoutPaymentOptionsLoader({
           ),
         );
         setRemotePaymentOptions(
-          remoteTypes
+          filterWalletPaymentTypesByAllowedIds(
+            allPaymentTypes,
+            remotePaymentTypeIds,
+          )
             .filter(isIntegratedPaymentOption)
             .map(payment =>
               buildPaymentSelectionOption({

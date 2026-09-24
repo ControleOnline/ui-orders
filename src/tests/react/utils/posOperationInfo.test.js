@@ -31,7 +31,6 @@ describe('posOperationInfo', () => {
           configs: JSON.stringify({
             'pos-operation-mode': 'waiter',
             'check-order-type': 'table',
-            'check-order-management-mode': 'manage',
             'android-kiosk-enabled': '1',
             'pos-gateway': 'infinite-pay',
             'printer-enabled': '0',
@@ -43,11 +42,6 @@ describe('posOperationInfo', () => {
       {key: 'device', label: 'Device', value: 'PDV Salão (terminal-403)'},
       {key: 'operation-mode', label: 'Modo de operação', value: 'Garçom (waiter)'},
       {key: 'check-order-type', label: 'Vínculo', value: 'Mesa (table)'},
-      {
-        key: 'check-order-management-mode',
-        label: 'Gestão do vínculo',
-        value: 'Gerenciar comandas vinculadas (manage)',
-      },
       {key: 'kiosk', label: 'Kiosk', value: 'Ativo'},
       {key: 'gateway', label: 'Gateway', value: 'Infinite Pay (infinite-pay)'},
       {key: 'printer', label: 'Impressora', value: 'Inativa'},

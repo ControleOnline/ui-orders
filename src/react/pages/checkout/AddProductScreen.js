@@ -47,8 +47,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {showError} = useMessage() || {};
   const isTotemMode = isPosTotemMode(runtimeDeviceConfig?.configs);
   const isSingleItemMode =
-    (route?.params?.singleItemMode === true ||
-      String(route?.params?.singleItemMode || '').trim().toLowerCase() === 'true') ||
+    route?.params?.singleItemMode === true ||
     isPosSingleItemMode(runtimeDeviceConfig?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     runtimeDeviceConfig?.configs,
@@ -375,21 +374,23 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     ]),
   );
 
+  if (isPreparingOrder) {
+    return (
+      <View
+        style={{
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
+        }}>
+        <ActivityIndicator size="large" />
+        <Text style={{marginTop: 12}}>Carregando pedido...</Text>
+      </View>
+    );
+  }
+
   return (
     <>
-      {isPreparingOrder ? (
-        <View
-          style={{
-            alignItems: 'center',
-            flex: 1,
-            justifyContent: 'center',
-          }}>
-          <ActivityIndicator size="large" />
-          <Text style={{marginTop: 12}}>Carregando pedido...</Text>
-        </View>
-      ) : (
-        <CatalogComponent navigation={navigation} route={effectiveRoute} />
-      )}
+      <CatalogComponent navigation={navigation} route={effectiveRoute} />
       <LinkedOrderEntrySheet
         onCancel={handleCancelLinkedOrderEntry}
         onSubmit={resolveLinkedOrderEntry}

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
 import { useStore } from '@store'
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
@@ -7,7 +6,6 @@ import useOrderMarketplaceSummary from '../useOrderMarketplaceSummary'
 import {
   filterOrderProductsByOrderId,
   resolveEmbeddedOrderProducts,
-  hasDetailedOrderProductsPayload,
   choosePreferredOrderProducts,
   formatApiError,
   getEntityId,
@@ -44,8 +42,6 @@ export default function useOrderDetailsOrderSync({
   localRealStatusKey,
   localOrderTypeKey,
   isLocallyTerminalOrder,
-  isKds,
-  orderCompanyIri,
 }) {
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters
