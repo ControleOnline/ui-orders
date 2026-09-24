@@ -1,10 +1,8 @@
-import React, { useCallback, useLayoutEffect, useMemo } from 'react'
-import { Text, View } from 'react-native'
+import React, { useCallback, useMemo } from 'react'
 import OrderTopBarActions, {
   ORDER_TOP_BAR_ACTIONS,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import { getOwnedBottomBarOffset } from '@controleonline/ui-layout/src/react/utils/posBottomNavigation'
 import OrderDetailsProductActions from './OrderDetailsProductActions'
 import OrderDetailsInvoiceCards from './OrderDetailsInvoiceCards'
@@ -45,12 +43,6 @@ export default function useOrderDetailsRenderers(p) {
     orderIdentitySource,
     orderHeaderActionProps,
     navigation,
-    handleOpenInvoiceDetails,
-    orderInvoicesLoading,
-    groupedInvoiceSections,
-    localInvoicesEmptyText,
-    localInvoicesSectionTitle,
-    addProductsButtonLabel,
     localInvoiceCards,
     item,
     orderParam,
@@ -99,14 +91,6 @@ export default function useOrderDetailsRenderers(p) {
     marketplaceSummary,
     hasMarketplaceIntegration,
     formatOrderDateTime,
-    handleCustomizeProductFromSearch,
-    handleQuickAddProductFromSearch,
-    resolvedDisplayOrder,
-    resolvedDisplayOrderProductsWithProductDetails,
-    productSearchLoading,
-    productSearchResults,
-    productSearchSelectionId,
-    routeOrderId,
   } = p
 
   const renderOrderProductActions = useCallback(({
@@ -427,7 +411,7 @@ export default function useOrderDetailsRenderers(p) {
     shouldShowOrderPartyDetails,
     orderCustomerName,
     orderCustomerPhone,
-    orderCustomerDocument: localOrderCustomerDocument,
+    orderCustomerDocument,
     orderCustomerDocumentLabel,
     shouldShowOrderAddress,
     localOrderAddressParts,

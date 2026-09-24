@@ -216,45 +216,43 @@ const createPosApiMock = async (page, initialState = {}) => {
 };
 
 const bootstrapPosBrowser = async page => {
-  const optionalResponse = predicate =>
-    page.waitForResponse(predicate, {timeout: 10000}).catch(() => null);
   const bootstrapResponses = [
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'GET' &&
         response.url().includes('/runtime/ip'),
     ),
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'GET' &&
         response.url().includes('/people/companies/my'),
     ),
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'GET' &&
         response.url().includes('/people/company/default'),
     ),
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'GET' &&
         response.url().includes('/device_configs'),
     ),
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'POST' &&
         response.url().includes('/device_configs/add-configs'),
     ),
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'POST' &&
         response.url().includes('/configs/discovery-configs'),
     ),
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'GET' &&
         response.url().includes('/wallet_payment_types'),
     ),
-    optionalResponse(
+    page.waitForResponse(
       response =>
         response.request().method() === 'GET' &&
         response.url().includes('/devices?'),
