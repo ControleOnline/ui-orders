@@ -113,13 +113,22 @@ const resolveOrderStatusToneColor = (palette, statusKey) => {
 }
 
 export const resolveDisplayedOrderStatus = (order, fallbackColor = '') => {
-  const displayLabel =
+  // `status` is the business label (for example PAID); `realStatus` is the
+  // lifecycle state and may be CLOSED after payment. Keep those meanings
+  // separate when rendering the order status badge.
+  const businessStatus =
     normalizeText(order?.status?.status) ||
+    normalizeText(order?.status?.label)
+  const lifecycleStatus =
     normalizeText(order?.status?.realStatus) ||
+    normalizeText(order?.status?.real_status)
+  const displayLabel =
+    businessStatus ||
+    lifecycleStatus ||
     'open'
   const statusStateKey =
-    normalizeText(order?.status?.realStatus) ||
-    normalizeText(order?.status?.status) ||
+    lifecycleStatus ||
+    businessStatus ||
     displayLabel
   const statusColor = normalizeText(order?.status?.color) || fallbackColor
   const statusKey = statusStateKey.toLowerCase()

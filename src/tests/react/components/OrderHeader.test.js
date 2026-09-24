@@ -135,6 +135,30 @@ describe('OrderHeader', () => {
     expect(status.color).toBe('#c10015')
   })
 
+  it('displays PAID when payment closes the order lifecycle', () => {
+    const status = resolveDisplayedOrderStatus({
+      status: {
+        realStatus: 'closed',
+        status: 'paid',
+      },
+    })
+
+    expect(status.labelUpper).toBe('PAID')
+    expect(status.key).toBe('closed')
+  })
+
+  it('supports the API snake_case lifecycle field without replacing the business label', () => {
+    const status = resolveDisplayedOrderStatus({
+      status: {
+        real_status: 'closed',
+        status: 'paid',
+      },
+    })
+
+    expect(status.labelUpper).toBe('PAID')
+    expect(status.key).toBe('closed')
+  })
+
   it('falls back to status.status when realStatus is absent', () => {
     const status = resolveDisplayedOrderStatus({
       status: {
