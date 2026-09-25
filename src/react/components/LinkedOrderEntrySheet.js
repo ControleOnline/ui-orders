@@ -8,6 +8,8 @@ import {
   View,
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
+import {useStore} from '@store'
+import {buildPosOperationInfo} from '@controleonline/ui-orders/src/react/utils/posOperationInfo'
 import LinkedOrderCameraScanner from '@controleonline/ui-orders/src/react/components/LinkedOrderCameraScanner'
 import LinkedOrderNfcScanner from '@controleonline/ui-orders/src/react/components/LinkedOrderNfcScanner'
 import {
@@ -98,8 +100,19 @@ const LinkedOrderEntrySheet = ({
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [scannerVisible, setScannerVisible] = useState(false)
+  const [configurationVisible, setConfigurationVisible] = useState(false)
   const [inputMethod, setInputMethod] = useState(
     resolveLinkedOrderInputMethod({preferredInputType, isNativeRuntime}),
+  )
+  const peopleStore = useStore('people')
+  const deviceConfigStore = useStore('device_config')
+  const operationInfo = useMemo(
+    () =>
+      buildPosOperationInfo({
+        currentCompany: peopleStore?.getters?.currentCompany,
+        deviceConfig: deviceConfigStore?.getters?.item,
+      }),
+    [deviceConfigStore?.getters?.item, peopleStore?.getters?.currentCompany],
   )
 
   const clearScanBuffer = useCallback(() => {
@@ -198,6 +211,7 @@ const LinkedOrderEntrySheet = ({
       setFeedbackMessage('')
       setIsSubmitting(false)
       setScannerVisible(false)
+      setConfigurationVisible(false)
       hasAutoOpenedScannerRef.current = false
       clearScanBuffer()
       return
@@ -207,6 +221,7 @@ const LinkedOrderEntrySheet = ({
     setFeedbackMessage('')
     setIsSubmitting(false)
     setScannerVisible(false)
+    setConfigurationVisible(false)
     hasAutoOpenedScannerRef.current = false
     setInputMethod(
       resolveLinkedOrderInputMethod({preferredInputType, isNativeRuntime}),
@@ -406,10 +421,18 @@ const LinkedOrderEntrySheet = ({
                 <Icon name="fact-check" size={24} color="#0EA5E9" />
               </View>
 
-              <Text style={styles.title}>
-                {global.t?.t('orders', 'title', 'identifyOrderBase') ||
-                  `Identify ${orderLabel}`}
-              </Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.title}>
+                  {global.t?.t('orders', 'title', 'identifyOrderBase') ||
+                    `Identify ${orderLabel}`}
+                </Text>
+                <TouchableOpacity
+                  accessibilityLabel="Ver configuração da operação"
+                  onPress={() => setConfigurationVisible(value => !value)}
+                  style={styles.configurationButton}>
+                  <Icon color="#2563EB" name="info-outline" size={20} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <Text style={styles.description}>
@@ -417,6 +440,18 @@ const LinkedOrderEntrySheet = ({
                 `Identify the ${orderLabel.toLowerCase()} and continue the sale.`}
             </Text>
           </View>
+
+          {configurationVisible ? (
+            <View style={styles.configurationBox}>
+              <Text style={styles.configurationTitle}>Configuração do PDV</Text>
+              {operationInfo.map(row => (
+                <View key={row.key} style={styles.configurationRow}>
+                  <Text style={styles.configurationLabel}>{row.label}</Text>
+                  <Text style={styles.configurationValue}>{row.value}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {methodOptions.length > 1 && (
             <View style={styles.methodGrid}>

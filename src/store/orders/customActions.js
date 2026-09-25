@@ -85,6 +85,20 @@ const normalizeErrno = value => String(value ?? '0').trim();
 
 const extractActionResult = response => response?.result || response || {};
 
+export const extractCancelReasons = response => {
+  const result = extractActionResult(response);
+  const candidates = [
+    result?.data?.reasons,
+    result?.reasons,
+    result?.data,
+    response?.data?.reasons,
+    response?.reasons,
+    response?.data,
+  ];
+
+  return candidates.find(Array.isArray) || [];
+};
+
 const assertSuccessfulOrderAction = response => {
   const result = extractActionResult(response);
   if (normalizeErrno(result?.errno) !== '0') {
@@ -232,11 +246,7 @@ export const getCancelReasons = ({getters}, params = {}) => {
   })
     .then(response => {
       const result = assertSuccessfulOrderAction(response);
-      return Array.isArray(result?.data?.reasons)
-        ? result.data.reasons
-        : Array.isArray(result?.reasons)
-          ? result.reasons
-          : [];
+      return extractCancelReasons(result);
     });
 };
 
