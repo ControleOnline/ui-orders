@@ -21,6 +21,7 @@ const {
   cancelOrder,
   formatOrderChannelOption,
   formatOrderStatusOption,
+  extractCancelReasons,
   getCancelReasons,
   getHistorySummaryApps,
 } = require('../../../../store/orders/customActions');
@@ -108,6 +109,12 @@ describe('orders customActions', () => {
         units: 6,
       },
     ]);
+  });
+
+  it('normalizes cancellation reasons from supported response envelopes', () => {
+    expect(extractCancelReasons({data: {reasons: [{id: 1}]}})).toEqual([{id: 1}]);
+    expect(extractCancelReasons({reasons: [{id: 2}]})).toEqual([{id: 2}]);
+    expect(extractCancelReasons({data: [{id: 3}]})).toEqual([{id: 3}]);
   });
 
   it('loads cancellation reasons from the order action endpoint', async () => {
