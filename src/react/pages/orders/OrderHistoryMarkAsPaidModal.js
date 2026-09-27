@@ -274,6 +274,7 @@ export default function OrderHistoryMarkAsPaidModal({
         throw new Error(result?.message || 'Nao foi possivel marcar o pedido como pago.');
       }
 
+      // Always pass API payload so the page can show result.message (e.g. alreadyPaid).
       onSuccess?.(result, order);
       onClose?.();
     } catch (e) {

@@ -1,0 +1,14 @@
+{
+  "version": "1.10.33",
+  "rc": 5,
+  "branch": "rc/1.10.33-rc.5",
+  "baseMaster": "a2ff59d9dc8021059a551f29cd7153348c9e6066",
+  "tasks": [
+    909
+  ],
+  "repositories": {
+    "ControleOnline/ui-orders": "8181f5aefd926c0a3631279017ee5a5760da7c18"
+  },
+  "frozen": true,
+  "notes": "#909 show mark-as-paid backend message"
+}
