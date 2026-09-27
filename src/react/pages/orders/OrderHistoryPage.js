@@ -324,12 +324,13 @@ export default function OrderHistoryPage({ navigation, route }) {
     if (result?.alreadyPaid) {
       // Backend: financial balance already zero — show API text (e.g. "Pedido ja esta quitado.")
       if (message) {
-        showError?.(message) || showSuccess?.(message);
+        if (typeof showError === 'function') showError(message);
+        else if (typeof showSuccess === 'function') showSuccess(message);
       }
     } else if (message && message.toLowerCase() !== 'ok') {
-      showSuccess?.(message);
-    } else {
-      showSuccess?.(
+      if (typeof showSuccess === 'function') showSuccess(message);
+    } else if (typeof showSuccess === 'function') {
+      showSuccess(
         (global.t?.t && global.t.t('orders', 'message', 'markAsPaidSuccess')) ||
           'Pedido marcado como pago.',
       );
