@@ -51,7 +51,8 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {showError} = useMessage() || {};
   const isTotemMode = isPosTotemMode(runtimeDeviceConfig?.configs);
   const isSingleItemMode =
-    route?.params?.singleItemMode === true ||
+    (route?.params?.singleItemMode === true ||
+      String(route?.params?.singleItemMode || '').trim().toLowerCase() === 'true') ||
     isPosSingleItemMode(runtimeDeviceConfig?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     runtimeDeviceConfig?.configs,
@@ -408,23 +409,19 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     ]),
   );
 
-  if (isPreparingOrder) {
-    return (
-      <View
-        style={{
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-        }}>
-        <ActivityIndicator size="large" />
-        <Text style={{marginTop: 12}}>Carregando pedido...</Text>
-      </View>
-    );
-  }
-
   return (
     <>
-      {categoriesFetchError && !isSingleItemMode ? (
+      {isPreparingOrder ? (
+        <View
+          style={{
+            alignItems: 'center',
+            flex: 1,
+            justifyContent: 'center',
+          }}>
+          <ActivityIndicator size="large" />
+          <Text style={{marginTop: 12}}>Carregando pedido...</Text>
+        </View>
+      ) : categoriesFetchError && !isSingleItemMode ? (
         <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24}}>
           <Text style={{color: '#253044', fontSize: 16, marginBottom: 16, textAlign: 'center'}}>
             Não foi possível carregar as categorias. Verifique a conexão e tente novamente.

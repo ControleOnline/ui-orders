@@ -8,6 +8,7 @@ import { toEntityIri } from '@controleonline/ui-common/src/react/utils/commercia
 import {
   filterOrderProductsByOrderId,
   resolveEmbeddedOrderProducts,
+  hasDetailedOrderProductsPayload,
   choosePreferredOrderProducts,
   formatApiError,
   getEntityId,
@@ -15,7 +16,6 @@ import {
   recentOrderDetailRefreshStarts,
   ORDER_DETAIL_REFRESH_COOLDOWN_MS,
   areOrderProductCollectionsEquivalent,
-  hasDetailedOrderProductsPayload,
   resolveEditableOrderType,
   DRAFT_SALE_ORDER_TYPE,
   isTerminalOrderStatus,

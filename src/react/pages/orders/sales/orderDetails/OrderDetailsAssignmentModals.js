@@ -28,6 +28,8 @@ export default function OrderDetailsAssignmentModals(props) {
     closeCustomerModal,
     customerLinkingId,
     orderCustomerName,
+    selectedOrderClientIri,
+    selectedOrderAddressIri,
     localStyles,
     ppcColors,
     modalBottomInset,
@@ -52,8 +54,6 @@ export default function OrderDetailsAssignmentModals(props) {
     handleAddressFormFieldChange,
     handleCreateAddress,
     addressSaveLoading,
-    selectedOrderClientIri,
-    selectedOrderAddressIri,
     openAddressCreateMode,
     setAddressForm,
   } = props;
