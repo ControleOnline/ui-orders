@@ -166,6 +166,7 @@ const OrderItemsTab = ({
   showQueuePresentation = true,
   variant = 'main',
   setProductSearchText = null,
+  showProductSearch = true,
 }) => {
   const {styles: cssStyles} = css()
   const {ppcColors, styles: localStyles} = useOrderDetailsVisuals()
@@ -456,7 +457,9 @@ const OrderItemsTab = ({
         )}
       </View>
 
-      {canAddProductsToOrder && typeof setProductSearchText === 'function' && (
+      {canAddProductsToOrder &&
+        showProductSearch &&
+        typeof setProductSearchText === 'function' && (
         <View style={localStyles.detailsProductSearchStack}>
           <View
             style={[

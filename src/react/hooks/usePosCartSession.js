@@ -36,6 +36,7 @@ import {
   resolveCounterStartDestinationFromSession,
 } from '@controleonline/ui-orders/src/react/hooks/posCartSession/hydration'
 import {syncPosOrderPeople} from '@controleonline/ui-orders/src/react/hooks/posCartSession/peopleSync'
+import {setActivePosOrderContext} from '@controleonline/ui-orders/src/react/hooks/posCartSession/activePosOrderContext'
 import {
   ensureSettlementOrder as ensureSettlementOrderHelper,
   findOpenLinkedSessionOrder as findOpenLinkedSessionOrderHelper,
@@ -146,6 +147,7 @@ export default function usePosCartSession({
   const syncActiveOrderState = useCallback(order => {
     if (order && isOpenPosCartOrder(order, {usesLinkedCheckOrders})) {
       rememberDraftOrderId(order)
+      setActivePosOrderContext({companyId, deviceId, order})
       setActiveOrderState(order)
       if (typeof ordersActions.syncOrder === 'function') {
         ordersActions.syncOrder(order)
@@ -156,11 +158,14 @@ export default function usePosCartSession({
     }
 
     clearStoredDraftOrderId()
+    setActivePosOrderContext({companyId, deviceId, order: null})
     setActiveOrderState(null)
     ordersActions.setItem({})
     return null
   }, [
     clearStoredDraftOrderId,
+    companyId,
+    deviceId,
     ordersActions,
     rememberDraftOrderId,
     usesLinkedCheckOrders,

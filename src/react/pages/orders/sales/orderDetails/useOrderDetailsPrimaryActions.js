@@ -25,6 +25,7 @@ export default function useOrderDetailsPrimaryActions({
   route,
   navigation,
   isSingleItemOperationMode,
+  isWaiterMode,
   isLocallyTerminalOrder,
   flushPendingOrderProductChanges,
   ordersGetters,
@@ -120,6 +121,10 @@ export default function useOrderDetailsPrimaryActions({
         global.t?.t('orders', 'message', 'orderSentToProduction') ||
           'Pedido enviado para producao.',
       )
+
+      if (isWaiterMode) {
+        navigation.navigate('OrderHistoryPage', {interactionMode: 'pdv'})
+      }
     } catch (error) {
       showError(formatApiError(error))
     } finally {
@@ -129,6 +134,8 @@ export default function useOrderDetailsPrimaryActions({
     flushPendingOrderProductChanges,
     isLocallyTerminalOrder,
     currentOrderSnapshot,
+    isWaiterMode,
+    navigation,
     refreshCurrentOrder,
     showError,
     showSuccess,
@@ -136,18 +143,24 @@ export default function useOrderDetailsPrimaryActions({
 
   const appType = String(app_type || '').trim().toUpperCase()
   const primaryActionSourceOrder = currentOrderSnapshot
-  const primaryActionMode = resolveOrderDetailsPrimaryActionMode({
-    appType,
-    order: primaryActionSourceOrder,
-  })
-  const primaryActionLabel = resolveOrderDetailsPrimaryActionLabel({
-    appType,
-    order: primaryActionSourceOrder,
-  })
-  const primaryActionIcon = resolveOrderDetailsPrimaryActionIcon({
-    appType,
-    order: primaryActionSourceOrder,
-  })
+  const primaryActionMode = isWaiterMode
+    ? 'produce'
+    : resolveOrderDetailsPrimaryActionMode({
+        appType,
+        order: primaryActionSourceOrder,
+      })
+  const primaryActionLabel = isWaiterMode
+    ? global.t?.t('orders', 'button', 'produce') || 'Enviar para produção'
+    : resolveOrderDetailsPrimaryActionLabel({
+        appType,
+        order: primaryActionSourceOrder,
+      })
+  const primaryActionIcon = isWaiterMode
+    ? 'send'
+    : resolveOrderDetailsPrimaryActionIcon({
+        appType,
+        order: primaryActionSourceOrder,
+      })
 
   const handlePrimaryAction = useCallback(async () => {
     if (primaryActionMode === 'produce') {

@@ -100,5 +100,17 @@ describe('addProductCatalogMode', () => {
         }),
       ).toBe(false);
     });
+
+    it('keeps Categories available for retry when the category request fails', () => {
+      expect(
+        resolveShouldListProductsDirectly({
+          isSingleItemMode: false,
+          categoriesLoading: false,
+          categoriesFetched: true,
+          categoriesFetchError: true,
+          categoryItems: [],
+        }),
+      ).toBe(false);
+    });
   });
 });
