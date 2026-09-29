@@ -48,7 +48,9 @@ export default function PdvPage({navigation, route}) {
       params: {
         ...(route?.params || {}),
         interactionMode: 'pdv',
-        showBottomCart: isWaiterPosMode,
+        showBottomCart: isWaiterPosMode
+          ? true
+          : route?.params?.showBottomCart,
         showBottomToolBar: true,
       },
     }),
@@ -56,7 +58,9 @@ export default function PdvPage({navigation, route}) {
   );
 
   useEffect(() => {
-    navigation.setParams({showBottomCart: isWaiterPosMode});
+    if (isWaiterPosMode) {
+      navigation.setParams({showBottomCart: true});
+    }
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity
