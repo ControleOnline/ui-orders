@@ -16,12 +16,19 @@ const styles = {
     marginHorizontal: 16,
     fontSize: 16,
   },
+  quantityTextCompact: {
+    marginHorizontal: 5,
+    fontSize: 13,
+  },
   button: {
     padding: 8,
   },
+  buttonCompact: {
+    padding: 4,
+  },
 };
 
-const ProductQuantity = ({product}) => {
+const ProductQuantity = ({product, compact = false}) => {
   const [decreaseIcon, setDecreaseIcon] = useState(null);
   const [qtd, setQtd] = useState(() => getPendingAddProductQuantity(product));
   const quantityRef = useRef(getPendingAddProductQuantity(product));
@@ -77,16 +84,16 @@ const ProductQuantity = ({product}) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, compact && styles.buttonCompact]}
         disabled={qtd === 0}
         onPress={decreaseQuantity}>
-        {decreaseIcon && <Icon name={decreaseIcon} size={24} color="red" />}
+        {decreaseIcon && <Icon name={decreaseIcon} size={compact ? 18 : 24} color="red" />}
       </TouchableOpacity>
 
-      <Text style={[styles.quantityText, {color: '#666'}]}>{qtd || '0'}</Text>
+      <Text style={[styles.quantityText, compact && styles.quantityTextCompact, {color: '#666'}]}>{qtd || '0'}</Text>
 
-      <TouchableOpacity style={styles.button} onPress={increaseQuantity}>
-        <Icon name="add" size={24} color="red" />
+      <TouchableOpacity style={[styles.button, compact && styles.buttonCompact]} onPress={increaseQuantity}>
+        <Icon name="add" size={compact ? 18 : 24} color="red" />
       </TouchableOpacity>
     </View>
   );

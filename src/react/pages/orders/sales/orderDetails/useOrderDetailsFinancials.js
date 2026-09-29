@@ -9,7 +9,10 @@ import {
   resolveOperationalDisplayAmount,
   resolveOperationalDisplayLabelKey,
 } from '@controleonline/ui-orders/src/react/utils/checkoutInvoices'
-import { resolveMarketplaceInvoicePresentation } from '../orderMarketplaceFinancialPresentation'
+import {
+  resolveMarketplaceInvoicePresentation,
+  resolveMarketplaceReceivableAmount,
+} from '../orderMarketplaceFinancialPresentation'
 import { shouldRenderOrderDetailsInlineTotal } from '../orderDetailsPaymentBar'
 
 import {
@@ -18,9 +21,9 @@ import {
   resolveEmbeddedOrderProducts,
   resolveInvoiceDisplayAmount,
   resolveInvoiceKind,
+  resolveInvoicePartyLabel,
   resolveInvoiceStatusPresentation,
   resolveInvoiceTitle,
-  resolveInvoicePartyLabel,
   resolvePreferredText,
 } from './helpers'
 

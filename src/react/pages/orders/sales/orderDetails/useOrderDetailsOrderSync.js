@@ -4,6 +4,7 @@ import { useStore } from '@store'
 import usePosOrderMaterialization from '@controleonline/ui-orders/src/react/hooks/usePosOrderMaterialization'
 import useDebouncedOrderProductQuantitySync from '@controleonline/ui-orders/src/react/hooks/useDebouncedOrderProductQuantitySync'
 import useOrderMarketplaceSummary from '../useOrderMarketplaceSummary'
+import { toEntityIri } from '@controleonline/ui-common/src/react/utils/commercialDocumentOrders'
 import {
   filterOrderProductsByOrderId,
   resolveEmbeddedOrderProducts,
@@ -14,6 +15,7 @@ import {
   pendingOrderDetailRefreshes,
   recentOrderDetailRefreshStarts,
   ORDER_DETAIL_REFRESH_COOLDOWN_MS,
+  areOrderProductCollectionsEquivalent,
   resolveEditableOrderType,
   DRAFT_SALE_ORDER_TYPE,
   isTerminalOrderStatus,
@@ -33,8 +35,10 @@ export default function useOrderDetailsOrderSync({
   orderParam,
   routeOrderId,
   routeOrderIri,
+  orderCompanyIri,
   route,
   navigation,
+  isKds,
   ordersActions,
   ordersGetters,
   orderInvoicesActions,
@@ -44,8 +48,6 @@ export default function useOrderDetailsOrderSync({
   localRealStatusKey,
   localOrderTypeKey,
   isLocallyTerminalOrder,
-  isKds,
-  orderCompanyIri,
 }) {
   const orderProductsStore = useStore('order_products')
   const { items: storedOrderProducts } = orderProductsStore.getters

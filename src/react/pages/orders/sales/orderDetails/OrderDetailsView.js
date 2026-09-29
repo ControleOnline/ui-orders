@@ -34,9 +34,10 @@ export default function OrderDetailsView(p) {
     cssStyles = css?.orders || css,
     localStyles,
     ppcColors,
+    globalStyles,
     useUnifiedKdsLayout,
     currentCompany,
-    mainCompany,
+    defaultCompany,
     refreshCurrentOrder,
     marketplaceSummary,
     shouldStackHeaderActions,
@@ -52,6 +53,7 @@ export default function OrderDetailsView(p) {
     mobileOrderBottomSpacing,
     showBarcodeInput,
     isPosSelfServiceOperationMode,
+    isWaiterMode,
     isPurchaseOrder,
     shouldShowOrderPartyDetails,
     customerModalVisible,
@@ -68,6 +70,7 @@ export default function OrderDetailsView(p) {
     setCustomerCreateModalVisible,
     handleCustomerCreated,
     addressModalVisible,
+    addressSaveLoading,
     closeAddressModal,
     addressModalMode,
     setAddressModalMode,
@@ -80,6 +83,11 @@ export default function OrderDetailsView(p) {
     handleCreateAddress,
     orderIdentitySource,
     orderHeaderActionProps,
+    handleOrderLogs,
+    handleOrderTools,
+    orderParam,
+    addProductsButtonLabel,
+    canShowDebugActions,
     navigation,
     isKds,
     detailsModalVisible,
@@ -90,6 +98,8 @@ export default function OrderDetailsView(p) {
     setAttachmentsVisible,
     topBarOrderId,
     item,
+    isLocallyTerminalOrder,
+    primaryActionMode,
     handleAddProduct,
     handlePrimaryAction,
     primaryActionLoading,
@@ -113,6 +123,7 @@ export default function OrderDetailsView(p) {
     shouldShowPreparationTime,
     orderWaitingLabel,
   } = p
+  const showInlinePrimaryAction = shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})
 
   return (
     <SafeAreaView
@@ -159,10 +170,13 @@ export default function OrderDetailsView(p) {
             addressSelectingId={addressSelectingId}
             handleSelectAddress={handleSelectAddress}
             addressForm={addressForm}
+            setAddressForm={p.setAddressForm}
+            openAddressCreateMode={p.openAddressCreateMode}
+            selectedOrderClientIri={p.selectedOrderClientIri}
+            selectedOrderAddressIri={p.selectedOrderAddressIri}
             handleAddressFormFieldChange={handleAddressFormFieldChange}
             handleCreateAddress={handleCreateAddress}
             addressSaveLoading={addressSaveLoading}
-            peopleStore={peopleStore}
           />
         </>
       )}
@@ -183,7 +197,7 @@ export default function OrderDetailsView(p) {
         visible={attachmentsVisible}
         onClose={() => setAttachmentsVisible(false)}
         order={orderIdentitySource}
-        company={currentCompany || mainCompany}
+        company={currentCompany || defaultCompany}
         onChanged={() => refreshCurrentOrder({force: true})}
       />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
@@ -272,10 +286,14 @@ export default function OrderDetailsView(p) {
               }
               onActionPress={handlePrimaryAction}
               onPaidDetailsPress={handleOpenFinancialDetails}
-              showPaidBreakdown
-              showActionButton={shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}
+              showPaidBreakdown={!isWaiterMode}
+              waiterOrderAmount={localOrderTotal}
+              waiterOrderLabel={global.t?.t('orders', 'label', 'orderLaunch') || 'Lançamento'}
+              showActionButton={isWaiterMode
+                ? primaryActionMode === 'produce' && !!item?.id && !isLocallyTerminalOrder
+                : shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}
               showPayableBadge={false}
-              variant="payment-status"
+              variant={isWaiterMode ? 'waiter-order' : 'payment-status'}
             />
           )}
 

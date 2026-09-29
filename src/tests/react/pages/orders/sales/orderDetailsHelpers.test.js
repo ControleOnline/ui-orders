@@ -2,6 +2,7 @@ const {describe, expect, it, jest} = require('@jest/globals')
 
 jest.mock('@controleonline/ui-common/src/react/utils/entityDisplay', () => ({
   formatHumanLabel: value => `human:${value}`,
+  normalizeText: value => String(value || '').trim(),
 }))
 
 const {

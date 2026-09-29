@@ -52,12 +52,14 @@ const OrderDetails = ({ route, navigation }) => {
     mainCompany,
     addressActions,
     ppcColors,
+    globalStyles,
     localStyles,
     viewportWidth,
     selectedDisplay,
     orderCompanyId,
     orderCompanyIri,
     isPosSelfServiceOperationMode,
+    isWaiterMode,
     isSingleItemOperationMode,
     shouldShowBottomNavigation,
     canShowDebugActions,
@@ -91,8 +93,10 @@ const OrderDetails = ({ route, navigation }) => {
     orderParam,
     routeOrderId,
     routeOrderIri,
+    orderCompanyIri,
     route,
     navigation,
+    isKds,
     ordersActions,
     ordersGetters,
     orderInvoicesActions,
@@ -112,6 +116,7 @@ const OrderDetails = ({ route, navigation }) => {
     handlePrimaryAction,
     primaryActionLabel,
     primaryActionIcon,
+    primaryActionMode,
   } = useOrderDetailsPrimaryActions({
     canMutateOrderProducts,
     item,
@@ -120,6 +125,7 @@ const OrderDetails = ({ route, navigation }) => {
     route,
     navigation,
     isSingleItemOperationMode,
+    isWaiterMode,
     isLocallyTerminalOrder,
     flushPendingOrderProductChanges,
     ordersGetters,
@@ -216,11 +222,19 @@ const OrderDetails = ({ route, navigation }) => {
   })
 
   const canAddOrderPayment =
+    !isWaiterMode &&
     !hasMarketplaceIntegration &&
     !!item?.id &&
     localPendingAmount > 0 &&
     !isTerminalOrder
-  const primaryActionDisabled = !canAddOrderPayment || primaryActionLoading
+  const hasOrderProductsForProduction =
+    Array.isArray(resolvedDisplayOrderProductsWithProductDetails) &&
+    resolvedDisplayOrderProductsWithProductDetails.length > 0
+  const primaryActionDisabled =
+    primaryActionLoading ||
+    (primaryActionMode === 'produce'
+      ? !item?.id || isLocallyTerminalOrder || !hasOrderProductsForProduction
+      : !canAddOrderPayment)
   const resolvedOrderDateValue = resolveOrderDateValue(item || orderParam)
   const orderWaitingMinutes = resolvedOrderDateValue
     ? Math.max(0, Math.floor((Date.now() - new Date(resolvedOrderDateValue).getTime()) / 60000))
@@ -277,6 +291,9 @@ const OrderDetails = ({ route, navigation }) => {
     closeAddressModal,
     openAddressModal,
     handleAddressFormFieldChange,
+    setAddressForm,
+    openAddressCreateMode,
+    selectedOrderAddressIri,
     handleSelectAddress,
     handleCreateAddress,
     handleStartObservationEdit,
@@ -372,6 +389,7 @@ const OrderDetails = ({ route, navigation }) => {
     isTvDisplay,
     appType,
     isPosSelfServiceOperationMode,
+    isWaiterMode,
     handleOrderLogistics,
     handleOrderNf,
     handleOrderAttachments,
@@ -381,10 +399,11 @@ const OrderDetails = ({ route, navigation }) => {
     orderHeaderActionProps,
     navigation,
     handleOpenInvoiceDetails,
+    orderInvoicesLoading,
     groupedInvoiceSections,
     localInvoicesEmptyText,
     localInvoicesSectionTitle,
-    orderInvoicesLoading,
+    addProductsButtonLabel,
     handleCustomizeProductFromSearch,
     handleQuickAddProductFromSearch,
     resolvedDisplayOrder,
@@ -393,7 +412,6 @@ const OrderDetails = ({ route, navigation }) => {
     productSearchResults,
     productSearchSelectionId,
     routeOrderId,
-    addProductsButtonLabel,
     localInvoiceCards,
     item,
     orderParam,
@@ -448,13 +466,15 @@ const OrderDetails = ({ route, navigation }) => {
       {...renderers}
       localStyles={localStyles}
       ppcColors={ppcColors}
+      globalStyles={globalStyles}
       useUnifiedKdsLayout={useUnifiedKdsLayout}
       currentCompany={currentCompany}
-      mainCompany={mainCompany}
+      defaultCompany={mainCompany}
       refreshCurrentOrder={refreshCurrentOrder}
       marketplaceSummary={marketplaceSummary}
       showBarcodeInput={showBarcodeInput}
       isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
+      isWaiterMode={isWaiterMode}
       productSearchText={productSearchText}
       setProductSearchText={setProductSearchText}
       productSearchResults={productSearchResults}
@@ -485,18 +505,28 @@ const OrderDetails = ({ route, navigation }) => {
       addressOptions={addressOptions}
       addressOptionsLoading={addressOptionsLoading}
       addressForm={addressForm}
+      setAddressForm={setAddressForm}
+      openAddressCreateMode={openAddressCreateMode}
+      selectedOrderClientIri={selectedOrderClientIri}
+      selectedOrderAddressIri={selectedOrderAddressIri}
       addressSelectingId={addressSelectingId}
       handleSelectAddress={handleSelectAddress}
       handleCreateAddress={handleCreateAddress}
       orderIdentitySource={orderIdentitySource}
       orderHeaderActionProps={orderHeaderActionProps}
       navigation={navigation}
+      handleOrderLogs={handleOrderLogs}
+      handleOrderTools={handleOrderTools}
+      orderParam={orderParam}
+      addProductsButtonLabel={addProductsButtonLabel}
+      canShowDebugActions={canShowDebugActions}
       isKds={isKds}
       detailsModalVisible={detailsModalVisible}
       closeDetailsModal={closeDetailsModal}
       financialDetailsVisible={financialDetailsVisible}
       closeFinancialDetailsModal={closeFinancialDetailsModal}
       attachmentsVisible={attachmentsVisible}
+      addressSaveLoading={addressSaveLoading}
       setAttachmentsVisible={setAttachmentsVisible}
       topBarOrderId={topBarOrderId}
       item={item}
@@ -506,6 +536,8 @@ const OrderDetails = ({ route, navigation }) => {
       primaryActionDisabled={primaryActionDisabled}
       primaryActionLabel={primaryActionLabel}
       primaryActionIcon={primaryActionIcon}
+      primaryActionMode={primaryActionMode}
+      isLocallyTerminalOrder={isLocallyTerminalOrder}
       canAddOrderPayment={canAddOrderPayment}
       handleOpenFinancialDetails={handleOpenFinancialDetails}
       localOrderTotal={localOrderTotal}

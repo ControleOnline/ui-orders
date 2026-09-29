@@ -27,6 +27,24 @@ describe('linkedOrderContext', () => {
     expect(context.isLinkedParent).toBe(true)
   })
 
+  it('classifies a cart with linked table metadata as a child order', () => {
+    const context = getLinkedOrderContext({
+      app: 'POS',
+      mainOrderId: 71200,
+      orderType: 'cart',
+      otherInformations: {
+        linked_order: {
+          input_type: 'manual',
+          order_type: 'table',
+        },
+      },
+    })
+
+    expect(context.orderType).toBe('table')
+    expect(context.isLinkedParent).toBe(false)
+    expect(context.isLinkedChild).toBe(true)
+  })
+
   it('does not read linked_order main_order_id when the root field is absent', () => {
     const context = getLinkedOrderContext({
       orderType: 'sale',
@@ -44,7 +62,7 @@ describe('linkedOrderContext', () => {
     expect(context.inputType).toBe('barcode')
     expect(context.mainOrderId).toBeNull()
     expect(context.orderType).toBe('tab')
-    expect(context.isLinkedParent).toBe(true)
+    expect(context.isLinkedParent).toBe(false)
   })
 
   it('keeps linked metadata free of mesa and comanda identifiers when building payloads', () => {
