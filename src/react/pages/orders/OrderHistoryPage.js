@@ -318,27 +318,12 @@ export default function OrderHistoryPage({ navigation, route }) {
     setMarkAsPaidOrder(order);
   }, [orderActions]);
 
-  const handleMarkAsPaidSuccess = useCallback((result) => {
+  const handleMarkAsPaidSuccess = useCallback(() => {
     setMarkAsPaidOrder(null);
-    const message = String(result?.message || '').trim();
-    if (result?.alreadyPaid) {
-      // Backend: financial balance already zero — show API text (e.g. "Pedido ja esta quitado.")
-      if (message) {
-        if (typeof showError === 'function') showError(message);
-        else if (typeof showSuccess === 'function') showSuccess(message);
-      }
-    } else if (message && message.toLowerCase() !== 'ok') {
-      if (typeof showSuccess === 'function') showSuccess(message);
-    } else if (typeof showSuccess === 'function') {
-      showSuccess(
-        (global.t?.t && global.t.t('orders', 'message', 'markAsPaidSuccess')) ||
-          'Pedido marcado como pago.',
-      );
-    }
     if (typeof orderActions?.getItems === 'function') {
       void orderActions.getItems();
     }
-  }, [orderActions, showError, showSuccess]);
+  }, [orderActions]);
 
   const renderRowActions = useCallback(({ row }) => (
     <OrderHistoryRowActions row={row} styles={styles} themeColors={themeColors}
