@@ -48,11 +48,11 @@ export default function PdvPage({navigation, route}) {
       params: {
         ...(route?.params || {}),
         interactionMode: 'pdv',
-        showBottomCart: true,
+        showBottomCart: isWaiterPosMode,
         showBottomToolBar: true,
       },
     }),
-    [route],
+    [isWaiterPosMode, route],
   );
 
   useEffect(() => {
