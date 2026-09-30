@@ -463,7 +463,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const viewProps = {
     localStyles, ppcColors, globalStyles, useUnifiedKdsLayout, currentCompany,
-    defaultCompany: mainCompany, refreshCurrentOrder, marketplaceSummary, showBarcodeInput,
+    mainCompany, refreshCurrentOrder, marketplaceSummary, showBarcodeInput,
     isPosSelfServiceOperationMode, isWaiterMode, productSearchText, setProductSearchText,
     productSearchResults, productSearchLoading, productSearchSelectionId,
     handleQuickAddProductFromSearch, handleCustomizeProductFromSearch,
