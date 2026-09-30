@@ -38,4 +38,3 @@ export const resolveEmbeddedOrderProducts = order => ({
     !!order && Object.prototype.hasOwnProperty.call(order, 'orderProducts'),
   orderProducts: getEmbeddedOrderProducts(order),
 })
-
