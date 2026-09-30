@@ -36,6 +36,7 @@ import {
   resolveCounterStartDestinationFromSession,
 } from '@controleonline/ui-orders/src/react/hooks/posCartSession/hydration'
 import {syncPosOrderPeople} from '@controleonline/ui-orders/src/react/hooks/posCartSession/peopleSync'
+import usePosDraftOrderStorage from './posCartSession/usePosDraftOrderStorage'
 import {setActivePosOrderContext} from '@controleonline/ui-orders/src/react/hooks/posCartSession/activePosOrderContext'
 import {
   ensureSettlementOrder as ensureSettlementOrderHelper,
@@ -133,16 +134,8 @@ export default function usePosCartSession({
     }
   }, [storedOrderId])
 
-  const clearStoredDraftOrderId = useCallback(() => {
-    if (typeof localStorage === 'undefined' || !storageKey) return
-    localStorage.removeItem(storageKey)
-  }, [storageKey])
-
-  const rememberDraftOrderId = useCallback(order => {
-    const orderId = normalizeId(order?.id || order?.['@id'])
-    if (typeof localStorage === 'undefined' || !storageKey || !orderId) return
-    localStorage.setItem(storageKey, orderId)
-  }, [storageKey])
+  const {clearStoredDraftOrderId, rememberDraftOrderId, readStoredDraftOrderId} =
+    usePosDraftOrderStorage(storageKey)
 
   const syncActiveOrderState = useCallback(order => {
     if (order && isOpenPosCartOrder(order, {usesLinkedCheckOrders})) {
@@ -170,11 +163,6 @@ export default function usePosCartSession({
     rememberDraftOrderId,
     usesLinkedCheckOrders,
   ])
-
-  const readStoredDraftOrderId = useCallback(() => {
-    if (typeof localStorage === 'undefined' || !storageKey) return null
-    return normalizeId(localStorage.getItem(storageKey))
-  }, [storageKey])
 
   const buildOrderPayload = useCallback((
     statusIri,

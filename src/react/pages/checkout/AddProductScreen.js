@@ -243,12 +243,15 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     void (async () => {
       let requestFailed = false;
       try {
-        await categoryActions?.getItems?.({
+        const data = await categoryActions?.getItems?.({
           company: companyId,
           context: route?.params?.context || 'products',
           'order[sortOrder]': 'ASC',
           'order[name]': 'ASC',
         });
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid category collection response.');
+        }
       } catch {
         requestFailed = true;
       } finally {
