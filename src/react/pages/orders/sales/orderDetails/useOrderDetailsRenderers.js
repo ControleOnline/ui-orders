@@ -1,7 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo } from 'react'
-import OrderTopBarActions, {
-  ORDER_TOP_BAR_ACTIONS,
-} from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
+import OrderTopBarActions from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
 import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
 import { Text, View } from 'react-native'
@@ -13,6 +11,7 @@ import OrderItemsTab from '../OrderItemsTab'
 import OrderInvoices from '../OrderInvoices'
 import { buildOrderSummaryData } from './buildOrderSummaryData'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
+import {resolveOrderTopBarButtons} from './resolveOrderTopBarButtons'
 
 export default function useOrderDetailsRenderers(p) {
   const {
@@ -68,7 +67,6 @@ export default function useOrderDetailsRenderers(p) {
     handleAddProduct,
     productSearchText,
     setProductSearchText,
-    isLoading,
     // kds content
     isPurchaseOrder,
     shouldShowOrderPartyDetails,
@@ -150,21 +148,10 @@ export default function useOrderDetailsRenderers(p) {
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
     : 24
-  const topBarButtons = useMemo(() => {
-    const buttons = [ORDER_TOP_BAR_ACTIONS.PRINT]
-
-    if (topBarOrderId) {
-      buttons.push(ORDER_TOP_BAR_ACTIONS.NF)
-      buttons.push(ORDER_TOP_BAR_ACTIONS.LOGISTICS)
-      buttons.push(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS)
-    }
-
-    if (canShowDebugActions) {
-      buttons.push(ORDER_TOP_BAR_ACTIONS.TOOLS, ORDER_TOP_BAR_ACTIONS.LOGS)
-    }
-
-    return buttons
-  }, [canShowDebugActions, topBarOrderId])
+  const topBarButtons = useMemo(
+    () => resolveOrderTopBarButtons({canShowDebugActions, topBarOrderId}),
+    [canShowDebugActions, topBarOrderId],
+  )
   const topBarPrintJob = {type: 'order', orderId: topBarOrderId}
   const topBarPrinterSelection = isKds
     ? {

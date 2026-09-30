@@ -110,9 +110,15 @@ export default function useOrderDetailsPrimaryActions({
       await flushPendingOrderProductChanges()
 
       const response = await api.post(`/orders/${orderId}/confirm`, {})
-      const result = response?.result || response
+      const result = response && Object.prototype.hasOwnProperty.call(response, 'result')
+        ? response.result
+        : response
 
-      if (String(result?.errno ?? '0') !== '0') {
+      if (!result || typeof result !== 'object' || result.errno === undefined) {
+        throw new Error('Invalid order confirmation response.');
+      }
+
+      if (String(result.errno) !== '0') {
         throw result || response
       }
 

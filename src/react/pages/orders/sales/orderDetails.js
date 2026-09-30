@@ -461,100 +461,35 @@ const OrderDetails = ({ route, navigation }) => {
     formatOrderDateTime,
   })
 
+  const viewProps = {
+    localStyles, ppcColors, globalStyles, useUnifiedKdsLayout, currentCompany,
+    defaultCompany: mainCompany, refreshCurrentOrder, marketplaceSummary, showBarcodeInput,
+    isPosSelfServiceOperationMode, isWaiterMode, productSearchText, setProductSearchText,
+    productSearchResults, productSearchLoading, productSearchSelectionId,
+    handleQuickAddProductFromSearch, handleCustomizeProductFromSearch,
+    resolvedDisplayOrderProductsWithProductDetails, shouldShowOrderPartyDetails,
+    customerModalVisible, closeCustomerModal, customerLinkingId, orderCustomerName,
+    customerSearch, setCustomerSearch, customerSearchLoading, customerSearchResults,
+    handleSelectCustomer, openCustomerCreateModal, customerCreateModalVisible,
+    setCustomerCreateModalVisible, handleCustomerCreated, addressModalVisible,
+    closeAddressModal, addressModalMode, setAddressModalMode, handleAddressFormFieldChange,
+    addressOptions, addressOptionsLoading, addressForm, setAddressForm, openAddressCreateMode,
+    selectedOrderClientIri, selectedOrderAddressIri, addressSelectingId, handleSelectAddress,
+    handleCreateAddress, orderIdentitySource, orderHeaderActionProps, navigation,
+    handleOrderLogs, handleOrderTools, orderParam, addProductsButtonLabel, canShowDebugActions,
+    isKds, detailsModalVisible, closeDetailsModal, financialDetailsVisible,
+    closeFinancialDetailsModal, attachmentsVisible, addressSaveLoading, setAttachmentsVisible,
+    topBarOrderId, item, handleAddProduct, handlePrimaryAction, primaryActionLoading,
+    primaryActionDisabled, primaryActionLabel, primaryActionIcon, primaryActionMode,
+    isLocallyTerminalOrder, canAddOrderPayment, handleOpenFinancialDetails, localOrderTotal,
+    localReceivedAmount, hasMarketplaceIntegration, shouldShowMobilePaymentBar,
+    shouldShowBottomNavigation, canAddProductsToOrder, isLoading, error,
+    shouldShowInlineOrderTotal, localDisplayLabel, localDisplayAmount, localPendingAmount,
+    shouldShowPreparationTime, orderWaitingLabel,
+  }
+
   return (
-    <OrderDetailsView
-      {...renderers}
-      localStyles={localStyles}
-      ppcColors={ppcColors}
-      globalStyles={globalStyles}
-      useUnifiedKdsLayout={useUnifiedKdsLayout}
-      currentCompany={currentCompany}
-      defaultCompany={mainCompany}
-      refreshCurrentOrder={refreshCurrentOrder}
-      marketplaceSummary={marketplaceSummary}
-      showBarcodeInput={showBarcodeInput}
-      isPosSelfServiceOperationMode={isPosSelfServiceOperationMode}
-      isWaiterMode={isWaiterMode}
-      productSearchText={productSearchText}
-      setProductSearchText={setProductSearchText}
-      productSearchResults={productSearchResults}
-      productSearchLoading={productSearchLoading}
-      productSearchSelectionId={productSearchSelectionId}
-      handleQuickAddProductFromSearch={handleQuickAddProductFromSearch}
-      handleCustomizeProductFromSearch={handleCustomizeProductFromSearch}
-      resolvedDisplayOrderProductsWithProductDetails={resolvedDisplayOrderProductsWithProductDetails}
-      shouldShowOrderPartyDetails={shouldShowOrderPartyDetails}
-      customerModalVisible={customerModalVisible}
-      closeCustomerModal={closeCustomerModal}
-      customerLinkingId={customerLinkingId}
-      orderCustomerName={orderCustomerName}
-      customerSearch={customerSearch}
-      setCustomerSearch={setCustomerSearch}
-      customerSearchLoading={customerSearchLoading}
-      customerSearchResults={customerSearchResults}
-      handleSelectCustomer={handleSelectCustomer}
-      openCustomerCreateModal={openCustomerCreateModal}
-      customerCreateModalVisible={customerCreateModalVisible}
-      setCustomerCreateModalVisible={setCustomerCreateModalVisible}
-      handleCustomerCreated={handleCustomerCreated}
-      addressModalVisible={addressModalVisible}
-      closeAddressModal={closeAddressModal}
-      addressModalMode={addressModalMode}
-      setAddressModalMode={setAddressModalMode}
-      handleAddressFormFieldChange={handleAddressFormFieldChange}
-      addressOptions={addressOptions}
-      addressOptionsLoading={addressOptionsLoading}
-      addressForm={addressForm}
-      setAddressForm={setAddressForm}
-      openAddressCreateMode={openAddressCreateMode}
-      selectedOrderClientIri={selectedOrderClientIri}
-      selectedOrderAddressIri={selectedOrderAddressIri}
-      addressSelectingId={addressSelectingId}
-      handleSelectAddress={handleSelectAddress}
-      handleCreateAddress={handleCreateAddress}
-      orderIdentitySource={orderIdentitySource}
-      orderHeaderActionProps={orderHeaderActionProps}
-      navigation={navigation}
-      handleOrderLogs={handleOrderLogs}
-      handleOrderTools={handleOrderTools}
-      orderParam={orderParam}
-      addProductsButtonLabel={addProductsButtonLabel}
-      canShowDebugActions={canShowDebugActions}
-      isKds={isKds}
-      detailsModalVisible={detailsModalVisible}
-      closeDetailsModal={closeDetailsModal}
-      financialDetailsVisible={financialDetailsVisible}
-      closeFinancialDetailsModal={closeFinancialDetailsModal}
-      attachmentsVisible={attachmentsVisible}
-      addressSaveLoading={addressSaveLoading}
-      setAttachmentsVisible={setAttachmentsVisible}
-      topBarOrderId={topBarOrderId}
-      item={item}
-      handleAddProduct={handleAddProduct}
-      handlePrimaryAction={handlePrimaryAction}
-      primaryActionLoading={primaryActionLoading}
-      primaryActionDisabled={primaryActionDisabled}
-      primaryActionLabel={primaryActionLabel}
-      primaryActionIcon={primaryActionIcon}
-      primaryActionMode={primaryActionMode}
-      isLocallyTerminalOrder={isLocallyTerminalOrder}
-      canAddOrderPayment={canAddOrderPayment}
-      handleOpenFinancialDetails={handleOpenFinancialDetails}
-      localOrderTotal={localOrderTotal}
-      localReceivedAmount={localReceivedAmount}
-      hasMarketplaceIntegration={hasMarketplaceIntegration}
-      shouldShowMobilePaymentBar={shouldShowMobilePaymentBar}
-      shouldShowBottomNavigation={shouldShowBottomNavigation}
-      canAddProductsToOrder={canAddProductsToOrder}
-      isLoading={isLoading}
-      error={error}
-      shouldShowInlineOrderTotal={shouldShowInlineOrderTotal}
-      localDisplayLabel={localDisplayLabel}
-      localDisplayAmount={localDisplayAmount}
-      localPendingAmount={localPendingAmount}
-      shouldShowPreparationTime={shouldShowPreparationTime}
-      orderWaitingLabel={orderWaitingLabel}
-    />
+    <OrderDetailsView {...renderers} {...viewProps} />
   )
 }
 

@@ -1,19 +1,17 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {
-  Image,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
 
 import {useStore} from '@store'
-import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import css from '@controleonline/ui-orders/src/react/css/orders'
 import OrderProducts from '@controleonline/ui-orders/src/react/components/OrderProducts'
 import {createOrderItemsRenderActions} from './orderItemsTabActions'
 import Icon from 'react-native-vector-icons/MaterialIcons'
-import {resolveProductCoverUrl} from '@controleonline/ui-products/src/react/domain/productMedia'
+import OrderItemsProductSearch from './OrderItemsProductSearch'
+import {getEntityId, getEmbeddedOrderProducts, resolveEmbeddedOrderProducts} from './orderItemsTabOrderProducts'
 import {
   hasDetailedOrderProductMetadata,
   hasOrderProducts,
@@ -27,47 +25,6 @@ import {
   inlineStyle_2121_14,
   inlineStyle_2128_20,
 } from './orderDetails.styles'
-
-const getEntityId = entity => {
-  if (!entity) return null
-
-  if (typeof entity === 'number' || typeof entity === 'string') {
-    const matches = String(entity).match(/\d+/g)
-    return matches ? Number(matches[matches.length - 1]) : null
-  }
-
-  if (typeof entity === 'object') {
-    if (entity.id) return Number(entity.id)
-    if (entity['@id']) {
-      const matches = String(entity['@id']).match(/\d+/g)
-      return matches ? Number(matches[matches.length - 1]) : null
-    }
-  }
-
-  return null
-}
-
-const getEmbeddedOrderProducts = order => {
-  if (Array.isArray(order?.orderProducts)) {
-    return order.orderProducts
-  }
-
-  if (Array.isArray(order?.orderProducts?.member)) {
-    return order.orderProducts.member
-  }
-
-  if (Array.isArray(order?.orderProducts?.['hydra:member'])) {
-    return order.orderProducts['hydra:member']
-  }
-
-  return []
-}
-
-const resolveEmbeddedOrderProducts = order => ({
-  hasOwnOrderProducts:
-    !!order && Object.prototype.hasOwnProperty.call(order, 'orderProducts'),
-  orderProducts: getEmbeddedOrderProducts(order),
-})
 
 const getOrderProductCollectionSignature = orderProducts =>
   (Array.isArray(orderProducts) ? orderProducts : [])
@@ -460,109 +417,17 @@ const OrderItemsTab = ({
       {canAddProductsToOrder &&
         showProductSearch &&
         typeof setProductSearchText === 'function' && (
-        <View style={localStyles.detailsProductSearchStack}>
-          <View
-            style={[
-              localStyles.assignmentSearchBox,
-              localStyles.detailsProductSearchBox,
-            ]}
-            >
-            <Icon name="search" size={18} color={ppcColors.textSecondary} />
-            <TextInput
-              value={productSearchText}
-              onChangeText={setProductSearchText}
-              placeholder="Pesquisar e adicionar produto"
-              placeholderTextColor={ppcColors.textSecondary}
-              autoCapitalize="none"
-              returnKeyType="search"
-              style={localStyles.assignmentSearchInput}
-            />
-            {productSearchLoading && (
-              <Text style={localStyles.assignmentOptionBadge}>
-                {global.t?.t('orders', 'label', 'loading') || 'Buscando'}
-              </Text>
-            )}
-          </View>
-
-          {String(productSearchText || '').trim().length >= 2 && (
-            <View style={localStyles.detailsProductSearchResults}>
-              {Array.isArray(productSearchResults) && productSearchResults.length > 0 ? (
-                productSearchResults.map(product => {
-                  const productId = String(product?.id || product?.['@id'] || '')
-                  const isSelecting = productSearchSelectionId === productId
-                  const coverUrl = resolveProductCoverUrl(product)
-                  const isCustomProduct =
-                    String(product?.type || '').trim() === 'custom'
-
-                  return (
-                    <TouchableOpacity
-                      key={productId || product?.sku || product?.product}
-                      onPress={() =>
-                        isCustomProduct
-                          ? onCustomizeProduct?.(product)
-                          : onQuickAddProduct?.(product)
-                      }
-                      disabled={isSelecting}
-                      style={[
-                        localStyles.assignmentOptionCard,
-                        localStyles.detailsProductSearchResultCard,
-                        isSelecting && localStyles.inlineActionButtonDisabled,
-                      ]}
-                    >
-                      <View style={localStyles.detailsProductSearchThumb}>
-                        {coverUrl ? (
-                          <Image
-                            source={{uri: coverUrl}}
-                            resizeMode="cover"
-                            style={localStyles.detailsProductSearchImage}
-                          />
-                        ) : (
-                          <Icon name="image" size={20} color={ppcColors.textSecondary} />
-                        )}
-                      </View>
-                      <View style={localStyles.assignmentOptionTextWrap}>
-                        <Text
-                          style={localStyles.assignmentOptionTitle}
-                          numberOfLines={1}
-                        >
-                          {product?.product || 'Produto sem nome'}
-                        </Text>
-                        <Text
-                          style={localStyles.detailsProductSearchPrice}
-                          numberOfLines={1}
-                        >
-                          {Formatter.formatMoney(product?.price || 0)}
-                        </Text>
-                      </View>
-                      {isSelecting ? (
-                        <Text style={localStyles.assignmentOptionBadge}>
-                          {global.t?.t('orders', 'label', 'loading') || 'Carregando'}
-                        </Text>
-                      ) : isCustomProduct ? (
-                        <View style={localStyles.detailsProductSearchCustomButton}>
-                          <Text style={localStyles.detailsProductSearchCustomText}>
-                            CUSTOMIZAR
-                          </Text>
-                        </View>
-                      ) : (
-                        <Icon name="add-circle" size={20} color={ppcColors.accentInfo} />
-                      )}
-                    </TouchableOpacity>
-                  )
-                })
-              ) : !productSearchLoading ? (
-                <View style={localStyles.assignmentEmptyState}>
-                  <Text style={localStyles.assignmentEmptyStateTitle}>
-                    Nenhum produto encontrado
-                  </Text>
-                  <Text style={localStyles.assignmentEmptyStateText}>
-                    Refine o nome ou SKU para encontrar o produto que deseja adicionar.
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          )}
-        </View>
+        <OrderItemsProductSearch
+          localStyles={localStyles}
+          ppcColors={ppcColors}
+          productSearchText={productSearchText}
+          setProductSearchText={setProductSearchText}
+          productSearchLoading={productSearchLoading}
+          productSearchResults={productSearchResults}
+          productSearchSelectionId={productSearchSelectionId}
+          onCustomizeProduct={onCustomizeProduct}
+          onQuickAddProduct={onQuickAddProduct}
+        />
       )}
 
       <View

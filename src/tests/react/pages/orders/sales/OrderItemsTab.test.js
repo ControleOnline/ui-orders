@@ -43,6 +43,9 @@ jest.mock('../../../../../react/pages/orders/sales/orderDetails.styles', () => (
 
 jest.mock('react-native-vector-icons/MaterialIcons', () => 'Icon')
 
+// Fetch-policy tests do not mount the adjustment modal or initialize its API.
+jest.mock('../../../../../react/components/adjustment/OrderProductAdjustmentButton', () => () => null)
+
 const {
   getOrderProductsFallbackFetchKey,
   getOrderSyncSignature,

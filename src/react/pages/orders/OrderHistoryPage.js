@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,8 +14,8 @@ import {
   isPosCashRegisterClosed,
   isPosCounterMode,
   isPosSingleItemMode,
+  resolvePosOperationMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {
   buildAddProductsRouteParams,
   buildManagerPdvRouteParams,
@@ -27,14 +25,12 @@ import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosC
 import { shouldResumeCounterOrderFlow } from '@controleonline/ui-orders/src/react/utils/counterOrderFlow';
 import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import {
-  getCancelReasonLabel,
   OrderCancelModal,
   OrderCancellationDetailsModal,
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
 import {
   clearCreateInvoiceOnlyMode,
-  setCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
 import {
@@ -97,7 +93,8 @@ export default function OrderHistoryPage({ navigation, route }) {
   );
   const shouldRestrictToDeviceOrders = isPosApp && !canViewCompanyOrders;
   const showAdvancedFilters = !isPosApp || canViewCompanyOrders;
-  const showHistoryToolbar = !shouldRestrictToDeviceOrders;
+  const isWaiterMode = isPosApp && resolvePosOperationMode(deviceConfig?.configs) === 'waiter';
+  const showHistoryToolbar = !isWaiterMode && !shouldRestrictToDeviceOrders;
   const showOrderHistoryRowActions = !isPosApp;
   const [markAsPaidOrder, setMarkAsPaidOrder] = useState(null);
   const statusItems = useMemo(
@@ -414,9 +411,10 @@ export default function OrderHistoryPage({ navigation, route }) {
             }}
             showRowActions={showOrderHistoryRowActions}
             showToolbar={showHistoryToolbar}
+            showTotalItemsInFooter={!isWaiterMode}
             storeName="orders"
             summary={false}
-            toolbarActions={orderToolbarActions}
+            toolbarActions={isWaiterMode ? [] : orderToolbarActions}
             visibleColumnsPreferenceKey={ORDER_HISTORY_TABLE_PREFERENCE_KEY}
           />
         </View>
