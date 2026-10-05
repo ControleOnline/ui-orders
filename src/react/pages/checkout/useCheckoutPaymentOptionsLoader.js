@@ -4,11 +4,14 @@ import {api} from '@controleonline/ui-common/src/api';
 import {
   filterDeviceConfigsByCompany,
   filterWalletPaymentTypesByAllowedIds,
+  getPaymentGateway,
   resolveDevicePaymentTypeIds,
+  selectPosWalletPaymentTypes,
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
+import {isGatewayFreePayment} from '@controleonline/ui-common/src/react/utils/cashPayment';
 import {isIntegratedPaymentOption} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {normalizeGatewayPaymentError} from '@controleonline/ui-common/src/react/services/paymentGatewayExecution';
-import {extractCollectionItems} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
+import {extractCollectionItems} from '@controleonline/ui-orders/src/react/utils/posCartHelpers';
 import {buildPaymentSelectionOption} from './CheckoutPaymentOptions';
 import {
   PAYMENT_CHANNEL_LOCAL,
@@ -19,6 +22,9 @@ export default function useCheckoutPaymentOptionsLoader({
   allPaymentOptions,
   canChangePaymentDeviceDuringCheckout,
   canUseLocalOperationalPayment,
+  canUseRemoteOperationalPayment = true,
+  waiterConsultationCheckout = false,
+  isLocalPaymentDevice = true,
   currentCompany,
   device,
   deviceConfigActions,
@@ -35,20 +41,22 @@ export default function useCheckoutPaymentOptionsLoader({
 }) {
   useFocusEffect(
     useCallback(() => {
-      if (!currentCompany?.id || isLocalCieloPdv) {
+      if (!currentCompany?.id || (isLocalCieloPdv && !waiterConsultationCheckout)) {
         setCompanyDeviceConfigs([]);
         return;
       }
 
-      deviceConfigActions
-        .getItems({people: '/people/' + currentCompany.id})
+      const loadConfigs = waiterConsultationCheckout
+        ? deviceConfigActions.ensureCompanyDeviceConfigsLoaded
+        : deviceConfigActions.getItems;
+      loadConfigs({people: '/people/' + currentCompany.id})
         .then(data => {
           setCompanyDeviceConfigs(
             filterDeviceConfigsByCompany(data, currentCompany?.id),
           );
         })
         .catch(() => setCompanyDeviceConfigs([]));
-    }, [currentCompany?.id, deviceConfigActions, isLocalCieloPdv]),
+    }, [currentCompany?.id, deviceConfigActions, isLocalCieloPdv, waiterConsultationCheckout]),
   );
 
   useEffect(() => {
@@ -83,14 +91,26 @@ export default function useCheckoutPaymentOptionsLoader({
         return;
       }
 
+      if (waiterConsultationCheckout && !canUseLocalOperationalPayment &&
+        (!canUseRemoteOperationalPayment || !selectedRemoteDevice)) {
+        setLoadingPaymentOptions(false);
+        setLocalPaymentOptions([]);
+        setRemotePaymentOptions([]);
+        setPaymentOptionsError(canUseRemoteOperationalPayment
+          ? 'Configure um device de pagamento remoto autorizado para receber esta comanda.'
+          : 'Cobrança não autorizada neste device. Volte à consulta para atualizar.');
+        return;
+      }
+
       const localPaymentTypeIds = canUseLocalOperationalPayment
         ? resolveDevicePaymentTypeIds(device?.configs)
         : [];
-      const remotePaymentTypeIds = selectedRemoteDevice?.config
+      const remotePaymentTypeIds = canUseRemoteOperationalPayment && selectedRemoteDevice?.config
         ? resolveDevicePaymentTypeIds(selectedRemoteDevice.config?.configs)
         : [];
 
-      if (!localPaymentTypeIds.length && !remotePaymentTypeIds.length) {
+      const posGateway = getPaymentGateway(device) || getPaymentGateway(selectedRemoteDevice?.config);
+      if (!localPaymentTypeIds.length && !remotePaymentTypeIds.length && !posGateway) {
         setLoadingPaymentOptions(false);
         setLocalPaymentOptions([]);
         setRemotePaymentOptions([]);
@@ -102,16 +122,57 @@ export default function useCheckoutPaymentOptionsLoader({
       setPaymentOptionsError('');
 
       try {
+        try {
+          await api.fetch('configs/discovery-configs', {
+            method: 'POST',
+            body: {people: '/people/' + currentCompany.id},
+          });
+        } catch (discoveryError) {
+          if (!isMounted) return;
+          setLocalPaymentOptions([]);
+          setRemotePaymentOptions([]);
+          setPaymentOptionsError(
+            normalizeGatewayPaymentError(
+              discoveryError,
+              'Nao foi possivel descobrir as configuracoes de pagamento.',
+            ),
+          );
+          return;
+        }
+
         const response = await api.fetch('wallet_payment_types', {
           params: {people: '/people/' + currentCompany.id},
         });
         if (!isMounted) return;
-        const allPaymentTypes = extractCollectionItems(response);
+        const receivedPaymentTypes = extractCollectionItems(response);
+        const allPaymentTypes = selectPosWalletPaymentTypes({
+          walletPaymentTypes: receivedPaymentTypes,
+          deviceConfigs: device?.configs,
+          companyConfigs: selectedRemoteDevice?.config?.configs,
+          gateway: getPaymentGateway(device) || getPaymentGateway(selectedRemoteDevice?.config),
+        });
+        const localCatalog = waiterConsultationCheckout ? selectPosWalletPaymentTypes({
+          walletPaymentTypes: receivedPaymentTypes, deviceConfigs: device?.configs,
+          companyConfigs: currentCompany?.configs, gateway: getPaymentGateway(device),
+        }) : allPaymentTypes;
+        const remoteCatalog = waiterConsultationCheckout ? selectPosWalletPaymentTypes({
+          walletPaymentTypes: receivedPaymentTypes, deviceConfigs: selectedRemoteDevice?.config?.configs,
+          companyConfigs: currentCompany?.configs, gateway: getPaymentGateway(selectedRemoteDevice?.config),
+        }) : allPaymentTypes;
+        const localTypes = localPaymentTypeIds.length
+          ? filterWalletPaymentTypesByAllowedIds(
+              localCatalog,
+              localPaymentTypeIds,
+            )
+          : localCatalog;
+        const remoteTypes = remotePaymentTypeIds.length
+          ? filterWalletPaymentTypesByAllowedIds(
+              remoteCatalog,
+              remotePaymentTypeIds,
+            )
+          : remoteCatalog;
         setLocalPaymentOptions(
-          filterWalletPaymentTypesByAllowedIds(
-            allPaymentTypes,
-            localPaymentTypeIds,
-          ).map(payment =>
+          (waiterConsultationCheckout ? localTypes.filter(payment => canUseLocalOperationalPayment && (isLocalPaymentDevice || isGatewayFreePayment(payment))) : localTypes).map(payment =>
             buildPaymentSelectionOption({
               channel: PAYMENT_CHANNEL_LOCAL,
               payment,
@@ -119,11 +180,8 @@ export default function useCheckoutPaymentOptionsLoader({
           ),
         );
         setRemotePaymentOptions(
-          filterWalletPaymentTypesByAllowedIds(
-            allPaymentTypes,
-            remotePaymentTypeIds,
-          )
-            .filter(isIntegratedPaymentOption)
+          remoteTypes
+            .filter(payment => canUseRemoteOperationalPayment && !!selectedRemoteDevice && isIntegratedPaymentOption(payment))
             .map(payment =>
               buildPaymentSelectionOption({
                 channel: PAYMENT_CHANNEL_REMOTE,
@@ -154,7 +212,11 @@ export default function useCheckoutPaymentOptionsLoader({
     };
   }, [
     canUseLocalOperationalPayment,
+    canUseRemoteOperationalPayment,
+    waiterConsultationCheckout,
+    isLocalPaymentDevice,
     currentCompany?.id,
+    currentCompany?.configs,
     device?.configs,
     selectedRemoteDevice?.alias,
     selectedRemoteDevice?.config?.configs,
