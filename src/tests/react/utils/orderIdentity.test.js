@@ -15,6 +15,8 @@ global.t = {
       return 'Pedido'
     }
 
+    if (key === 'tab') return 'Comanda'
+    if (key === 'stamp') return 'Carimbo'
     return ''
   }),
 }
@@ -113,6 +115,7 @@ describe('orderIdentity', () => {
       id: 71604,
       app: 'POS',
       externalCode: '570002',
+      otherInformations: {linked_order: {order_type: 'table'}},
     }
 
     const identity = resolveOrderIdentity(order)
@@ -138,3 +141,14 @@ describe('orderIdentity', () => {
     expect(identity.secondaryText).toBe('')
   })
 })
+
+it.each([['tab', 'Comanda'], ['table', 'Mesa'], ['stamp', 'Carimbo']])('uses the real linked type %s for POS cart and sale identities', (type, label) => {
+ for (const orderType of ['cart', 'sale', type]) {
+  const identity = resolveOrderIdentity({id: 72956, app: 'POS', orderType, externalCode: '1',
+   otherInformations: JSON.stringify({linked_order: {order_type: type}})});
+  expect(identity.primaryText).toBe(`${label} #1`);
+ }
+});
+it('does not invent a table when a legacy POS code has no linked type', () => {
+ expect(resolveOrderIdentity({id: 4, app: 'POS', externalCode: 'Jorge'}).primaryText).toBe('Pedido #Jorge');
+});

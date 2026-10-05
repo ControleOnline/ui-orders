@@ -36,7 +36,7 @@ const resolvePosExternalCode = order => {
   return getLinkedOrderContext(order).externalCode
 }
 
-const resolvePosExternalLabel = () => global.t?.t('orders', 'title', 'table')
+const resolvePosExternalLabel = order => getLinkedOrderContext(order).label
 
 export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
   const effectiveRemoteOrderSummary = resolveOrderIdentityRemoteSummary(
@@ -58,7 +58,7 @@ export const resolveOrderIdentity = (order, remoteOrderSummary = null) => {
       externalId: posExternalCode,
       externalLabel: '',
       hasMarketplaceReference: false,
-      primaryText: [resolvePosExternalLabel(), formatOrderCode(posExternalCode)]
+      primaryText: [resolvePosExternalLabel(order), formatOrderCode(posExternalCode)]
         .filter(Boolean)
         .join(' '),
       secondaryText:

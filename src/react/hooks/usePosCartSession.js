@@ -4,7 +4,7 @@ import {
   canManagePosCheckOrders,
   POS_CHECK_ORDER_TYPE_TAB,
   POS_CHECK_ORDER_TYPE_TABLE,
-  resolvePosCheckOrderTypeForShop,
+  resolvePosCheckOrderEntryTypeForShop,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {useStore} from '@store'
 import {isLinkedChildOrder} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
@@ -36,6 +36,8 @@ import {
   resolveCounterStartDestinationFromSession,
 } from '@controleonline/ui-orders/src/react/hooks/posCartSession/hydration'
 import {syncPosOrderPeople} from '@controleonline/ui-orders/src/react/hooks/posCartSession/peopleSync'
+import usePosDraftOrderStorage from './posCartSession/usePosDraftOrderStorage'
+import {setActivePosOrderContext, consumeConfirmedPosOrderContext} from '@controleonline/ui-orders/src/react/hooks/posCartSession/activePosOrderContext'
 import {
   ensureSettlementOrder as ensureSettlementOrderHelper,
   findOpenLinkedSessionOrder as findOpenLinkedSessionOrderHelper,
@@ -72,7 +74,7 @@ export default function usePosCartSession({
   const [activeOrderState, setActiveOrderState] = useState(null)
   const linkedOrderType = useMemo(
     () =>
-      resolvePosCheckOrderTypeForShop(
+      resolvePosCheckOrderEntryTypeForShop(
         runtimeDeviceConfig?.configs,
         companyConfigs,
       ),
@@ -132,20 +134,13 @@ export default function usePosCartSession({
     }
   }, [storedOrderId])
 
-  const clearStoredDraftOrderId = useCallback(() => {
-    if (typeof localStorage === 'undefined' || !storageKey) return
-    localStorage.removeItem(storageKey)
-  }, [storageKey])
-
-  const rememberDraftOrderId = useCallback(order => {
-    const orderId = normalizeId(order?.id || order?.['@id'])
-    if (typeof localStorage === 'undefined' || !storageKey || !orderId) return
-    localStorage.setItem(storageKey, orderId)
-  }, [storageKey])
+  const {clearStoredDraftOrderId, rememberDraftOrderId, readStoredDraftOrderId} =
+    usePosDraftOrderStorage(storageKey)
 
   const syncActiveOrderState = useCallback(order => {
     if (order && isOpenPosCartOrder(order, {usesLinkedCheckOrders})) {
       rememberDraftOrderId(order)
+      setActivePosOrderContext({companyId, deviceId, order})
       setActiveOrderState(order)
       if (typeof ordersActions.syncOrder === 'function') {
         ordersActions.syncOrder(order)
@@ -156,20 +151,18 @@ export default function usePosCartSession({
     }
 
     clearStoredDraftOrderId()
+    setActivePosOrderContext({companyId, deviceId, order: null})
     setActiveOrderState(null)
     ordersActions.setItem({})
     return null
   }, [
     clearStoredDraftOrderId,
+    companyId,
+    deviceId,
     ordersActions,
     rememberDraftOrderId,
     usesLinkedCheckOrders,
   ])
-
-  const readStoredDraftOrderId = useCallback(() => {
-    if (typeof localStorage === 'undefined' || !storageKey) return null
-    return normalizeId(localStorage.getItem(storageKey))
-  }, [storageKey])
 
   const buildOrderPayload = useCallback((
     statusIri,
@@ -302,6 +295,9 @@ export default function usePosCartSession({
   }, [cartActions, companyId, deviceId, usesLinkedCheckOrders])
 
   const refreshActiveOrder = useCallback(async orderId => {
+    const confirmed = consumeConfirmedPosOrderContext({companyId, deviceId,
+      orderId: orderId || activeOrderIdRef.current || storedOrderIdRef.current})
+    if (confirmed) return syncActiveOrderState(confirmed)
     return refreshPosActiveOrder({
       activeOrderId: activeOrderIdRef.current,
       normalizeDraftOrderType,
@@ -312,10 +308,8 @@ export default function usePosCartSession({
       targetOrderId: orderId,
     })
   }, [
-    normalizeDraftOrderType,
-    orderProductsActions,
-    ordersActions,
-    syncActiveOrderState,
+    companyId, deviceId, normalizeDraftOrderType,
+    orderProductsActions, ordersActions, syncActiveOrderState,
   ])
 
   const loadStoredDraftOrder = useCallback(async () => {
