@@ -4,9 +4,12 @@ import Icon from 'react-native-vector-icons/Feather';
 import {useStore} from '@store';
 
 import AddProductScreen from '@controleonline/ui-orders/src/react/pages/checkout/AddProductScreen';
+import {app_type} from '@appType';
 import {
   POS_CHECK_ORDER_TYPE_NONE,
+  POS_OPERATION_MODE_WAITER,
   resolvePosCheckOrderTypeForShop,
+  resolvePosOperationMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 
 export default function PdvPage({navigation, route}) {
@@ -16,6 +19,10 @@ export default function PdvPage({navigation, route}) {
   const {currentCompany} = peopleStore.getters;
   const {colors: themeColors} = themeStore.getters;
   const {item: runtimeDeviceConfig} = deviceConfigStore.getters;
+  const isWaiterPosMode =
+    String(app_type || '').trim().toUpperCase() === 'POS' &&
+    resolvePosOperationMode(runtimeDeviceConfig?.configs) ===
+      POS_OPERATION_MODE_WAITER;
   const linkedOrderType = useMemo(
     () =>
       resolvePosCheckOrderTypeForShop(
@@ -41,14 +48,19 @@ export default function PdvPage({navigation, route}) {
       params: {
         ...(route?.params || {}),
         interactionMode: 'pdv',
-        showBottomCart: true,
+        showBottomCart: isWaiterPosMode
+          ? true
+          : route?.params?.showBottomCart,
         showBottomToolBar: true,
       },
     }),
-    [route],
+    [isWaiterPosMode, route],
   );
 
   useEffect(() => {
+    if (isWaiterPosMode) {
+      navigation.setParams({showBottomCart: true});
+    }
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity
@@ -84,7 +96,7 @@ export default function PdvPage({navigation, route}) {
         </TouchableOpacity>
       ),
     });
-  }, [linkedOrderType, navigation, palette, settlementLabel]);
+  }, [isWaiterPosMode, linkedOrderType, navigation, palette, settlementLabel]);
 
   return <AddProductScreen navigation={navigation} route={pdvRoute} />;
 }
