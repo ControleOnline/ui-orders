@@ -2,6 +2,7 @@ import {
   isAndroidKioskEnabled,
   parseConfigsObject,
   resolvePosCheckOrderType,
+  resolvePosCheckOrderManagementMode,
   resolvePosOperationMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import {
@@ -24,6 +25,12 @@ const CHECK_ORDER_TYPE_LABELS = {
   stamp: 'Nome',
   tab: 'Comanda',
   table: 'Mesa',
+  'table-tab': 'Mesa + Comanda',
+};
+
+const CHECK_ORDER_MANAGEMENT_LABELS = {
+  manage: 'Gerenciar comandas vinculadas',
+  'existing-only': 'Somente comandas vinculadas existentes',
 };
 
 const safeText = value =>
@@ -80,6 +87,7 @@ export const buildPosOperationInfo = ({currentCompany, deviceConfig} = {}) => {
   const configs = parseConfigsObject(deviceConfig?.configs);
   const operationMode = resolvePosOperationMode(configs);
   const checkOrderType = resolvePosCheckOrderType(configs);
+  const checkOrderManagementMode = resolvePosCheckOrderManagementMode(configs);
   const gateway = getPaymentGatewayFromConfigs(configs);
 
   return [
@@ -94,6 +102,14 @@ export const buildPosOperationInfo = ({currentCompany, deviceConfig} = {}) => {
       key: 'check-order-type',
       label: 'Vínculo',
       value: formatKnownValue(checkOrderType, CHECK_ORDER_TYPE_LABELS),
+    },
+    {
+      key: 'check-order-management-mode',
+      label: 'Gestão do vínculo',
+      value: formatKnownValue(
+        checkOrderManagementMode,
+        CHECK_ORDER_MANAGEMENT_LABELS,
+      ),
     },
     {
       key: 'kiosk',
