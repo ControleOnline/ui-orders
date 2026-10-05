@@ -136,6 +136,7 @@ const OrderDetails = ({ route, navigation }) => {
 
   const {
     confirmRemoveItemId,
+    setConfirmRemoveItemId,
     handleIncreaseOpQuantity,
     handleDecreaseOpQuantity,
     handleRemoveOp,
@@ -370,6 +371,7 @@ const OrderDetails = ({ route, navigation }) => {
   const renderers = useOrderDetailsRenderers({
     canMutateOrderProducts,
     confirmRemoveItemId,
+    setConfirmRemoveItemId,
     handleDecreaseOpQuantity,
     handleEditCustomizableOrderProduct,
     handleIncreaseOpQuantity,

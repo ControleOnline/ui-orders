@@ -1,3 +1,4 @@
+import {awaitProductConfirmation, reportProductConfirmationError} from '../../../../utils/confirmPendingProducts';
 import { useCallback, useMemo, useState } from 'react'
 import { api } from '@controleonline/ui-common/src/api'
 import {
@@ -12,6 +13,10 @@ import {
   resolveOrderDetailsPrimaryActionMode,
 } from '@controleonline/ui-orders/src/react/pages/orders/sales/orderDetailsPaymentBar'
 import { app_type } from '@appType'
+import { useStore } from '@store'
+import { setActivePosOrderContext } from '../../../../hooks/posCartSession/activePosOrderContext'
+import { hasDetailedOrderProductMetadata } from '../../../../utils/orderProductsFetchPolicy'
+import useCompleteWaiterLaunch from '../../../../hooks/posCartSession/useCompleteWaiterLaunch'
 import { formatApiError, getEntityId } from './helpers'
 
 /**
@@ -33,34 +38,48 @@ export default function useOrderDetailsPrimaryActions({
   showError,
   showSuccess,
 }) {
+  const completeWaiterLaunch = useCompleteWaiterLaunch()
+  const peopleStore = useStore('people')
+  const deviceStore = useStore('device')
   const [primaryActionLoading, setPrimaryActionLoading] = useState(false)
 
-  const handleAddProduct = useCallback(() => {
-    if (!canMutateOrderProducts) return
-    const shouldUseManagerPdv =
-      String(app_type || '').toUpperCase() === 'MANAGER' ||
-      route?.params?.interactionMode === 'pdv'
-
-    navigation.navigate(
-      'AddProductScreen',
-      buildAddProductsRouteParams(
-        item || orderParam || routeOrderId,
+  const handleAddProduct = useCallback(async () => {
+    if (!canMutateOrderProducts || isLocallyTerminalOrder) return
+    try {
+      await flushPendingOrderProductChanges()
+      const target = item || orderParam || routeOrderId
+      const snapshot = ordersGetters.item
+      const orderId = getEntityId(target)
+      const companyId = getEntityId(peopleStore.getters.currentCompany)
+      const deviceId = getEntityId(deviceStore.getters.item)
+      const loadedAt = Number(ordersGetters.loadedAt)
+      const age = Date.now() - loadedAt
+      const lines = snapshot?.orderProducts
+      // Reuse only a recent server acknowledgment; navigation must not renew it.
+      if (String(app_type || '').toUpperCase() === 'POS' && isWaiterMode &&
+          companyId && deviceId && orderId && getEntityId(snapshot) === orderId &&
+          getEntityId(snapshot?.provider) === companyId &&
+          String(ordersGetters.loadedKey) === String(orderId) &&
+          !ordersGetters.error && !ordersGetters.isSaving && loadedAt > 0 &&
+          age >= 0 && age < 30000 && Array.isArray(lines) &&
+          (lines.length === 0 || hasDetailedOrderProductMetadata(lines))) {
+        setActivePosOrderContext({companyId, deviceId, order: snapshot,
+          confirmed: true, confirmedAt: loadedAt})
+      }
+      const shouldUseManagerPdv =
+        String(app_type || '').toUpperCase() === 'MANAGER' ||
+        route?.params?.interactionMode === 'pdv'
+      navigation.navigate('AddProductScreen', buildAddProductsRouteParams(target,
         shouldUseManagerPdv
-          ? buildManagerPdvRouteParams({
-              singleItemMode: isSingleItemOperationMode,
-            })
-          : { singleItemMode: isSingleItemOperationMode },
-      ),
-    )
-  }, [
-    canMutateOrderProducts,
-    item,
-    orderParam,
-    routeOrderId,
-    route?.params?.interactionMode,
-    navigation,
-    isSingleItemOperationMode,
-  ])
+          ? buildManagerPdvRouteParams({singleItemMode: isSingleItemOperationMode})
+          : {singleItemMode: isSingleItemOperationMode}))
+    } catch (error) {
+      showError(formatApiError(error))
+    }
+  }, [canMutateOrderProducts, isLocallyTerminalOrder, flushPendingOrderProductChanges,
+    item, orderParam, routeOrderId, ordersGetters, peopleStore, deviceStore,
+    isWaiterMode, route?.params?.interactionMode, navigation,
+    isSingleItemOperationMode, showError])
 
   const handleAddPayment = useCallback(async () => {
     if (!item?.id || isLocallyTerminalOrder) return
@@ -107,6 +126,7 @@ export default function useOrderDetailsPrimaryActions({
     setPrimaryActionLoading(true)
 
     try {
+      if (isWaiterMode) await awaitProductConfirmation(targetOrder)
       await flushPendingOrderProductChanges()
 
       const response = await api.post(`/orders/${orderId}/confirm`, {})
@@ -122,21 +142,23 @@ export default function useOrderDetailsPrimaryActions({
         throw result || response
       }
 
-      await refreshCurrentOrder({ force: true })
+      if (isWaiterMode) completeWaiterLaunch(orderId)
+      else await refreshCurrentOrder({ force: true })
       showSuccess(
         global.t?.t('orders', 'message', 'orderSentToProduction') ||
           'Pedido enviado para producao.',
       )
 
       if (isWaiterMode) {
-        navigation.navigate('OrderHistoryPage', {interactionMode: 'pdv'})
+        navigation.navigate('HomePage')
       }
     } catch (error) {
-      showError(formatApiError(error))
+      reportProductConfirmationError(error, () => showError(formatApiError(error)))
     } finally {
       setPrimaryActionLoading(false)
     }
   }, [
+    completeWaiterLaunch,
     flushPendingOrderProductChanges,
     isLocallyTerminalOrder,
     currentOrderSnapshot,

@@ -17,6 +17,7 @@ export default function useOrderDetailsRenderers(p) {
   const {
     canMutateOrderProducts,
     confirmRemoveItemId,
+    setConfirmRemoveItemId,
     handleDecreaseOpQuantity,
     handleEditCustomizableOrderProduct,
     handleIncreaseOpQuantity,
@@ -119,6 +120,7 @@ export default function useOrderDetailsRenderers(p) {
       entryType={entryType}
       canMutateOrderProducts={canMutateOrderProducts}
       confirmRemoveItemId={confirmRemoveItemId}
+      setConfirmRemoveItemId={setConfirmRemoveItemId}
       handleDecreaseOpQuantity={handleDecreaseOpQuantity}
       handleEditCustomizableOrderProduct={handleEditCustomizableOrderProduct}
       handleIncreaseOpQuantity={handleIncreaseOpQuantity}
@@ -130,6 +132,7 @@ export default function useOrderDetailsRenderers(p) {
   ), [
     canMutateOrderProducts,
     confirmRemoveItemId,
+    setConfirmRemoveItemId,
     handleDecreaseOpQuantity,
     handleEditCustomizableOrderProduct,
     handleIncreaseOpQuantity,

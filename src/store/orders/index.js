@@ -20,6 +20,8 @@ import {
 
 export {ORDER_CHANNEL_OPTIONS};
 
+import {withOrderProductHierarchy} from "./hierarchy";
+
 const customActions = {
   addProducts,
   cancelOrder,
@@ -244,7 +246,8 @@ export default {
       },
     ],
   },
-  actions: { ...actions, ...customActions },
+  actions: Object.fromEntries(Object.entries({...actions, ...customActions})
+    .map(([name, action]) => [name, withOrderProductHierarchy(action)])),
   getters,
   mutations,
 };

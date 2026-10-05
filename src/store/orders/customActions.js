@@ -144,6 +144,10 @@ const commitSyncedOrder = ({commit, getters}, order, options = {}) => {
 
   delete order['@context'];
   commit(types.SET_ITEM, order);
+  if (options.confirmed && normalizeEntityId(order)) {
+    commit(types.SET_LOADED_KEY, String(normalizeEntityId(order)));
+    commit(types.SET_LOADED_AT, Date.now());
+  }
 
   if (Array.isArray(getters.items)) {
     commit(
@@ -264,6 +268,7 @@ export const cancelOrder = ({commit, getters}, params = {}) => {
         : {}),
       ...(reason ? {reason} : {}),
       ...(companyId ? {company: companyId} : {}),
+      ...(params.draftOnly === true ? {draft_only: true, expected_main_order_id: params.expectedMainOrderId} : {}),
     },
   })
     .then(response => {
@@ -354,7 +359,7 @@ export const syncOrderProducts = ({commit, getters}, {orderId, orderProducts = [
   return nextCurrentItem;
 };
 
-export const addProducts = ({commit, getters}, order, products) => {
+export const addProducts = ({commit, getters}, order, products, {silentError = false} = {}) => {
   let options = {
     method: 'PUT',
     body: products,
@@ -368,10 +373,11 @@ export const addProducts = ({commit, getters}, order, products) => {
       commit(types.SET_ERROR, null);
       return commitSyncedOrder({commit, getters}, data, {
         prependIfMissing: true,
+        confirmed: true,
       });
     })
     .catch(e => {
-      commit(types.SET_ERROR, e.message);
+      commit(types.SET_ERROR, e.message, {skipSystemError: silentError});
       throw e;
     })
     .finally(() => {

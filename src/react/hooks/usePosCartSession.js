@@ -4,7 +4,7 @@ import {
   canManagePosCheckOrders,
   POS_CHECK_ORDER_TYPE_TAB,
   POS_CHECK_ORDER_TYPE_TABLE,
-  resolvePosCheckOrderTypeForShop,
+  resolvePosCheckOrderEntryTypeForShop,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {useStore} from '@store'
 import {isLinkedChildOrder} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
@@ -37,7 +37,7 @@ import {
 } from '@controleonline/ui-orders/src/react/hooks/posCartSession/hydration'
 import {syncPosOrderPeople} from '@controleonline/ui-orders/src/react/hooks/posCartSession/peopleSync'
 import usePosDraftOrderStorage from './posCartSession/usePosDraftOrderStorage'
-import {setActivePosOrderContext} from '@controleonline/ui-orders/src/react/hooks/posCartSession/activePosOrderContext'
+import {setActivePosOrderContext, consumeConfirmedPosOrderContext} from '@controleonline/ui-orders/src/react/hooks/posCartSession/activePosOrderContext'
 import {
   ensureSettlementOrder as ensureSettlementOrderHelper,
   findOpenLinkedSessionOrder as findOpenLinkedSessionOrderHelper,
@@ -74,7 +74,7 @@ export default function usePosCartSession({
   const [activeOrderState, setActiveOrderState] = useState(null)
   const linkedOrderType = useMemo(
     () =>
-      resolvePosCheckOrderTypeForShop(
+      resolvePosCheckOrderEntryTypeForShop(
         runtimeDeviceConfig?.configs,
         companyConfigs,
       ),
@@ -295,6 +295,9 @@ export default function usePosCartSession({
   }, [cartActions, companyId, deviceId, usesLinkedCheckOrders])
 
   const refreshActiveOrder = useCallback(async orderId => {
+    const confirmed = consumeConfirmedPosOrderContext({companyId, deviceId,
+      orderId: orderId || activeOrderIdRef.current || storedOrderIdRef.current})
+    if (confirmed) return syncActiveOrderState(confirmed)
     return refreshPosActiveOrder({
       activeOrderId: activeOrderIdRef.current,
       normalizeDraftOrderType,
@@ -305,10 +308,8 @@ export default function usePosCartSession({
       targetOrderId: orderId,
     })
   }, [
-    normalizeDraftOrderType,
-    orderProductsActions,
-    ordersActions,
-    syncActiveOrderState,
+    companyId, deviceId, normalizeDraftOrderType,
+    orderProductsActions, ordersActions, syncActiveOrderState,
   ])
 
   const loadStoredDraftOrder = useCallback(async () => {

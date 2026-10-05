@@ -4,10 +4,10 @@ const {describe, expect, it} = global
 
 jest.mock('react-native', () => ({
   ActivityIndicator: 'ActivityIndicator',
-  Text: 'Text',
+  Text: 'span',
   TextInput: 'TextInput',
-  TouchableOpacity: 'TouchableOpacity',
-  View: 'View',
+  TouchableOpacity: 'button',
+  View: 'div',
   useWindowDimensions: () => ({height: 800, width: 400}),
 }))
 
@@ -179,4 +179,14 @@ describe('OrderItemsTab fallback fetch gate', () => {
     expect(getOrderSyncSignature(baseOrder)).toBe(getOrderSyncSignature(equivalentOrder))
     expect(getOrderSyncSignature(baseOrder)).not.toBe(getOrderSyncSignature(changedOrder))
   })
+})
+
+it('waits for hierarchy instead of displaying the flat intermediate items', () => {
+  const React = require('react')
+  const ReactDOMServer = require('react-dom/server')
+  const OrderItemsTab = require('../../../../../react/pages/orders/sales/OrderItemsTab').default
+  const html = ReactDOMServer.renderToStaticMarkup(React.createElement(OrderItemsTab, {
+    routeOrderId: 72952, order: {id: 72952}, orderProducts: [{id: 1, product: {type: 'custom'}}],
+  }))
+  expect(html).toContain('Carregando itens...')
 })

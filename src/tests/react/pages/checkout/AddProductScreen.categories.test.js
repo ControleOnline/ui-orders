@@ -1,3 +1,4 @@
+jest.mock('@controleonline/ui-common/src/api', () => ({api: {getToken: async () => null}}));
 const React = require('react');
 const renderer = require('react-test-renderer');
 global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -9,7 +10,7 @@ jest.mock('react-native', () => ({ActivityIndicator: 'ActivityIndicator', Text: 
 jest.mock('@store', () => ({useStore: name => mockStores[name]}));
 jest.mock('@react-navigation/native', () => ({useRoute: () => mockRoute, useIsFocused: () => true, useFocusEffect: () => {}}));
 jest.mock('@controleonline/ui-common/src/react/components/MessageService', () => ({useMessage: () => ({showError: jest.fn()})}));
-jest.mock('@controleonline/ui-common/src/react/config/deviceConfigBootstrap', () => ({isPosCashRegisterClosed: () => false, isPosTotemMode: () => false, isPosSingleItemMode: () => false, shouldUsePosCashRegisterLifecycle: () => false}));
+jest.mock('@controleonline/ui-common/src/react/config/deviceConfigBootstrap', () => ({POS_OPERATION_MODE_WAITER: 'waiter', resolvePosOperationMode: () => 'counter', isPosCashRegisterClosed: () => false, isPosTotemMode: () => false, isPosSingleItemMode: () => false, shouldUsePosCashRegisterLifecycle: () => false}));
 jest.mock('@controleonline/ui-orders/src/react/hooks/usePosCartSession', () => ({__esModule: true, default: () => ({activeOrder: {id: 123}, usesLinkedCheckOrders: false}), isLinkedOrderCodeRequiredError: () => false, isPosOrderCreationCancelledError: () => false}));
 jest.mock('@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet', () => 'LinkedOrderEntrySheet');
 jest.mock('@controleonline/ui-products/src/react/pages/Categories', () => 'Categories');

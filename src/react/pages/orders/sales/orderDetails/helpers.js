@@ -1,3 +1,4 @@
+import {hasDetailedOrderProductMetadata} from '@controleonline/ui-orders/src/react/utils/orderProductsFetchPolicy'
 import {
   formatHumanLabel,
   normalizeText,
@@ -121,8 +122,7 @@ export const hasEmbeddedOrderProductComponents = orderProducts =>
   orderProducts.some(orderProduct => getEmbeddedOrderProductComponents(orderProduct).length > 0)
 
 export const hasDetailedOrderProductsPayload = orderProducts =>
-  hasGroupingMetadata(orderProducts) ||
-  hasEmbeddedOrderProductComponents(orderProducts)
+  hasDetailedOrderProductMetadata(orderProducts)
 
 export const filterOrderProductsByOrderId = (orderProducts, orderId) =>
   (Array.isArray(orderProducts) ? orderProducts : []).filter(orderProduct => {

@@ -4,7 +4,7 @@ import {
   formatInvoiceTypeLabel,
   getInvoicePaymentTypeLabel,
 } from '@controleonline/ui-common/src/react/utils/invoicePresentation'
-import { calculateOrderProductsSubtotal } from '@controleonline/ui-orders/src/utils/orderState'
+import {resolveOrderProductsDisplayTotal} from '@controleonline/ui-orders/src/react/utils/orderProductsFetchPolicy'
 import {
   resolveOperationalDisplayAmount,
   resolveOperationalDisplayLabelKey,
@@ -205,7 +205,8 @@ export default function useOrderDetailsFinancials({
       hasOrderProducts(resolvedDisplayOrderProductsWithProductDetails) ||
       hasAuthoritativeEmptyOrderProducts
     ) {
-      return calculateOrderProductsSubtotal(resolvedDisplayOrderProductsWithProductDetails)
+      return resolveOrderProductsDisplayTotal(resolvedDisplayOrderProductsWithProductDetails,
+        resolvedDisplayOrder?.price ?? item?.price ?? orderParam?.price)
     }
 
     const fallbackTotal = Number(

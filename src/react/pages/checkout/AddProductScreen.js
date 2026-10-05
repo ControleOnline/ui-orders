@@ -3,11 +3,15 @@ import {ActivityIndicator, Text, TouchableOpacity, View} from 'react-native';
 import {useStore} from '@store';
 import {useFocusEffect, useIsFocused, useRoute} from '@react-navigation/native';
 
+import {app_type} from '@appType';
+import useCachedCatalogActions from '@controleonline/ui-products/src/react/hooks/useCachedCatalogActions';
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
 import ProductsPage from '@controleonline/ui-products/src/react/pages/Products';
 import {ALL_PRODUCTS_SENTINEL_ID} from '@controleonline/ui-products/src/react/constants/categorySentinels';
 import LinkedOrderEntrySheet from '@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet';
 import {
+  POS_OPERATION_MODE_WAITER,
+  resolvePosOperationMode,
   isPosCashRegisterClosed,
   isPosTotemMode,
   isPosSingleItemMode,
@@ -39,7 +43,9 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {item: storagedDevice} = deviceGetters;
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
   const categoriesGetters = categoriesStore.getters;
-  const categoryActions = categoriesStore.actions;
+  const categoryActions = useCachedCatalogActions(categoriesStore,
+    app_type === 'POS' && resolvePosOperationMode(runtimeDeviceConfig?.configs) === POS_OPERATION_MODE_WAITER,
+    currentCompany?.id, route?.params?.context || 'products');
   const categoryItems = categoriesGetters?.items;
   const categoriesLoading = categoriesGetters?.isLoading === true;
   const [categoriesFetched, setCategoriesFetched] = useState(false);

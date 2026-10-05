@@ -1,3 +1,4 @@
+import {reportProductConfirmationError} from '../../utils/confirmPendingProducts';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import { Text, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import {useStore} from '@store';
@@ -10,6 +11,7 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import {
   ADD_PRODUCT_SELECTION_CHANGE_EVENT,
+  ADD_PRODUCT_CONFIRMATION_EVENT,
   listPendingAddProducts,
 } from '@controleonline/ui-orders/src/react/utils/addProductSession';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
@@ -167,7 +169,11 @@ const BottomCart = ({
     };
 
     eventBus.on(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
-    return () => eventBus.off(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
+    eventBus.on(ADD_PRODUCT_CONFIRMATION_EVENT, syncPendingSelections);
+    return () => {
+      eventBus.off(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
+      eventBus.off(ADD_PRODUCT_CONFIRMATION_EVENT, syncPendingSelections);
+    };
   }, []);
 
   const handleDefaultAction = useCallback(item => {
@@ -217,7 +223,7 @@ const BottomCart = ({
 
       handleDefaultAction(resolvedOrder);
     } catch (error) {
-      showError?.(error?.message || 'Nao foi possivel preparar o pedido para conferencia.');
+      reportProductConfirmationError(error, showError);
     } finally {
       setIsMaterializingOrder(false);
     }

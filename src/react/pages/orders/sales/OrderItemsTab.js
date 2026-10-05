@@ -389,9 +389,8 @@ const OrderItemsTab = ({
   )
 
   const isLoadingFallback =
-    !hasOrderProducts(primaryOrderProducts) &&
-    !fallbackOrderProducts.length &&
-    orderProductsGetters?.isLoading
+    (hasOrderProducts(primaryOrderProducts) && requiresDetailedFallback && !fallbackHasDetailedPayload) ||
+    (!primaryHasOwnOrderProducts && !fallbackOrderProducts.length && isFallbackFetchLoading)
   const showLoadingState = isLoadingOrderDetails || isLoadingFallback
   const currentOrder = resolvedOrder || order
 
@@ -439,7 +438,9 @@ const OrderItemsTab = ({
         {showLoadingState ? (
           <View style={localStyles.detailsLoadingState}>
             <Text style={localStyles.detailsLoadingText}>
-              {global.t?.t('orders', 'label', 'loading') || 'Carregando itens...'}
+              {hasFallbackFetchError
+                ? 'Não foi possível carregar os itens completos. Volte e tente novamente.'
+                : global.t?.t('orders', 'label', 'loading') || 'Carregando itens...'}
             </Text>
           </View>
         ) : (

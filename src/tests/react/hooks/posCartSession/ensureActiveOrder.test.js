@@ -25,7 +25,8 @@ const buildRequestEntry = signal => ({
 const buildRunArgs = overrides => ({
   activeOrder: null,
   buildCancelledError: buildCancelledOrderCreationError,
-  buildOrderPayload: (status, people, _orderProducts, orderType) => ({
+  buildOrderPayload: (status, people, _orderProducts, orderType, extra = {}) => ({
+    ...extra,
     app: 'POS',
     orderType,
     people,
@@ -126,3 +127,51 @@ describe('runEnsureActiveOrder', () => {
     expect(args.ordersActions.save).not.toHaveBeenCalled()
   })
 })
+
+it('creates a fresh child for forceNew even with an open cart on the same tab', async () => {
+ const previous={id:123,orderType:'cart',price:10,orderProducts:[{id:9,quantity:2}]};
+ const args=buildRunArgs({forceNew:true, usesLinkedCheckOrders:true,linkedOrderType:'tab',providedLinkedOrderInput:{externalCode:'1',inputType:'manual',settlementOrder:{id:1}},findOpenLinkedSessionOrder:jest.fn().mockResolvedValue(previous)});
+ args.ordersActions.save.mockResolvedValueOnce({id:456,'@id':'/orders/456',orderType:'cart',mainOrderId:null}).mockResolvedValueOnce({id:456,'@id':'/orders/456',orderType:'cart',mainOrderId:1});
+ const created=await runEnsureActiveOrder(args);
+ expect(created.id).toBe(456);
+ expect(args.loadStoredDraftOrder).not.toHaveBeenCalled();
+ expect(args.findOpenLinkedSessionOrder).not.toHaveBeenCalled();
+ expect(created.mainOrderId).toBe(1);
+ expect(args.ordersActions.save).toHaveBeenCalledTimes(2);
+ expect(args.ordersActions.save.mock.calls[1][0]).toMatchObject({id:456,mainOrderId:1});
+ expect(previous.price).toBe(10);
+ expect(previous.orderProducts).toHaveLength(1);
+});
+it('keeps explicit resume of an existing linked cart', async () => {
+ const args=buildRunArgs({usesLinkedCheckOrders:true,linkedOrderType:'tab',providedLinkedOrderInput:{externalCode:'1',inputType:'manual',settlementOrder:{id:1}},findOpenLinkedSessionOrder:jest.fn().mockResolvedValue({id:123,orderType:'cart',price:10})});
+ expect(await runEnsureActiveOrder(args)).toMatchObject({id:123,price:10});
+ expect(args.ordersActions.save).not.toHaveBeenCalled();
+});
+
+// The existing API loses a scalar parent on INSERT but preserves it on UPDATE.
+// These cases must never activate a cart based only on the request payload.
+it.each([null, 99])('does not activate a launch when linking acknowledges parent %s', async parentId => {
+ const args = buildRunArgs({forceNew:true, usesLinkedCheckOrders:true, linkedOrderType:'tab',
+  providedLinkedOrderInput:{externalCode:'1',inputType:'manual',settlementOrder:{id:1}}});
+ args.ordersActions.save.mockResolvedValueOnce({id:456,mainOrderId:null})
+  .mockResolvedValueOnce({id:456,mainOrderId:parentId});
+ await expect(runEnsureActiveOrder(args)).rejects.toThrow('vínculo');
+ expect(args.materializeOpenPosOrder).not.toHaveBeenCalled();
+ expect(args.syncActiveOrderState.mock.calls.every(([order]) => order === null)).toBe(true);
+});
+it('does not activate another order returned by the link update', async () => {
+ const args = buildRunArgs({forceNew:true, usesLinkedCheckOrders:true, linkedOrderType:'tab',
+  providedLinkedOrderInput:{externalCode:'1',inputType:'manual',settlementOrder:{id:1}}});
+ args.ordersActions.save.mockResolvedValueOnce({id:456,mainOrderId:null})
+  .mockResolvedValueOnce({id:999,mainOrderId:1});
+ await expect(runEnsureActiveOrder(args)).rejects.toThrow('vínculo');
+ expect(args.materializeOpenPosOrder).not.toHaveBeenCalled();
+});
+it('propagates a failed link update without activating the unlinked cart', async () => {
+ const args = buildRunArgs({forceNew:true, usesLinkedCheckOrders:true, linkedOrderType:'tab',
+  providedLinkedOrderInput:{externalCode:'1',inputType:'manual',settlementOrder:{id:1}}});
+ args.ordersActions.save.mockResolvedValueOnce({id:456,mainOrderId:null})
+  .mockRejectedValueOnce(new Error('link update refused'));
+ await expect(runEnsureActiveOrder(args)).rejects.toThrow('link update refused');
+ expect(args.materializeOpenPosOrder).not.toHaveBeenCalled();
+});
