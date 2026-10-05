@@ -39,6 +39,8 @@ const BottomCart = ({
   paidOrderLabel,
   paidReceivedAmount = 0,
   paidReceivedLabel,
+  waiterOrderAmount = 0,
+  waiterOrderLabel = 'Lançamento',
   paidDetailsLabel,
   onPaidDetailsPress,
 }) => {
@@ -80,6 +82,7 @@ const BottomCart = ({
   const isCompact = width < 360;
   const isUltraCompact = width < 330;
   const isPaymentStatusVariant = variant === 'payment-status';
+  const isWaiterOrderVariant = variant === 'waiter-order';
   const resolvedPendingAmount = Math.max(Number(paymentPendingAmount || 0), 0);
   const hasPendingPayment = resolvedPendingAmount > 0.009;
   const isPaidStateBar = isPaymentStatusVariant && !hasPendingPayment;
@@ -316,7 +319,21 @@ const BottomCart = ({
             {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
           ]}
         >
-          {isPaymentStatusVariant ? (
+          {isWaiterOrderVariant ? (
+            <View
+              style={[
+                styles.paymentSummaryWrap,
+                {borderColor, backgroundColor: totalCardBg || '#FFFFFF'},
+              ]}
+            >
+              <Text style={[styles.paymentSummaryLabel, {color: labelColor}]}>
+                {waiterOrderLabel}
+              </Text>
+              <Text style={[styles.paymentSummaryValue, {color: textColor}]}>
+                {Formatter.formatMoney(Math.max(Number(waiterOrderAmount || 0), 0))}
+              </Text>
+            </View>
+          ) : isPaymentStatusVariant ? (
             <View
               style={[
                 styles.paymentSummaryWrap,

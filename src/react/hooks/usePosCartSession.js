@@ -36,6 +36,8 @@ import {
   resolveCounterStartDestinationFromSession,
 } from '@controleonline/ui-orders/src/react/hooks/posCartSession/hydration'
 import {syncPosOrderPeople} from '@controleonline/ui-orders/src/react/hooks/posCartSession/peopleSync'
+import usePosDraftOrderStorage from './posCartSession/usePosDraftOrderStorage'
+import {setActivePosOrderContext} from '@controleonline/ui-orders/src/react/hooks/posCartSession/activePosOrderContext'
 import {
   ensureSettlementOrder as ensureSettlementOrderHelper,
   findOpenLinkedSessionOrder as findOpenLinkedSessionOrderHelper,
@@ -132,20 +134,13 @@ export default function usePosCartSession({
     }
   }, [storedOrderId])
 
-  const clearStoredDraftOrderId = useCallback(() => {
-    if (typeof localStorage === 'undefined' || !storageKey) return
-    localStorage.removeItem(storageKey)
-  }, [storageKey])
-
-  const rememberDraftOrderId = useCallback(order => {
-    const orderId = normalizeId(order?.id || order?.['@id'])
-    if (typeof localStorage === 'undefined' || !storageKey || !orderId) return
-    localStorage.setItem(storageKey, orderId)
-  }, [storageKey])
+  const {clearStoredDraftOrderId, rememberDraftOrderId, readStoredDraftOrderId} =
+    usePosDraftOrderStorage(storageKey)
 
   const syncActiveOrderState = useCallback(order => {
     if (order && isOpenPosCartOrder(order, {usesLinkedCheckOrders})) {
       rememberDraftOrderId(order)
+      setActivePosOrderContext({companyId, deviceId, order})
       setActiveOrderState(order)
       if (typeof ordersActions.syncOrder === 'function') {
         ordersActions.syncOrder(order)
@@ -156,20 +151,18 @@ export default function usePosCartSession({
     }
 
     clearStoredDraftOrderId()
+    setActivePosOrderContext({companyId, deviceId, order: null})
     setActiveOrderState(null)
     ordersActions.setItem({})
     return null
   }, [
     clearStoredDraftOrderId,
+    companyId,
+    deviceId,
     ordersActions,
     rememberDraftOrderId,
     usesLinkedCheckOrders,
   ])
-
-  const readStoredDraftOrderId = useCallback(() => {
-    if (typeof localStorage === 'undefined' || !storageKey) return null
-    return normalizeId(localStorage.getItem(storageKey))
-  }, [storageKey])
 
   const buildOrderPayload = useCallback((
     statusIri,

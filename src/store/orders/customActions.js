@@ -3,7 +3,6 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import * as types from '@controleonline/ui-default/src/store/default/mutation_types';
 import {
   mergeOrderIntoList,
-  mergeOrderWithOrderProducts,
   normalizeEntityId,
 } from '@controleonline/ui-orders/src/utils/orderState';
 import {getOrderChannelLogo} from '@assets/ppc/channels';
@@ -269,7 +268,47 @@ export const cancelOrder = ({commit, getters}, params = {}) => {
   })
     .then(response => {
       commit(types.SET_ERROR, null);
-      assertSuccessfulOrderAction(response);
+      const result = assertSuccessfulOrderAction(response);
+
+      // Keep list in sync immediately so OrderHistory shows canceled without F5.
+      // Prefer API order payload when present; otherwise patch the local row.
+      const updatedOrder =
+        result?.data?.order ||
+        result?.order ||
+        response?.order ||
+        (result?.data && typeof result.data === 'object' && (result.data.id || result.data['@id'])
+          ? result.data
+          : null);
+
+      if (updatedOrder && typeof updatedOrder === 'object') {
+        commitSyncedOrder({commit, getters}, updatedOrder);
+      } else if (Array.isArray(getters.items)) {
+        const nextItems = getters.items.map(item => {
+          if (normalizeEntityId(item) !== orderId) {
+            return item;
+          }
+          const currentStatus =
+            item?.status && typeof item.status === 'object' && !Array.isArray(item.status)
+              ? item.status
+              : {};
+          return {
+            ...item,
+            status: {
+              ...currentStatus,
+              status: 'canceled',
+              realStatus: 'canceled',
+            },
+            realStatus: 'canceled',
+          };
+        });
+        commit(types.SET_ITEMS, nextItems);
+        if (normalizeEntityId(getters.item) === orderId) {
+          const patched = nextItems.find(item => normalizeEntityId(item) === orderId);
+          if (patched) {
+            commit(types.SET_ITEM, patched);
+          }
+        }
+      }
 
       if (reloadParams) {
         return fetchHistoryPage({commit, getters}, {query: reloadParams})
@@ -299,14 +338,14 @@ export const syncOrderProducts = ({commit, getters}, {orderId, orderProducts = [
 
   let nextCurrentItem = getters.item;
   if (normalizeEntityId(getters.item) === targetOrderId) {
-    nextCurrentItem = mergeOrderWithOrderProducts(getters.item, orderProducts);
+    nextCurrentItem = {...getters.item, orderProducts};
     commit(types.SET_ITEM, nextCurrentItem);
   }
 
   if (Array.isArray(getters.items)) {
     const nextItems = getters.items.map(order =>
       normalizeEntityId(order) === targetOrderId
-        ? mergeOrderWithOrderProducts(order, orderProducts)
+        ? {...order, orderProducts}
         : order,
     );
     commit(types.SET_ITEMS, nextItems);

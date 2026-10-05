@@ -1,8 +1,8 @@
-import React, { useCallback, useMemo } from 'react'
-import OrderTopBarActions, {
-  ORDER_TOP_BAR_ACTIONS,
-} from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
+import React, { useCallback, useLayoutEffect, useMemo } from 'react'
+import OrderTopBarActions from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderTopBarActions'
 import OrderStackedTopBar from '@controleonline/ui-orders/src/react/pages/orders/sales/components/OrderStackedTopBar'
+import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader'
+import { Text, View } from 'react-native'
 import { getOwnedBottomBarOffset } from '@controleonline/ui-layout/src/react/utils/posBottomNavigation'
 import OrderDetailsProductActions from './OrderDetailsProductActions'
 import OrderDetailsInvoiceCards from './OrderDetailsInvoiceCards'
@@ -11,6 +11,7 @@ import OrderItemsTab from '../OrderItemsTab'
 import OrderInvoices from '../OrderInvoices'
 import { buildOrderSummaryData } from './buildOrderSummaryData'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
+import {resolveOrderTopBarButtons} from './resolveOrderTopBarButtons'
 
 export default function useOrderDetailsRenderers(p) {
   const {
@@ -35,6 +36,7 @@ export default function useOrderDetailsRenderers(p) {
     isTvDisplay,
     appType,
     isPosSelfServiceOperationMode,
+    isWaiterMode,
     handleOrderLogistics,
     handleOrderNf,
     handleOrderAttachments,
@@ -43,6 +45,20 @@ export default function useOrderDetailsRenderers(p) {
     orderIdentitySource,
     orderHeaderActionProps,
     navigation,
+    handleOpenInvoiceDetails,
+    orderInvoicesLoading,
+    groupedInvoiceSections,
+    localInvoicesEmptyText,
+    localInvoicesSectionTitle,
+    addProductsButtonLabel,
+    handleCustomizeProductFromSearch,
+    handleQuickAddProductFromSearch,
+    resolvedDisplayOrder,
+    resolvedDisplayOrderProductsWithProductDetails,
+    productSearchLoading,
+    productSearchResults,
+    productSearchSelectionId,
+    routeOrderId,
     localInvoiceCards,
     item,
     orderParam,
@@ -51,7 +67,6 @@ export default function useOrderDetailsRenderers(p) {
     handleAddProduct,
     productSearchText,
     setProductSearchText,
-    isLoading,
     // kds content
     isPurchaseOrder,
     shouldShowOrderPartyDetails,
@@ -133,21 +148,10 @@ export default function useOrderDetailsRenderers(p) {
   const mobileOrderBottomSpacing = shouldShowMobilePaymentBar
     ? (isCompactMobileViewport ? 148 : 132)
     : 24
-  const topBarButtons = useMemo(() => {
-    const buttons = [ORDER_TOP_BAR_ACTIONS.PRINT]
-
-    if (topBarOrderId) {
-      buttons.push(ORDER_TOP_BAR_ACTIONS.NF)
-      buttons.push(ORDER_TOP_BAR_ACTIONS.LOGISTICS)
-      buttons.push(ORDER_TOP_BAR_ACTIONS.ATTACHMENTS)
-    }
-
-    if (canShowDebugActions) {
-      buttons.push(ORDER_TOP_BAR_ACTIONS.TOOLS, ORDER_TOP_BAR_ACTIONS.LOGS)
-    }
-
-    return buttons
-  }, [canShowDebugActions, topBarOrderId])
+  const topBarButtons = useMemo(
+    () => resolveOrderTopBarButtons({canShowDebugActions, topBarOrderId}),
+    [canShowDebugActions, topBarOrderId],
+  )
   const topBarPrintJob = {type: 'order', orderId: topBarOrderId}
   const topBarPrinterSelection = isKds
     ? {
@@ -158,10 +162,10 @@ export default function useOrderDetailsRenderers(p) {
       }
     : {enabled: true}
   const shouldHideCompactTopBarActions =
-    appType === 'POS' && isPosSelfServiceOperationMode
+    isWaiterMode || (appType === 'POS' && isPosSelfServiceOperationMode)
 
   const renderTopBarActions = useCallback(
-    containerStyle => (
+    containerStyle => isWaiterMode ? null : (
       <OrderTopBarActions
         buttons={topBarButtons}
         containerStyle={containerStyle}
@@ -189,6 +193,7 @@ export default function useOrderDetailsRenderers(p) {
       handleOrderAttachments,
       handleOrderLogistics,
       handleOrderNf,
+      isWaiterMode,
       isKds,
       isTvDisplay,
       item?.id,
@@ -369,6 +374,7 @@ export default function useOrderDetailsRenderers(p) {
           renderOrderProductActions={canMutateOrderProducts ? renderOrderProductActions : null}
           routeOrderId={routeOrderId}
           setProductSearchText={setProductSearchText}
+          showProductSearch={!isWaiterMode}
           showPricing={!isKds && !isTvDisplay}
           variant={variant}
         />
@@ -393,6 +399,7 @@ export default function useOrderDetailsRenderers(p) {
       setProductSearchText,
       isKds,
       isTvDisplay,
+      isWaiterMode,
     ],
   )
 
@@ -411,7 +418,7 @@ export default function useOrderDetailsRenderers(p) {
     shouldShowOrderPartyDetails,
     orderCustomerName,
     orderCustomerPhone,
-    orderCustomerDocument,
+    orderCustomerDocument: localOrderCustomerDocument,
     orderCustomerDocumentLabel,
     shouldShowOrderAddress,
     localOrderAddressParts,

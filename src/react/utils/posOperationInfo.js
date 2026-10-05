@@ -33,6 +33,11 @@ const CHECK_ORDER_MANAGEMENT_LABELS = {
   'existing-only': 'Somente comandas vinculadas existentes',
 };
 
+const CHECK_ORDER_MANAGEMENT_LABELS = {
+  manage: 'Gerenciar comandas vinculadas',
+  'existing-only': 'Somente comandas vinculadas existentes',
+};
+
 const safeText = value =>
   value === null || value === undefined ? '' : String(value).trim();
 
