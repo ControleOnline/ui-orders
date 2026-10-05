@@ -25,6 +25,12 @@ const CHECK_ORDER_TYPE_LABELS = {
   stamp: 'Nome',
   tab: 'Comanda',
   table: 'Mesa',
+  'table-tab': 'Mesa + Comanda',
+};
+
+const CHECK_ORDER_MANAGEMENT_LABELS = {
+  manage: 'Gerenciar comandas vinculadas',
+  'existing-only': 'Somente comandas vinculadas existentes',
 };
 
 const CHECK_ORDER_MANAGEMENT_LABELS = {
