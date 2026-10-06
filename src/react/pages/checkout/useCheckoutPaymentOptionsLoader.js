@@ -148,7 +148,8 @@ export default function useCheckoutPaymentOptionsLoader({
         const allPaymentTypes = selectPosWalletPaymentTypes({
           walletPaymentTypes: receivedPaymentTypes,
           deviceConfigs: device?.configs,
-          companyConfigs: selectedRemoteDevice?.config?.configs,
+          // Wallet identities belong to the selected company, not a device profile.
+          companyConfigs: currentCompany?.configs,
           gateway: getPaymentGateway(device) || getPaymentGateway(selectedRemoteDevice?.config),
         });
         const localCatalog = waiterConsultationCheckout ? selectPosWalletPaymentTypes({
