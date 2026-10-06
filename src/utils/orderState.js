@@ -201,3 +201,30 @@ export const withOrderProductQuantity = (orderProduct, quantity) => {
     total: unitPrice > 0 ? roundMoney(unitPrice * nextQuantity) : 0,
   }
 }
+
+// Preserve only omitted relationship fields on the same confirmed line. New lists
+// remain authoritative for membership, quantities, and explicit null relationships.
+export const preserveOrderProductHierarchy = (currentOrder, nextOrder) => {
+  if (!currentOrder || !nextOrder ||
+      normalizeEntityId(currentOrder) !== normalizeEntityId(nextOrder) ||
+      !Array.isArray(nextOrder.orderProducts)) return nextOrder
+  const currentById = new Map((currentOrder.orderProducts || [])
+    .map(line => [normalizeEntityId(line), line]))
+  return {...nextOrder, orderProducts: nextOrder.orderProducts.map(line => {
+    const previous = currentById.get(normalizeEntityId(line))
+    if (!previous || line.hierarchyComplete === true) return line
+    const next = {...line}
+    for (const key of ['orderProduct', 'order_product', 'parentProduct', 'productGroup', 'orderProductComponents', 'hierarchyComplete']) {
+      const parentField = key === 'orderProduct' || key === 'order_product'
+      const hasParentField = Object.prototype.hasOwnProperty.call(line, 'orderProduct') ||
+        Object.prototype.hasOwnProperty.call(line, 'order_product')
+      if (!(parentField && hasParentField) && !Object.prototype.hasOwnProperty.call(line, key) &&
+          Object.prototype.hasOwnProperty.call(previous, key)) {
+        next[key] = key === 'orderProductComponents' && Array.isArray(previous[key])
+          ? previous[key].filter(child => nextOrder.orderProducts.some(item => normalizeEntityId(item) === normalizeEntityId(child)))
+          : previous[key]
+      }
+    }
+    return next
+  })}
+}

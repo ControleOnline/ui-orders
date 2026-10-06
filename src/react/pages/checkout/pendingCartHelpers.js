@@ -59,3 +59,9 @@ export const partitionTreeRounds = orders => {
   })
   return {pendingCarts, sales, other}
 }
+
+// Preserve the generic settlement partition; this consumption view excludes cancellations.
+export const partitionTabConsultationRounds = orders => partitionTreeRounds(
+  (Array.isArray(orders) ? orders : []).filter(order =>
+    !['canceled', 'cancelled'].includes(normalizeStatusKey(order?.status?.realStatus))),
+)

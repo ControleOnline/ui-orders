@@ -674,4 +674,49 @@ describe('OrderHistoryPage', () => {
       'orderDate[before]': '2026-07-10 23:59:59',
     });
   });
+
+describe('OrderHistoryPage Device waiter toolbar controls', () => {
+  it.each([
+    ['POS', 'waiter', 'company', false, false],
+    ['POS', 'waiter', 'device', false, false],
+    ['POS', 'cashier', 'company', true, true],
+    ['POS', 'cashier', 'device', false, true],
+    ['POS', 'totem', 'company', true, true],
+    ['POS', 'single-item', 'company', true, true],
+    ['MANAGER', 'waiter', 'company', true, true],
+  ])('preserves data visibility and add for %s/%s/%s', (appType, operationMode, visibility, showToolbar, showCount) => {
+    mockAppType = appType;
+    mockStores.people.getters.currentCompany = {id: 1};
+    mockStores.device.getters.item = {id: 'device-912'};
+    mockStores.device_config.getters.item = {configs: {
+      'pos-operation-mode': operationMode,
+      'pos-order-visibility': visibility,
+    }};
+    const restrictToDevice = appType === 'POS' && visibility === 'device';
+    mockStores.orders.getters.columns = mockStores.orders.getters.columns.map(column => ({
+      ...column, externalFilter: !restrictToDevice,
+      ...(column.name === 'orderDate' ? {show: true} : {}),
+    }));
+    const navigation = {setOptions: jest.fn(), navigate: jest.fn()};
+    ReactDOMServer.renderToStaticMarkup(React.createElement(OrderHistoryPage, {
+      navigation, route: {params: {orderTypeFilter: 'sale'}},
+    }));
+    expect(mockDefaultTableProps.showToolbar).toBe(showToolbar);
+    expect(mockDefaultTableProps.showTotalItemsInFooter !== false).toBe(showCount);
+    const isWaiter = appType === 'POS' && operationMode === 'waiter';
+    expect(mockDefaultTableProps.toolbarActions).toHaveLength(isWaiter ? 0 : 1);
+    expect(mockDefaultTableProps.showRowActions).toBe(appType !== 'POS');
+    expect(mockDefaultTableProps.add).toBeNull();
+    mockDefaultTableProps.onAdd();
+    expect(navigation.navigate).toHaveBeenCalledWith('PdvPage', {startNewOrder: true});
+    if (restrictToDevice) {
+      expect(mockDefaultTableProps.requestParams['device.device']).toBe('device-912');
+      expect(mockDefaultTableProps.requestParams).not.toHaveProperty('report');
+    } else {
+      expect(mockDefaultTableProps.requestParams).not.toHaveProperty('device.device');
+      expect(mockDefaultTableProps.requestParams.report).toBe(1);
+    }
+  });
+});
+
 });
