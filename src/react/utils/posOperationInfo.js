@@ -28,10 +28,6 @@ const CHECK_ORDER_TYPE_LABELS = {
   'table-tab': 'Mesa + Comanda',
 };
 
-const CHECK_ORDER_MANAGEMENT_LABELS = {
-  manage: 'Gerenciar comandas vinculadas',
-  'existing-only': 'Somente comandas vinculadas existentes',
-};
 
 const CHECK_ORDER_MANAGEMENT_LABELS = {
   manage: 'Gerenciar comandas vinculadas',
