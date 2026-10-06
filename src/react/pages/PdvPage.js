@@ -8,7 +8,7 @@ import {app_type} from '@appType';
 import {
   POS_CHECK_ORDER_TYPE_NONE,
   POS_OPERATION_MODE_WAITER,
-  resolvePosCheckOrderTypeForShop,
+  resolvePosCheckOrderEntryTypeForShop,
   resolvePosOperationMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 
@@ -25,7 +25,7 @@ export default function PdvPage({navigation, route}) {
       POS_OPERATION_MODE_WAITER;
   const linkedOrderType = useMemo(
     () =>
-      resolvePosCheckOrderTypeForShop(
+      resolvePosCheckOrderEntryTypeForShop(
         runtimeDeviceConfig?.configs,
         currentCompany?.configs,
       ),
