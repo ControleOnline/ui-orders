@@ -176,6 +176,25 @@ it('offers cash on web, hides native local cards and loads the company registry 
   expect(value.setRemotePaymentOptions).toHaveBeenLastCalledWith([])
 })
 
+
+it('keeps the configured cash wallet when its display name differs from Dinheiro', async () => {
+  const configuredCash = {...cash, paymentCode: '', wallet: {'@id': '/wallets/1', wallet: 'Caixa'}}
+  const unconfiguredCash = {...cash, id: 13, wallet: {'@id': '/wallets/3', wallet: 'Dinheiro'}}
+  api.fetch.mockImplementation(async resource => resource === 'wallet_payment_types' ? {member: [configuredCash, card, unconfiguredCash]} : {})
+  const value = {currentCompany: {id: 3, configs: {'pos-cash-wallet': 1, 'pos-infinite-pay-wallet': 2}}, device: {configs},
+    canUseLocalOperationalPayment: true, canUseRemoteOperationalPayment: true,
+    selectedRemoteDevice: {deviceId: 'terminal-1', config: {configs}},
+    deviceConfigActions: {getItems: jest.fn(async () => [])},
+    remotePaymentDevices: [], allPaymentOptions: [], setCompanyDeviceConfigs: jest.fn(), setSelectedRemoteDeviceId: jest.fn(),
+    setLoadingPaymentOptions: jest.fn(), setLocalPaymentOptions: jest.fn(), setRemotePaymentOptions: jest.fn(), setPaymentOptionsError: jest.fn(), setSelectedPaymentOption: jest.fn()}
+  await mount(OptionsHarness, value)
+  expect(value.setLocalPaymentOptions).toHaveBeenLastCalledWith([
+    expect.objectContaining({channel: 'local', payment: configuredCash}),
+    expect.objectContaining({channel: 'local', payment: card}),
+  ])
+  expect(value.setRemotePaymentOptions).toHaveBeenLastCalledWith([expect.objectContaining({channel: 'remote', payment: card})])
+})
+
 const {readWaiterTabCheckoutBalance, default: useWaiterBalance} = require('../../../../react/pages/checkout/useWaiterTabCheckoutBalance')
 function BalanceHarness({value}) {result = useWaiterBalance(value); return null}
 it('reads all financial pages to collect only the remaining tab balance, including after reopening', async () => {

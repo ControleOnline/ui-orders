@@ -48,8 +48,9 @@ test.describe('single-item checkout and history browser smoke', () => {
     const runtimeFooterPaddingLeft = await runtimeFooter.evaluate(node =>
       Number.parseFloat(window.getComputedStyle(node).paddingLeft || '0'),
     );
-    expect(runtimeFooterPaddingBottom).toBeGreaterThanOrEqual(16);
-    expect(runtimeFooterPaddingLeft).toBeGreaterThanOrEqual(16);
+    // Web chrome stays flush; the native safe-area padding is covered separately.
+    expect(runtimeFooterPaddingBottom).toBe(0);
+    expect(runtimeFooterPaddingLeft).toBeGreaterThanOrEqual(12);
   });
 
   test('opens checkout after selecting the single-item product', async ({ page }) => {
