@@ -35,7 +35,7 @@ module.exports = context => {
       }),
     );
 
-    expect(context.mockDefaultExternalFiltersProps?.filters).toMatchObject({
+    expect(context.mockDefaultTableProps?.filters).toMatchObject({
       alterDate: {
         shortcut: 'today',
       },
@@ -87,7 +87,7 @@ module.exports = context => {
     // DefaultTable owns persisted preferences and emits them through this callback.
     await renderer.act(async () => context.mockDefaultTableProps.onFilterChange({}));
 
-    expect(context.mockDefaultExternalFiltersProps?.filters).toEqual({});
+    expect(context.mockDefaultTableProps?.filters).toEqual({});
     expect(context.mockDefaultTableProps?.filters).toEqual({});
     expect(context.mockDefaultTableProps?.requestParams).not.toHaveProperty('alterDate[after]');
     expect(context.mockDefaultTableProps?.requestParams).not.toHaveProperty('alterDate[before]');
@@ -140,7 +140,7 @@ describe('OrderHistoryPage Device waiter toolbar controls', () => {
     }};
     const restrictToDevice = appType === 'POS' && visibility === 'device';
     context.mockStores.orders.getters.columns = context.mockStores.orders.getters.columns.map(column => ({
-      ...column, externalFilter: !restrictToDevice,
+      ...column, externalFilter: !restrictToDevice, compactFilter: !restrictToDevice,
       ...(column.name === 'orderDate' ? {show: true} : {}),
     }));
     const navigation = {setOptions: jest.fn(), navigate: jest.fn()};
