@@ -91,6 +91,7 @@ module.exports = context => {
     expect(
       ReactDOMServer.renderToStaticMarkup(
         context.mockDefaultTableProps.rowActionsComponent({
+          openRow: jest.fn(),
           row: {
             id: 1,
             status: {realStatus: 'open', status: 'Open'},
@@ -101,6 +102,7 @@ module.exports = context => {
     expect(
       ReactDOMServer.renderToStaticMarkup(
         context.mockDefaultTableProps.rowActionsComponent({
+          openRow: jest.fn(),
           row: {
             id: 2,
             cancellationReason: {name: 'Desistencia'},
@@ -198,7 +200,7 @@ module.exports = context => {
       }),
     );
 
-    expect(context.mockDefaultExternalFiltersProps?.getOptionsForColumn({name: 'status'})).toEqual([
+    expect(context.mockDefaultTableProps?.getOptionsForColumn({name: 'status'})).toEqual([
       expect.objectContaining({
         '@id': '/statuses/1',
         context: 'order',
@@ -239,30 +241,30 @@ module.exports = context => {
     };
     context.mockStores.orders.getters.columns = [
       {
-        name: 'app',
+        name: 'app', compactLabel: 'Canal',
         label: 'channel',
-        externalFilter: false,
+        externalFilter: false, compactFilter: false,
         emptyOptionLabel: 'All',
       },
       {
-        name: 'status',
+        name: 'status', compactLabel: 'Status', compactStatusColors: true,
         label: 'status',
-        externalFilter: false,
+        externalFilter: false, compactFilter: false,
         emptyOptionLabel: 'All',
         list: 'status/getItems',
       },
       {
-        name: 'orderDate',
+        name: 'orderDate', compactLabel: 'Compra',
         label: 'orderDate',
-        externalFilter: false,
+        externalFilter: false, compactFilter: false,
         inputType: 'date-range',
         show: true,
         type: 'range-date',
       },
       {
-        name: 'alterDate',
+        name: 'alterDate', compactLabel: 'Atualização',
         label: 'period',
-        externalFilter: false,
+        externalFilter: false, compactFilter: false,
         inputType: 'date-range',
         type: 'range-date',
       },
@@ -331,7 +333,8 @@ module.exports = context => {
       report: 1,
     });
     expect(context.mockDefaultExternalFiltersProps?.columns).toBeUndefined();
-    expect(context.mockDefaultExternalFiltersProps?.getOptionsForColumn({name: 'app'})).toEqual([]);
+    expect(context.mockDefaultTableProps?.getOptionsForColumn({name: 'app'})).toBeUndefined();
+    expect(context.mockStores.orders.getters.columns.find(column => column.key === 'app' || column.name === 'app')).toMatchObject({externalFilter: true, label: 'channel'});
     expect(context.mockDefaultTableProps?.requestParams?.orderType).toEqual([
       'sale',
       'cart',

@@ -27,6 +27,7 @@ jest.mock('react-native', () => {
   const React = require('react');
 
   return {
+    useWindowDimensions: () => ({width: 1440, height: 900}),
     Modal: props => React.createElement('modal', null, props.visible ? props.children : null),
     SafeAreaView: props => React.createElement('safe-area-view', null, props.children),
     ScrollView: props => React.createElement('scroll-view', null, props.children),
@@ -240,6 +241,12 @@ describe('OrderHistoryPage', () => {
         },
       },
     };
+    const labels = {app: 'Canal', status: 'Status', orderDate: 'Compra', alterDate: 'Atualização'};
+    mockStores.orders.getters.columns = mockStores.orders.getters.columns.map(column => ({
+      ...column, compactFilter: true, compactLabel: labels[column.name],
+      ...(column.name === 'status' ? {compactStatusColors: true} : {}),
+      ...(column.name === 'orderDate' ? {show: true} : {}),
+    }));
   });
 
   const context = {
