@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
+  View, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import {app_type} from '@appType';
 import { useStore } from '@store';
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService';
 import DefaultExternalFilters from '@controleonline/ui-default/src/react/components/filters/DefaultExternalFilters';
+import OrderHistoryCompactFooter from './OrderHistoryCompactFooter';
 import DefaultTable from '@controleonline/ui-default/src/react/components/table/DefaultTable';
 import {
   canDeviceViewCompanyOrders,
@@ -53,6 +54,8 @@ import useOrderHistoryFilters from './useOrderHistoryFilters';
 export { buildHistoryRequestParams };
 
 export default function OrderHistoryPage({ navigation, route }) {
+  const {width} = useWindowDimensions();
+  const cardListProps = useMemo(() => ({numColumns: width >= 1280 ? 3 : width >= 800 ? 2 : 1}), [width]);
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
   const statusStore = useStore('status');
@@ -74,7 +77,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
   const { getters: statusGetters } = statusStore;
   const { currentCompany, mainCompany } = peopleGetters;
-  const { colors: themeColors } = themeStore.getters;
+  const themeColors = useMemo(() => themeStore.getters.colors, [themeStore.getters.colors]);
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
   const setColumnsRef = useRef(orderActions?.setColumns);
@@ -238,7 +241,7 @@ export default function OrderHistoryPage({ navigation, route }) {
       const fieldName = column?.name || column?.key;
       if (fieldName === 'status') return statusOptions;
 
-      return [];
+      return undefined;
     },
     [statusOptions],
   );
@@ -253,7 +256,7 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   const historyRequestParams = useMemo(
     () =>
-      buildHistoryRequestParams({
+      ({...buildHistoryRequestParams({
         appType: app_type,
         canViewCompanyOrders,
         currentCompanyId: currentCompany?.id,
@@ -261,8 +264,9 @@ export default function OrderHistoryPage({ navigation, route }) {
         filters: historyFilters,
         orderTypeFilter,
         showAdvancedFilters,
-      }),
+      }), ...(orderTypeFilter === 'sale' && !isWaiterMode ? {summary: 'sales'} : {})}),
     [
+      isWaiterMode,
       canViewCompanyOrders,
       currentCompany?.id,
       historyFilters,
@@ -292,15 +296,15 @@ export default function OrderHistoryPage({ navigation, route }) {
         key: 'order-cancellation-reasons',
         icon: 'tag',
         iconSize: 16,
+        label: 'Motivos de cancelamento',
         accessibilityLabel:
           global.t?.t('orders', 'button', 'manageCancelReasons') ||
           'Gerenciar motivos de cancelamento',
         hidden: !currentCompany?.id,
         color: themeColors.buttonText,
         style: {
-          minWidth: 30,
-          width: 30,
-          paddingHorizontal: 0,
+          minWidth: 160,
+          paddingHorizontal: 10,
           backgroundColor: themeColors.buttonBackground,
           borderColor: themeColors.buttonBackground,
         },
@@ -315,15 +319,28 @@ export default function OrderHistoryPage({ navigation, route }) {
     setMarkAsPaidOrder(order);
   }, [orderActions]);
 
-  const handleMarkAsPaidSuccess = useCallback(() => {
+  const handleMarkAsPaidSuccess = useCallback((result) => {
     setMarkAsPaidOrder(null);
-    if (typeof orderActions?.getItems === 'function') {
-      void orderActions.getItems();
+    const message = String(result?.message || '').trim();
+    if (result?.alreadyPaid) {
+      // Backend: financial balance already zero — show API text (e.g. "Pedido ja esta quitado.")
+      if (message) {
+        if (typeof showError === 'function') showError(message);
+        else if (typeof showSuccess === 'function') showSuccess(message);
+      }
+    } else if (message && message.toLowerCase() !== 'ok') {
+      if (typeof showSuccess === 'function') showSuccess(message);
+    } else if (typeof showSuccess === 'function') {
+      showSuccess(
+        (global.t?.t && global.t.t('orders', 'message', 'markAsPaidSuccess')) ||
+          'Pedido marcado como pago.',
+      );
     }
-  }, [orderActions]);
+    orderActions.setReload?.(true);
+  }, [orderActions, showError, showSuccess]);
 
-  const renderRowActions = useCallback(({ row }) => (
-    <OrderHistoryRowActions row={row} styles={styles} themeColors={themeColors}
+  const renderRowActions = useCallback(({ row, openRow }) => (
+    <OrderHistoryRowActions row={row} onOpenOrder={openRow} themeColors={themeColors}
       onViewCancellation={setCancelDetailsOrder} onCreateInvoice={openCreateInvoiceFlow} onCancelOrder={openCancelModal} />
   ), [openCancelModal, openCreateInvoiceFlow, styles, themeColors]);
 
@@ -386,16 +403,23 @@ export default function OrderHistoryPage({ navigation, route }) {
       edges={['bottom']}
     >
       <View style={styles.content}>
-        <DefaultExternalFilters
+        {!showHistoryToolbar ? <DefaultExternalFilters
           accentColor={themeColors.primary}
           filters={historyFilters}
           getOptionsForColumn={getExternalFilterOptions}
           onChangeFilters={applyHistoryFilters}
           storeName="orders"
-        />
+        /> : null}
 
         <View style={styles.tableWrap}>
           <DefaultTable
+            appearance="compact"
+            paginationMode="pages"
+            pageSize={20}
+            addLabel="Novo pedido"
+            cardListProps={cardListProps}
+            rowActionsWidth={210}
+            footerComponent={OrderHistoryCompactFooter}
             accentColor={themeColors.primary}
             add={orderTypeFilter === 'loss' ? false : null}
             filters={historyFilters}
@@ -406,9 +430,9 @@ export default function OrderHistoryPage({ navigation, route }) {
             rowActionsComponent={renderRowActions}
             requestParams={historyRequestParams}
             renderCard={renderCard}
-            searchProps={{
-              placeholder: searchPlaceholder,
-            }}
+            showSearch={showAdvancedFilters}
+            searchPlaceholder="Buscar por ID ou cliente"
+            getOptionsForColumn={getExternalFilterOptions}
             showRowActions={showOrderHistoryRowActions}
             showToolbar={showHistoryToolbar}
             showTotalItemsInFooter={!isWaiterMode}
