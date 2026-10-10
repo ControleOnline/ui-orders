@@ -18,9 +18,14 @@ import {
   syncOrderProducts,
 } from "./customActions";
 
+import {loadTabConsultation, closeTabConsultation, discardTabDraft} from "./tabConsultation";
+import {loadTabDraftDetails, rememberConfirmedWaiterLaunch} from "./tabConsultationDetails";
 export {ORDER_CHANNEL_OPTIONS};
 
+import {withOrderProductHierarchy} from "./hierarchy";
+
 const customActions = {
+  loadTabConsultation, loadTabDraftDetails, rememberConfirmedWaiterLaunch, closeTabConsultation, discardTabDraft,
   addProducts,
   cancelOrder,
   fetchHistoryPage,
@@ -36,6 +41,7 @@ const customActions = {
 export default {
   namespaced: true,
   state: {
+    tabConsultation: null,
     item: null,
     items: null,
     resourceEndpoint: "orders",
@@ -244,7 +250,8 @@ export default {
       },
     ],
   },
-  actions: { ...actions, ...customActions },
+  actions: Object.fromEntries(Object.entries({...actions, ...customActions})
+    .map(([name, action]) => [name, withOrderProductHierarchy(action)])),
   getters,
-  mutations,
+  mutations: {...mutations, setTabConsultation: (_state, _value) => "tabConsultation"},
 };

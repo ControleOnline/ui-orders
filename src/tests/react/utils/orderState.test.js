@@ -68,3 +68,47 @@ describe('orderState', () => {
     ).toEqual([pizza, coca])
   })
 })
+
+// Losing parent links on a partial update must not count combo components twice.
+describe('confirmed cart hierarchy preservation', () => {
+  const {preserveOrderProductHierarchy} = require('../../../utils/orderState')
+  it('keeps links for matching lines while accepting new quantities and removed lines', () => {
+    const current = {id: 1, orderProducts: [pizza, pizzaComplement, coca]}
+    const next = {id: 1, orderProducts: [{...pizza, quantity: 2, total: 204.02},
+      {id: 105040, product: pizzaComplement.product, quantity: 2, total: 140}]}
+    const result = preserveOrderProductHierarchy(current, next)
+    expect(result.orderProducts).toHaveLength(2)
+    expect(result.orderProducts[1].orderProduct).toBe('/order_products/105039')
+    expect(calculateOrderProductsSubtotal(result.orderProducts)).toBe(204.02)
+    expect(next.orderProducts[1].orderProduct).toBeUndefined()
+  })
+  it('respects explicit null links, an empty authoritative list and a different order', () => {
+    const current = {id: 1, orderProducts: [pizza, pizzaComplement]}
+    const detached = {id: 1, orderProducts: [{...pizzaComplement, orderProduct: null}]}
+    expect(preserveOrderProductHierarchy(current, detached).orderProducts[0].orderProduct).toBeNull()
+    expect(preserveOrderProductHierarchy(current, {id: 1, orderProducts: []}).orderProducts).toEqual([])
+    const other = {id: 2, orderProducts: [{id: 105040}]}
+    expect(preserveOrderProductHierarchy(current, other)).toBe(other)
+  })
+})
+
+it('does not retain an alternate parent reference after explicit detachment', () => {
+  const {preserveOrderProductHierarchy} = require('../../../utils/orderState')
+  const previous = {id: 1, orderProducts: [{id: 2, order_product: '/order_products/1'}]}
+  const next = {id: 1, orderProducts: [{id: 2, orderProduct: null, quantity: 1, total: 10}]}
+  expect(calculateOrderProductsSubtotal(preserveOrderProductHierarchy(previous, next).orderProducts)).toBe(10)
+})
+
+it('does not restore omitted links in a complete authoritative response', () => {
+  const {preserveOrderProductHierarchy} = require('../../../utils/orderState')
+  const previous = {id: 1, orderProducts: [{id: 2, orderProduct: '/order_products/1'}]}
+  const next = {id: 1, orderProducts: [{id: 2, hierarchyComplete: true, quantity: 1, total: 10}]}
+  expect(calculateOrderProductsSubtotal(preserveOrderProductHierarchy(previous, next).orderProducts)).toBe(10)
+})
+
+it('keeps a simple line complete after a partial quantity update', () => {
+  const {preserveOrderProductHierarchy} = require('../../../utils/orderState')
+  const previous = {id: 1, orderProducts: [{id: 2, hierarchyComplete: true, total: 5}]}
+  const next = {id: 1, orderProducts: [{id: 2, quantity: 2, total: 10}]}
+  expect(preserveOrderProductHierarchy(previous, next).orderProducts[0].hierarchyComplete).toBe(true)
+})

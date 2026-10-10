@@ -1,0 +1,22 @@
+import {StyleSheet} from 'react-native'
+export default palette => StyleSheet.create({
+  container: {flex: 1, backgroundColor: palette.background},
+  content: {padding: 20, paddingBottom: 32, alignItems: 'center', gap: 14},
+  panel: {width: '100%', maxWidth: 650, gap: 12},
+  card: {backgroundColor: palette.cardBackground, borderWidth: 1, borderColor: palette.cardBorder,
+    borderRadius: 14, padding: 16, gap: 10},
+  title: {fontSize: 24, fontWeight: '800', color: palette.textPrimary},
+  total: {fontSize: 36, fontWeight: '800', color: palette.textPrimary},
+  heading: {fontSize: 18, fontWeight: '700', color: palette.textPrimary},
+  text: {fontSize: 14, color: palette.textPrimary},
+  muted: {fontSize: 13, color: palette.textMuted},
+  metrics: {flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12},
+  section: {gap: 12},
+  button: {minHeight: 48, justifyContent: 'center', alignItems: 'center', padding: 12,
+    borderRadius: 10, borderWidth: 1, borderColor: palette.buttonBorderSecondary || palette.cardBorder,
+    backgroundColor: palette.buttonBackgroundSecondary || palette.cardBackground},
+  buttonText: {fontSize: 16, fontWeight: '700', color: palette.buttonTextSecondary || palette.textPrimary},
+  primary: {backgroundColor: palette.buttonBackground || palette.primary, borderColor: palette.buttonBorder || palette.primary},
+  primaryText: {color: palette.buttonText || palette.textPrimary},
+  disabled: {opacity: 0.5},
+})

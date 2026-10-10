@@ -1,13 +1,17 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {ActivityIndicator, Text, View} from 'react-native';
+import {ActivityIndicator, Text, TouchableOpacity, View} from 'react-native';
 import {useStore} from '@store';
 import {useFocusEffect, useIsFocused, useRoute} from '@react-navigation/native';
 
+import {app_type} from '@appType';
+import useCachedCatalogActions from '@controleonline/ui-products/src/react/hooks/useCachedCatalogActions';
 import Categories from '@controleonline/ui-products/src/react/pages/Categories';
 import ProductsPage from '@controleonline/ui-products/src/react/pages/Products';
 import {ALL_PRODUCTS_SENTINEL_ID} from '@controleonline/ui-products/src/react/constants/categorySentinels';
 import LinkedOrderEntrySheet from '@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet';
 import {
+  POS_OPERATION_MODE_WAITER,
+  resolvePosOperationMode,
   isPosCashRegisterClosed,
   isPosTotemMode,
   isPosSingleItemMode,
@@ -19,6 +23,8 @@ import usePosCartSession, {
   isPosOrderCreationCancelledError,
 } from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import {resolveShouldListProductsDirectly} from '@controleonline/ui-orders/src/react/pages/checkout/utils/addProductCatalogMode';
+import {buildAddProductCatalogRouteParams} from '@controleonline/ui-orders/src/react/pages/checkout/utils/addProductCatalogOrderContext';
+import {setActivePosOrderContext} from '@controleonline/ui-orders/src/react/hooks/posCartSession/activePosOrderContext';
 
 const CheckoutContent = ({navigation, route: routeProp}) => {
   const currentRoute = useRoute();
@@ -37,17 +43,22 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {item: storagedDevice} = deviceGetters;
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
   const categoriesGetters = categoriesStore.getters;
-  const categoryActions = categoriesStore.actions;
+  const categoryActions = useCachedCatalogActions(categoriesStore,
+    app_type === 'POS' && resolvePosOperationMode(runtimeDeviceConfig?.configs) === POS_OPERATION_MODE_WAITER,
+    currentCompany?.id, route?.params?.context || 'products');
   const categoryItems = categoriesGetters?.items;
   const categoriesLoading = categoriesGetters?.isLoading === true;
   const [categoriesFetched, setCategoriesFetched] = useState(false);
+  const [categoriesFetchError, setCategoriesFetchError] = useState(false);
   useEffect(() => {
     setCategoriesFetched(false);
+    setCategoriesFetchError(false);
   }, [currentCompany?.id]);
   const {showError} = useMessage() || {};
   const isTotemMode = isPosTotemMode(runtimeDeviceConfig?.configs);
   const isSingleItemMode =
-    route?.params?.singleItemMode === true ||
+    (route?.params?.singleItemMode === true ||
+      String(route?.params?.singleItemMode || '').trim().toLowerCase() === 'true') ||
     isPosSingleItemMode(runtimeDeviceConfig?.configs);
   const shouldUseCashRegisterLifecycle = shouldUsePosCashRegisterLifecycle(
     runtimeDeviceConfig?.configs,
@@ -57,6 +68,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   );
   const isLoadingStoredOrderRef = useRef(false);
   const activeOrderIdRef = useRef(null);
+  const [catalogOrderId, setCatalogOrderId] = useState(null);
   const activePreparationControllerRef = useRef(null);
   const hasPreparedCurrentFocusRef = useRef(false);
   const startNewOrderHandledRef = useRef(false);
@@ -93,6 +105,36 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     companyConfigs: currentCompany?.configs,
   });
   const activeOrderId = activeOrder?.id || activeOrder?.['@id'] || null;
+  const persistCatalogOrderId = useCallback(
+    order => {
+      const {orderId} = buildAddProductCatalogRouteParams({
+        activeOrderId: order,
+        routeParams: route?.params || {},
+      });
+
+      if (orderId) {
+        setActivePosOrderContext({
+          companyId: currentCompany?.id,
+          deviceId: storagedDevice?.id,
+          order,
+        });
+        setCatalogOrderId(orderId);
+        if (String(route?.params?.orderId || '') !== orderId) {
+          navigation.setParams({orderId});
+        }
+      }
+
+      return orderId;
+    },
+    [
+      currentCompany?.id,
+      navigation,
+      route?.params?.id,
+      route?.params?.order,
+      route?.params?.orderId,
+      storagedDevice?.id,
+    ],
+  );
   const resumeOrderId = String(route?.params?.id || '').replace(/\D+/g, '');
   const resolveLinkedOrderEntry = useCallback(result => {
     const resolve = linkedOrderEntryResolverRef.current;
@@ -185,9 +227,10 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
         isSingleItemMode,
         categoriesLoading,
         categoriesFetched,
+        categoriesFetchError,
         categoryItems,
       }),
-    [categoriesFetched, categoryItems, categoriesLoading, isSingleItemMode],
+    [categoriesFetchError, categoriesFetched, categoryItems, categoriesLoading, isSingleItemMode],
   );
 
   useEffect(() => {
@@ -204,17 +247,22 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
     let cancelled = false;
     void (async () => {
+      let requestFailed = false;
       try {
-        await categoryActions?.getItems?.({
+        const data = await categoryActions?.getItems?.({
           company: companyId,
           context: route?.params?.context || 'products',
           'order[sortOrder]': 'ASC',
           'order[name]': 'ASC',
         });
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid category collection response.');
+        }
       } catch {
-        // Decision still needs a definitive fetch result (empty on failure).
+        requestFailed = true;
       } finally {
         if (!cancelled) {
+          setCategoriesFetchError(requestFailed);
           setCategoriesFetched(true);
         }
       }
@@ -226,7 +274,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   }, [
     categoryActions,
     categoriesFetched,
-    currentCompany,
+    currentCompany?.id,
     isSingleItemMode,
     route?.params?.context,
   ]);
@@ -235,8 +283,12 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     return {
       ...route,
       params: {
-        ...(route?.params || {}),
-        hideCatalogToolbar: true,
+        ...buildAddProductCatalogRouteParams({
+          activeOrderId: activeOrderId || catalogOrderId,
+          routeParams: route?.params || {},
+        }),
+        hideCatalogToolbar: false,
+        categoriesPrefetched: categoriesFetched && !categoriesFetchError,
         ...(shouldListProductsDirectly
           ? {
               categoryId: ALL_PRODUCTS_SENTINEL_ID,
@@ -246,7 +298,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
           : {}),
       },
     };
-  }, [isSingleItemMode, route, shouldListProductsDirectly]);
+  }, [activeOrderId, catalogOrderId, categoriesFetchError, categoriesFetched, isSingleItemMode, route, shouldListProductsDirectly]);
 
   const CatalogComponent = shouldListProductsDirectly ? ProductsPage : Categories;
 
@@ -280,28 +332,18 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
             }
 
             startNewOrderHandledRef.current = true;
-            if (usesLinkedCheckOrders) {
-              const ensuredOrder = await ensureActiveOrder(undefined, {
-                forceNew: true,
-                signal: controller?.signal,
-              });
-              linkedSessionBootstrappedRef.current = !!(
-                ensuredOrder?.id ||
-                ensuredOrder?.['@id']
-              );
-            } else {
-              const ensuredOrder = await ensureActiveOrder(undefined, {
-                forceNew: true,
-                signal: controller?.signal,
-              });
-              linkedSessionBootstrappedRef.current = !!(
-                ensuredOrder?.id ||
-                ensuredOrder?.['@id']
-              );
-            }
+            const ensuredOrder = await ensureActiveOrder(undefined, {
+              forceNew: true,
+              signal: controller?.signal,
+            });
+            const ensuredOrderId = persistCatalogOrderId(ensuredOrder);
+            linkedSessionBootstrappedRef.current = Boolean(ensuredOrderId);
 
             if (controller?.signal?.aborted !== true) {
-              navigation.setParams({startNewOrder: false});
+              navigation.setParams({
+                ...(ensuredOrderId ? {orderId: ensuredOrderId} : {}),
+                startNewOrder: false,
+              });
             }
             return;
           }
@@ -310,6 +352,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
             const resumedOrder = await refreshActiveOrder(resumeOrderId);
             if (resumedOrder) {
               ordersActions.syncOrder?.(resumedOrder);
+              persistCatalogOrderId(resumedOrder);
             }
             return;
           }
@@ -319,6 +362,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
             if (storedDraftOrder) {
               linkedSessionBootstrappedRef.current = true;
+              persistCatalogOrderId(storedDraftOrder);
               return;
             }
 
@@ -328,9 +372,8 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
               }
 
               const ensuredOrder = await ensureActiveOrder();
-              linkedSessionBootstrappedRef.current = !!(
-                ensuredOrder?.id ||
-                ensuredOrder?.['@id']
+              linkedSessionBootstrappedRef.current = Boolean(
+                persistCatalogOrderId(ensuredOrder),
               );
             }
           }
@@ -363,6 +406,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
       loadStoredDraftOrder,
       navigation,
       ordersActions,
+      persistCatalogOrderId,
       refreshActiveOrder,
       resumeOrderId,
       route?.params?.resumeExistingOrder,
@@ -374,23 +418,46 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
     ]),
   );
 
-  if (isPreparingOrder) {
-    return (
-      <View
-        style={{
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center',
-        }}>
-        <ActivityIndicator size="large" />
-        <Text style={{marginTop: 12}}>Carregando pedido...</Text>
-      </View>
-    );
-  }
-
   return (
     <>
-      <CatalogComponent navigation={navigation} route={effectiveRoute} />
+      {isPreparingOrder ? (
+        <View
+          style={{
+            alignItems: 'center',
+            flex: 1,
+            justifyContent: 'center',
+          }}>
+          <ActivityIndicator size="large" />
+          <Text style={{marginTop: 12}}>Carregando pedido...</Text>
+        </View>
+      ) : categoriesFetchError && !isSingleItemMode ? (
+        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center', padding: 24}}>
+          <Text style={{color: '#253044', fontSize: 16, marginBottom: 16, textAlign: 'center'}}>
+            Não foi possível carregar as categorias. Verifique a conexão e tente novamente.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => {
+              setCategoriesFetchError(false);
+              setCategoriesFetched(false);
+            }}
+            style={{backgroundColor: '#00a8df', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 12}}
+          >
+            <Text style={{color: '#fff', fontWeight: '600'}}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : !isSingleItemMode && currentCompany?.id && !categoriesFetched ? (
+        <View style={{alignItems: 'center', flex: 1, justifyContent: 'center'}}>
+          <ActivityIndicator size="large" />
+          <Text style={{marginTop: 12}}>Carregando categorias...</Text>
+        </View>
+      ) : (
+        <CatalogComponent
+          activeOrderId={activeOrderId || catalogOrderId || effectiveRoute.params?.orderId || ''}
+          navigation={navigation}
+          route={effectiveRoute}
+        />
+      )}
       <LinkedOrderEntrySheet
         onCancel={handleCancelLinkedOrderEntry}
         onSubmit={resolveLinkedOrderEntry}
