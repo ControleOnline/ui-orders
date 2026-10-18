@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, useWindowDimensions,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
@@ -54,14 +54,6 @@ import useOrderHistoryFilters from './useOrderHistoryFilters';
 export { buildHistoryRequestParams };
 
 export default function OrderHistoryPage({ navigation, route }) {
-  const {width} = useWindowDimensions();
-  const cardListProps = useMemo(() => {
-    const numColumns = width >= 1280 ? 3 : width >= 800 ? 2 : 1;
-    return {
-      key: `order-history-cols-${numColumns}`,
-      numColumns,
-    };
-  }, [width]);
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
   const statusStore = useStore('status');
@@ -423,7 +415,6 @@ export default function OrderHistoryPage({ navigation, route }) {
             paginationMode="pages"
             pageSize={20}
             addLabel="Novo pedido"
-            cardListProps={cardListProps}
             rowActionsWidth={210}
             footerComponent={OrderHistoryCompactFooter}
             accentColor={themeColors.primary}
