@@ -55,7 +55,13 @@ export { buildHistoryRequestParams };
 
 export default function OrderHistoryPage({ navigation, route }) {
   const {width} = useWindowDimensions();
-  const cardListProps = useMemo(() => ({numColumns: width >= 1280 ? 3 : width >= 800 ? 2 : 1}), [width]);
+  const cardListProps = useMemo(() => {
+    const numColumns = width >= 1280 ? 3 : width >= 800 ? 2 : 1;
+    return {
+      key: `order-history-cols-${numColumns}`,
+      numColumns,
+    };
+  }, [width]);
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
   const statusStore = useStore('status');
