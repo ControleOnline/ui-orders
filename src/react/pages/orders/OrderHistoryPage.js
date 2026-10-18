@@ -411,7 +411,6 @@ export default function OrderHistoryPage({ navigation, route }) {
 
         <View style={styles.tableWrap}>
           <DefaultTable
-            appearance="compact"
             paginationMode="pages"
             pageSize={20}
             addLabel="Novo pedido"
