@@ -73,7 +73,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { item: storagedDevice } = deviceStore.getters || {};
   const { item: deviceConfig } = deviceConfigStore.getters || {};
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
-  const { getters: statusGetters } = statusStore;
+  const { actions: statusActions, getters: statusGetters } = statusStore;
   const { currentCompany, mainCompany } = peopleGetters;
   const themeColors = useMemo(() => themeStore.getters.colors, [themeStore.getters.colors]);
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
@@ -234,10 +234,17 @@ export default function OrderHistoryPage({ navigation, route }) {
       buildExternalColumnsSignature(configuredOrderColumns),
     [configuredOrderColumns, ordersGetters.columns],
   );
+  // Order statuses feed the Status filter; without this fetch the filter only offers "Todos".
+  useEffect(() => {
+    if (!isFocused || !currentCompany?.id) return;
+    statusActions?.getItems?.({ context: 'order' })?.catch?.(() => {});
+  }, [currentCompany?.id, isFocused, statusActions]);
+
   const getExternalFilterOptions = useCallback(
     column => {
       const fieldName = column?.name || column?.key;
-      if (fieldName === 'status') return statusOptions;
+      // An empty array would hide the column's own list loader, so fall through until statuses arrive.
+      if (fieldName === 'status') return statusOptions.length > 0 ? statusOptions : undefined;
 
       return undefined;
     },
