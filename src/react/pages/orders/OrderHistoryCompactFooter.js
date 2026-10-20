@@ -27,9 +27,9 @@ export default function OrderHistoryCompactFooter({storeName}) {
 
 const s = StyleSheet.create({
   footer: {flexShrink: 0, paddingHorizontal: 12, paddingVertical: 8, gap: 5, borderTopWidth: 1},
-  metrics: {flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 14},
-  metric: {flexDirection: 'row', gap: 6, alignItems: 'baseline', minWidth: 62},
+  metrics: {flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap', gap: 8},
+  metric: {flex: 1, flexBasis: 0, minWidth: 0, gap: 2, alignItems: 'flex-start'},
   label: {fontSize: 11},
-  value: {fontSize: 14, fontWeight: '700'},
+  value: {fontSize: 12, fontWeight: '700'},
   basis: {fontSize: 11},
 });

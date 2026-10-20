@@ -44,7 +44,8 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
   const {item: runtimeDeviceConfig} = deviceConfigGetters;
   const categoriesGetters = categoriesStore.getters;
   const categoryActions = useCachedCatalogActions(categoriesStore,
-    app_type === 'POS' && resolvePosOperationMode(runtimeDeviceConfig?.configs) === POS_OPERATION_MODE_WAITER,
+    (app_type === 'POS' && resolvePosOperationMode(runtimeDeviceConfig?.configs) === POS_OPERATION_MODE_WAITER) ||
+      (process.env.EXPO_PUBLIC_MANAGER_NATIVE_PREVIEW === '1' && app_type === 'MANAGER' && String(route?.params?.interactionMode || 'pdv') === 'pdv'),
     currentCompany?.id, route?.params?.context || 'products');
   const categoryItems = categoriesGetters?.items;
   const categoriesLoading = categoriesGetters?.isLoading === true;
