@@ -19,6 +19,7 @@ import {
   REMOTE_PAYMENT_MESSAGE_STORE,
   REMOTE_PAYMENT_REQUEST_ACTION,
 } from '@controleonline/ui-common/src/react/utils/remotePayment';
+import {getPaymentOptionLabel as resolvePaymentOptionLabel} from '@controleonline/ui-common/src/react/utils/paymentOptions';
 import {
   PAYMENT_CHANNEL_LOCAL,
   resolvePosPaidInvoiceStatusIri,
@@ -29,6 +30,10 @@ import {
 } from './checkoutCompletionPolicy';
 
 export default function useCheckoutPaymentRunners({
+  waiterTabReturn = null,
+  verifyChargeChannel = null,
+  canUseLocalOperationalPayment = true,
+  canUseRemoteOperationalPayment = true,
   appendInvoiceToStore,
   appendOrderInvoiceToStore,
   buildOrderDetailsNavigationParams,
@@ -67,6 +72,10 @@ export default function useCheckoutPaymentRunners({
 }) {
   const createPaidInvoice = useCallback(
     async (payment, total, currentOrder = null) => {
+      if (!canUseLocalOperationalPayment) {
+        invoiceActions.setError('Cobrança local não autorizada neste device.');
+        return null;
+      }
       const paidStatusIri = await resolvePosPaidInvoiceStatusIri(
         mainCompany?.configs['pos-paid-status'],
       );
@@ -105,6 +114,15 @@ export default function useCheckoutPaymentRunners({
           if (!loyaltyParentClosed) return createdInvoice;
           resetCompletedOrderState();
           resetToOrderHistory();
+          return createdInvoice;
+        }
+
+        if (waiterTabReturn) {
+          appendInvoiceToStore(createdInvoice);
+          appendOrderInvoiceToStore(createdInvoice, paidAmount);
+          ordersActions.setPayable(nextPayable < 0 ? nextPayable : 0);
+          ordersActions.syncOrder?.(resolvedOrder);
+          waiterTabReturn();
           return createdInvoice;
         }
 
@@ -153,6 +171,8 @@ export default function useCheckoutPaymentRunners({
       }
     },
     [
+      waiterTabReturn,
+      canUseLocalOperationalPayment,
       appendInvoiceToStore,
       appendOrderInvoiceToStore,
       buildOrderDetailsNavigationParams,
@@ -183,6 +203,10 @@ export default function useCheckoutPaymentRunners({
 
   const runLocalPayment = useCallback(
     async ({payment, total, installments = null, currentOrder = null}) => {
+      if (!canUseLocalOperationalPayment) {
+        invoiceActions.setError('Cobrança local não autorizada neste device.');
+        return;
+      }
       if (!payment?.wallet || !payment?.paymentType) {
         invoiceActions.setError(
           global.t?.t('orders', 'message', 'selectPaymentMethod'),
@@ -192,6 +216,7 @@ export default function useCheckoutPaymentRunners({
 
       setSubmittingPayment(true);
       try {
+        if (verifyChargeChannel) await verifyChargeChannel('local', Number(total));
         if (isCreateInvoiceOnlyMode()) {
           await createPaidInvoice(payment, total, currentOrder);
           clearCreateInvoiceOnlyMode();
@@ -227,7 +252,7 @@ export default function useCheckoutPaymentRunners({
         setSubmittingPayment(false);
       }
     },
-    [createPaidInvoice, invoiceActions, localGateway, order, orderProducts, setSubmittingPayment],
+    [verifyChargeChannel, canUseLocalOperationalPayment, createPaidInvoice, invoiceActions, localGateway, order, orderProducts, setSubmittingPayment],
   );
 
   const handleConfirmCashAmountEntry = useCallback(async receivedAmount => {
@@ -252,6 +277,10 @@ export default function useCheckoutPaymentRunners({
 
   const dispatchRemotePayment = useCallback(
     async ({payment, total, installments = null}) => {
+      if (!canUseRemoteOperationalPayment) {
+        invoiceActions.setError('Cobrança remota não autorizada neste device.');
+        return;
+      }
       if (!payment?.wallet || !payment?.paymentType) {
         invoiceActions.setError(global.t?.t('orders', 'message', 'selectPaymentMethod'));
         return;
@@ -285,13 +314,14 @@ export default function useCheckoutPaymentRunners({
 
       setSubmittingPayment(true);
       setPendingRemotePaymentRequest({
-        paymentLabel: getPaymentOptionLabel(payment),
+        paymentLabel: resolvePaymentOptionLabel(payment),
         requestKey,
         targetDeviceId: selectedRemoteDevice.deviceId,
         targetDeviceLabel: selectedRemoteDevice.alias,
       });
       try {
         invoiceActions.setError('');
+        if (verifyChargeChannel) await verifyChargeChannel('remote', Number(total));
         await websocketActions.send({
           destination: selectedRemoteDevice.deviceId,
           store: REMOTE_PAYMENT_MESSAGE_STORE,
@@ -310,7 +340,7 @@ export default function useCheckoutPaymentRunners({
         );
       }
     },
-    [createPaidInvoice, invoiceActions, order, selectedRemoteDevice, setPendingRemotePaymentRequest, setSubmittingPayment, storagedDevice?.id, websocketActions],
+    [verifyChargeChannel, canUseRemoteOperationalPayment, createPaidInvoice, invoiceActions, order, selectedRemoteDevice, setPendingRemotePaymentRequest, setSubmittingPayment, storagedDevice?.id, websocketActions],
   );
 
   return {

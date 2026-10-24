@@ -1,3 +1,4 @@
+import {resolveOrderHistoryStatusColor} from './orderHistoryStatusColor';
 import {app_type} from '@appType';
 import { getDateRange } from '@controleonline/ui-common/src/react/utils/dateRangeFilter';
 import { resolveHistoryOrderTypeQuery } from '@controleonline/ui-orders/src/react/utils/orderHistoryQuery';
@@ -19,9 +20,9 @@ export const buildExternalColumnsSignature = columns =>
       column?.key || column?.name || '',
       column?.externalFilter === true ? '1' : '0',
       column?.inputType || column?.type || '',
-      column?.label || '',
+      column?.label || '', column?.compactLabel || '', column?.compactFilter === true ? '1' : '0',
       column?.list ? '1' : '0',
-      column?.emptyOptionLabel || '',
+      column?.emptyOptionLabel || '', column?.compactStatusColors ? '1' : '0',
     ].join(':'))
     .join('|');
 
@@ -147,11 +148,12 @@ export const buildStatusOptions = statusItems => {
 export const configureOrderHistoryColumns = ({ columns, showAdvancedFilters, orderTypeFilter, allChannelLabel }) =>
   (columns || []).map(column => {
     const fieldName = column?.name || column?.key;
+    column = {...column, compactFilter: showAdvancedFilters && ['app', 'status', 'orderDate', 'alterDate'].includes(fieldName) && !(fieldName === 'app' && orderTypeFilter !== 'sale') && !(fieldName === 'status' && SIMPLE_TAB_KEYS.has(orderTypeFilter)), compactLabel: ({id: 'Pedido', app: 'Canal', orderType: 'Tipo', status: 'Status', client: orderTypeFilter === 'purchase' ? 'Fornecedor' : 'Cliente', orderDate: 'Compra', alterDate: 'Atualização', price: 'Valor'})[fieldName] || column.compactLabel};
     if (fieldName === 'app') {
       return { ...column, externalFilter: showAdvancedFilters && orderTypeFilter === 'sale', emptyOptionLabel: allChannelLabel, label: 'channel' };
     }
     if (fieldName === 'status') {
-      return { ...column, externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter), emptyOptionLabel: allChannelLabel, list: 'status/getItems' };
+      return { ...column, compactStatusColors: true, compactStatusColor: (row, themeColors) => resolveOrderHistoryStatusColor(row?.status, themeColors), externalFilter: showAdvancedFilters && !SIMPLE_TAB_KEYS.has(orderTypeFilter), emptyOptionLabel: allChannelLabel, list: 'status/getItems' };
     }
     if (fieldName === 'orderDate') {
       return { ...column, externalFilter: showAdvancedFilters, inputType: 'date-range', show: true };

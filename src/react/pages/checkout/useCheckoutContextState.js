@@ -22,6 +22,7 @@ import {
   isLoyaltyCouponsEnabledForCheckout,
   resolveCheckoutCompanyConfigs,
 } from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
+import {filterWaiterPaymentReceivers, getWaiterChargeChannels, isWaiterConsultationCheckout} from './waiterChargeCapability';
 import {IS_WEB_PLATFORM} from './checkoutStatusHelpers';
 
 export default function useCheckoutContextState({
@@ -91,11 +92,14 @@ export default function useCheckoutContextState({
     [device?.configs],
   );
   const checkoutOrderId = routeOrderId || getOrderRouteId(order);
+  const waiterConsultationCheckout = isWaiterConsultationCheckout(route, device?.configs);
+  const chargeChannels = getWaiterChargeChannels(String(order?.id) === String(routeOrderId) ? order : null);
+  const canUseRemoteOperationalPayment = !waiterConsultationCheckout || chargeChannels.remote;
   const canUseLocalOperationalPayment = useMemo(
     () =>
-      !isManagerApp &&
+      (!waiterConsultationCheckout || chargeChannels.local) && !isManagerApp &&
       (isLocalPaymentDevice || deviceType === 'PDV' || isPdvInteractionMode),
-    [deviceType, isLocalPaymentDevice, isManagerApp, isPdvInteractionMode],
+    [deviceType, isLocalPaymentDevice, isManagerApp, isPdvInteractionMode, waiterConsultationCheckout, chargeChannels.local],
   );
   const requiresLoyaltyCpfStep = useMemo(
     () =>
@@ -109,12 +113,12 @@ export default function useCheckoutContextState({
   );
   const remotePaymentDevices = useMemo(
     () =>
-      resolveRemotePaymentDeviceOptions({
+      canUseRemoteOperationalPayment ? resolveRemotePaymentDeviceOptions({
         deviceConfig: device,
-        deviceConfigs: companyDeviceConfigs,
+        deviceConfigs: waiterConsultationCheckout ? filterWaiterPaymentReceivers(companyDeviceConfigs) : companyDeviceConfigs,
         companyConfigs: effectiveCompanyConfigs,
-      }),
-    [companyDeviceConfigs, device, effectiveCompanyConfigs],
+      }) : [],
+    [companyDeviceConfigs, device, effectiveCompanyConfigs, waiterConsultationCheckout, canUseRemoteOperationalPayment],
   );
   const selectedRemoteDevice = useMemo(
     () =>
@@ -134,6 +138,9 @@ export default function useCheckoutContextState({
     canChangePaymentDeviceDuringCheckout,
     canRenderCheckout,
     canUseLocalOperationalPayment,
+    canUseRemoteOperationalPayment,
+    waiterConsultationCheckout,
+    isLocalPaymentDevice,
     checkoutOrderId,
     effectiveCompanyConfigs,
     isAutoPrintEnabled,

@@ -1,4 +1,5 @@
 import React from 'react'
+import {InlineLoadingText} from './InlineLoadingText'
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialIcons'
 import {
@@ -15,6 +16,7 @@ export default function OrderDetailsProductActions({
   entryType,
   canMutateOrderProducts,
   confirmRemoveItemId,
+  setConfirmRemoveItemId,
   handleDecreaseOpQuantity,
   handleEditCustomizableOrderProduct,
   handleIncreaseOpQuantity,
