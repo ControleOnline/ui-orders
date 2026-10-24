@@ -10,6 +10,7 @@ import {
 } from '@controleonline/ui-common/src/react/utils/paymentDevices';
 import {
   isPosAutoPrintEnabled,
+  resolvePosCheckOrderType,
   isPosCounterMode,
   isPosSelfServiceMode,
   isPosSingleItemMode,
@@ -104,8 +105,9 @@ export default function useCheckoutContextState({
   const requiresLoyaltyCpfStep = useMemo(
     () =>
       isLoyaltyCouponsEnabledForCheckout(effectiveCompanyConfigs) &&
+      (!isSingleItemMode || resolvePosCheckOrderType(device?.configs) === 'stamp') &&
       (isPosApp || deviceType === 'PDV' || isPdvInteractionMode),
-    [deviceType, effectiveCompanyConfigs, isPdvInteractionMode, isPosApp],
+    [deviceType, effectiveCompanyConfigs, isPdvInteractionMode, isPosApp, isSingleItemMode, device?.configs],
   );
   const canChangePaymentDeviceDuringCheckout = useMemo(
     () => isOrderPaymentDeviceChangeAllowed(effectiveCompanyConfigs),

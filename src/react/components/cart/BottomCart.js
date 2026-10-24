@@ -23,6 +23,7 @@ import createStyles from './BottomCart.styles';
 
 const BottomCart = ({
   bottomOffset = 0,
+  inline = false,
   actionLabel = 'Conferir pedido',
   actionIcon = 'clipboard',
   actionDisabled,
@@ -254,6 +255,7 @@ const BottomCart = ({
           style={[
             styles.paidBreakdownToolbar,
             {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+            ...(inline ? [{position: 'relative', flexShrink: 0, bottom: undefined, left: 0, right: 0, marginHorizontal: 8, marginVertical: 8}] : []),
           ]}
         >
           <View style={styles.paidMetricWrap}>
@@ -313,6 +315,7 @@ const BottomCart = ({
             style={[
               styles.paidToolbar,
               {bottom: bottomOffset + (isCompact ? 6 : 8)},
+              ...(inline ? [{position: 'relative', flexShrink: 0, bottom: undefined, left: 0, right: 0, marginHorizontal: 8, marginVertical: 8}] : []),
             ]}
           >
             <Icon color={successColor} name="check-circle" size={isCompact ? 14 : 15} />
@@ -323,6 +326,7 @@ const BottomCart = ({
           style={[
             styles.toolbar,
             {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+            ...(inline ? [{position: 'relative', flexShrink: 0, bottom: undefined, left: 0, right: 0, marginHorizontal: 8, marginVertical: 8}] : []),
           ]}
         >
           {isWaiterOrderVariant ? (
