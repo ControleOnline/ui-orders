@@ -334,6 +334,7 @@ const CheckoutContent = ({navigation, route: routeProp}) => {
 
             startNewOrderHandledRef.current = true;
             const ensuredOrder = await ensureActiveOrder(undefined, {
+              // Fresh catalog entry is separate from explicitly resuming a pending sale.
               forceNew: true,
               signal: controller?.signal,
             });

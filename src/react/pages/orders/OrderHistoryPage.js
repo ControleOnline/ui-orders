@@ -93,9 +93,10 @@ export default function OrderHistoryPage({ navigation, route }) {
     [deviceConfig?.configs],
   );
   const shouldRestrictToDeviceOrders = isPosApp && !canViewCompanyOrders;
-  const showAdvancedFilters = !isPosApp || canViewCompanyOrders;
+  const isSingleItemHistory = isPosApp && isPosSingleItemMode(deviceConfig?.configs);
+  const showAdvancedFilters = !isSingleItemHistory && (!isPosApp || canViewCompanyOrders);
   const isWaiterMode = isPosApp && resolvePosOperationMode(deviceConfig?.configs) === 'waiter';
-  const showHistoryToolbar = !isWaiterMode && !shouldRestrictToDeviceOrders;
+  const showHistoryToolbar = isSingleItemHistory || (!isWaiterMode && !shouldRestrictToDeviceOrders);
   const showOrderHistoryRowActions = !isPosApp;
   const [markAsPaidOrder, setMarkAsPaidOrder] = useState(null);
   const statusItems = useMemo(
@@ -112,6 +113,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { historyFilters, applyHistoryFilters, statusOptions } = useOrderHistoryFilters({
     orderActions,
     statusItems,
+    operationalSingleItem: isSingleItemHistory,
   });
 
   const routeOrderTypeFilter = useMemo(
@@ -208,19 +210,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     }
   }, [isCashRegisterClosed, isFocused, navigation]);
 
-  const searchPlaceholder = useMemo(() => {
-    if (orderTypeFilter === 'purchase') {
-      return global.t?.t('orders', 'placeholder', 'search_purchase');
-    }
-    if (orderTypeFilter === 'transfer') {
-      return global.t?.t('orders', 'placeholder', 'search_transfer');
-    }
-    if (orderTypeFilter === 'loss') {
-      return global.t?.t('orders', 'placeholder', 'search_loss');
-    }
-    return global.t?.t('orders', 'placeholder', 'search_default');
-  }, [orderTypeFilter]);
-
   const configuredOrderColumns = useMemo(
     () => configureOrderHistoryColumns({
       columns: ordersGetters.columns, showAdvancedFilters, orderTypeFilter,
@@ -267,11 +256,13 @@ export default function OrderHistoryPage({ navigation, route }) {
         currentCompanyId: currentCompany?.id,
         currentDeviceId: storagedDevice?.id,
         filters: historyFilters,
+        singleItemMode: isSingleItemHistory,
         orderTypeFilter,
         showAdvancedFilters,
-      }), ...(orderTypeFilter === 'sale' && !isWaiterMode ? {summary: 'sales'} : {})}),
+      }), ...(isSingleItemHistory ? {summary: 'operational'} : orderTypeFilter === 'sale' && !isWaiterMode ? {summary: 'sales'} : {})}),
     [
       isWaiterMode,
+      isSingleItemHistory,
       canViewCompanyOrders,
       currentCompany?.id,
       historyFilters,
@@ -418,11 +409,17 @@ export default function OrderHistoryPage({ navigation, route }) {
 
         <View style={styles.tableWrap}>
           <DefaultTable
-            paginationMode="pages"
+            paginationMode={isSingleItemHistory ? "infinite" : "pages"}
+            initialViewMode="cards"
+            viewMode={isSingleItemHistory ? "cards" : null}
+            showCompactCaption={!isSingleItemHistory}
+            showToolbarControls={!isSingleItemHistory}
+            showToolbarActions={!isSingleItemHistory}
+            showAdministrativeTools={!isSingleItemHistory}
             pageSize={20}
             addLabel="Novo pedido"
             rowActionsWidth={210}
-            footerComponent={OrderHistoryCompactFooter}
+            footerComponent={isSingleItemHistory ? null : OrderHistoryCompactFooter}
             accentColor={themeColors.primary}
             add={orderTypeFilter === 'loss' ? false : null}
             filters={historyFilters}
@@ -433,16 +430,16 @@ export default function OrderHistoryPage({ navigation, route }) {
             rowActionsComponent={renderRowActions}
             requestParams={historyRequestParams}
             renderCard={renderCard}
-            showSearch={showAdvancedFilters}
+            showSearch={isSingleItemHistory || showAdvancedFilters}
             searchPlaceholder="Buscar por ID ou cliente"
             getOptionsForColumn={getExternalFilterOptions}
             showRowActions={showOrderHistoryRowActions}
             showToolbar={showHistoryToolbar}
-            showTotalItemsInFooter={!isWaiterMode}
+            showTotalItemsInFooter={!isWaiterMode && !isSingleItemHistory}
             storeName="orders"
             summary={false}
             toolbarActions={isWaiterMode ? [] : orderToolbarActions}
-            visibleColumnsPreferenceKey={ORDER_HISTORY_TABLE_PREFERENCE_KEY}
+            visibleColumnsPreferenceKey={isSingleItemHistory ? "orders:pos:single-item" : ORDER_HISTORY_TABLE_PREFERENCE_KEY}
           />
         </View>
       </View>

@@ -128,7 +128,7 @@ describe('OrderHistoryPage Device waiter toolbar controls', () => {
     ['POS', 'cashier', 'company', true, true],
     ['POS', 'cashier', 'device', false, true],
     ['POS', 'totem', 'company', true, true],
-    ['POS', 'single-item', 'company', true, true],
+    ['POS', 'single-item', 'company', true, false],
     ['MANAGER', 'waiter', 'company', true, true],
   ])('preserves data visibility and add for %s/%s/%s', (appType, operationMode, visibility, showToolbar, showCount) => {
     context.mockAppType = appType;
@@ -139,8 +139,9 @@ describe('OrderHistoryPage Device waiter toolbar controls', () => {
       'pos-order-visibility': visibility,
     }};
     const restrictToDevice = appType === 'POS' && visibility === 'device';
+    const singleItem = appType === 'POS' && operationMode === 'single-item';
     context.mockStores.orders.getters.columns = context.mockStores.orders.getters.columns.map(column => ({
-      ...column, externalFilter: !restrictToDevice, compactFilter: !restrictToDevice,
+      ...column, externalFilter: !restrictToDevice && !singleItem, compactFilter: !restrictToDevice && !singleItem,
       ...(column.name === 'orderDate' ? {show: true} : {}),
     }));
     const navigation = {setOptions: jest.fn(), navigate: jest.fn()};
@@ -155,7 +156,12 @@ describe('OrderHistoryPage Device waiter toolbar controls', () => {
     expect(context.mockDefaultTableProps.add).toBeNull();
     context.mockDefaultTableProps.onAdd();
     expect(navigation.navigate).toHaveBeenCalledWith('PdvPage', {startNewOrder: true});
-    if (restrictToDevice) {
+    if (singleItem) {
+      expect(context.mockDefaultTableProps.requestParams.pendingPaymentOnly).toBe('1');
+      expect(context.mockDefaultTableProps.requestParams).not.toHaveProperty('report');
+      expect(context.mockDefaultTableProps.viewMode).toBe('cards');
+      expect(context.mockDefaultTableProps.showToolbarControls).toBe(false);
+    } else if (restrictToDevice) {
       expect(context.mockDefaultTableProps.requestParams['device.device']).toBe('device-912');
       expect(context.mockDefaultTableProps.requestParams).not.toHaveProperty('report');
     } else {

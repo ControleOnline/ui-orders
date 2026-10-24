@@ -71,6 +71,7 @@ const resolveFeedbackState = ({invoiceError, error, emptyText}) => {
 };
 
 const PaymentCheckoutPanel = ({
+  inlineFooter = false,
   actionLabel,
   actionIcon = 'credit-card',
   actionLoading = false,
@@ -205,7 +206,7 @@ const PaymentCheckoutPanel = ({
     <View style={panelStyles.container}>
       <ScrollView
         style={panelStyles.scrollView}
-        contentContainerStyle={[styles.scrollContent, panelStyles.scrollContent]}>
+        contentContainerStyle={[styles.scrollContent, panelStyles.scrollContent, inlineFooter && {paddingBottom: 12}]}>
         {topContent}
 
         {isLoadingPayments && !hasError && !hasPayments ? (
@@ -299,6 +300,7 @@ const PaymentCheckoutPanel = ({
       </ScrollView>
 
       <BottomCart
+        inline={inlineFooter}
         actionDisabled={payDisabled || actionLoading}
         actionIcon={actionIcon}
         actionLabel={actionLabel || global.t?.t('orders', 'button', 'pay') || 'Pagar'}

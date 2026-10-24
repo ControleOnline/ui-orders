@@ -1,4 +1,8 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {View, Text, Pressable} from 'react-native';
+import useSingleItemCheckoutBalance from './useSingleItemCheckoutBalance';
+import CompanySwitchContext from '../../contexts/CompanySwitchContext';
+import {app_type} from '@appType';
+import React, {useCallback, useEffect, useMemo, useState, useContext} from 'react';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
 import {resolveLoyaltyCardProgress, resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
@@ -18,7 +22,6 @@ import useCheckoutContextState from '@controleonline/ui-orders/src/react/pages/c
 import useCheckoutPaymentSelection from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPaymentSelection';
 import useCheckoutLoyaltyUi from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyUi';
 const PAYMENT_CHANNEL_LOCAL = 'local';
-
 const Checkout = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -50,7 +53,6 @@ const Checkout = () => {
   const peopleGetters = peopleStore.getters;
   const themeStore = useStore('theme');
   const themeGetters = themeStore.getters;
-
   const {currentCompany, mainCompany} = peopleGetters;
   const themeColors = themeGetters?.colors || {};
   const {items: companyConfigs} = configsGetters;
@@ -63,7 +65,6 @@ const Checkout = () => {
   } = invoiceGetters;
   const {items: storedOrderInvoices = []} = orderInvoicesGetters;
   const {items: orderProducts = []} = orderProductsGetters;
-
   const [companyDeviceConfigs, setCompanyDeviceConfigs] = useState([]);
   const [remoteDeviceModalVisible, setRemoteDeviceModalVisible] = useState(false);
   const [amountEntryModalMode, setAmountEntryModalMode] = useState('');
@@ -71,6 +72,7 @@ const Checkout = () => {
   const [paymentExplanationVisible, setPaymentExplanationVisible] = useState(false);
   const [cashReceivedValue, setCashReceivedValue] = useState('');
   const [submittingPayment, setSubmittingPayment] = useState(false);
+  const reportCompanySwitchBusy = useContext(CompanySwitchContext);
   const [loadingPaymentOptions, setLoadingPaymentOptions] = useState(false);
   const [paymentOptionsError, setPaymentOptionsError] = useState('');
   const [localPaymentOptions, setLocalPaymentOptions] = useState([]);
@@ -79,6 +81,10 @@ const Checkout = () => {
   const [materializedCheckoutOrder, setMaterializedCheckoutOrder] = useState(null);
   const [selectedRemoteDeviceId, setSelectedRemoteDeviceId] = useState('');
   const [pendingRemotePaymentRequest, setPendingRemotePaymentRequest] = useState(null);
+  useEffect(() => {
+    reportCompanySwitchBusy(submittingPayment || !!pendingRemotePaymentRequest);
+    return () => reportCompanySwitchBusy(false);
+  }, [submittingPayment, pendingRemotePaymentRequest, reportCompanySwitchBusy]);
   const [loyaltyCpfInput, setLoyaltyCpfInput] = useState('');
   const [loyaltyCpfResults, setLoyaltyCpfResults] = useState([]);
   const [loyaltyCpfLoading, setLoyaltyCpfLoading] = useState(false);
@@ -88,7 +94,6 @@ const Checkout = () => {
   const [loadingLoyaltySnapshot, setLoadingLoyaltySnapshot] = useState(false);
   const [loyaltySnapshotError, setLoyaltySnapshotError] = useState('');
   const [rewardableLoyaltyCard, setRewardableLoyaltyCard] = useState(null);
-
   const {
     canChangePaymentDeviceDuringCheckout,
     canRenderCheckout,
@@ -129,6 +134,8 @@ const Checkout = () => {
   const waiterTabReturn = waiterConsultationCheckout ? returnToWaiterTab : null;
   const waiterBalance = useWaiterTabCheckoutBalance({enabled: waiterConsultationCheckout, rootOrderId: routeOrderId,
     companyId: currentCompany?.id, ordersActions, invoiceActions});
+  const singleItemBalance = useSingleItemCheckoutBalance({enabled: app_type === 'POS' && isSingleItemMode && !waiterConsultationCheckout,
+    orderId: routeOrderId || String(order?.id || ''), companyId: currentCompany?.id, ordersActions, orderInvoicesActions});
   const {clearStoredDraftOrderId, ensureActiveOrder} =
     usePosCartSession({
       companyId: currentCompany?.id,
@@ -164,6 +171,7 @@ const Checkout = () => {
     resolveOrderRemainingAmount,
     syncLoyaltySelectionToOrder,
   } = useCheckoutOrderLifecycle({
+    singleItemPendingAmount: singleItemBalance.pendingAmount,
     waiterConsultationCheckout,
     waiterPendingAmount: waiterBalance.pendingAmount,
     clearStoredDraftOrderId,
@@ -190,7 +198,6 @@ const Checkout = () => {
     setMaterializedCheckoutOrder,
     storedOrderInvoices,
   });
-
   const {
     handleContinueAfterLoyaltyCpf,
     handleLoyaltyCpfInputChange,
@@ -217,7 +224,6 @@ const Checkout = () => {
     setLoyaltyCpfStepSkipped,
     setSelectedLoyaltyPerson,
   });
-
   const loyaltyGiftProductId = useMemo(
     () =>
       resolvePeopleId(
@@ -382,14 +388,13 @@ const Checkout = () => {
   });
 
   const {
-    createPaidInvoice,
     dispatchRemotePayment,
     handleCashReceivedInputChange,
     handleConfirmCashAmountEntry,
     runLocalPayment,
   } = useCheckoutPaymentRunners({
     waiterTabReturn,
-    verifyChargeChannel: waiterBalance.verifyChargeChannel,
+    verifyChargeChannel: waiterBalance.verifyChargeChannel || singleItemBalance.verifyChargeChannel,
     canUseLocalOperationalPayment: !waiterConsultationCheckout || canUseLocalOperationalPayment,
     canUseRemoteOperationalPayment,
     appendInvoiceToStore,
@@ -460,8 +465,9 @@ const Checkout = () => {
   });
 
   const viewProps = {
+    isCompactSingleItem: app_type === 'POS' && isSingleItemMode,
     activeSelectedPaymentOption, allPaymentOptions, amountEntryModalMode,
-    canChangePaymentDeviceDuringCheckout, canRenderCheckout: canRenderCheckout && canRenderHydratedCheckout && waiterBalance.ready, cashPaymentDetails,
+    canChangePaymentDeviceDuringCheckout, canRenderCheckout: canRenderCheckout && canRenderHydratedCheckout && waiterBalance.ready && singleItemBalance.ready, cashPaymentDetails,
     cashPaymentContext, cashReceivedValue, checkoutOrderProductsError,
     continueSelectedPayment, effectiveLocalPaymentOptions, effectiveRemotePaymentOptions,
     handleCashReceivedInputChange, handleConfirmAmountEntry, handleContinueAfterLoyaltyCpf,
@@ -482,6 +488,7 @@ const Checkout = () => {
     shouldRenderLoyaltyCpfStep, submittingPayment, themeColors,
   };
 
+  if(singleItemBalance.error) return <View style={{padding:20,gap:16}}><Text accessibilityRole="alert" style={{color:themeColors.textPrimary}}>{singleItemBalance.error}</Text><Pressable accessibilityRole="button" style={{minHeight:44,justifyContent:'center',alignItems:'center',borderRadius:10,backgroundColor:themeColors.buttonBackground}} onPress={singleItemBalance.retry}><Text style={{color:themeColors.buttonText}}>Tentar novamente</Text></Pressable></View>;
   return (
     <CheckoutView {...viewProps} />
   );

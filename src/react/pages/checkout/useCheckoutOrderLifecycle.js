@@ -13,6 +13,7 @@ import {fetchAllHydraCollectionPages} from '@controleonline/ui-orders/src/react/
 import {resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 
 export default function useCheckoutOrderLifecycle({
+  singleItemPendingAmount = null,
   waiterConsultationCheckout = false,
   waiterPendingAmount = null,
   clearStoredDraftOrderId,
@@ -79,7 +80,7 @@ export default function useCheckoutOrderLifecycle({
 
   const remainingAmount = useMemo(
     () =>
-      waiterConsultationCheckout ? Math.max(Number(waiterPendingAmount || 0), 0) : resolveCheckoutRemainingAmount({
+      singleItemPendingAmount !== null ? singleItemPendingAmount : waiterConsultationCheckout ? Math.max(Number(waiterPendingAmount || 0), 0) : resolveCheckoutRemainingAmount({
         order,
         orderProducts: checkoutOrderProducts,
         orderProductsComplete: checkoutOrderProductsComplete,
@@ -87,6 +88,7 @@ export default function useCheckoutOrderLifecycle({
         routeOrderId: normalizedCheckoutOrderId,
       }),
     [
+      singleItemPendingAmount,
       waiterConsultationCheckout,
       waiterPendingAmount,
       checkoutOrderProducts,
@@ -99,6 +101,7 @@ export default function useCheckoutOrderLifecycle({
 
   const resolveOrderRemainingAmount = useCallback(
     currentOrder => {
+      if (singleItemPendingAmount !== null) return singleItemPendingAmount;
       if (waiterConsultationCheckout) return Math.max(Number(waiterPendingAmount || 0), 0);
       const currentOrderId = normalizeCheckoutEntityId(currentOrder);
       const currentOrderProducts = Array.isArray(currentOrder?.orderProducts)
@@ -115,6 +118,7 @@ export default function useCheckoutOrderLifecycle({
       return resolvedAmount > 0 ? resolvedAmount : remainingAmount;
     },
     [
+      singleItemPendingAmount,
       waiterConsultationCheckout,
       waiterPendingAmount,
       checkoutOrderProducts,
@@ -291,6 +295,7 @@ export default function useCheckoutOrderLifecycle({
       return currentOrder || order;
     },
     [
+      singleItemPendingAmount,
       waiterConsultationCheckout,
       ensureActiveOrder,
       order,
@@ -304,12 +309,15 @@ export default function useCheckoutOrderLifecycle({
   const resetCompletedOrderState = useCallback(() => {
     clearStoredDraftOrderId();
     ordersActions.setItem(null);
+    if (singleItemPendingAmount !== null) orderProductsActions?.setItems?.([]);
     invoiceActions.setItems([]);
     orderInvoicesActions.setItems([]);
     ordersActions.setPayable(0);
     if (isAutoPrintEnabled) printActions.setReload(true);
   }, [
     clearStoredDraftOrderId,
+    singleItemPendingAmount,
+    orderProductsActions,
     invoiceActions,
     isAutoPrintEnabled,
     orderInvoicesActions,

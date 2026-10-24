@@ -61,9 +61,11 @@ export default function useCheckoutPaymentSelection({
     [effectiveLocalPaymentOptions, effectiveRemotePaymentOptions],
   );
   const activeSelectedPaymentOption = useMemo(() => {
-    if (selectedPaymentOption?.payment) return selectedPaymentOption;
     if (loyaltyRewardOnlyMode && loyaltyRewardPaymentOption) {
       return loyaltyRewardPaymentOption;
+    }
+    if (selectedPaymentOption?.payment && allPaymentOptions.some(option => option.key === selectedPaymentOption.key)) {
+      return selectedPaymentOption;
     }
     if (allPaymentOptions.length === 1) return allPaymentOptions[0];
     return null;
