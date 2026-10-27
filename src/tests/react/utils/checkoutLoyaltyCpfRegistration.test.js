@@ -53,7 +53,7 @@ describe('checkoutLoyaltyCpfRegistration', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch.mock.calls[0][1].params).toEqual(
-      expect.objectContaining({company: '/people/3', people: '/people/8', linkType: 'client'}),
+      expect.objectContaining({company: '/people/3', people: '/people/8', linkType: ['client']}),
     )
   })
 
