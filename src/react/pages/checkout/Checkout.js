@@ -20,6 +20,7 @@ import CheckoutView from '@controleonline/ui-orders/src/react/pages/checkout/Che
 import useWaiterTabCheckoutBalance from './useWaiterTabCheckoutBalance';
 import useCheckoutContextState from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutContextState';
 import useCheckoutPaymentSelection from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPaymentSelection';
+import useCheckoutLoyaltyCpfLookup from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyCpfLookup';
 import useCheckoutLoyaltyUi from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyUi';
 const PAYMENT_CHANNEL_LOCAL = 'local';
 const Checkout = () => {
@@ -344,6 +345,19 @@ const Checkout = () => {
     setSelectedLoyaltyPerson,
   });
 
+  const loyaltyCpfLookup = useCheckoutLoyaltyCpfLookup({
+    currentCompany,
+    loyaltyCpfDigits,
+    loyaltyCpfStepCompleted,
+    requiresLoyaltyCpfStep,
+    selectedLoyaltyPerson,
+    setLoyaltyCpfInput,
+    setLoyaltyCpfLoading,
+    setLoyaltyCpfResults,
+    setLoyaltyCpfStepSkipped,
+    setSelectedLoyaltyPerson,
+  });
+
   useRemotePaymentResult({
     waiterTabReturn,
     appendInvoiceToStore,
@@ -466,6 +480,7 @@ const Checkout = () => {
 
   const viewProps = {
     isCompactSingleItem: app_type === 'POS' && isSingleItemMode,
+    loyaltyCpfLookup,
     activeSelectedPaymentOption, allPaymentOptions, amountEntryModalMode,
     canChangePaymentDeviceDuringCheckout, canRenderCheckout: canRenderCheckout && canRenderHydratedCheckout && waiterBalance.ready && singleItemBalance.ready, cashPaymentDetails,
     cashPaymentContext, cashReceivedValue, checkoutOrderProductsError,
