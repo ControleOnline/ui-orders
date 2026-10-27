@@ -72,7 +72,8 @@ export const ensureClientLink = async ({companyId, peopleId}) => {
       params: {
         company: `/people/${company}`,
         people: `/people/${people}`,
-        linkType: CLIENT_LINK_TYPE,
+        // people_links only accepts linkType as an array (serialized as linkType[]).
+        linkType: [CLIENT_LINK_TYPE],
         itemsPerPage: 1,
       },
     }),
