@@ -7,8 +7,8 @@ import {
   SHOP_LOYALTY_REQUIRED_SALES_CONFIG_KEY,
 } from '@controleonline/ui-common/src/react/utils/shopConfig';
 
-export const LOYALTY_CPF_MIN_SEARCH_LENGTH = 5;
-export const LOYALTY_CPF_SEARCH_CONTEXT = 'loyalty-cpf';
+export const LOYALTY_CPF_MIN_SEARCH_LENGTH = 11;
+export const LOYALTY_CPF_SEARCH_CONTEXT = 'checkout-cpf-lookup';
 export const LOYALTY_PARENT_CONFIG_KEYS = [
   SHOP_LOYALTY_COUPONS_ENABLED_CONFIG_KEY,
   SHOP_LOYALTY_PRODUCT_IDS_CONFIG_KEY,
@@ -22,6 +22,24 @@ const isConfigMap = value =>
 const hasConfigValue = value => value !== null && value !== undefined && value !== '';
 
 export const digitsOnly = value => String(value || '').replace(/\D+/g, '');
+
+export const isValidCpf = value => {
+  const cpf = digitsOnly(value);
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  const checkDigit = length => {
+    let sum = 0;
+    for (let index = 0; index < length; index += 1) {
+      sum += Number(cpf[index]) * (length + 1 - index);
+    }
+    const rest = (sum * 10) % 11;
+    return rest === 10 ? 0 : rest;
+  };
+
+  return checkDigit(9) === Number(cpf[9]) && checkDigit(10) === Number(cpf[10]);
+};
 
 export const resolvePeopleId = value => {
   if (!value) {
@@ -57,7 +75,9 @@ export const extractPeopleCpfDigits = people => {
     return digitsOnly(item?.document).length === 11;
   });
 
-  return digitsOnly(cpfDocument?.document || '');
+  const digits = digitsOnly(cpfDocument?.document || '');
+  // Documents are stored as integers, so CPFs starting with 0 lose it.
+  return digits && digits.length < 11 ? digits.padStart(11, '0') : digits;
 };
 
 export const formatCpfDisplay = value => {
@@ -93,12 +113,15 @@ export const buildLoyaltyCpfSearchResults = (items, query) => {
         return false;
       }
 
-      if (item.cpf) {
-        return item.cpf.includes(normalizedQuery);
-      }
-
-      return !item.hasDocumentPayload;
+      // The API already matched the CPF exactly; only trust payload documents
+      // when they are present.
+      return item.cpf ? item.cpf === normalizedQuery : !item.hasDocumentPayload;
     })
+    .map(item =>
+      item.cpf
+        ? item
+        : {...item, cpf: normalizedQuery, cpfDisplay: formatCpfDisplay(normalizedQuery)},
+    )
     .sort((left, right) => {
       const leftStarts = left.cpf
         ? left.cpf.startsWith(normalizedQuery)
@@ -130,25 +153,23 @@ export const isLoyaltyCouponsEnabledForCheckout = companyConfigs =>
     false,
   );
 
+// Exact CPF lookup across the base (not restricted to people already linked to
+// the company). The API only allows it for companies the user belongs to.
 export const buildLoyaltyCpfSearchParams = ({
   companyId,
-  itemsPerPage = 8,
+  itemsPerPage = 2,
   query,
 }) => {
-  const search = digitsOnly(query).slice(0, 11);
-  const normalizedCompanyId = resolvePeopleId(companyId);
   const params = {
     itemsPerPage,
     peopleType: 'F',
-    search,
+    search: digitsOnly(query).slice(0, 11),
+    context: LOYALTY_CPF_SEARCH_CONTEXT,
   };
+  const normalizedCompanyId = resolvePeopleId(companyId);
 
   if (normalizedCompanyId) {
     params.company = `/people/${normalizedCompanyId}`;
-    params.linkType = 'client';
-    params['link.company'] = `/people/${normalizedCompanyId}`;
-    params['link.linkType'] = 'client';
-    params.context = LOYALTY_CPF_SEARCH_CONTEXT;
   }
 
   return params;

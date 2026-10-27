@@ -15,6 +15,7 @@ import useCheckoutOrderLifecycle from '@controleonline/ui-orders/src/react/pages
 import CheckoutView from '@controleonline/ui-orders/src/react/pages/checkout/CheckoutView';
 import useCheckoutContextState from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutContextState';
 import useCheckoutPaymentSelection from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutPaymentSelection';
+import useCheckoutLoyaltyCpfLookup from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyCpfLookup';
 import useCheckoutLoyaltyUi from '@controleonline/ui-orders/src/react/pages/checkout/useCheckoutLoyaltyUi';
 const PAYMENT_CHANNEL_LOCAL = 'local';
 
@@ -318,6 +319,19 @@ const Checkout = () => {
     setSelectedLoyaltyPerson,
   });
 
+  const loyaltyCpfLookup = useCheckoutLoyaltyCpfLookup({
+    currentCompany,
+    loyaltyCpfDigits,
+    loyaltyCpfStepCompleted,
+    requiresLoyaltyCpfStep,
+    selectedLoyaltyPerson,
+    setLoyaltyCpfInput,
+    setLoyaltyCpfLoading,
+    setLoyaltyCpfResults,
+    setLoyaltyCpfStepSkipped,
+    setSelectedLoyaltyPerson,
+  });
+
   useRemotePaymentResult({
     appendInvoiceToStore,
     appendOrderInvoiceToStore,
@@ -433,6 +447,7 @@ const Checkout = () => {
 
   return (
     <CheckoutView
+      loyaltyCpfLookup={loyaltyCpfLookup}
       activeSelectedPaymentOption={activeSelectedPaymentOption}
       allPaymentOptions={allPaymentOptions}
       amountEntryModalMode={amountEntryModalMode}

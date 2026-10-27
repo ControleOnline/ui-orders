@@ -17,12 +17,14 @@ import {buildPaymentSections} from './CheckoutPaymentOptions';
 import {resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 import styles, {inlineStyle_491_14} from './Checkout.styles';
 import CheckoutPaymentModals from './CheckoutPaymentModals';
+import LoyaltyCpfRegistrationModal from './LoyaltyCpfRegistrationModal';
 import {
   LOYALTY_REWARD_PAYMENT_LABEL,
   PAYMENT_CHANNEL_LOCAL,
 } from './checkoutStatusHelpers';
 
 export default function CheckoutView({
+  loyaltyCpfLookup,
   activeSelectedPaymentOption,
   allPaymentOptions,
   amountEntryModalMode,
@@ -214,6 +216,7 @@ export default function CheckoutView({
         <>
           {shouldRenderLoyaltyCpfStep ? (
             <LoyaltyCpfStep
+              loyaltyCpfLookup={loyaltyCpfLookup}
               handleContinueAfterLoyaltyCpf={handleContinueAfterLoyaltyCpf}
               handleLoyaltyCpfInputChange={handleLoyaltyCpfInputChange}
               handleSelectLoyaltyPerson={handleSelectLoyaltyPerson}
@@ -357,6 +360,7 @@ function LoyaltySummary({
 }
 
 function LoyaltyCpfStep({
+  loyaltyCpfLookup = {},
   handleContinueAfterLoyaltyCpf,
   handleLoyaltyCpfInputChange,
   handleSelectLoyaltyPerson,
@@ -419,6 +423,7 @@ function LoyaltyCpfStep({
             loyaltySnapshotError={loyaltySnapshotError}
             rewardableLoyaltyProgress={rewardableLoyaltyProgress}
             selectedLoyaltyPerson={selectedLoyaltyPerson}
+            loyaltyCpfLookup={loyaltyCpfLookup}
           />
           <TouchableOpacity
             activeOpacity={0.85}
@@ -430,6 +435,15 @@ function LoyaltyCpfStep({
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <LoyaltyCpfRegistrationModal
+        cpf={loyaltyCpfLookup.loyaltyRegistrationCpf}
+        error={loyaltyCpfLookup.registrationError}
+        errors={loyaltyCpfLookup.registrationErrors}
+        onCancel={loyaltyCpfLookup.handleCancelRegistration}
+        onSubmit={loyaltyCpfLookup.handleSubmitRegistration}
+        saving={loyaltyCpfLookup.registrationSaving}
+        visible={loyaltyCpfLookup.registrationVisible}
+      />
       <BottomCart
         actionDisabled={!resolvePeopleId(selectedLoyaltyPerson?.id) || loadingLoyaltySnapshot}
         actionIcon="arrow-right"
@@ -455,6 +469,7 @@ function LoyaltyCpfStatus({
   loyaltySnapshotError,
   rewardableLoyaltyProgress,
   selectedLoyaltyPerson,
+  loyaltyCpfLookup = {},
 }) {
   if (selectedLoyaltyPerson?.id && loadingLoyaltySnapshot) {
     return <InlineHint text="Consultando fidelidade deste CPF..." loading />;
@@ -474,16 +489,20 @@ function LoyaltyCpfStatus({
       </Text>
     );
   }
-  if (loyaltyCpfLoading) return <InlineHint text="Buscando CPFs cadastrados..." loading />;
-  if (
-    loyaltyCpfDigits.length >= 11 &&
-    !loyaltyCpfLoading &&
-    !loyaltyCpfResults.length
-  ) {
+  if (loyaltyCpfLoading) return <InlineHint text="Consultando CPF..." loading />;
+  if (loyaltyCpfLookup.loyaltyCpfLookupError) {
+    return <Text style={styles.loyaltyHint}>{loyaltyCpfLookup.loyaltyCpfLookupError}</Text>;
+  }
+  if (loyaltyCpfLookup.loyaltyCpfNotFound && loyaltyCpfDigits.length >= 11) {
     return (
-      <Text style={styles.loyaltyHint}>
-        Nenhum CPF encontrado com os digitos informados.
-      </Text>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={loyaltyCpfLookup.handleOpenRegistration}
+        style={styles.loyaltySecondaryAction}>
+        <Text style={styles.loyaltySecondaryActionText}>
+          CPF nao cadastrado. Toque para cadastrar o cliente
+        </Text>
+      </TouchableOpacity>
     );
   }
   return null;
