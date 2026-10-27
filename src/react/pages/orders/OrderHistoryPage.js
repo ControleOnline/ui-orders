@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,14 +8,15 @@ import {app_type} from '@appType';
 import { useStore } from '@store';
 import { useMessage } from '@controleonline/ui-common/src/react/components/MessageService';
 import DefaultExternalFilters from '@controleonline/ui-default/src/react/components/filters/DefaultExternalFilters';
+import OrderHistoryCompactFooter from './OrderHistoryCompactFooter';
 import DefaultTable from '@controleonline/ui-default/src/react/components/table/DefaultTable';
 import {
   canDeviceViewCompanyOrders,
   isPosCashRegisterClosed,
   isPosCounterMode,
   isPosSingleItemMode,
+  resolvePosOperationMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import OrderHeader from '@controleonline/ui-orders/src/react/components/OrderHeader';
 import {
   buildAddProductsRouteParams,
   buildManagerPdvRouteParams,
@@ -27,14 +26,12 @@ import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosC
 import { shouldResumeCounterOrderFlow } from '@controleonline/ui-orders/src/react/utils/counterOrderFlow';
 import StateStore from '@controleonline/ui-common/src/react/components/StateStore';
 import {
-  getCancelReasonLabel,
   OrderCancelModal,
   OrderCancellationDetailsModal,
   OrderCancellationReasonsModal,
 } from './OrderCancellationModals';
 import {
   clearCreateInvoiceOnlyMode,
-  setCreateInvoiceOnlyMode,
 } from '@controleonline/ui-orders/src/react/utils/createInvoiceSession';
 import createStyles from './OrderHistoryPage.styles';
 import {
@@ -76,9 +73,9 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { item: storagedDevice } = deviceStore.getters || {};
   const { item: deviceConfig } = deviceConfigStore.getters || {};
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
-  const { getters: statusGetters } = statusStore;
+  const { actions: statusActions, getters: statusGetters } = statusStore;
   const { currentCompany, mainCompany } = peopleGetters;
-  const { colors: themeColors } = themeStore.getters;
+  const themeColors = useMemo(() => themeStore.getters.colors, [themeStore.getters.colors]);
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
   const { actions: orderActions, getters: ordersGetters } = ordersStore;
   const setColumnsRef = useRef(orderActions?.setColumns);
@@ -96,8 +93,10 @@ export default function OrderHistoryPage({ navigation, route }) {
     [deviceConfig?.configs],
   );
   const shouldRestrictToDeviceOrders = isPosApp && !canViewCompanyOrders;
-  const showAdvancedFilters = !isPosApp || canViewCompanyOrders;
-  const showHistoryToolbar = !shouldRestrictToDeviceOrders;
+  const isSingleItemHistory = isPosApp && isPosSingleItemMode(deviceConfig?.configs);
+  const showAdvancedFilters = !isSingleItemHistory && (!isPosApp || canViewCompanyOrders);
+  const isWaiterMode = isPosApp && resolvePosOperationMode(deviceConfig?.configs) === 'waiter';
+  const showHistoryToolbar = isSingleItemHistory || (!isWaiterMode && !shouldRestrictToDeviceOrders);
   const showOrderHistoryRowActions = !isPosApp;
   const [markAsPaidOrder, setMarkAsPaidOrder] = useState(null);
   const statusItems = useMemo(
@@ -114,6 +113,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { historyFilters, applyHistoryFilters, statusOptions } = useOrderHistoryFilters({
     orderActions,
     statusItems,
+    operationalSingleItem: isSingleItemHistory,
   });
 
   const routeOrderTypeFilter = useMemo(
@@ -210,19 +210,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     }
   }, [isCashRegisterClosed, isFocused, navigation]);
 
-  const searchPlaceholder = useMemo(() => {
-    if (orderTypeFilter === 'purchase') {
-      return global.t?.t('orders', 'placeholder', 'search_purchase');
-    }
-    if (orderTypeFilter === 'transfer') {
-      return global.t?.t('orders', 'placeholder', 'search_transfer');
-    }
-    if (orderTypeFilter === 'loss') {
-      return global.t?.t('orders', 'placeholder', 'search_loss');
-    }
-    return global.t?.t('orders', 'placeholder', 'search_default');
-  }, [orderTypeFilter]);
-
   const configuredOrderColumns = useMemo(
     () => configureOrderHistoryColumns({
       columns: ordersGetters.columns, showAdvancedFilters, orderTypeFilter,
@@ -236,12 +223,19 @@ export default function OrderHistoryPage({ navigation, route }) {
       buildExternalColumnsSignature(configuredOrderColumns),
     [configuredOrderColumns, ordersGetters.columns],
   );
+  // Order statuses feed the Status filter; without this fetch the filter only offers "Todos".
+  useEffect(() => {
+    if (!isFocused || !currentCompany?.id) return;
+    statusActions?.getItems?.({ context: 'order' })?.catch?.(() => {});
+  }, [currentCompany?.id, isFocused, statusActions]);
+
   const getExternalFilterOptions = useCallback(
     column => {
       const fieldName = column?.name || column?.key;
-      if (fieldName === 'status') return statusOptions;
+      // An empty array would hide the column's own list loader, so fall through until statuses arrive.
+      if (fieldName === 'status') return statusOptions.length > 0 ? statusOptions : undefined;
 
-      return [];
+      return undefined;
     },
     [statusOptions],
   );
@@ -256,16 +250,19 @@ export default function OrderHistoryPage({ navigation, route }) {
 
   const historyRequestParams = useMemo(
     () =>
-      buildHistoryRequestParams({
+      ({...buildHistoryRequestParams({
         appType: app_type,
         canViewCompanyOrders,
         currentCompanyId: currentCompany?.id,
         currentDeviceId: storagedDevice?.id,
         filters: historyFilters,
+        singleItemMode: isSingleItemHistory,
         orderTypeFilter,
         showAdvancedFilters,
-      }),
+      }), ...(isSingleItemHistory ? {summary: 'operational'} : orderTypeFilter === 'sale' && !isWaiterMode ? {summary: 'sales'} : {})}),
     [
+      isWaiterMode,
+      isSingleItemHistory,
       canViewCompanyOrders,
       currentCompany?.id,
       historyFilters,
@@ -295,15 +292,15 @@ export default function OrderHistoryPage({ navigation, route }) {
         key: 'order-cancellation-reasons',
         icon: 'tag',
         iconSize: 16,
+        label: 'Motivos de cancelamento',
         accessibilityLabel:
           global.t?.t('orders', 'button', 'manageCancelReasons') ||
           'Gerenciar motivos de cancelamento',
         hidden: !currentCompany?.id,
         color: themeColors.buttonText,
         style: {
-          minWidth: 30,
-          width: 30,
-          paddingHorizontal: 0,
+          minWidth: 160,
+          paddingHorizontal: 10,
           backgroundColor: themeColors.buttonBackground,
           borderColor: themeColors.buttonBackground,
         },
@@ -335,13 +332,11 @@ export default function OrderHistoryPage({ navigation, route }) {
           'Pedido marcado como pago.',
       );
     }
-    if (typeof orderActions?.getItems === 'function') {
-      void orderActions.getItems();
-    }
+    orderActions.setReload?.(true);
   }, [orderActions, showError, showSuccess]);
 
-  const renderRowActions = useCallback(({ row }) => (
-    <OrderHistoryRowActions row={row} styles={styles} themeColors={themeColors}
+  const renderRowActions = useCallback(({ row, openRow }) => (
+    <OrderHistoryRowActions row={row} onOpenOrder={openRow} themeColors={themeColors}
       onViewCancellation={setCancelDetailsOrder} onCreateInvoice={openCreateInvoiceFlow} onCancelOrder={openCancelModal} />
   ), [openCancelModal, openCreateInvoiceFlow, styles, themeColors]);
 
@@ -404,16 +399,27 @@ export default function OrderHistoryPage({ navigation, route }) {
       edges={['bottom']}
     >
       <View style={styles.content}>
-        <DefaultExternalFilters
+        {!showHistoryToolbar ? <DefaultExternalFilters
           accentColor={themeColors.primary}
           filters={historyFilters}
           getOptionsForColumn={getExternalFilterOptions}
           onChangeFilters={applyHistoryFilters}
           storeName="orders"
-        />
+        /> : null}
 
         <View style={styles.tableWrap}>
           <DefaultTable
+            paginationMode={isSingleItemHistory ? "infinite" : "pages"}
+            initialViewMode="cards"
+            viewMode={isSingleItemHistory ? "cards" : null}
+            showCompactCaption={!isSingleItemHistory}
+            showToolbarControls={!isSingleItemHistory}
+            showToolbarActions={!isSingleItemHistory}
+            showAdministrativeTools={!isSingleItemHistory}
+            pageSize={20}
+            addLabel="Novo pedido"
+            rowActionsWidth={210}
+            footerComponent={isSingleItemHistory ? null : OrderHistoryCompactFooter}
             accentColor={themeColors.primary}
             add={orderTypeFilter === 'loss' ? false : null}
             filters={historyFilters}
@@ -424,15 +430,16 @@ export default function OrderHistoryPage({ navigation, route }) {
             rowActionsComponent={renderRowActions}
             requestParams={historyRequestParams}
             renderCard={renderCard}
-            searchProps={{
-              placeholder: searchPlaceholder,
-            }}
+            showSearch={isSingleItemHistory || showAdvancedFilters}
+            searchPlaceholder="Buscar por ID ou cliente"
+            getOptionsForColumn={getExternalFilterOptions}
             showRowActions={showOrderHistoryRowActions}
             showToolbar={showHistoryToolbar}
+            showTotalItemsInFooter={!isWaiterMode && !isSingleItemHistory}
             storeName="orders"
             summary={false}
-            toolbarActions={orderToolbarActions}
-            visibleColumnsPreferenceKey={ORDER_HISTORY_TABLE_PREFERENCE_KEY}
+            toolbarActions={isWaiterMode ? [] : orderToolbarActions}
+            visibleColumnsPreferenceKey={isSingleItemHistory ? "orders:pos:single-item" : ORDER_HISTORY_TABLE_PREFERENCE_KEY}
           />
         </View>
       </View>

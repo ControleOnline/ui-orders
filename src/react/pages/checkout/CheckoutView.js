@@ -1,3 +1,4 @@
+import LoyaltySummary from './CheckoutLoyaltySummary';
 import React, {useMemo} from 'react';
 import {
   ActivityIndicator,
@@ -25,6 +26,7 @@ import {
 
 export default function CheckoutView({
   loyaltyCpfLookup,
+  isCompactSingleItem = false,
   activeSelectedPaymentOption,
   allPaymentOptions,
   amountEntryModalMode,
@@ -122,6 +124,8 @@ export default function CheckoutView({
   const emptyText =
     'Verifique as carteiras configuradas neste equipamento ou no equipamento remoto principal.';
   const payDisabled =
+    loadingLoyaltySnapshot ||
+    (!!selectedLoyaltyPerson?.id && !!loyaltySnapshotError) ||
     submittingPayment ||
     loadingPaymentOptions ||
     !selectedPayment?.wallet ||
@@ -181,11 +185,11 @@ export default function CheckoutView({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header,isCompactSingleItem && {height:40,marginBottom:4,padding:0,paddingHorizontal:16,backgroundColor:themeColors.pageBackground,elevation:0} ]}>
         <OrderIdentityLabel
           order={order}
           containerStyle={styles.headerTitleWrap}
-          primaryTextStyle={styles.headerTitle}
+          primaryTextStyle={[styles.headerTitle,isCompactSingleItem && {fontSize:14,color:themeColors.textPrimary}]}
           secondaryTextStyle={styles.headerTitleSecondary}
         />
       </View>
@@ -217,6 +221,7 @@ export default function CheckoutView({
           {shouldRenderLoyaltyCpfStep ? (
             <LoyaltyCpfStep
               loyaltyCpfLookup={loyaltyCpfLookup}
+              inlineFooter={isCompactSingleItem}
               handleContinueAfterLoyaltyCpf={handleContinueAfterLoyaltyCpf}
               handleLoyaltyCpfInputChange={handleLoyaltyCpfInputChange}
               handleSelectLoyaltyPerson={handleSelectLoyaltyPerson}
@@ -237,6 +242,7 @@ export default function CheckoutView({
             />
           ) : (
             <PaymentCheckoutPanel
+              inlineFooter={isCompactSingleItem}
               actionLabel={actionLabel}
               actionIcon={actionIcon}
               actionLoading={submittingPayment}
@@ -292,75 +298,9 @@ export default function CheckoutView({
   );
 }
 
-function LoyaltySummary({
-  loyaltyRewardOnlyMode,
-  selectedLoyaltyPerson,
-  setLoyaltyCpfResults,
-  setLoyaltyCpfStepCompleted,
-  setLoyaltyCpfStepSkipped,
-  submittingPayment,
-  themeColors,
-}) {
-  return (
-    <>
-      {loyaltyRewardOnlyMode ? (
-        <View style={styles.loyaltySummaryCard}>
-          <Text style={styles.loyaltySummaryTitle}>Brinde liberado</Text>
-          <Text style={styles.loyaltySummaryText}>
-            O cartao deste CPF completou a meta. Esta venda segue apenas com{' '}
-            {LOYALTY_REWARD_PAYMENT_LABEL}.
-          </Text>
-        </View>
-      ) : null}
-      <View style={styles.loyaltySummaryCard}>
-        <View style={styles.loyaltySummaryHeader}>
-          <Text style={styles.loyaltySummaryTitle}>CPF fidelidade</Text>
-          <TouchableOpacity
-            disabled={submittingPayment}
-            onPress={() => {
-              setLoyaltyCpfStepCompleted(false);
-              setLoyaltyCpfStepSkipped(false);
-              setLoyaltyCpfResults([]);
-            }}
-            style={[
-              styles.loyaltySecondaryAction,
-              {
-                borderColor: submittingPayment
-                  ? themeColors.buttonDisabledBackground
-                  : themeColors.buttonBorder,
-                backgroundColor: submittingPayment
-                  ? themeColors.buttonDisabledBackground
-                  : themeColors.buttonBackground,
-                opacity: submittingPayment ? 0.6 : 1,
-              },
-            ]}>
-            <Text
-              style={[
-                styles.loyaltySecondaryActionText,
-                {
-                  color: submittingPayment
-                    ? themeColors.buttonDisabledText
-                    : themeColors.buttonText,
-                },
-              ]}>
-              Alterar
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.loyaltySummaryText}>
-          {selectedLoyaltyPerson?.id
-            ? `${selectedLoyaltyPerson.label} - ${
-                selectedLoyaltyPerson.cpfDisplay || selectedLoyaltyPerson.cpf || ''
-              }`
-            : 'Venda seguindo sem CPF informado.'}
-        </Text>
-      </View>
-    </>
-  );
-}
-
 function LoyaltyCpfStep({
   loyaltyCpfLookup = {},
+  inlineFooter = false,
   handleContinueAfterLoyaltyCpf,
   handleLoyaltyCpfInputChange,
   handleSelectLoyaltyPerson,
@@ -383,7 +323,7 @@ function LoyaltyCpfStep({
     <View style={inlineStyle_491_14}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.loyaltyStepScrollContent}>
+        contentContainerStyle={[styles.loyaltyStepScrollContent, inlineFooter && {paddingBottom:12}]}>
         <View style={styles.loyaltyCard}>
           <Text style={styles.loyaltyTitle}>Identifique o cliente</Text>
           <Text style={styles.loyaltySubtitle}>
@@ -445,6 +385,7 @@ function LoyaltyCpfStep({
         visible={loyaltyCpfLookup.registrationVisible}
       />
       <BottomCart
+        inline={inlineFooter}
         actionDisabled={!resolvePeopleId(selectedLoyaltyPerson?.id) || loadingLoyaltySnapshot}
         actionIcon="arrow-right"
         actionLabel="Continuar"

@@ -44,6 +44,7 @@ export default function useCheckoutLoyaltyUi({
     setSelectedLoyaltyPerson,
   ]);
   const handleSelectLoyaltyPerson = useCallback(person => {
+    setLoyaltyCpfStepCompleted(false);
     setSelectedLoyaltyPerson(person);
     setLoyaltyCpfInput(currentValue =>
       person?.cpfDisplay || Formatter.maskCPF(person?.cpf || '') || currentValue,
@@ -53,6 +54,7 @@ export default function useCheckoutLoyaltyUi({
   }, [
     setLoyaltyCpfInput,
     setLoyaltyCpfResults,
+    setLoyaltyCpfStepCompleted,
     setLoyaltyCpfStepSkipped,
     setSelectedLoyaltyPerson,
   ]);

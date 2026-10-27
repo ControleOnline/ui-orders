@@ -8,12 +8,9 @@ import {
 export default function useCheckoutLoyaltyEffects({
   mainCompany,
   currentCompany,
-  loadingLoyaltySnapshot,
   loyaltyCpfDigits,
   loyaltyCpfStepCompleted,
-  loyaltyCpfStepSkipped,
   loyaltySearchCompanyId,
-  loyaltySnapshotError,
   order,
   ordersActions,
   requiresLoyaltyCpfStep,
@@ -28,6 +25,9 @@ export default function useCheckoutLoyaltyEffects({
   setRewardableLoyaltyCard,
   setSelectedLoyaltyPerson,
 }) {
+  // Store refreshes replace the object; only a different order/customer resets identification.
+  const orderIdentity = resolvePeopleId(order);
+  const restoredPersonId = resolveCheckoutLoyaltySelection(order)?.id || '';
   useEffect(() => {
     if (!requiresLoyaltyCpfStep) {
       setLoyaltyCpfInput('');
@@ -56,7 +56,7 @@ export default function useCheckoutLoyaltyEffects({
     setLoyaltyCpfLoading(false);
     setLoyaltyCpfStepCompleted(false);
     setLoyaltyCpfStepSkipped(false);
-  }, [order, requiresLoyaltyCpfStep]);
+  }, [orderIdentity, restoredPersonId, currentCompany?.id, requiresLoyaltyCpfStep]);
 
   useEffect(() => {
     if (!requiresLoyaltyCpfStep || !resolvePeopleId(selectedLoyaltyPerson?.id)) {
@@ -68,6 +68,7 @@ export default function useCheckoutLoyaltyEffects({
 
     let isActive = true;
     setLoadingLoyaltySnapshot(true);
+    setLoyaltyCpfStepCompleted(false);
     setLoyaltySnapshotError('');
 
     ordersActions
@@ -76,7 +77,9 @@ export default function useCheckoutLoyaltyEffects({
         history: false,
       })
       .then(response => {
-        if (isActive) setRewardableLoyaltyCard(resolveRewardableLoyaltyCard(response));
+        if (!isActive) return;
+        setRewardableLoyaltyCard(resolveRewardableLoyaltyCard(response, resolvePeopleId(order?.provider) || resolvePeopleId(currentCompany)));
+        setLoyaltyCpfStepCompleted(true);
       })
       .catch(error => {
         if (!isActive) return;
@@ -94,6 +97,8 @@ export default function useCheckoutLoyaltyEffects({
       isActive = false;
     };
   }, [
+    orderIdentity,
+    order?.provider,
     currentCompany?.['@id'],
     currentCompany?.id,
     mainCompany?.['@id'],
@@ -103,25 +108,4 @@ export default function useCheckoutLoyaltyEffects({
     selectedLoyaltyPerson?.id,
   ]);
 
-  useEffect(() => {
-    if (
-      !requiresLoyaltyCpfStep ||
-      loyaltyCpfStepCompleted ||
-      loyaltyCpfStepSkipped ||
-      !resolvePeopleId(selectedLoyaltyPerson?.id) ||
-      loadingLoyaltySnapshot ||
-      loyaltySnapshotError
-    ) {
-      return;
-    }
-
-    setLoyaltyCpfStepCompleted(true);
-  }, [
-    loadingLoyaltySnapshot,
-    loyaltyCpfStepCompleted,
-    loyaltyCpfStepSkipped,
-    loyaltySnapshotError,
-    requiresLoyaltyCpfStep,
-    selectedLoyaltyPerson?.id,
-  ]);
 }

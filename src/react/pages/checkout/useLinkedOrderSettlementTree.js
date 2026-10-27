@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   POS_CHECK_ORDER_TYPE_NONE,
-  resolvePosCheckOrderTypeForShop,
+  resolvePosCheckOrderEntryTypeForShop,
   isPosLocalChargeEnabled,
   canManagePosCheckOrders,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
@@ -75,7 +75,7 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
     }
     return (
       routeOrderType ||
-      resolvePosCheckOrderTypeForShop(
+      resolvePosCheckOrderEntryTypeForShop(
         runtimeDeviceConfig?.configs,
         currentCompany?.configs,
       )

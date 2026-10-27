@@ -30,13 +30,14 @@ export function resolveShouldListProductsDirectly({
   isSingleItemMode = false,
   categoriesLoading = false,
   categoriesFetched = false,
+  categoriesFetchError = false,
   categoryItems,
 } = {}) {
   if (isSingleItemMode) {
     return true;
   }
 
-  if (categoriesLoading) {
+  if (categoriesLoading || categoriesFetchError) {
     return false;
   }
 

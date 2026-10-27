@@ -23,6 +23,7 @@ const {
   formatOrderStatusOption,
   getCancelReasons,
   getHistorySummaryApps,
+  syncOrderProducts,
 } = require('../../../../store/orders/customActions');
 
 describe('orders customActions', () => {
@@ -200,5 +201,99 @@ describe('orders customActions', () => {
     });
     expect(commit).toHaveBeenCalledWith('SET_ISSAVING', true);
     expect(commit).toHaveBeenCalledWith('SET_ISSAVING', false);
+  });
+
+  it('preserves the server order price when refreshed components omit their parent links', () => {
+    const root = {
+      id: 1,
+      product: {id: 1343, price: 73},
+      quantity: 1,
+      price: 73,
+      total: 73,
+    };
+    const unlinkedComponents = [
+      {id: 2, product: {id: 1135, price: 8.5}, quantity: 1, price: 0, total: 0},
+      {id: 3, product: {id: 1108, price: 16.9}, quantity: 1, price: 0, total: 0},
+    ];
+    const linkedComponents = unlinkedComponents.map(component => ({
+      ...component,
+      orderProduct: '/order_products/1',
+    }));
+    const currentOrder = {
+      id: 72914,
+      price: 73,
+      orderProducts: [root, ...unlinkedComponents],
+    };
+    const fetchedOrderProducts = [root, ...linkedComponents];
+    const commit = jest.fn();
+    const getters = {item: currentOrder, items: [currentOrder]};
+
+    syncOrderProducts(
+      {commit, getters},
+      {orderId: 72914, orderProducts: fetchedOrderProducts},
+    );
+
+    const refreshedItem = commit.mock.calls.find(([type]) => type === 'SET_ITEM')[1];
+    const refreshedItems = commit.mock.calls.find(([type]) => type === 'SET_ITEMS')[1];
+
+    expect(refreshedItem.price).toBe(73);
+    expect(refreshedItem.orderProducts).toBe(fetchedOrderProducts);
+    expect(refreshedItems[0].price).toBe(73);
+  });
+
+  it('patches local list status to canceled when cancel succeeds without order payload', async () => {
+    const commit = jest.fn();
+    mockFetch.mockResolvedValueOnce({
+      result: {
+        errno: 0,
+        errmsg: 'ok',
+      },
+    });
+
+    const openOrder = {
+      id: 72829,
+      status: {status: 'open', realStatus: 'open', color: '#00aa00'},
+    };
+
+    await cancelOrder(
+      {
+        commit,
+        getters: {
+          item: openOrder,
+          items: [openOrder],
+          resourceEndpoint: 'orders',
+        },
+      },
+      {
+        id: 72829,
+        companyId: 8,
+        reasonId: 10,
+        reason: 'Cliente desistiu',
+      },
+    );
+
+    expect(commit).toHaveBeenCalledWith(
+      'SET_ITEMS',
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 72829,
+          status: expect.objectContaining({
+            status: 'canceled',
+            realStatus: 'canceled',
+          }),
+          realStatus: 'canceled',
+        }),
+      ]),
+    );
+    expect(commit).toHaveBeenCalledWith(
+      'SET_ITEM',
+      expect.objectContaining({
+        id: 72829,
+        status: expect.objectContaining({
+          status: 'canceled',
+          realStatus: 'canceled',
+        }),
+      }),
+    );
   });
 });
