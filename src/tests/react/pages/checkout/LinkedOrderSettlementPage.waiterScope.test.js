@@ -11,7 +11,7 @@ jest.mock('react-native', () => ({ActivityIndicator: 'Loading', RefreshControl: 
 jest.mock('react-native-safe-area-context', () => ({SafeAreaView: 'SafeAreaView'}))
 jest.mock('react-native-vector-icons/Feather', () => 'Icon')
 jest.mock('@controleonline/ui-common/src/api', () => ({api: {}}))
-jest.mock('@controleonline/../../src/styles/branding', () => ({withOpacity: x => x}))
+jest.mock('@controleonline/ui-layout/src/styles/branding', () => ({withOpacity: x => x}))
 jest.mock('@controleonline/ui-common/src/utils/formatter', () => ({__esModule: true, default: {formatMoney: x => x}}))
 jest.mock('@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet', () => 'EntrySheet')
 jest.mock('../../../../react/pages/checkout/SettlementSectionTable', () => ({SettlementOrdersTable: 'Orders', SettlementInvoicesTable: 'Invoices'}))
