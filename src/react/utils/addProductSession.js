@@ -10,6 +10,8 @@ const normalizeProductId = value => {
 
 const pendingSelections = new Map()
 
+export const ADD_PRODUCT_CONFIRMATION_EVENT = 'orders:add-product-confirmation'
+
 export const ADD_PRODUCT_SELECTION_CHANGE_EVENT = 'orders:add-product-selection-change'
 
 export const getPendingAddProductQuantity = product =>
