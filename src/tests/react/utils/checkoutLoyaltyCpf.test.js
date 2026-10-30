@@ -83,10 +83,17 @@ describe('checkoutLoyaltyCpf helpers', () => {
     ).toEqual({
       itemsPerPage: 2,
       peopleType: 'F',
-      search: '52998224725',
+      cpf: '52998224725',
       company: '/people/3',
       context: 'checkout-cpf-lookup',
     })
+  })
+
+  it('keeps the leading zero of the cpf in the lookup params', () => {
+    const params = buildLoyaltyCpfSearchParams({companyId: 3, query: '015.157.489-87'})
+    expect(params.cpf).toBe('01515748987')
+    expect(params.search).toBeUndefined()
+    expect(isValidCpf('015.157.489-87')).toBe(true)
   })
 
   it('detects loyalty enablement from manager configs', () => {

@@ -163,7 +163,9 @@ export const buildLoyaltyCpfSearchParams = ({
   const params = {
     itemsPerPage,
     peopleType: 'F',
-    search: digitsOnly(query).slice(0, 11),
+    // Not `search`: the generic search filter does LIKE on the bigint document column and
+    // never matches a CPF with leading zero.
+    cpf: digitsOnly(query).slice(0, 11),
     context: LOYALTY_CPF_SEARCH_CONTEXT,
   };
   const normalizedCompanyId = resolvePeopleId(companyId);
