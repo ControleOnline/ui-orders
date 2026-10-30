@@ -1,6 +1,6 @@
 {
   "name": "@controleonline/ui-orders",
-  "version": "1.3.36",
+  "version": "1.3.52",
   "author": "Controle Online",
   "description": "Controle Online Quotations Quasar UI Component",
   "license": "MIT",
@@ -8,7 +8,7 @@
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/controleonline/conline-quasar-ui"
+    "url": "https://github.com/ControleOnline/ui-orders"
   },
   "bugs": "",
   "homepage": "https://www.controleonline.com/devs/plugins",
@@ -16,15 +16,15 @@
     "last 1 version, not dead, ie >= 11"
   ],
   "dependencies": {
-    "@controleonline/ui-common": "*",
-    "@controleonline/ui-crm": "*",
-    "@controleonline/ui-default": "*",
-    "@controleonline/ui-layout": "*",
-    "@controleonline/ui-logistic": "*",
-    "@controleonline/ui-manager": "*",
-    "@controleonline/ui-people": "*",
-    "@controleonline/ui-ppc": "*",
-    "@controleonline/ui-products": "*",
-    "@controleonline/ui-shop": "*"
+    "@controleonline/ui-common": "1.2.103",
+    "@controleonline/ui-crm": "1.0.44",
+    "@controleonline/ui-default": "1.0.281",
+    "@controleonline/ui-layout": "1.0.20",
+    "@controleonline/ui-logistic": "1.0.41",
+    "@controleonline/ui-manager": "1.0.21",
+    "@controleonline/ui-people": "1.0.101",
+    "@controleonline/ui-ppc": "1.0.56",
+    "@controleonline/ui-products": "1.0.40",
+    "@controleonline/ui-shop": "1.0.19"
   }
 }

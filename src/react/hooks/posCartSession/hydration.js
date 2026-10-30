@@ -30,7 +30,11 @@ export const refreshPosActiveOrder = async ({
     ])
 
     if (orderResult.status !== 'fulfilled') {
-      return syncActiveOrderState(null)
+      throw orderResult.reason || new Error('Nao foi possivel atualizar o pedido.')
+    }
+
+    if (productsResult.status !== 'fulfilled') {
+      throw productsResult.reason || new Error('Nao foi possivel atualizar os itens do pedido.')
     }
 
     const normalizedOrder = await normalizeDraftOrderType(orderResult.value)
@@ -58,8 +62,9 @@ export const refreshPosActiveOrder = async ({
     }
 
     return syncedOrder
-  } catch {
-    return syncActiveOrderState(null)
+  } catch (error) {
+    // A failed read must not erase a previously acknowledged ERP order.
+    throw error
   }
 }
 

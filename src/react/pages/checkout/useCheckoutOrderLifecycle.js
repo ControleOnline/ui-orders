@@ -13,6 +13,9 @@ import {fetchAllHydraCollectionPages} from '@controleonline/ui-orders/src/react/
 import {resolvePeopleId} from '@controleonline/ui-orders/src/react/utils/checkoutLoyaltyCpf';
 
 export default function useCheckoutOrderLifecycle({
+  singleItemPendingAmount = null,
+  waiterConsultationCheckout = false,
+  waiterPendingAmount = null,
   clearStoredDraftOrderId,
   ensureActiveOrder,
   invoiceActions,
@@ -77,7 +80,7 @@ export default function useCheckoutOrderLifecycle({
 
   const remainingAmount = useMemo(
     () =>
-      resolveCheckoutRemainingAmount({
+      singleItemPendingAmount !== null ? singleItemPendingAmount : waiterConsultationCheckout ? Math.max(Number(waiterPendingAmount || 0), 0) : resolveCheckoutRemainingAmount({
         order,
         orderProducts: checkoutOrderProducts,
         orderProductsComplete: checkoutOrderProductsComplete,
@@ -85,6 +88,9 @@ export default function useCheckoutOrderLifecycle({
         routeOrderId: normalizedCheckoutOrderId,
       }),
     [
+      singleItemPendingAmount,
+      waiterConsultationCheckout,
+      waiterPendingAmount,
       checkoutOrderProducts,
       checkoutOrderProductsComplete,
       normalizedCheckoutOrderId,
@@ -95,6 +101,8 @@ export default function useCheckoutOrderLifecycle({
 
   const resolveOrderRemainingAmount = useCallback(
     currentOrder => {
+      if (singleItemPendingAmount !== null) return singleItemPendingAmount;
+      if (waiterConsultationCheckout) return Math.max(Number(waiterPendingAmount || 0), 0);
       const currentOrderId = normalizeCheckoutEntityId(currentOrder);
       const currentOrderProducts = Array.isArray(currentOrder?.orderProducts)
         ? currentOrder.orderProducts
@@ -110,6 +118,9 @@ export default function useCheckoutOrderLifecycle({
       return resolvedAmount > 0 ? resolvedAmount : remainingAmount;
     },
     [
+      singleItemPendingAmount,
+      waiterConsultationCheckout,
+      waiterPendingAmount,
       checkoutOrderProducts,
       checkoutOrderProductsComplete,
       normalizedCheckoutOrderId,
@@ -157,10 +168,10 @@ export default function useCheckoutOrderLifecycle({
     (paidAmount, currentOrder = null) =>
       resolveNextOperationalPayable({
         paidAmount,
-        payable,
+        payable: waiterConsultationCheckout ? 0 : payable,
         remainingAmount: resolveOrderRemainingAmount(currentOrder),
       }),
-    [payable, resolveOrderRemainingAmount],
+    [payable, resolveOrderRemainingAmount, waiterConsultationCheckout],
   );
 
   const syncLoyaltySelectionToOrder = useCallback(
@@ -246,6 +257,10 @@ export default function useCheckoutOrderLifecycle({
 
   const resolveCheckoutOrderForPayment = useCallback(
     async currentOrder => {
+      if (waiterConsultationCheckout) {
+        // Collection of a tab must never materialize an unrelated active cart.
+        return ordersActions.get(routeOrderId);
+      }
       const currentOrderId = resolvePeopleId(currentOrder?.id || currentOrder?.['@id']);
       if (currentOrderId && resolveOrderRemainingAmount(currentOrder) > 0.009) {
         return currentOrder;
@@ -280,6 +295,8 @@ export default function useCheckoutOrderLifecycle({
       return currentOrder || order;
     },
     [
+      singleItemPendingAmount,
+      waiterConsultationCheckout,
       ensureActiveOrder,
       order,
       ordersActions,
@@ -292,12 +309,15 @@ export default function useCheckoutOrderLifecycle({
   const resetCompletedOrderState = useCallback(() => {
     clearStoredDraftOrderId();
     ordersActions.setItem(null);
+    if (singleItemPendingAmount !== null) orderProductsActions?.setItems?.([]);
     invoiceActions.setItems([]);
     orderInvoicesActions.setItems([]);
     ordersActions.setPayable(0);
     if (isAutoPrintEnabled) printActions.setReload(true);
   }, [
     clearStoredDraftOrderId,
+    singleItemPendingAmount,
+    orderProductsActions,
     invoiceActions,
     isAutoPrintEnabled,
     orderInvoicesActions,

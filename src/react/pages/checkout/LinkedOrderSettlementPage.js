@@ -1,4 +1,8 @@
 import React from 'react'
+import {useStore} from '@store'
+import {app_type} from '@appType'
+import {isWaiterTabHome} from '../home/waiterTabHomeActions'
+import WaiterTabConsultationPage from './WaiterTabConsultationPage'
 import {
   ActivityIndicator,
   RefreshControl,
@@ -9,7 +13,7 @@ import {
 } from 'react-native'
 import {SafeAreaView} from 'react-native-safe-area-context'
 import Icon from 'react-native-vector-icons/Feather'
-import {withOpacity} from '@controleonline/../../src/styles/branding'
+import {withOpacity} from '@controleonline/ui-layout/src/styles/branding'
 import LinkedOrderEntrySheet from '@controleonline/ui-orders/src/react/components/LinkedOrderEntrySheet'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 import {normalizeEntityId} from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
@@ -21,7 +25,14 @@ import {translateOrderStatus} from './linkedOrderSettlementHelpers'
 import {useLinkedOrderSettlement} from './useLinkedOrderSettlement'
 import styles from './LinkedOrderSettlementPage.styles'
 
-export default function LinkedOrderSettlementPage({navigation, route}) {
+export default function LinkedOrderSettlementPage(props) {
+  const {item: deviceConfig} = useStore('device_config').getters
+  return isWaiterTabHome(app_type, deviceConfig?.configs)
+    ? <WaiterTabConsultationPage {...props} />
+    : <GenericLinkedOrderSettlementPage {...props} />
+}
+
+function GenericLinkedOrderSettlementPage({navigation, route}) {
   const {
     palette,
     orderLabel,
@@ -51,8 +62,6 @@ export default function LinkedOrderSettlementPage({navigation, route}) {
     handleSelectOpenRoot,
     canChargeLocally,
     canManageRoots,
-    pendingCartOrders,
-    treeRounds,
   } = useLinkedOrderSettlement({navigation, route})
 
   if (!currentCompany?.id) {

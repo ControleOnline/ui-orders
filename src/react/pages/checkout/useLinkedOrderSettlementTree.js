@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService'
 import {
   POS_CHECK_ORDER_TYPE_NONE,
-  resolvePosCheckOrderTypeForShop,
+  resolvePosCheckOrderEntryTypeForShop,
   isPosLocalChargeEnabled,
   canManagePosCheckOrders,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
@@ -10,8 +10,8 @@ import {
   normalizeBooleanConfig,
   SHOP_LOYALTY_COUPONS_ENABLED_CONFIG_KEY,
 } from '@controleonline/ui-common/src/react/utils/shopConfig'
-import {colors} from '@controleonline/../../src/styles/colors'
-import {resolveThemePalette} from '@controleonline/../../src/styles/branding'
+import {colors} from '@controleonline/ui-layout/src/styles/colors'
+import {resolveThemePalette} from '@controleonline/ui-layout/src/styles/branding'
 import {useStore} from '@store'
 import {
   isLinkedParentOrder,
@@ -75,7 +75,7 @@ export function useLinkedOrderSettlementTree({navigation, route}) {
     }
     return (
       routeOrderType ||
-      resolvePosCheckOrderTypeForShop(
+      resolvePosCheckOrderEntryTypeForShop(
         runtimeDeviceConfig?.configs,
         currentCompany?.configs,
       )

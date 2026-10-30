@@ -147,12 +147,13 @@ export const getLinkedOrderContext = order => {
     normalizeEntityId(order?.main_order_id) ||
     normalizeEntityId(order?.mainorderid) ||
     normalizeEntityId(order?.mainOrder)
+  const entityOrderType = normalizeLinkedOrderType(order?.orderType)
 
   return {
     externalCode,
     inputType,
-    isLinkedChild: !!mainOrderId && !isLinkedParentOrderType(orderType),
-    isLinkedParent: isLinkedParentOrderType(orderType),
+    isLinkedChild: !!mainOrderId && !isLinkedParentOrderType(entityOrderType),
+    isLinkedParent: isLinkedParentOrderType(entityOrderType),
     label: resolveLinkedOrderLabel(orderType),
     mainOrderId,
     orderType,

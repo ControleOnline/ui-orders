@@ -1,3 +1,4 @@
+import {reportProductConfirmationError} from '../../utils/confirmPendingProducts';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import { Text, View, TouchableOpacity, useWindowDimensions } from 'react-native';
 import {useStore} from '@store';
@@ -10,6 +11,7 @@ import {
 } from '@controleonline/ui-orders/src/react/utils/orderRoute';
 import {
   ADD_PRODUCT_SELECTION_CHANGE_EVENT,
+  ADD_PRODUCT_CONFIRMATION_EVENT,
   listPendingAddProducts,
 } from '@controleonline/ui-orders/src/react/utils/addProductSession';
 import {useMessage} from '@controleonline/ui-common/src/react/components/MessageService';
@@ -21,6 +23,7 @@ import createStyles from './BottomCart.styles';
 
 const BottomCart = ({
   bottomOffset = 0,
+  inline = false,
   actionLabel = 'Conferir pedido',
   actionIcon = 'clipboard',
   actionDisabled,
@@ -39,6 +42,8 @@ const BottomCart = ({
   paidOrderLabel,
   paidReceivedAmount = 0,
   paidReceivedLabel,
+  waiterOrderAmount = 0,
+  waiterOrderLabel = 'Lançamento',
   paidDetailsLabel,
   onPaidDetailsPress,
 }) => {
@@ -80,6 +85,7 @@ const BottomCart = ({
   const isCompact = width < 360;
   const isUltraCompact = width < 330;
   const isPaymentStatusVariant = variant === 'payment-status';
+  const isWaiterOrderVariant = variant === 'waiter-order';
   const resolvedPendingAmount = Math.max(Number(paymentPendingAmount || 0), 0);
   const hasPendingPayment = resolvedPendingAmount > 0.009;
   const isPaidStateBar = isPaymentStatusVariant && !hasPendingPayment;
@@ -164,7 +170,11 @@ const BottomCart = ({
     };
 
     eventBus.on(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
-    return () => eventBus.off(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
+    eventBus.on(ADD_PRODUCT_CONFIRMATION_EVENT, syncPendingSelections);
+    return () => {
+      eventBus.off(ADD_PRODUCT_SELECTION_CHANGE_EVENT, syncPendingSelections);
+      eventBus.off(ADD_PRODUCT_CONFIRMATION_EVENT, syncPendingSelections);
+    };
   }, []);
 
   const handleDefaultAction = useCallback(item => {
@@ -214,7 +224,7 @@ const BottomCart = ({
 
       handleDefaultAction(resolvedOrder);
     } catch (error) {
-      showError?.(error?.message || 'Nao foi possivel preparar o pedido para conferencia.');
+      reportProductConfirmationError(error, showError);
     } finally {
       setIsMaterializingOrder(false);
     }
@@ -245,6 +255,7 @@ const BottomCart = ({
           style={[
             styles.paidBreakdownToolbar,
             {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+            ...(inline ? [{position: 'relative', flexShrink: 0, bottom: undefined, left: 0, right: 0, marginHorizontal: 8, marginVertical: 8}] : []),
           ]}
         >
           <View style={styles.paidMetricWrap}>
@@ -304,6 +315,7 @@ const BottomCart = ({
             style={[
               styles.paidToolbar,
               {bottom: bottomOffset + (isCompact ? 6 : 8)},
+              ...(inline ? [{position: 'relative', flexShrink: 0, bottom: undefined, left: 0, right: 0, marginHorizontal: 8, marginVertical: 8}] : []),
             ]}
           >
             <Icon color={successColor} name="check-circle" size={isCompact ? 14 : 15} />
@@ -314,9 +326,24 @@ const BottomCart = ({
           style={[
             styles.toolbar,
             {bottom: bottomOffset + (isCompact ? 6 : 8), minHeight: cartHeight},
+            ...(inline ? [{position: 'relative', flexShrink: 0, bottom: undefined, left: 0, right: 0, marginHorizontal: 8, marginVertical: 8}] : []),
           ]}
         >
-          {isPaymentStatusVariant ? (
+          {isWaiterOrderVariant ? (
+            <View
+              style={[
+                styles.paymentSummaryWrap,
+                {borderColor, backgroundColor: totalCardBg || '#FFFFFF'},
+              ]}
+            >
+              <Text style={[styles.paymentSummaryLabel, {color: labelColor}]}>
+                {waiterOrderLabel}
+              </Text>
+              <Text style={[styles.paymentSummaryValue, {color: textColor}]}>
+                {Formatter.formatMoney(Math.max(Number(waiterOrderAmount || 0), 0))}
+              </Text>
+            </View>
+          ) : isPaymentStatusVariant ? (
             <View
               style={[
                 styles.paymentSummaryWrap,
