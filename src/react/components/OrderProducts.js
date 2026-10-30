@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { Image, Text, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
-import { withOpacity } from '@controleonline/../../src/styles/branding'
+import { withOpacity } from '@controleonline/ui-layout/src/styles/branding'
 import { resolveFileImageUrl } from '@controleonline/ui-common/src/react/utils/fileUrl'
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
 

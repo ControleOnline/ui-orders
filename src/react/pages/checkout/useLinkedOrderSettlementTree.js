@@ -10,8 +10,8 @@ import {
   normalizeBooleanConfig,
   SHOP_LOYALTY_COUPONS_ENABLED_CONFIG_KEY,
 } from '@controleonline/ui-common/src/react/utils/shopConfig'
-import {colors} from '@controleonline/../../src/styles/colors'
-import {resolveThemePalette} from '@controleonline/../../src/styles/branding'
+import {colors} from '@controleonline/ui-layout/src/styles/colors'
+import {resolveThemePalette} from '@controleonline/ui-layout/src/styles/branding'
 import {useStore} from '@store'
 import {
   isLinkedParentOrder,

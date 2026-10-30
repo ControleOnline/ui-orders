@@ -3,7 +3,7 @@ import {confirmAction} from '@controleonline/ui-common/src/react/utils/confirmAc
 import {useFocusEffect} from '@react-navigation/native'
 import {useStore} from '@store'
 import {canManagePosCheckOrders} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
-import {resolveThemePalette} from '@controleonline/../../src/styles/branding'
+import {resolveThemePalette} from '@controleonline/ui-layout/src/styles/branding'
 import usePosCartSession from '../../hooks/usePosCartSession'
 import {resolveWaiterTabDestination} from '../home/waiterTabHomeActions'
 import {getLinkedOrderContext, normalizeEntityId} from '../../utils/linkedOrderContext'
