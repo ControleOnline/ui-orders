@@ -83,7 +83,7 @@ describe('checkoutLoyaltyCpf helpers', () => {
     ).toEqual({
       itemsPerPage: 2,
       peopleType: 'F',
-      search: '52998224725',
+      cpf: '52998224725',
       company: '/people/3',
       context: 'checkout-cpf-lookup',
     })
