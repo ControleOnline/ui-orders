@@ -1,0 +1,11 @@
+{
+  "version": "1.10.56",
+  "rc": 3,
+  "branch": "rc/1.10.56-rc.3",
+  "baseMaster": "c2ea50ac43fd5dede1bc76157883003c1446d079",
+  "tasks": [74],
+  "repositories": {
+    "ControleOnline/ui-orders": "4051f7d475fb5234c9923a3354a74eb9ad286957"
+  },
+  "frozen": true
+}
