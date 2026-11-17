@@ -44,6 +44,7 @@ export default function useCheckoutLoyaltyUi({
     setSelectedLoyaltyPerson,
   ]);
   const handleSelectLoyaltyPerson = useCallback(person => {
+    setLoyaltyCpfStepCompleted(false);
     setSelectedLoyaltyPerson(person);
     setLoyaltyCpfInput(currentValue =>
       person?.cpfDisplay || Formatter.maskCPF(person?.cpf || '') || currentValue,
@@ -53,6 +54,7 @@ export default function useCheckoutLoyaltyUi({
   }, [
     setLoyaltyCpfInput,
     setLoyaltyCpfResults,
+    setLoyaltyCpfStepCompleted,
     setLoyaltyCpfStepSkipped,
     setSelectedLoyaltyPerson,
   ]);
@@ -84,7 +86,7 @@ export default function useCheckoutLoyaltyUi({
 
     if (!resolvePeopleId(selectedLoyaltyPerson?.id)) {
       invoiceActions.setError(
-        'Selecione um CPF da lista ou toque em pular para seguir sem identificar o cliente.',
+        'Informe um CPF completo ou toque em pular para seguir sem identificar o cliente.',
       );
       return;
     }

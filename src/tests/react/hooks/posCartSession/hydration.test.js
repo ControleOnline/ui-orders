@@ -103,3 +103,19 @@ describe('refreshPosActiveOrder', () => {
     }))
   })
 })
+
+it('keeps the last acknowledged order when detail refresh fails', async()=>{
+ api.fetch.mockRejectedValue(new Error('temporary database failure'));
+ const syncActiveOrderState=jest.fn(),setItems=jest.fn();
+ await expect(refreshPosActiveOrder({targetOrderId:123,normalizeDraftOrderType:jest.fn(),
+   orderProductsActions:{setItems},ordersActions:{},syncActiveOrderState})).rejects.toThrow('temporary database failure');
+ expect(syncActiveOrderState).not.toHaveBeenCalled();expect(setItems).not.toHaveBeenCalled();
+});
+
+it('does not publish a partial refresh when the item read fails', async()=>{
+ api.fetch.mockImplementation(resource=>resource==='orders/123' ? Promise.resolve({id:123,total:224,orderProducts:[]}) : Promise.reject(new Error('items unavailable')));
+ const syncActiveOrderState=jest.fn();
+ await expect(refreshPosActiveOrder({targetOrderId:123,normalizeDraftOrderType:jest.fn(),
+   orderProductsActions:{setItems:jest.fn()},ordersActions:{},syncActiveOrderState})).rejects.toThrow('items unavailable');
+ expect(syncActiveOrderState).not.toHaveBeenCalled();
+});

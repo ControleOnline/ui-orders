@@ -21,13 +21,25 @@ import {
   shouldRenderOrderDetailsPaymentAction,
 } from '../orderDetailsPaymentBar'
 import css from '@controleonline/ui-orders/src/react/css/orders'
+import {
+  inlineStyle_2712_14,
+  inlineStyle_2718_20,
+  inlineStyle_2725_26,
+  inlineStyle_2737_26,
+  inlineStyle_2748_24,
+} from '../orderDetails.styles'
 
 export default function OrderDetailsView(p) {
   const {
     cssStyles = css?.orders || css,
     localStyles,
     ppcColors,
+    globalStyles,
     useUnifiedKdsLayout,
+    currentCompany,
+    mainCompany,
+    refreshCurrentOrder,
+    marketplaceSummary,
     shouldStackHeaderActions,
     renderCompactInlineTopBar,
     renderInvoiceListOnly,
@@ -41,6 +53,7 @@ export default function OrderDetailsView(p) {
     mobileOrderBottomSpacing,
     showBarcodeInput,
     isPosSelfServiceOperationMode,
+    isWaiterMode,
     isPurchaseOrder,
     shouldShowOrderPartyDetails,
     customerModalVisible,
@@ -57,12 +70,24 @@ export default function OrderDetailsView(p) {
     setCustomerCreateModalVisible,
     handleCustomerCreated,
     addressModalVisible,
+    addressSaveLoading,
     closeAddressModal,
     addressModalMode,
     setAddressModalMode,
     handleAddressFormFieldChange,
+    addressOptions,
+    addressOptionsLoading,
+    addressSelectingId,
+    addressForm,
+    handleSelectAddress,
+    handleCreateAddress,
     orderIdentitySource,
     orderHeaderActionProps,
+    handleOrderLogs,
+    handleOrderTools,
+    orderParam,
+    addProductsButtonLabel,
+    canShowDebugActions,
     navigation,
     isKds,
     detailsModalVisible,
@@ -73,6 +98,8 @@ export default function OrderDetailsView(p) {
     setAttachmentsVisible,
     topBarOrderId,
     item,
+    isLocallyTerminalOrder,
+    primaryActionMode,
     handleAddProduct,
     handlePrimaryAction,
     primaryActionLoading,
@@ -82,6 +109,7 @@ export default function OrderDetailsView(p) {
     canAddOrderPayment,
     handleOpenFinancialDetails,
     localOrderTotal,
+    localPendingAmount,
     localReceivedAmount,
     hasMarketplaceIntegration,
     shouldShowMobilePaymentBar,
@@ -95,6 +123,7 @@ export default function OrderDetailsView(p) {
     shouldShowPreparationTime,
     orderWaitingLabel,
   } = p
+  const showInlinePrimaryAction = shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})
 
   return (
     <SafeAreaView
@@ -141,10 +170,13 @@ export default function OrderDetailsView(p) {
             addressSelectingId={addressSelectingId}
             handleSelectAddress={handleSelectAddress}
             addressForm={addressForm}
+            setAddressForm={p.setAddressForm}
+            openAddressCreateMode={p.openAddressCreateMode}
+            selectedOrderClientIri={p.selectedOrderClientIri}
+            selectedOrderAddressIri={p.selectedOrderAddressIri}
             handleAddressFormFieldChange={handleAddressFormFieldChange}
             handleCreateAddress={handleCreateAddress}
             addressSaveLoading={addressSaveLoading}
-            peopleStore={peopleStore}
           />
         </>
       )}
@@ -254,10 +286,14 @@ export default function OrderDetailsView(p) {
               }
               onActionPress={handlePrimaryAction}
               onPaidDetailsPress={handleOpenFinancialDetails}
-              showPaidBreakdown
-              showActionButton={shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}
+              showPaidBreakdown={!isWaiterMode}
+              waiterOrderAmount={localOrderTotal}
+              waiterOrderLabel={global.t?.t('orders', 'label', 'orderLaunch') || 'Lançamento'}
+              showActionButton={isWaiterMode
+                ? primaryActionMode === 'produce' && !!item?.id && !isLocallyTerminalOrder
+                : shouldRenderOrderDetailsPaymentAction({canAddOrderPayment})}
               showPayableBadge={false}
-              variant="payment-status"
+              variant={isWaiterMode ? 'waiter-order' : 'payment-status'}
             />
           )}
 

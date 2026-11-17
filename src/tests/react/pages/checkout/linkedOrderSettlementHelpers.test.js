@@ -1,3 +1,4 @@
+jest.mock('@controleonline/ui-common/src/api', () => ({api: {}}))
 /* global describe, expect, it */
 
 const {

@@ -10,6 +10,8 @@ import {
   isTruthyValue,
   parseConfigsObject,
   isPosSelfServiceMode,
+  POS_OPERATION_MODE_WAITER,
+  resolvePosOperationMode,
 } from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap'
 import {
   buildAddProductsRouteParams,
@@ -142,6 +144,9 @@ export default function useOrderDetailsBootstrap({ route, navigation }) {
   const deviceConfigs = parseConfigsObject(device?.configs)
   const productInputType = device?.configs?.['product-input-type'] || 'manual'
   const isPosSelfServiceOperationMode = isPosSelfServiceMode(deviceConfigs)
+  const isWaiterMode =
+    appType === 'POS' &&
+    resolvePosOperationMode(deviceConfigs) === POS_OPERATION_MODE_WAITER
   const isSingleItemOperationMode =
     route?.params?.singleItemMode === true ||
     isPosSingleItemMode(deviceConfigs)
@@ -270,6 +275,7 @@ export default function useOrderDetailsBootstrap({ route, navigation }) {
     deviceConfigs,
     productInputType,
     isPosSelfServiceOperationMode,
+    isWaiterMode,
     isSingleItemOperationMode,
     shouldShowBottomNavigation,
     isDeviceDeliveryEnabled,

@@ -23,7 +23,7 @@ jest.mock('@expo/vector-icons', () => {
   }
 }, { virtual: true })
 
-jest.mock('@controleonline/../../src/styles/branding', () => ({
+jest.mock('@controleonline/ui-layout/src/styles/branding', () => ({
   withOpacity: (color, opacity) => `${color}:${opacity}`,
 }))
 

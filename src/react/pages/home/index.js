@@ -155,6 +155,9 @@ import {
   resolvePosOperationModuleId,
 } from '@controleonline/ui-orders/src/react/utils/posOperationInfo';
 import styles from './index.styles';
+import {app_type} from '@appType';
+import WaiterTabHome from './WaiterTabHome';
+import {isWaiterTabHome} from './waiterTabHomeActions';
 
 export default function HomePage({navigation}) {
   const themeStore = useStore('theme');
@@ -248,6 +251,10 @@ export default function HomePage({navigation}) {
         <Text style={styles.loadingText}>{global.t?.t('orders', 'message', 'loading')}</Text>
       </View>
     );
+  }
+
+  if (isWaiterTabHome(app_type, device?.configs)) {
+    return <WaiterTabHome navigation={navigation} operationInfo={operationInfo} />;
   }
 
   return (

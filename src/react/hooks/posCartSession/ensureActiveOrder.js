@@ -1,5 +1,6 @@
 import {
   buildLinkedOrderMetadata,
+  getLinkedOrderContext,
   resolveLinkedOrderLabel,
 } from '@controleonline/ui-orders/src/react/utils/linkedOrderContext'
 import {
@@ -136,7 +137,10 @@ export const runEnsureActiveOrder = async ({
       )
     }
 
-    const existingLinkedOrder = await findOpenLinkedSessionOrder(settlementOrderId)
+    // A new launch is a new child order; resuming is an explicit separate action.
+    const existingLinkedOrder = forceNew
+      ? null
+      : await findOpenLinkedSessionOrder(settlementOrderId)
     assertActiveEnsureConsumer(requestEntry, buildCancelledError)
 
     if (existingLinkedOrder) {
@@ -165,14 +169,24 @@ export const runEnsureActiveOrder = async ({
       ),
     )
 
-    const orderIri =
-      createdLinkedOrder['@id'] ||
-      `/orders/${normalizeId(createdLinkedOrder.id)}`
+    assertActiveEnsureConsumer(requestEntry, buildCancelledError)
+    const createdOrderId = normalizeId(createdLinkedOrder?.id || createdLinkedOrder?.['@id'])
+    if (!createdOrderId) {
+      throw new Error('Não foi possível identificar o lançamento criado para vinculá-lo.')
+    }
+
+    // Reuse the existing post-creation update: this API persists the parent on
+    // UPDATE, while including the scalar parent on INSERT loses the association.
     const linkedOrder = await ordersActions.save({
-      '@id': orderIri,
-      id: Number(normalizeId(createdLinkedOrder.id)),
+      '@id': createdLinkedOrder['@id'] || `/orders/${createdOrderId}`,
+      id: Number(createdOrderId),
       mainOrderId: Number(settlementOrderId),
     })
+    assertActiveEnsureConsumer(requestEntry, buildCancelledError)
+    if (normalizeId(linkedOrder?.id || linkedOrder?.['@id']) !== createdOrderId ||
+        getLinkedOrderContext(linkedOrder).mainOrderId !== Number(settlementOrderId)) {
+      throw new Error('Não foi possível confirmar o vínculo do lançamento com o atendimento.')
+    }
 
     return syncActiveOrderState(
       await materializeOpenPosOrder(linkedOrder),

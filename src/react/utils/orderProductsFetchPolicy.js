@@ -1,3 +1,5 @@
+import {calculateOrderProductsSubtotal} from '../../utils/orderState'
+
 const hasHydraItems = value =>
   Array.isArray(value) ||
   Array.isArray(value?.member) ||
@@ -40,9 +42,19 @@ export const hasGroupingMetadata = orderProducts =>
       ),
   )
 
-export const hasDetailedOrderProductMetadata = orderProducts =>
-  hasGroupingMetadata(orderProducts) ||
-  hasEmbeddedOrderProductComponents(orderProducts)
+const hasExplicitHierarchy = line =>
+  line?.hierarchyComplete === true ||
+  ['orderProduct', 'parentProduct', 'productGroup'].every(key =>
+    Object.prototype.hasOwnProperty.call(line, key))
+
+export const hasDetailedOrderProductMetadata = orderProducts => {
+  if (!hasOrderProducts(orderProducts)) return false
+  if (orderProducts.some(line => Object.prototype.hasOwnProperty.call(line, 'hierarchyComplete'))) {
+    return orderProducts.every(hasExplicitHierarchy)
+  }
+  return orderProducts.every(hasExplicitHierarchy) ||
+    hasGroupingMetadata(orderProducts) || hasEmbeddedOrderProductComponents(orderProducts)
+}
 
 export const needsDetailedOrderProductsFetch = orderProducts => {
   if (!hasOrderProducts(orderProducts)) {
@@ -58,3 +70,9 @@ export const needsDetailedOrderProductsFetch = orderProducts => {
 
 export const getEmbeddedOrderProductComponents = orderProduct =>
   getHydraItems(orderProduct?.orderProductComponents)
+
+// Flat legacy responses cannot safely distinguish a component from a sold root.
+export const resolveOrderProductsDisplayTotal = (orderProducts, confirmedTotal) =>
+  !hasOrderProducts(orderProducts) || hasDetailedOrderProductMetadata(orderProducts)
+    ? calculateOrderProductsSubtotal(orderProducts)
+    : Number(confirmedTotal || 0)

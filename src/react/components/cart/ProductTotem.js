@@ -67,7 +67,7 @@ const ProductTotem = ({
   const currentOrderProducts = useMemo(
     () =>
       getTopLevelOrderProducts(
-        Array.isArray(order?.orderProducts) && order.orderProducts.length > 0
+        Array.isArray(order?.orderProducts)
           ? order.orderProducts
           : storedOrderProducts,
       ),

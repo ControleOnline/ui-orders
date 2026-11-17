@@ -9,11 +9,11 @@ import {
 /**
  * Owns historyFilters state + store setFilters with anti-loop guards (React #185).
  */
-export default function useOrderHistoryFilters({ orderActions, statusItems }) {
+export default function useOrderHistoryFilters({ orderActions, statusItems, operationalSingleItem = false }) {
   const setFiltersRef = useRef(orderActions?.setFilters);
   setFiltersRef.current = orderActions?.setFilters;
 
-  const [historyFilters, setHistoryFilters] = useState(buildDefaultHistoryFilters);
+  const [historyFilters, setHistoryFilters] = useState(() => operationalSingleItem ? {} : buildDefaultHistoryFilters());
   const historyFiltersRef = useRef(historyFilters);
   historyFiltersRef.current = historyFilters;
 
@@ -40,6 +40,11 @@ export default function useOrderHistoryFilters({ orderActions, statusItems }) {
     () => buildStatusOptionsSignature(statusOptions),
     [statusOptions],
   );
+
+  useEffect(() => {
+    const next = operationalSingleItem ? {} : buildDefaultHistoryFilters();
+    setHistoryFilters(next);historyFiltersRef.current=next;setFiltersRef.current?.(next);
+  }, [operationalSingleItem]);
 
   useEffect(() => {
     setHistoryFilters(current => {

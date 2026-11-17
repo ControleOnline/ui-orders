@@ -7,10 +7,11 @@ const createStyles = palette => StyleSheet.create({
   container: { flex: 1 },
   content: {
     flex: 1,
+    width: '100%', minWidth: 0,
     minHeight: 0,
     paddingHorizontal: 14,
     paddingTop: 10,
-    paddingBottom: 18,
+    paddingBottom: 8,
   },
   filtersCard: { backgroundColor: palette.cardBackground, borderRadius: 14, padding: 10, marginBottom: 8 },
   filtersHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },

@@ -3,7 +3,6 @@ import Formatter from '@controleonline/ui-common/src/utils/formatter';
 import * as types from '@controleonline/ui-default/src/store/default/mutation_types';
 import {
   mergeOrderIntoList,
-  mergeOrderWithOrderProducts,
   normalizeEntityId,
 } from '@controleonline/ui-orders/src/utils/orderState';
 import {getOrderChannelLogo} from '@assets/ppc/channels';
@@ -145,6 +144,10 @@ const commitSyncedOrder = ({commit, getters}, order, options = {}) => {
 
   delete order['@context'];
   commit(types.SET_ITEM, order);
+  if (options.confirmed && normalizeEntityId(order)) {
+    commit(types.SET_LOADED_KEY, String(normalizeEntityId(order)));
+    commit(types.SET_LOADED_AT, Date.now());
+  }
 
   if (Array.isArray(getters.items)) {
     commit(
@@ -265,11 +268,52 @@ export const cancelOrder = ({commit, getters}, params = {}) => {
         : {}),
       ...(reason ? {reason} : {}),
       ...(companyId ? {company: companyId} : {}),
+      ...(params.draftOnly === true ? {draft_only: true, expected_main_order_id: params.expectedMainOrderId} : {}),
     },
   })
     .then(response => {
       commit(types.SET_ERROR, null);
-      assertSuccessfulOrderAction(response);
+      const result = assertSuccessfulOrderAction(response);
+
+      // Keep list in sync immediately so OrderHistory shows canceled without F5.
+      // Prefer API order payload when present; otherwise patch the local row.
+      const updatedOrder =
+        result?.data?.order ||
+        result?.order ||
+        response?.order ||
+        (result?.data && typeof result.data === 'object' && (result.data.id || result.data['@id'])
+          ? result.data
+          : null);
+
+      if (updatedOrder && typeof updatedOrder === 'object') {
+        commitSyncedOrder({commit, getters}, updatedOrder);
+      } else if (Array.isArray(getters.items)) {
+        const nextItems = getters.items.map(item => {
+          if (normalizeEntityId(item) !== orderId) {
+            return item;
+          }
+          const currentStatus =
+            item?.status && typeof item.status === 'object' && !Array.isArray(item.status)
+              ? item.status
+              : {};
+          return {
+            ...item,
+            status: {
+              ...currentStatus,
+              status: 'canceled',
+              realStatus: 'canceled',
+            },
+            realStatus: 'canceled',
+          };
+        });
+        commit(types.SET_ITEMS, nextItems);
+        if (normalizeEntityId(getters.item) === orderId) {
+          const patched = nextItems.find(item => normalizeEntityId(item) === orderId);
+          if (patched) {
+            commit(types.SET_ITEM, patched);
+          }
+        }
+      }
 
       if (reloadParams) {
         return fetchHistoryPage({commit, getters}, {query: reloadParams})
@@ -299,14 +343,14 @@ export const syncOrderProducts = ({commit, getters}, {orderId, orderProducts = [
 
   let nextCurrentItem = getters.item;
   if (normalizeEntityId(getters.item) === targetOrderId) {
-    nextCurrentItem = mergeOrderWithOrderProducts(getters.item, orderProducts);
+    nextCurrentItem = {...getters.item, orderProducts};
     commit(types.SET_ITEM, nextCurrentItem);
   }
 
   if (Array.isArray(getters.items)) {
     const nextItems = getters.items.map(order =>
       normalizeEntityId(order) === targetOrderId
-        ? mergeOrderWithOrderProducts(order, orderProducts)
+        ? {...order, orderProducts}
         : order,
     );
     commit(types.SET_ITEMS, nextItems);
@@ -315,7 +359,7 @@ export const syncOrderProducts = ({commit, getters}, {orderId, orderProducts = [
   return nextCurrentItem;
 };
 
-export const addProducts = ({commit, getters}, order, products) => {
+export const addProducts = ({commit, getters}, order, products, {silentError = false} = {}) => {
   let options = {
     method: 'PUT',
     body: products,
@@ -329,10 +373,11 @@ export const addProducts = ({commit, getters}, order, products) => {
       commit(types.SET_ERROR, null);
       return commitSyncedOrder({commit, getters}, data, {
         prependIfMissing: true,
+        confirmed: true,
       });
     })
     .catch(e => {
-      commit(types.SET_ERROR, e.message);
+      commit(types.SET_ERROR, e.message, {skipSystemError: silentError});
       throw e;
     })
     .finally(() => {

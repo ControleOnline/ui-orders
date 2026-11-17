@@ -1,0 +1,36 @@
+import {StyleSheet} from 'react-native';
+
+export default function createStyles(colors) {
+  return StyleSheet.create({
+    content: {paddingHorizontal: 20, paddingTop: 18, paddingBottom: 24, alignItems: 'center'},
+    panel: {width: '100%', maxWidth: 420, gap: 12},
+    heading: {flexDirection: 'row', alignItems: 'center', gap: 10},
+    title: {fontSize: 25, fontWeight: '800', color: colors.textPrimary},
+    badge: {alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8,
+      backgroundColor: colors.cardBackground, borderWidth: 1, borderColor: colors.cardBorder},
+    badgeText: {fontSize: 15, fontWeight: '700', color: colors.textPrimary},
+    label: {fontSize: 14, color: colors.textMuted},
+    input: {height: 62, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 12,
+      backgroundColor: colors.inputBackground || colors.cardBackground,
+      color: colors.textPrimary, fontSize: 32, fontWeight: '800', textAlign: 'center', paddingHorizontal: 12},
+    inputModeButton: {minHeight: 44, justifyContent: 'center', alignItems: 'center'},
+    inputModeText: {fontSize: 14, fontWeight: '700', color: colors.buttonTextSecondary || colors.textPrimary, textDecorationLine: 'underline'},
+    keypad: {flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8},
+    key: {width: '31.5%', height: 48, justifyContent: 'center', alignItems: 'center',
+      borderRadius: 10, borderWidth: 1, borderColor: colors.buttonBorderSecondary || colors.cardBorder,
+      backgroundColor: colors.buttonBackgroundSecondary || colors.cardBackground},
+    keyText: {fontSize: 23, fontWeight: '700', color: colors.buttonTextSecondary || colors.textPrimary},
+    clearText: {fontSize: 13, fontWeight: '700', color: colors.buttonTextSecondary || colors.textPrimary},
+    action: {minHeight: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+      flexDirection: 'row', gap: 10, padding: 12},
+    primary: {backgroundColor: colors.buttonBackground || colors.primary, borderWidth: 1,
+      borderColor: colors.buttonBorder || colors.primary},
+    secondary: {backgroundColor: colors.buttonBackgroundSecondary || colors.cardBackground,
+      borderWidth: 1, borderColor: colors.buttonBorderSecondary || colors.cardBorder},
+    primaryText: {color: colors.buttonText || colors.textPrimary, fontSize: 17, fontWeight: '800'},
+    secondaryText: {color: colors.buttonTextSecondary || colors.textPrimary, fontSize: 15, fontWeight: '700'},
+    disabled: {opacity: 0.5},
+    feedback: {fontSize: 14, color: colors.textPrimary, padding: 12,
+      backgroundColor: colors.cardBackground, borderRadius: 8, borderWidth: 1, borderColor: colors.cardBorder},
+  });
+}

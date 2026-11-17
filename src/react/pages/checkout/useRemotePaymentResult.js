@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {
   isRemotePaymentResultMessage,
   normalizeRemotePaymentResultStatus,
@@ -6,6 +6,7 @@ import {
 } from '@controleonline/ui-common/src/react/utils/remotePayment';
 
 export default function useRemotePaymentResult({
+  waiterTabReturn = null,
   appendInvoiceToStore,
   appendOrderInvoiceToStore,
   buildOrderDetailsNavigationParams,
@@ -24,6 +25,7 @@ export default function useRemotePaymentResult({
   setSubmittingPayment,
   syncLoyaltySelectionToOrder,
 }) {
+  const handledRequest = useRef('');
   useEffect(() => {
     if (!isRemotePaymentResultMessage(invoiceMessage)) return;
 
@@ -40,6 +42,10 @@ export default function useRemotePaymentResult({
       invoiceActions.setMessage(null);
       return;
     }
+
+    // Store updates during an awaited refresh must not replay a paid invoice.
+    if (handledRequest.current === messageRequestKey) return;
+    handledRequest.current = messageRequestKey;
 
     const handleRemotePaymentResult = async () => {
       try {
@@ -70,6 +76,8 @@ export default function useRemotePaymentResult({
           const navigationOrder =
             syncedOrder || resolvedOrder || invoiceMessage?.order || routeOrderId || order;
 
+          if (waiterTabReturn) {waiterTabReturn(); return;}
+
           if (isSingleItemMode && nextPayable >= 0) {
             resetCompletedOrderState();
             resetToOrderHistory();
@@ -91,6 +99,8 @@ export default function useRemotePaymentResult({
         invoiceActions.setError(
           invoiceMessage?.error || 'Nao foi possivel concluir o pagamento remoto.',
         );
+      } catch (error) {
+        invoiceActions.setError(error?.message || 'Não foi possível atualizar o pagamento remoto. Atualize a consulta.');
       } finally {
         setPendingRemotePaymentRequest(null);
         setSubmittingPayment(false);
@@ -100,6 +110,7 @@ export default function useRemotePaymentResult({
 
     handleRemotePaymentResult();
   }, [
+    waiterTabReturn,
     appendInvoiceToStore,
     appendOrderInvoiceToStore,
     buildOrderDetailsNavigationParams,

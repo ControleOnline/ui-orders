@@ -1,0 +1,64 @@
+const React = require('react');
+const renderer = require('react-test-renderer');
+global.IS_REACT_ACT_ENVIRONMENT = true;
+jest.mock('react-native', () => {
+ const React = require('react');
+ return Object.fromEntries(['View', 'Text', 'TouchableOpacity'].map(name => [name, props => React.createElement(name, props, props.children)]));
+});
+jest.mock('react-native-vector-icons/MaterialIcons', () => 'Icon');
+const mockNavigate = jest.fn();
+jest.mock('@react-navigation/native', () => ({useNavigation: () => ({navigate: mockNavigate})}));
+jest.mock('@appType', () => ({app_type: 'POS'}));
+const mockStores = {orders: {getters: {item: {}}}, device_config: {getters: {item: {configs: {'pos-operation-mode': 'waiter'}}}}};
+jest.mock('@store', () => ({useStore: name => mockStores[name]}));
+const ProductQuantity = require('../../../../react/components/cart/ProductQuantity').default;
+const session = require('../../../../react/utils/addProductSession');
+const {confirmPendingProducts} = require('../../../../react/utils/confirmPendingProducts');
+let tree;
+const water = {id: 10, product: 'Água', price: 5};
+const line = (id, quantity, extra = {}) => ({id, product: water, quantity, price: 5, total: quantity * 5, ...extra});
+const mount = () => renderer.act(() => {tree = renderer.create(React.createElement(ProductQuantity, {product: water}));});
+const buttons = () => tree.root.findAllByType('TouchableOpacity');
+const quantity = () => tree.root.findByType('Text').props.children;
+beforeEach(() => {session.clearPendingAddProducts(); mockNavigate.mockReset(); mockStores.orders.getters.item = {id: 50, orderProducts: []}; mockStores.device_config.getters.item.configs['pos-operation-mode'] = 'waiter';});
+afterEach(() => {if (tree) renderer.act(() => tree.unmount()); tree = null; session.clearPendingAddProducts();});
+it('keeps confirmed root quantities on return, excludes combo children and only submits the added delta', async () => {
+ mockStores.orders.getters.item.orderProducts = [line(1, 2), line(2, 1), line(3, 4, {orderProduct: '/order_products/99'}), line(4, 2, {productGroup: {id: 1}}), line(5, 1, {__localPendingSelection: true})];
+ mount();
+ expect(quantity()).toBe(3);
+ renderer.act(() => buttons()[1].props.onPress());
+ expect(quantity()).toBe(4);
+ expect(session.listPendingAddProducts()[0].quantity).toBe(1);
+ const actions = {addProducts: jest.fn(async () => ({id: 50, orderProducts: [line(1, 4)]})), syncOrder: jest.fn()};
+ await renderer.act(async () => confirmPendingProducts({order: mockStores.orders.getters.item, ordersActions: actions, orderProductsActions: {setItems: jest.fn()}}));
+ expect(actions.addProducts).toHaveBeenCalledWith('50', [{product: '10', quantity: 1}], {silentError: true});
+});
+it('reduces pending additions first and sends confirmed edits to the existing cart', () => {
+ mockStores.orders.getters.item.orderProducts = [line(1, 2)];
+ session.setPendingAddProductQuantity(water, 1);
+ mount();
+ expect(quantity()).toBe(3);
+ renderer.act(() => buttons()[0].props.onPress());
+ expect(quantity()).toBe(2);
+ expect(session.listPendingAddProducts()).toEqual([]);
+ expect(mockNavigate).not.toHaveBeenCalled();
+ renderer.act(() => buttons()[0].props.onPress());
+ expect(mockNavigate).toHaveBeenCalledWith('OrderDetails', expect.objectContaining({id: '50', interactionMode: 'pdv', showBottomCart: false}));
+});
+it('shows saved quantity after acknowledgement and resets for a different empty launch', async () => {
+ mount();
+ renderer.act(() => {buttons()[1].props.onPress(); buttons()[1].props.onPress();});
+ expect(quantity()).toBe(2);
+ const actions = {addProducts: jest.fn(async () => {const acknowledged = {id: 50, orderProducts: [line(1, 2)]}; mockStores.orders.getters.item = acknowledged; return acknowledged;}), syncOrder: jest.fn()};
+ await renderer.act(async () => {await confirmPendingProducts({order: mockStores.orders.getters.item, ordersActions: actions, orderProductsActions: {setItems: jest.fn()}}); tree.update(React.createElement(ProductQuantity, {product: water}));});
+ expect(quantity()).toBe(2);
+ expect(session.listPendingAddProducts()).toEqual([]);
+ mockStores.orders.getters.item = {id: 51, orderProducts: []};
+ renderer.act(() => tree.update(React.createElement(ProductQuantity, {product: water})));
+ expect(quantity()).toBe('0');
+});
+it('preserves pending-only controls outside waiter mode', () => {
+ mockStores.device_config.getters.item.configs['pos-operation-mode'] = 'counter';
+ mockStores.orders.getters.item.orderProducts = [line(1, 2)];
+ mount(); expect(quantity()).toBe('0'); expect(buttons()[0].props.disabled).toBe(true);
+});

@@ -1,3 +1,6 @@
+import {app_type} from '@appType';
+import {confirmPendingProducts} from '../utils/confirmPendingProducts';
+import {resolvePosOperationMode, POS_OPERATION_MODE_WAITER} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
 import {useCallback} from 'react';
 import {useStore} from '@store';
 import usePosCartSession from '@controleonline/ui-orders/src/react/hooks/usePosCartSession';
@@ -144,6 +147,13 @@ export default function usePosOrderMaterialization({
         return null;
       }
 
+      if (String(app_type).toUpperCase() === 'POS' && !isSingleItemOperationMode &&
+          resolvePosOperationMode(runtimeDeviceConfig?.configs) === POS_OPERATION_MODE_WAITER) {
+        return await confirmPendingProducts({
+          order: targetOrder, ordersActions, orderProductsActions, products,
+        });
+      }
+
       const payload = mergeProducts([
         ...listPendingAddProducts(),
         ...(Array.isArray(products) ? products : []),
@@ -181,6 +191,8 @@ export default function usePosOrderMaterialization({
       interactionParams?.resumeExistingOrder,
       interactionParams?.singleItemMode,
       isSingleItemOperationMode,
+      runtimeDeviceConfig?.configs,
+      orderProductsActions,
       order,
       ordersActions,
       refreshMaterializedOrderProducts,

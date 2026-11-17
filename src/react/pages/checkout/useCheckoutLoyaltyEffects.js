@@ -1,11 +1,5 @@
 import {useEffect} from 'react';
-import {api} from '@controleonline/ui-common/src/api';
 import {
-  buildLoyaltyCpfSearchParams,
-  buildLoyaltyCpfSearchResults,
-  digitsOnly,
-  extractCollectionItems,
-  LOYALTY_CPF_MIN_SEARCH_LENGTH,
   resolveCheckoutLoyaltySelection,
   resolvePeopleId,
   resolveRewardableLoyaltyCard,
@@ -14,12 +8,9 @@ import {
 export default function useCheckoutLoyaltyEffects({
   mainCompany,
   currentCompany,
-  loadingLoyaltySnapshot,
   loyaltyCpfDigits,
   loyaltyCpfStepCompleted,
-  loyaltyCpfStepSkipped,
   loyaltySearchCompanyId,
-  loyaltySnapshotError,
   order,
   ordersActions,
   requiresLoyaltyCpfStep,
@@ -34,6 +25,9 @@ export default function useCheckoutLoyaltyEffects({
   setRewardableLoyaltyCard,
   setSelectedLoyaltyPerson,
 }) {
+  // Store refreshes replace the object; only a different order/customer resets identification.
+  const orderIdentity = resolvePeopleId(order);
+  const restoredPersonId = resolveCheckoutLoyaltySelection(order)?.id || '';
   useEffect(() => {
     if (!requiresLoyaltyCpfStep) {
       setLoyaltyCpfInput('');
@@ -62,64 +56,7 @@ export default function useCheckoutLoyaltyEffects({
     setLoyaltyCpfLoading(false);
     setLoyaltyCpfStepCompleted(false);
     setLoyaltyCpfStepSkipped(false);
-  }, [order, requiresLoyaltyCpfStep]);
-
-  useEffect(() => {
-    if (
-      !requiresLoyaltyCpfStep ||
-      loyaltyCpfStepCompleted ||
-      loyaltyCpfDigits.length < LOYALTY_CPF_MIN_SEARCH_LENGTH
-    ) {
-      setLoyaltyCpfLoading(false);
-      setLoyaltyCpfResults([]);
-      return undefined;
-    }
-
-    const selectedCpfDigits = digitsOnly(
-      selectedLoyaltyPerson?.cpf || selectedLoyaltyPerson?.cpfDisplay || '',
-    );
-    if (selectedCpfDigits && selectedCpfDigits === loyaltyCpfDigits) {
-      setLoyaltyCpfLoading(false);
-      setLoyaltyCpfResults([]);
-      return undefined;
-    }
-
-    let isActive = true;
-    const timeoutId = setTimeout(async () => {
-      setLoyaltyCpfLoading(true);
-      try {
-        const response = await api.fetch('people', {
-          params: buildLoyaltyCpfSearchParams({
-            companyId: loyaltySearchCompanyId,
-            query: loyaltyCpfDigits,
-          }),
-        });
-        if (!isActive) return;
-        setLoyaltyCpfResults(
-          buildLoyaltyCpfSearchResults(
-            extractCollectionItems(response),
-            loyaltyCpfDigits,
-          ),
-        );
-      } catch {
-        if (isActive) setLoyaltyCpfResults([]);
-      } finally {
-        if (isActive) setLoyaltyCpfLoading(false);
-      }
-    }, 300);
-
-    return () => {
-      isActive = false;
-      clearTimeout(timeoutId);
-    };
-  }, [
-    loyaltyCpfDigits,
-    loyaltySearchCompanyId,
-    loyaltyCpfStepCompleted,
-    requiresLoyaltyCpfStep,
-    selectedLoyaltyPerson?.cpf,
-    selectedLoyaltyPerson?.cpfDisplay,
-  ]);
+  }, [orderIdentity, restoredPersonId, currentCompany?.id, requiresLoyaltyCpfStep]);
 
   useEffect(() => {
     if (!requiresLoyaltyCpfStep || !resolvePeopleId(selectedLoyaltyPerson?.id)) {
@@ -131,6 +68,7 @@ export default function useCheckoutLoyaltyEffects({
 
     let isActive = true;
     setLoadingLoyaltySnapshot(true);
+    setLoyaltyCpfStepCompleted(false);
     setLoyaltySnapshotError('');
 
     ordersActions
@@ -139,7 +77,9 @@ export default function useCheckoutLoyaltyEffects({
         history: false,
       })
       .then(response => {
-        if (isActive) setRewardableLoyaltyCard(resolveRewardableLoyaltyCard(response));
+        if (!isActive) return;
+        setRewardableLoyaltyCard(resolveRewardableLoyaltyCard(response, resolvePeopleId(order?.provider) || resolvePeopleId(currentCompany)));
+        setLoyaltyCpfStepCompleted(true);
       })
       .catch(error => {
         if (!isActive) return;
@@ -157,6 +97,8 @@ export default function useCheckoutLoyaltyEffects({
       isActive = false;
     };
   }, [
+    orderIdentity,
+    order?.provider,
     currentCompany?.['@id'],
     currentCompany?.id,
     mainCompany?.['@id'],
@@ -166,25 +108,4 @@ export default function useCheckoutLoyaltyEffects({
     selectedLoyaltyPerson?.id,
   ]);
 
-  useEffect(() => {
-    if (
-      !requiresLoyaltyCpfStep ||
-      loyaltyCpfStepCompleted ||
-      loyaltyCpfStepSkipped ||
-      !resolvePeopleId(selectedLoyaltyPerson?.id) ||
-      loadingLoyaltySnapshot ||
-      loyaltySnapshotError
-    ) {
-      return;
-    }
-
-    setLoyaltyCpfStepCompleted(true);
-  }, [
-    loadingLoyaltySnapshot,
-    loyaltyCpfStepCompleted,
-    loyaltyCpfStepSkipped,
-    loyaltySnapshotError,
-    requiresLoyaltyCpfStep,
-    selectedLoyaltyPerson?.id,
-  ]);
 }
