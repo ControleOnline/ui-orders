@@ -40,6 +40,6 @@ export default function OrderHistoryRowActions({
 
 const s = StyleSheet.create({
   row: {flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 5},
-  button: {minHeight: 44, minWidth: 44, paddingHorizontal: 8, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5},
+  button: {minHeight: 30, minWidth: 30, paddingHorizontal: 8, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5},
   label: {fontSize: 12},
 });
