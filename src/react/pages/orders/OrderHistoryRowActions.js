@@ -30,16 +30,18 @@ export default function OrderHistoryRowActions({
       {!iconOnly ? <Text style={[s.label, {color: danger ? c.textDanger || text : custom ? custom.text : text}]}>{label}</Text> : null}
     </TouchableOpacity>;
   };
+  // Fixed slots keep Abrir / Pagar / Excluir (or Ver cancelamento) in the same position on every row.
+  const slot = (key, width, node) => <View key={key} style={{width}}>{node}</View>;
   return <View style={s.row}>
-    {onOpenOrder ? button('Abrir', 'eye', onOpenOrder, false, false, 'customOpen') : null}
-    {canPay ? button('Pagar', 'dollar-sign', () => onCreateInvoice?.(row), false, false, 'customPay') : null}
-    {canceled && onViewCancellation ? button('Ver cancelamento', 'info', () => onViewCancellation(row), true, false, 'customInfo') : null}
-    {canCancel && onCancelOrder ? button('Excluir pedido', 'trash-2', () => onCancelOrder(row), true, true) : null}
+    {slot('open', 66, onOpenOrder ? button('Abrir', 'eye', onOpenOrder, false, false, 'customOpen') : null)}
+    {slot('pay', 71, canPay ? button('Pagar', 'dollar-sign', () => onCreateInvoice?.(row), false, false, 'customPay') : null)}
+    {slot('last', 33, canceled && onViewCancellation ? button('Ver cancelamento', 'info', () => onViewCancellation(row), true, false, 'customInfo')
+      : canCancel && onCancelOrder ? button('Excluir pedido', 'trash-2', () => onCancelOrder(row), true, true) : null)}
   </View>;
 }
 
 const s = StyleSheet.create({
-  row: {flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 5},
+  row: {flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap', gap: 5},
   button: {minHeight: 30, minWidth: 30, paddingHorizontal: 8, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5},
   label: {fontSize: 12},
 });
