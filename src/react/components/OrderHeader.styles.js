@@ -1,6 +1,6 @@
 import {StyleSheet} from 'react-native'
 
-import {withOpacity} from '@controleonline/../../src/styles/branding'
+import {withOpacity} from '@controleonline/ui-layout/src/styles/branding'
 
 const createStyles = (palette, isKds) =>
   StyleSheet.create({

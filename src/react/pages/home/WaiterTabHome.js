@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import {useStore} from '@store';
 import DefaultTooltip from '@controleonline/ui-default/src/react/components/help/DefaultTooltip';
 import {isPosChargeEntryEnabled} from '@controleonline/ui-common/src/react/config/deviceConfigBootstrap';
-import {resolveThemePalette} from '@controleonline/../../src/styles/branding';
+import {resolveThemePalette} from '@controleonline/ui-layout/src/styles/branding';
 import usePosCartSession from '../../hooks/usePosCartSession';
 import {normalizeTabIdentifier, resolveWaiterTabDestination} from './waiterTabHomeActions';
 import createStyles from './WaiterTabHome.styles';

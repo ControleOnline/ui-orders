@@ -102,7 +102,7 @@ export const buildPosOperationInfo = ({currentCompany, deviceConfig} = {}) => {
     {
       key: 'check-order-type',
       label: 'Vínculo',
-      value: formatKnownValue(checkOrderType, CHECK_ORDER_TYPE_LABELS),
+      value: formatKnownValue(checkOrderType, {...CHECK_ORDER_TYPE_LABELS, stamp: operationMode === 'single-item' ? 'Carimbo' : CHECK_ORDER_TYPE_LABELS.stamp}),
     },
     {
       key: 'check-order-management-mode',

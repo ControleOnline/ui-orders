@@ -31,7 +31,7 @@ jest.mock('react-native', () => {
 })
 jest.mock('react-native-safe-area-context', () => ({SafeAreaView: 'SafeAreaView'}))
 jest.mock('@expo/vector-icons', () => ({MaterialCommunityIcons: 'Icon'}), {virtual: true})
-jest.mock('@controleonline/../../src/styles/branding', () => ({
+jest.mock('@controleonline/ui-layout/src/styles/branding', () => ({
   withOpacity: color => color,
   resolveThemePalette: () => ({background: '#fff', cardBackground: '#fff', primary: '#0090aa', textPrimary: '#111', textMuted: '#666'}),
 }))

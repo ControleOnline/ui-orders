@@ -242,6 +242,10 @@ export default function usePosCartSession({
   )
 
   const normalizeDraftOrderType = useCallback(async order => {
+    const providerId = normalizeId(order?.provider?.id || order?.provider?.['@id'] || order?.provider)
+    if (providerId && companyId && providerId !== normalizeId(companyId)) {
+      throw new Error('Este pedido pertence a outra empresa. Retorne ao catalogo da empresa selecionada.')
+    }
     if (!isOpenPosCartOrder(order, {usesLinkedCheckOrders})) {
       return order
     }
@@ -281,6 +285,7 @@ export default function usePosCartSession({
     }
   }, [
     buildOrderPayload,
+    companyId,
     ordersActions,
     usesLinkedCheckOrders,
   ])

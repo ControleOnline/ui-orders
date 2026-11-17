@@ -104,13 +104,17 @@ export const buildOrderHistoryPalette = themeColors => ({
 });
 
 export const buildHistoryRequestParams = ({
-  appType = app_type, canViewCompanyOrders, currentCompanyId, currentDeviceId, filters, orderTypeFilter, showAdvancedFilters,
+  appType = app_type, canViewCompanyOrders, currentCompanyId, currentDeviceId, filters, orderTypeFilter, showAdvancedFilters, singleItemMode = false,
 }) => {
   if (!currentCompanyId) return null;
   const query = {
     provider: `/people/${currentCompanyId}`,
     orderType: resolveHistoryOrderTypeQuery({ orderTypeFilter }),
   };
+  if (singleItemMode && appType === 'POS' && orderTypeFilter === 'sale') {
+    query.pendingPaymentOnly = '1';
+    query['status.realStatus'] = 'open';
+  }
   if (showAdvancedFilters && orderTypeFilter === 'sale') query.report = 1;
   if (!showAdvancedFilters && orderTypeFilter === 'sale') query['status.realStatus'] = 'open';
   if (showAdvancedFilters && filters?.app) query.app = filters.app;

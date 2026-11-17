@@ -4,7 +4,7 @@ import FeatherIcon from 'react-native-vector-icons/Feather'
 import {useStore} from '@store'
 
 import Formatter from '@controleonline/ui-common/src/utils/formatter'
-import {withOpacity} from '@controleonline/../../src/styles/branding'
+import {withOpacity} from '@controleonline/ui-layout/src/styles/branding'
 import {getOrderChannelLabel, getOrderChannelLogo} from '@assets/ppc/channels'
 
 import OrderCardHeader from './OrderCardHeader'

@@ -61,7 +61,7 @@ jest.mock('@controleonline/ui-common/src/utils/formatter', () => ({
   formatDateYmdTodmY: jest.fn(() => '27/04/2026, 19:36'),
   formatMoney: jest.fn(value => `R$ ${value}`),
 }))
-jest.mock('@controleonline/../../src/styles/branding', () => ({
+jest.mock('@controleonline/ui-layout/src/styles/branding', () => ({
   withOpacity: jest.fn((color, opacity) => `${color}:${opacity}`),
 }))
 jest.mock('@assets/ppc/channels', () => ({

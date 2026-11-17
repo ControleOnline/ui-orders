@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, useWindowDimensions,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
@@ -54,8 +54,6 @@ import useOrderHistoryFilters from './useOrderHistoryFilters';
 export { buildHistoryRequestParams };
 
 export default function OrderHistoryPage({ navigation, route }) {
-  const {width} = useWindowDimensions();
-  const cardListProps = useMemo(() => ({numColumns: width >= 1280 ? 3 : width >= 800 ? 2 : 1}), [width]);
   const ordersStore = useStore('orders');
   const peopleStore = useStore('people');
   const statusStore = useStore('status');
@@ -75,7 +73,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { item: storagedDevice } = deviceStore.getters || {};
   const { item: deviceConfig } = deviceConfigStore.getters || {};
   const { actions: peopleActions, getters: peopleGetters } = peopleStore;
-  const { getters: statusGetters } = statusStore;
+  const { actions: statusActions, getters: statusGetters } = statusStore;
   const { currentCompany, mainCompany } = peopleGetters;
   const themeColors = useMemo(() => themeStore.getters.colors, [themeStore.getters.colors]);
   const currentUserLabel = getCurrentUserLabel(authStore?.getters?.user);
@@ -95,9 +93,10 @@ export default function OrderHistoryPage({ navigation, route }) {
     [deviceConfig?.configs],
   );
   const shouldRestrictToDeviceOrders = isPosApp && !canViewCompanyOrders;
-  const showAdvancedFilters = !isPosApp || canViewCompanyOrders;
+  const isSingleItemHistory = isPosApp && isPosSingleItemMode(deviceConfig?.configs);
+  const showAdvancedFilters = !isSingleItemHistory && (!isPosApp || canViewCompanyOrders);
   const isWaiterMode = isPosApp && resolvePosOperationMode(deviceConfig?.configs) === 'waiter';
-  const showHistoryToolbar = !isWaiterMode && !shouldRestrictToDeviceOrders;
+  const showHistoryToolbar = isSingleItemHistory || (!isWaiterMode && !shouldRestrictToDeviceOrders);
   const showOrderHistoryRowActions = !isPosApp;
   const [markAsPaidOrder, setMarkAsPaidOrder] = useState(null);
   const statusItems = useMemo(
@@ -114,6 +113,7 @@ export default function OrderHistoryPage({ navigation, route }) {
   const { historyFilters, applyHistoryFilters, statusOptions } = useOrderHistoryFilters({
     orderActions,
     statusItems,
+    operationalSingleItem: isSingleItemHistory,
   });
 
   const routeOrderTypeFilter = useMemo(
@@ -210,19 +210,6 @@ export default function OrderHistoryPage({ navigation, route }) {
     }
   }, [isCashRegisterClosed, isFocused, navigation]);
 
-  const searchPlaceholder = useMemo(() => {
-    if (orderTypeFilter === 'purchase') {
-      return global.t?.t('orders', 'placeholder', 'search_purchase');
-    }
-    if (orderTypeFilter === 'transfer') {
-      return global.t?.t('orders', 'placeholder', 'search_transfer');
-    }
-    if (orderTypeFilter === 'loss') {
-      return global.t?.t('orders', 'placeholder', 'search_loss');
-    }
-    return global.t?.t('orders', 'placeholder', 'search_default');
-  }, [orderTypeFilter]);
-
   const configuredOrderColumns = useMemo(
     () => configureOrderHistoryColumns({
       columns: ordersGetters.columns, showAdvancedFilters, orderTypeFilter,
@@ -236,10 +223,17 @@ export default function OrderHistoryPage({ navigation, route }) {
       buildExternalColumnsSignature(configuredOrderColumns),
     [configuredOrderColumns, ordersGetters.columns],
   );
+  // Order statuses feed the Status filter; without this fetch the filter only offers "Todos".
+  useEffect(() => {
+    if (!isFocused || !currentCompany?.id) return;
+    statusActions?.getItems?.({ context: 'order' })?.catch?.(() => {});
+  }, [currentCompany?.id, isFocused, statusActions]);
+
   const getExternalFilterOptions = useCallback(
     column => {
       const fieldName = column?.name || column?.key;
-      if (fieldName === 'status') return statusOptions;
+      // An empty array would hide the column's own list loader, so fall through until statuses arrive.
+      if (fieldName === 'status') return statusOptions.length > 0 ? statusOptions : undefined;
 
       return undefined;
     },
@@ -262,11 +256,13 @@ export default function OrderHistoryPage({ navigation, route }) {
         currentCompanyId: currentCompany?.id,
         currentDeviceId: storagedDevice?.id,
         filters: historyFilters,
+        singleItemMode: isSingleItemHistory,
         orderTypeFilter,
         showAdvancedFilters,
-      }), ...(orderTypeFilter === 'sale' && !isWaiterMode ? {summary: 'sales'} : {})}),
+      }), ...(isSingleItemHistory ? {summary: 'operational'} : orderTypeFilter === 'sale' && !isWaiterMode ? {summary: 'sales'} : {})}),
     [
       isWaiterMode,
+      isSingleItemHistory,
       canViewCompanyOrders,
       currentCompany?.id,
       historyFilters,
@@ -413,13 +409,17 @@ export default function OrderHistoryPage({ navigation, route }) {
 
         <View style={styles.tableWrap}>
           <DefaultTable
-            appearance="compact"
-            paginationMode="pages"
+            paginationMode={isSingleItemHistory ? "infinite" : "pages"}
+            initialViewMode="cards"
+            viewMode={isSingleItemHistory ? "cards" : null}
+            showCompactCaption={!isSingleItemHistory}
+            showToolbarControls={!isSingleItemHistory}
+            showToolbarActions={!isSingleItemHistory}
+            showAdministrativeTools={!isSingleItemHistory}
             pageSize={20}
             addLabel="Novo pedido"
-            cardListProps={cardListProps}
             rowActionsWidth={210}
-            footerComponent={OrderHistoryCompactFooter}
+            footerComponent={isSingleItemHistory ? null : OrderHistoryCompactFooter}
             accentColor={themeColors.primary}
             add={orderTypeFilter === 'loss' ? false : null}
             filters={historyFilters}
@@ -430,16 +430,16 @@ export default function OrderHistoryPage({ navigation, route }) {
             rowActionsComponent={renderRowActions}
             requestParams={historyRequestParams}
             renderCard={renderCard}
-            showSearch={showAdvancedFilters}
+            showSearch={isSingleItemHistory || showAdvancedFilters}
             searchPlaceholder="Buscar por ID ou cliente"
             getOptionsForColumn={getExternalFilterOptions}
             showRowActions={showOrderHistoryRowActions}
             showToolbar={showHistoryToolbar}
-            showTotalItemsInFooter={!isWaiterMode}
+            showTotalItemsInFooter={!isWaiterMode && !isSingleItemHistory}
             storeName="orders"
             summary={false}
             toolbarActions={isWaiterMode ? [] : orderToolbarActions}
-            visibleColumnsPreferenceKey={ORDER_HISTORY_TABLE_PREFERENCE_KEY}
+            visibleColumnsPreferenceKey={isSingleItemHistory ? "orders:pos:single-item" : ORDER_HISTORY_TABLE_PREFERENCE_KEY}
           />
         </View>
       </View>

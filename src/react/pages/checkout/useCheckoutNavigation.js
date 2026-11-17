@@ -1,3 +1,4 @@
+import {app_type} from '@appType';
 import React, {useCallback, useEffect} from 'react';
 import {TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -83,9 +84,10 @@ export default function useCheckoutNavigation({
   const resetToOrderHistory = useCallback(() => {
     navigation.reset({
       index: 0,
-      routes: [{name: 'OrderHistoryPage'}],
+      routes: [{name: app_type === 'POS' && isSingleItemMode ? 'HomePage' : 'OrderHistoryPage',
+        ...(app_type === 'POS' && isSingleItemMode ? {params:{startNewOrder:true}} : {})}],
     });
-  }, [navigation]);
+  }, [navigation, isSingleItemMode]);
 
   return {
     buildOrderDetailsNavigationParams,

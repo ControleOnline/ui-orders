@@ -289,6 +289,7 @@ export default function useCheckoutPaymentRunners({
       if (isCreateInvoiceOnlyMode()) {
         setSubmittingPayment(true);
         try {
+          if (verifyChargeChannel) await verifyChargeChannel('remote', Number(total));
           await createPaidInvoice(payment, total, order);
           clearCreateInvoiceOnlyMode();
         } catch (error) {

@@ -4,6 +4,8 @@ const {
   extractPeopleCpfDigits,
   filterLoyaltySnapshotCardsByProvider,
   formatCpfDisplay,
+  isValidCpf,
+  LOYALTY_CPF_MIN_SEARCH_LENGTH,
   isLoyaltyCouponsEnabledForCheckout,
   resolveLoyaltyStampCount,
   resolveCheckoutCompanyConfigs,
@@ -26,68 +28,72 @@ describe('checkoutLoyaltyCpf helpers', () => {
     expect(formatCpfDisplay('52998224725')).toBe('529.982.247-25')
   })
 
-  it('filters and ranks search suggestions by typed cpf digits', () => {
+  it('only searches once the cpf is complete', () => {
+    const items = [{id: 8, name: 'Maria', document: [{document: '52998224725'}]}]
+
+    expect(LOYALTY_CPF_MIN_SEARCH_LENGTH).toBe(11)
+    expect(buildLoyaltyCpfSearchResults(items, '52998')).toEqual([])
+    expect(buildLoyaltyCpfSearchResults(items, '529.982.247-2')).toEqual([])
+  })
+
+  it('keeps only the exact cpf match', () => {
     const results = buildLoyaltyCpfSearchResults(
       [
-        {
-          id: 8,
-          name: 'Maria',
-          alias: 'Silva',
-          document: [{document: '52998224725'}],
-        },
-        {
-          id: 9,
-          name: 'Joao',
-          alias: 'Souza',
-          document: [{document: '11529982247'}],
-        },
+        {id: 8, name: 'Maria', document: [{document: '52998224725'}]},
+        {id: 9, name: 'Joao', document: [{document: '11529982247'}]},
       ],
-      '52998',
+      '529.982.247-25',
     )
 
-    expect(results).toHaveLength(2)
+    expect(results).toHaveLength(1)
     expect(results[0].id).toBe(8)
     expect(results[0].cpfDisplay).toBe('529.982.247-25')
   })
 
-  it('keeps api results when the collection payload omits document data', () => {
+  it('restores the leading zero lost by integer documents', () => {
+    expect(
+      extractPeopleCpfDigits({
+        document: [{document: 1234567890, documentType: {documentType: 'CPF'}}],
+      }),
+    ).toBe('01234567890')
+  })
+
+  it('trusts the api exact match when the payload omits document data', () => {
     const results = buildLoyaltyCpfSearchResults(
-      [
-        {
-          id: 8,
-          name: 'Maria',
-          alias: 'Silva',
-        },
-      ],
-      '52998',
+      [{id: 8, name: 'Maria', alias: 'Silva'}],
+      '52998224725',
     )
 
     expect(results).toHaveLength(1)
     expect(results[0]).toEqual(
-      expect.objectContaining({
-        id: 8,
-        cpf: '',
-        cpfDisplay: '',
-      }),
+      expect.objectContaining({id: 8, cpf: '52998224725', cpfDisplay: '529.982.247-25'}),
     )
   })
 
-  it('builds loyalty cpf search params against the parent company context', () => {
+  it('validates cpf check digits', () => {
+    expect(isValidCpf('529.982.247-25')).toBe(true)
+    expect(isValidCpf('52998224726')).toBe(false)
+    expect(isValidCpf('11111111111')).toBe(false)
+    expect(isValidCpf('5299822472')).toBe(false)
+  })
+
+  it('builds the exact cpf lookup params against the current company', () => {
     expect(
-      buildLoyaltyCpfSearchParams({
-        companyId: '/people/3',
-        query: '151.57',
-      }),
+      buildLoyaltyCpfSearchParams({companyId: '/people/3', query: '529.982.247-25'}),
     ).toEqual({
-      itemsPerPage: 8,
+      itemsPerPage: 2,
       peopleType: 'F',
-      search: '15157',
+      cpf: '52998224725',
       company: '/people/3',
-      linkType: 'client',
-      'link.company': '/people/3',
-      'link.linkType': 'client',
-      context: 'loyalty-cpf',
+      context: 'checkout-cpf-lookup',
     })
+  })
+
+  it('keeps the leading zero of the cpf in the lookup params', () => {
+    const params = buildLoyaltyCpfSearchParams({companyId: 3, query: '015.157.489-87'})
+    expect(params.cpf).toBe('01515748987')
+    expect(params.search).toBeUndefined()
+    expect(isValidCpf('015.157.489-87')).toBe(true)
   })
 
   it('detects loyalty enablement from manager configs', () => {

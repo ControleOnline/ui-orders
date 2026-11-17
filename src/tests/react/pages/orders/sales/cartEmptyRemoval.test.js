@@ -16,7 +16,7 @@ jest.mock('@controleonline/ui-orders/src/react/css/orders', () => () => ({styles
 jest.mock('../../../../../react/pages/orders/sales/useOrderDetailsVisuals', () => () => ({ppcColors:{},styles:{}}))
 jest.mock('react-native-vector-icons/MaterialIcons', () => mockNode('Icon'))
 jest.mock('@expo/vector-icons', () => ({MaterialCommunityIcons:mockNode('Icon')}))
-jest.mock('@controleonline/../../src/styles/branding', () => ({withOpacity:()=>''}))
+jest.mock('@controleonline/ui-layout/src/styles/branding', () => ({withOpacity:()=>''}))
 jest.mock('@controleonline/ui-common/src/react/utils/fileUrl', () => ({resolveFileImageUrl:()=>''}))
 jest.mock('../../../../../react/components/adjustment/OrderProductAdjustmentButton', () => () => null)
 const mockNavigation={setOptions:jest.fn(),navigate:jest.fn()}
