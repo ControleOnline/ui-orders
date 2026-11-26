@@ -37,7 +37,6 @@ export default function OrderDetailsView(p) {
     globalStyles,
     useUnifiedKdsLayout,
     currentCompany,
-    mainCompany,
     refreshCurrentOrder,
     marketplaceSummary,
     shouldStackHeaderActions,
