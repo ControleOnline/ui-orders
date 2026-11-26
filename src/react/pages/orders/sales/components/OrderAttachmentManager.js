@@ -42,8 +42,8 @@ const OrderAttachmentManager = ({
   const peopleStore = useStore('people');
   const orderFileStore = useStore('order_file');
 
-  const {currentCompany, mainCompany} = peopleStore.getters || {};
-  const resolvedCompany = company || currentCompany || mainCompany || null;
+  const {currentCompany} = peopleStore.getters || {};
+  const resolvedCompany = company || currentCompany || null;
   const companyId = useMemo(() => getEntityId(resolvedCompany), [resolvedCompany]);
   const orderId = useMemo(() => getEntityId(order), [order]);
   const orderIri = useMemo(() => (orderId ? `/orders/${orderId}` : null), [orderId]);

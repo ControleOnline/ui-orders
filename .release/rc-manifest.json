@@ -1,18 +1,20 @@
 {
-  "version": "1.3.57",
+  "version": "1.3.58",
   "rc": 1,
-  "branch": "rc/1.3.57-rc.1",
-  "baseMaster": "c2ea50ac43fd5dede1bc76157883003c1446d079",
+  "branch": "rc/1.3.58-rc.1",
+  "baseMaster": "b604b68ed1012146eeedf48d103fc6653582585b",
+  "baseTag": "v1.3.57",
   "tasks": [
-    776
+    1761
   ],
+  "taskRepository": "ControleOnline/app-community",
   "frozen": true,
   "repositories": {
-    "ControleOnline/ui-orders": "a0fa88546bc1a2f0097deecdfd0b91cbddcafe71"
+    "ControleOnline/ui-orders": "acd2eb72299cad5c853f3bf1eb2171fbcf7fa290"
   },
-  "validation": {
-    "scope": "Promocao da dev para master (142 commits desde 1.3.36, ja servidos em staging via npm 1.3.53-1.3.56). Inclui task 776: tokens button*_custom* e botoes Abrir/Pagar/lixeira com 30px em posicoes fixas.",
-    "checks": "orderHistoryCompact 9/9. Conteudo identico ao 1.3.56 publicado a partir de dev; 1.3.57 evita colisao com a tag v1.3.56.",
-    "note": "Inclui trabalho de outras tasks ja presente na dev (ex.: app-community#1253, #1187)."
+  "sources": {
+    "versão de produção v1.3.56": "ef45685b22327a00eb34cb8261f15781068b13a5",
+    "staging": "8abb4d6d2b8ac3b17f7f6ccc4c329cc0c3601e1f",
+    "dev": "ac9cef9af4f818047a5d846306c55e9df76802a7"
   }
 }

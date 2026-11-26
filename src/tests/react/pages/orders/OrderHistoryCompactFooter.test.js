@@ -15,13 +15,29 @@ jest.mock('react-native', () => {
 });
 jest.mock('@controleonline/ui-default/src/react/components/table/useDefaultTableTheme', () => () => ({themeColors: {}}));
 jest.mock('@controleonline/ui-common/src/utils/formatter', () => ({formatMoney: v => String(v)}));
-jest.mock('@controleonline/ui-default/src/react/components/table/DefaultTablePaginationBar', () => () => 'PAGINATION_BAR');
+jest.mock('@controleonline/ui-default/src/react/components/table/DefaultTablePaginationBar', () => props => require('react').createElement('pager', {embedded: String(props.embedded)}, 'PAGINATION_BAR'));
 
 const OrderHistoryCompactFooter = require('../../../../react/pages/orders/OrderHistoryCompactFooter').default;
 
 const render = () => ReactDOMServer.renderToStaticMarkup(React.createElement(OrderHistoryCompactFooter, {storeName: 'orders'}));
 
+jest.mock('../../../../react/pages/orders/orderHistoryCompactSummary', () => ({
+  resolveHistorySalesTotals: () => ({orders: 7, revenue: 100, averageTicket: 14}),
+}));
+
 describe('OrderHistoryCompactFooter', () => {
+  it('keeps totals and the embedded paginator in a single row', () => {
+    mockConfigs = {paginationMode: 'pages', showTotalItemsInFooter: true, requestParams: {summary: 'sales'}};
+    const html = render();
+    expect(html).toContain('embedded="true"');
+    expect(html).toContain('Vendas concluídas');
+    expect(html).toContain('Receita concluída');
+    expect(html).toContain('Ticket médio');
+    // Exactly one footer container holds both the metrics and the pager.
+    expect(html.indexOf('PAGINATION_BAR')).toBeGreaterThan(html.indexOf('Ticket médio'));
+    expect(html).not.toContain('filtros aplicados');
+  });
+
   it('renders the paginator next to the totals', () => {
     mockConfigs = {paginationMode: 'pages', showTotalItemsInFooter: true};
     const html = render();
