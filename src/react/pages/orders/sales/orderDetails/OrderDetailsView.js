@@ -197,7 +197,7 @@ export default function OrderDetailsView(p) {
         visible={attachmentsVisible}
         onClose={() => setAttachmentsVisible(false)}
         order={orderIdentitySource}
-        company={currentCompany || mainCompany}
+        company={currentCompany}
         onChanged={() => refreshCurrentOrder({force: true})}
       />
       <OrderMarketplaceOverlayHost marketplace={marketplaceSummary.summary} />
